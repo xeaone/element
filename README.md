@@ -3,43 +3,30 @@
 
 # Oxe
 A mighty tiny web components framework/library.
-<!-- Command line interface moved to [oxe-cli](https://github.com/vokeio/oxe-cli). -->
 
-### API
-Api documentation can be found at [API.md](https://github.com/vokeio/oxe/blob/master/API.md).
+## Project Goal
+- Easy learning curve
+- Feels like JS and HTML not a framework
 
-### VERSION
-Breaking version changes can be found at [VERSION.md](https://github.com/vokeio/oxe/blob/master/VERSION.md).
+## Feature Highlight
+- Zero config smart front end routing
+- Dynamic ES6/ESM module rewrites (Use ES6 modules in browsers that don't have native support)
+- Dynamic Template string rewrites (Use template strings in browsers that don't have native support)
 
-### Features
-- Small size
-- Front end routing
-- Configuration based
-- Dynamic import polyfill
-- Template string polyfill
-- In browser Template and Import/Export rewrites
+## Polyfill You Might Need
+- customElements
+- URL, Promise, fetch
+- TMLTemplateElement
+- Event, CustomEvent
 
-### Polyfill
-- [poly.min.js](https://github.com/vokeio/oxe/blob/master/dst/poly.min.js) includes everything need except shadow poly code.
-	- customElements
-	- DocumentFragment
-	- URL, Promise, fetch
-	- HTMLTemplateElement
-	- Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from
-- [poly.shadow.min.js](https://github.com/vokeio/oxe/blob/master/dst/poly.shadow.min.js) includes everything.
-	- Webcomponentsjs
-	- DocumentFragment
-	- URL, Promise, fetch
-
-
-### Support
-- IE10~
+## Browser Support
 - IE11
 - Chrome
 - Firefox
 - Safari 7
 - Mobile Safari
 - Chrome Android
+
 
 ### Overview
 Live examples [vokeio.github.io/oxe/](https://vokeio.github.io/oxe/).
@@ -49,73 +36,74 @@ Live examples [vokeio.github.io/oxe/](https://vokeio.github.io/oxe/).
 - Script `dst/poly.min.js`
 - UMD `dst/oxe.min.js`
 
-## Example
+## Component Example
 ```js
-// home.js
+// my-component.js
 
-export default {
-	path: '/',
-	title: 'Home',
-	component: {
-		name: 'r-home',
-		template: `
-			<h1 o-text="title"></h1>
-			<button o-on-click="greet">Greet</button>
-		`,
-		model: {
-			greeting: 'Old Hello World'
-		},
-		methods: {
-			greet: function () {
-				console.log(this.model.greeting);
-			}
-		},
-		created: function () {
-			console.log(this.model.greeting);
-			this.model.greeting = 'New Hello World';
-		}
-	}
-};
+const { Component } = Oxe;
+
+export default MyComponent extends Component {
+    static attributes = []
+    adopt = false
+    shadow = false
+    css = '
+    '
+    html = `
+        <h1>{{title}}</h1>
+        <button onclick="{{greet()}}">Greet</button>
+    `
+    data = {
+        greeting: '',
+        greet () { this.greeting = 'Hola Mundo'; }
+    }
+    async adopted () {}
+    async attributed () {}
+    async disconnected () {}
+    async connected () {
+        this.data.greeting = 'Hello World';
+    }
+}
 ```
+
+## Route Example
+```js
+// routes/index.js
+
+const { Component } = Oxe;
+
+export default Index extends Component {
+    title = 'Index Route'
+    description = 'Index Description'
+    html = `<my-component></my-component>`
+    async connected () {
+        console.log('route connected');
+    }
+}
+```
+
 ```js
 // index.js
 
-import './elements/e-menu.js';
-import Home from './home.js';
 
-Oxe.setup({
-	loader: {
-		type: 'es' // required to rewrite import exports
-	},
-	router: {
-		routes: [
-			Home,
-			'error' // dynamically loads and resolves to /routes/error.js
-		]
-	}
-}).catch(console.error);
+await Oxe.define([
+    './my-component.js'
+]); // or import module and use window.customElements.define();
+
+await Oxe.router.setup({
+    target: 'main',
+    folder: 'routes'
+});
 ```
+
 ```html
 <!-- index.html -->
-
 <html>
 <head>
-
-	<base href="/">
-	<script src="./poly.min.js" defer></script>
-	<script src="./oxe.min.js" o-setup="./index.js, es" defer></script>
-
+    <script src="/oxe.min.js" defer></script>
+    <script src="/index.js" defer></script>
 </head>
 <body>
-
-	<e-menu>
-		<ul>
-			<li><a href="/home">Home</a></li>
-		</ul>
-	</e-menu>
-
-	<o-router></o-router>
-
+    <main></main>
 </body>
 </html>
 ```

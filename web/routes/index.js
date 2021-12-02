@@ -3,34 +3,64 @@ import Say from '../modules/say.js';
 
 const { Component } = Oxe;
 
+const componentCode = Code(`
+// my-component.js
+
+const { Component } = Oxe;
+
+export default MyComponent extends Component {
+    static attributes = []
+    adopt = false
+    shadow = false
+    css = '
+    '
+    html = \`
+    < h1 > {{ title }}</h1 >
+        <button onclick="{{greet()}}">Greet</button>;
+    \`
+    data = {
+        greeting: '',
+        greet () { this.greeting = 'Hola Mundo'; }
+    }
+    async adopted () {}
+    async attributed () {}
+    async disconnected () {}
+    async connected () {
+        this.data.greeting = 'Hello World';
+    }
+}
+`, true);
+
 var indexRoute = Code(`
+    // routes/index.js
+
     const { Component } = Oxe;
 
 	export default Index extends Component {
 		title = 'Index Route'
         description = 'Index Description'
-		html = \`
-			<h1>{{title}}</h1>
-			<button onclick="{{greet()}}">Greet</button>
-		\`
-		data = {
-			greeting: '',
-			greet () { this.greeting = 'Hola Mundo'; }
-		}
-		async connected () {
-			this.data.greeting = 'Hello World';
-		}
+		html = \`<my-component></my-component>\`
+        async connected () {
+            console.log('route connected');
+        }
 	}
 `, true);
 
 var indexJs = Code(`
-	Oxe.router.setup({
+    // index.js
+
+    await Oxe.define([
+        './my-component.js'
+    ]); // or import module and use window.customElements.define();
+
+	await Oxe.router.setup({
 		target: 'main',
 		folder: 'routes'
-	});
+    }); // or import module and use window.customElements.define();
 `);
 
 var indexHtml = Code(`
+    <!-- index.html -->
 	<html>
 	<head>
 		<script src="/oxe.min.js" defer></script>
@@ -68,6 +98,14 @@ export default class IndexRoute extends Component {
 		<li>Dynamic Template string rewrites (Use template strings in browsers that don't have native support)</li>
 	</ul>
 
+	<strong>Polyfill You Might Need</strong>
+	<ul>
+        <li>customElements</li>
+        <li>URL, Promise, fetch</li>
+        <li>HTMLTemplateElement</li>
+        <li>Event, CustomEvent</li>
+    </ul>
+
 	<strong>Browser Support</strong>
 	<ul>
 		<li>IE11</li>
@@ -78,39 +116,16 @@ export default class IndexRoute extends Component {
 		<li>Chrome Android</li>
 	</ul>
 
-	<strong>Polyfill</strong>
-	<ul>
-		<li>
-			<p>
-				<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything you need except shadow poly code.
-			</p>
-			<ul>
-				<li>customElements</li>
-				<li>DocumentFragment</li>
-				<li>URL, Promise, fetch</li>
-				<li>HTMLTemplateElement</li>
-				<li>Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from</li>
-			</ul>
-		</li>
-		<li>
-			<p>
-				<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.shadow.min.js">poly.shadow.min.js</a> includes everything.
-			</p>
-			<ul>
-				<li>Webcomponentsjs</li>
-				<li>DocumentFragment</li>
-				<li>URL, Promise, fetch</li>
-			</ul>
-		</li>
-	</ul>
-
 	<strong>Install</strong>
 	<ul>
 		<li><i>npm install oxe --save</i></li>
 		<li>UMD <i>"dst/oxe.min.js"</i></li>
 	</ul>
 
-	<h2>Example</h2>
+	<h2>Component Example</h2>
+	<pre>${componentCode}</pre>
+
+	<h2>Route Example</h2>
 	<pre>${indexRoute}</pre>
     <br>
 	<pre>${indexJs}</pre>
