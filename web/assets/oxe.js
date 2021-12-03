@@ -1737,9 +1737,6 @@
                     component = (await load(load$1)).default;
                 }
                 catch (error) {
-                    console.log(path, load$1, base);
-                    console.log(window.location.pathname);
-                    console.log(error);
                     if (error.message === `Failed to fetch dynamically imported module: ${window.location.origin}${load$1}`) {
                         component = (await load(absolute(`${this.#folder}/all.js`))).default;
                     }

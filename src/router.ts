@@ -158,9 +158,6 @@ export default new class Router {
             try {
                 component = (await Load(load)).default;
             } catch (error) {
-                console.log(path, load, base);
-                console.log(error);
-
                 if (error.message === `Failed to fetch dynamically imported module: ${window.location.origin}${load}`) {
                     component = (await Load(absolute(`${this.#folder}/all.js`))).default;
                 } else {
