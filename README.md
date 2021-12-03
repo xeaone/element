@@ -20,7 +20,7 @@ A mighty tiny web components framework/library.
 - Event, CustomEvent
 
 ## Browser Support
-- IE11
+- IE11~
 - Chrome
 - Firefox
 - Safari 7

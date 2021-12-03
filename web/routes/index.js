@@ -108,7 +108,7 @@ export default class IndexRoute extends Component {
 
 	<strong>Browser Support</strong>
 	<ul>
-		<li>IE11</li>
+		<li>IE11~</li>
 		<li>Chrome</li>
 		<li>Firefox</li>
 		<li>Safari 7</li>
