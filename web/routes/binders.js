@@ -1,5 +1,5 @@
-import Code from '../../modules/code.js';
-import Color from '../../modules/color.js';
+import Code from '../modules/code.js';
+import Color from '../modules/color.js';
 
 const { Component } = Oxe;
 
