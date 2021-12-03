@@ -1,6 +1,6 @@
 {
     "name": "oxe",
-    "version": "6.0.4",
+    "version": "6.0.5",
     "type": "module",
     "description": "A mighty tiny web components framework/library",
     "main": "pro/oxe.min.js",
