@@ -1,7 +1,7 @@
 
 /*!
     Name: oxe
-    Version: 6.0.2
+    Version: 6.0.3
     License: MPL-2.0
     Author: Alexander Elias
     Email: alex.steven.elis@gmail.com
@@ -1721,8 +1721,9 @@
                 element = this.#cache ? route.element : window.document.createElement(route.name);
             }
             else {
-                const path = location.pathname.endsWith('/') ? 'index' : location.pathname;
-                let load$1 = path;
+                const path = location.pathname.endsWith('/') ? `${location.pathname}index` : location.pathname;
+                const base = document.baseURI.replace(window.location.origin, '');
+                let load$1 = path.startsWith(base) ? path.replace(base, '') : path;
                 if (load$1.slice(0, 2) === './')
                     load$1 = load$1.slice(2);
                 if (load$1.slice(0, 1) !== '/')
