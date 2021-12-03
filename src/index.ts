@@ -29,6 +29,14 @@ if (typeof window.CustomEvent !== 'function') {
 //     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
 // }
 
+if (!window.String.prototype.endsWith) {
+    window.String.prototype.endsWith = function (search, this_len) {
+        'use strict';
+        if (this_len === undefined || this_len > this.length) this_len = this.length;
+        return this.substring(this_len - search.length, this_len) === search;
+    };
+}
+
 if (!window.String.prototype.startsWith) {
     window.String.prototype.startsWith = function startsWith (search, rawPos) {
         'use strict';

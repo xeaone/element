@@ -143,7 +143,7 @@ export default new class Router {
             const route = this.#data[ location.pathname ];
             element = this.#cache ? route.element : window.document.createElement(route.name);
         } else {
-            const path = location.pathname === '/' ? '/index' : location.pathname;
+            const path = location.pathname.endsWith('/') ? `${location.pathname}index` : location.pathname;
 
             let load = path;
             if (load.slice(0, 2) === './') load = load.slice(2);

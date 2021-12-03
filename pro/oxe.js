@@ -1,7 +1,7 @@
 
 /*!
     Name: oxe
-    Version: 6.0.0
+    Version: 6.0.1
     License: MPL-2.0
     Author: Alexander Elias
     Email: alex.steven.elis@gmail.com
@@ -1875,7 +1875,7 @@
                     element = __classPrivateFieldGet(this, _Router_cache, "f") ? route.element : window.document.createElement(route.name);
                 }
                 else {
-                    const path = location.pathname === '/' ? '/index' : location.pathname;
+                    const path = location.pathname.endsWith('/') ? `${location.pathname}index` : location.pathname;
                     let load$1 = path;
                     if (load$1.slice(0, 2) === './')
                         load$1 = load$1.slice(2);
@@ -2066,6 +2066,13 @@
     // if (window.NodeList && !window.NodeList.prototype.forEach) {
     //     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
     // }
+    if (!window.String.prototype.endsWith) {
+        window.String.prototype.endsWith = function (search, this_len) {
+            if (this_len === undefined || this_len > this.length)
+                this_len = this.length;
+            return this.substring(this_len - search.length, this_len) === search;
+        };
+    }
     if (!window.String.prototype.startsWith) {
         window.String.prototype.startsWith = function startsWith(search, rawPos) {
             var pos = rawPos > 0 ? rawPos | 0 : 0;

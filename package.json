@@ -1,13 +1,14 @@
 {
     "name": "oxe",
-    "version": "6.0.0",
+    "version": "6.0.1",
     "type": "module",
     "description": "A mighty tiny web components framework/library",
     "main": "pro/oxe.min.js",
     "scripts": {
-        "b": "rollup -c rollup.pro.js",
+        "pro": "npx rollup -c rollup.pro.js",
         "w": "node scripts/watch.js",
-        "docs": "rm -r docs/* && muleify -p web docs"
+        "docs": "rm -r docs/* && muleify -p web docs",
+        "build": "npx rollup -c rollup.dev.js && npx rollup -c rollup.pro.js && rm -r docs/* && muleify -p web docs"
     },
     "repository": {
         "type": "git",
