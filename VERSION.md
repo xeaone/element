@@ -1,3 +1,6 @@
+### 6.0.0
+- major changes api docs needs updates
+
 ### 5.0.0
 - removed Oxe.router.trailing option
 - removed Oxe.body, Oxe.head, Oxe.window, Oxe.head, Oxe.document, Oxe.currentScript, Oxe.ownerDocument, Oxe.location

@@ -33,8 +33,7 @@ Live examples [vokeio.github.io/oxe/](https://vokeio.github.io/oxe/).
 
 ### Install
 - `npm i oxe --save`
-- Script `dst/poly.min.js`
-- UMD `dst/oxe.min.js`
+- UMD `pro/oxe.min.js`
 
 ## Component Example
 ```js

@@ -119,7 +119,7 @@ export default class IndexRoute extends Component {
 	<strong>Install</strong>
 	<ul>
 		<li><i>npm install oxe --save</i></li>
-		<li>UMD <i>"dst/oxe.min.js"</i></li>
+		<li>UMD <i>"pro/oxe.min.js"</i></li>
 	</ul>
 
 	<h2>Component Example</h2>

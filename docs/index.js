@@ -1,39 +1,21 @@
 
-// Oxe.router.on('route:after', function () {
-//     console.log('route:after');
-// });
+Oxe.router.setup({
+    target: 'main',
+    folder: 'routes',
+    before: () => console.log('router before'),
+    after: () => console.log('router after')
+});
 
-Oxe.setup({
-    loader: {
-        type: 'es'
-    },
-    fetcher: {
-        request: function () {
-            console.log(arguments);
-        },
-        response: function () {
-            console.log(arguments);
-        }
-    },
-    component: {
-        components: [
-            './components/c-foo.js',
-            './components/c-menu.js',
-            './components/o-select.js'
-        ]
-    },
-    router: {
-        // mode: 'href',
-        routes: [
-            'index',
-            'js',
-            'test',
-            'select',
-            'class',
-            'input',
-            'style',
-            'each',
-            '(~)'
-        ]
-    }
-}).catch(console.error);
+Oxe.fetcher.setup({
+    before: () => console.log('fetcher before'),
+    after: () => console.log('fetcher after')
+});
+
+window.addEventListener('router', (event) => console.log(event));
+
+// Oxe.define([
+//     './components/c-foo.js',
+//     './components/c-menu.js',
+//     './components/o-select.js'
+// ]);
+

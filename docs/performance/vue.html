@@ -2,29 +2,70 @@
 <script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';</script>
 <link rel="stylesheet" href="./index.css">
 
-<o-loop></o-loop>
+<div id="scope">
+    <div class="wrap">
+        <div class="loader">Loader</div>
+    </div>
 
-<script src="../assets/oxe.js"></script>
+    <h3>{{count}} bound elements</h3>
+    <input v-model="count" type="number">
+    <br>
+
+    <button v-on:click="push">push</button>
+    <button v-on:click="overwrite">overwrite</button>
+    <button v-on:click="raw">raw</button>
+    <button v-on:click="clear">clear</button>
+
+    <div id="raw"></div>
+
+    <div id="push">
+
+        <div class="box" v-for="item in items">{{item.number}}</div>
+
+        <!--
+        <select class="box" v-bind="selected" v-for="item in items">
+            <option v-for="user in item.users" :value="user.id">{{user.number}} {{user.name}}</option>
+        </select>
+
+        <div class="box" v-for="item in items">
+            <div v-for="number of item.numbers">
+                <i>{{number}} {{item.name}}</i>
+            </div>
+        </div>
+        -->
+
+    </div>
+
+</div>
+
+<script src="vue.js"></script>
+<!-- <script src="https://unpkg.com/vue@next"></script> -->
 <script>
-    const { Component, Define } = Oxe;
+    Vue.createApp({
+        data() {
+            return {
+                // text: undefined,
+                selected: '',
 
-    class OLoop extends Component {
-
-        data = {
-            items: [],
-            message: '',
-            count: 100000,
-            one: { two: 'three' },
+                text: 'text',
+                items: [],
+                message: '',
+                count: 100000,
+                one: { two: 'three' },
+            }
+        },
+        methods: {
             raw() {
                 console.time('raw');
                 const template = document.createElement('template');
                 let html = '';
                 for (var i = 0; i < this.count; i++) {
                     html += `
-					<div class="box">
-						<div>${i}</div>
-					</div>
-					`;
+                    <div class="box">
+                        <div>${i}</div>
+                        <input value="${i}">
+                    </div>
+                `;
                 }
                 template.innerHTML = html;
                 const raw = document.getElementById('raw');
@@ -59,52 +100,12 @@
                 }
                 this.items = items;
                 console.timeEnd('overwrite');
+                window.model = this;
             },
             clear() {
                 this.items = [];
-            }
-        };
+            },
+        }
 
-        html = /*html*/`
-            <div class="wrap">
-                <div class="loader">Loader</div>
-            </div>
-
-			<h3><span>{{count}}</span> bound elements</h3>
-			<input value="{{count = $value}}" type="number">
-
-			<br>
-			<button onclick="{{push()}}">push</button>
-			<button onclick="{{overwrite()}}">overwrite</button>
-			<button onclick="{{raw()}}">raw</button>
-			<button onclick="{{clear()}}">clear</button>
-
-			<div each="{{item of items}}">
-                <div class="box">{{item.number}}</div>
-            </div>
-
-            <!--
-			<div each="{{item of items}}">
-                <select class="box" value="{{selected}}" each="{{user of item.users}}">
-                    <option value="{{user.id}}">{{user.number}} {{user.name}}</option>
-                </select>
-            </div>
-
-			<div each="{{item of items}}">
-                <div class="box" each="{{number of item.numbers}}">
-                    <i>{{number}} {{item.name}}</i>
-                </div>
-            </div>
-            -->
-
-			<div id="raw"></div>
-		`;
-
-        // <div each="{{item of items}}"><div class="box">{{ item.number }}</div></div>
-        // <input value="{{item.number = $value}}"></input>
-
-    }
-
-    Define(OLoop);
-
+    }).mount('#scope')
 </script>

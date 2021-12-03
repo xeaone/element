@@ -1,18 +1,40 @@
-html > * {
-	margin: 0;
-	padding: 0;
+/* :root {
+} */
+html, body {
+    margin: 0;
+    padding: 0;
+	font-size: 16px;
+}
+body > * {
+	font-size: 1rem;
 	color: dimgray;
 	box-sizing: border-box;
 	font-family: sans-serif;
+	transition: all linear 150ms;
 }
-html, body {
+body {
 	flex: 1;
 	width: 100vw;
-	height: 100vh;
 	display: flex;
+	min-height: 100vh;
 	overflow-x: hidden;
     flex-direction: column;
 	background-color: white;
+}
+a {
+	cursor: pointer;
+	color: darkorange;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+i {
+	font-weight: 200;
+	font-family: monospace;
+}
+li {
+	margin: 0.6rem;
 }
 h1 {
 	font-size: 3rem;
@@ -24,28 +46,60 @@ h2 {
 	font-size: 2.9rem;
 	margin: 3rem 0 1rem 0;
 }
-a {
-	cursor: pointer;
-	color: darkorange;
-	text-decoration: none;
-}
-a:hover {
-	text-decoration: underline;
-}
-li {
-	margin: 0.6rem;
-}
-i {
-	font-weight: 200;
-	font-family: monospace;
+h3 {
+    padding: 1rem 0;
+	font-weight: 300;
+	font-size: 2.9rem;
+	margin: 3rem 0 2rem 0;
+	border-bottom: solid 2px lightgray;
 }
 pre {
-	flex: 1 0;
+	/* flex: 1 0; */
+	margin: 0;
+	tab-size: 4;
+	padding: 1rem;
+	overflow-x: auto;
+	/* white-space: pre-line; */
 	font-family: monospace !important;
 	background-color: whitesmoke !important;
 }
-hr {
-	margin: 3rem 0;
+label {
+	display: flex;
+    align-items: center;
+    justify-content: center;
+}
+main {
+    width: 100%;
+	margin: 5vh auto;
+	max-width: 1200px;
+}
+main > :first-child {
+    display: block;
+    padding: 0 5vw;
+}
+section {
+	margin: 1rem auto;
+    padding: 1rem;
+    /* height: 100vh; */
+    display: flex;
+	max-width: 1000px;
+    flex-direction: column;
+    justify-content: center;
+}
+button {
+    display: inline-block;
+    border: none;
+    cursor: pointer;
+    margin: 0.5rem auto;
+    padding: 0.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	color: dimgray;
+	border-radius: 5px;
+    background: darkorange;
+}
+button:hover {
+	filter: saturate(0.6);
 }
 .title {
 	display: block;
@@ -89,7 +143,8 @@ hr {
 }
 .menu-item-button > a::after {
 	margin: 0.6rem;
-	content: '\2bc6';
+	/* content: '\2bc6'; */
+	content: '';
 	color: darkorange;
 }
 .menu-item-content {
@@ -102,18 +157,23 @@ hr {
   display: block;
 }
 
-o-router {
-	padding: 1rem;
-	display: block;
-}
-o-router > :first-child {
-	margin: auto;
-	max-width: 900px;
-}
 r-error {
 	text-align: center;
 	align-items: center;
 	align-content: center;
 	justify-content: center;
 	flex-direction: column;
+}
+o-select {
+    padding: 0.5rem;
+    border: 1px solid lightgray;
+}
+o-option {
+    margin-left: 1rem;
+}
+o-option[active] {
+    background-color: lightgray;
+}
+o-optgroup::before {
+    font-weight: bold;
 }

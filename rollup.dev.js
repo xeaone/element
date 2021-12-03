@@ -1,3 +1,4 @@
+import typescript from '@rollup/plugin-typescript';
 import { readFileSync } from 'fs';
 
 const pkg = readFileSync('./package.json');
@@ -19,14 +20,21 @@ const banner = `
 
 export default [
     {
-        input: 'build/index.js',
-        // input: 'src/index.ts',
+        input: 'src/index.ts',
         output: {
             banner,
             name: 'Oxe',
             file: 'web/assets/oxe.js',
             format: 'umd',
             indent: '    ',
-        }
+        },
+        plugins: [
+            typescript({
+                sourceMap: false,
+                declaration: false,
+                removeComments: false,
+                target: 'esnext',
+            }),
+        ]
     }
 ];

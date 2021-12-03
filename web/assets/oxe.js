@@ -1,7 +1,7 @@
 
 /*!
     Name: oxe
-    Version: 5.2.9
+    Version: 6.0.0
     License: MPL-2.0
     Author: Alexander Elias
     Email: alex.steven.elis@gmail.com
@@ -14,7 +14,7 @@
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
-}(this, (function () { 'use strict';
+})(this, (function () { 'use strict';
 
     const get = function (task, path, target, key, receiver) {
         const value = Reflect.get(target, key, receiver);
@@ -1957,4 +1957,4 @@
 
     return index;
 
-})));
+}));

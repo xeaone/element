@@ -1,5 +1,4 @@
 import typescript from '@rollup/plugin-typescript';
-import { terser } from "rollup-plugin-terser";
 import { readFileSync } from 'fs';
 
 const pkg = readFileSync('./package.json');
@@ -25,31 +24,35 @@ export default [
         output: {
             banner,
             name: 'Oxe',
-            file: 'dev/oxe.js',
+            file: 'pro/oxe.js',
             format: 'umd',
             indent: '    ',
-        }
+        },
+        plugins: [
+            typescript({
+                sourceMap: false,
+                declaration: false,
+                removeComments: false,
+                target: 'es6',
+            }),
+        ]
     },
     {
         input: 'src/index.ts',
         output: {
             banner,
             name: 'Oxe',
-            file: 'dev/oxe.min.js',
+            file: 'pro/oxe.min.js',
             format: 'umd',
             indent: '    ',
         },
         plugins: [
-            // typescript({
-            //     sourceMap: false,
-            //     declaration: false,
-            //     removeComments: true,
-            //     noEmitHelpers: true,
-            //     module: 'es6',
-            //     target: 'ES2015',
-            //     // lib: [ 'es2015', 'es2016', 'dom' ]
-            // }),
-            // terser()
+            typescript({
+                sourceMap: false,
+                declaration: false,
+                removeComments: true,
+                target: 'es6',
+            }),
         ]
     }
 ];
