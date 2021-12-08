@@ -15,7 +15,7 @@ const submit = async function (event, binder) {
     const elements = (target?.form || target)?.querySelectorAll('[name]');
 
     for (const element of elements) {
-        const { type, name, checked, hidden, nodeName } = element;
+        const { type, name, checked, hidden } = element;
 
         if (!name) continue;
         if (hidden) continue;

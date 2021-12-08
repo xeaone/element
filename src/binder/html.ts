@@ -1,4 +1,3 @@
-const tick = Promise.resolve();
 
 const htmlRender = async function (binder) {
     const tasks = [];
