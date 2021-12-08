@@ -1,7 +1,7 @@
 
 /*!
     Name: oxe
-    Version: 6.0.5
+    Version: 6.0.6
     License: MPL-2.0
     Author: Alexander Elias
     Email: alex.steven.elis@gmail.com
@@ -489,7 +489,6 @@
     };
     var each = { render: eachRender, unrender: eachUnrender };
 
-    Promise.resolve();
     const htmlRender = async function (binder) {
         const tasks = [];
         let data = await binder.compute();
@@ -549,7 +548,7 @@
         // const elements = target?.elements || target?.form?.elements;
         const elements = (target?.form || target)?.querySelectorAll('[name]');
         for (const element of elements) {
-            const { type, name, checked, hidden, nodeName } = element;
+            const { type, name, checked, hidden } = element;
             if (!name)
                 continue;
             if (hidden)
