@@ -1,7 +1,7 @@
 
 /*!
     Name: oxe
-    Version: 6.0.6
+    Version: 6.0.7
     License: MPL-2.0
     Author: Alexander Elias
     Email: alex.steven.elis@gmail.com
@@ -30,9 +30,15 @@
             return value;
         }
     };
-    const deleteProperty = function (task, path, target, key, receiver) {
-        Reflect.deleteProperty(target, key);
+    const deleteProperty = function (task, path, target, key) {
+        if (target instanceof Array) {
+            target.splice(key, 1);
+        }
+        else {
+            Reflect.deleteProperty(target, key);
+        }
         task(path ? `${path}.${key}` : `${key}`, 'unrender');
+        return true;
     };
     const set = function (task, path, target, key, to, receiver) {
         const from = Reflect.get(target, key, receiver);

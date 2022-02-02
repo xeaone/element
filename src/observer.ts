@@ -14,9 +14,17 @@ const get = function (task: task, path: string, target: any, key: any, receiver)
     }
 };
 
-const deleteProperty = function (task: task, path: string, target: any, key: any, receiver) {
-    Reflect.deleteProperty(target, key);
+const deleteProperty = function (task: task, path: string, target: any, key: any) {
+
+    if (target instanceof Array) {
+        target.splice(key, 1);
+    } else {
+        Reflect.deleteProperty(target, key);
+    }
+
     task(path ? `${path}.${key}` : `${key}`, 'unrender');
+
+    return true;
 };
 
 const set = function (task: task, path: string, target: any, key, to, receiver) {
