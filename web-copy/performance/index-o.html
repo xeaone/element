@@ -1,0 +1,181 @@
+<base href="/">
+<script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/web-copy/performance/';</script>
+
+<o-loop></o-loop>
+
+<style>
+    html > * {
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
+
+    body, o-loop {
+        width: 100%;
+        height: 3000px;
+        display: block;
+    }
+
+    .box {
+        width: 60px;
+        margin: 1px;
+        padding: 1px;
+        font-size: 12px;
+        text-align: center;
+        display: inline-block;
+        background: lightgray;
+    }
+
+    .box input {
+        width: 90%;
+        margin: auto;
+        display: block;
+    }
+
+    .wrap {
+        overflow: hidden;
+    }
+    .loader, .loader:after {
+        border-radius: 50%;
+        width: 10em;
+        height: 10em;
+    }
+    .loader {
+        margin: 60px auto;
+        font-size: 10px;
+        position: relative;
+        text-indent: -9999em;
+        border-top: 1.1em solid rgba(0, 0, 0, 0.1);
+        border-right: 1.1em solid rgba(0, 0, 0, 0.1);
+        border-bottom: 1.1em solid rgba(0, 0, 0, 0.1);
+        border-left: 1.1em solid black;
+        -webkit-transform: translateZ(0);
+        -ms-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-animation: load8 1.1s infinite linear;
+        animation: load8 1.1s infinite linear;
+    }
+    @-webkit-keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+    }
+    @keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+    }
+</style>
+<script src="../assets/oxe.js"></script>
+<script>
+    const { Component, Define } = Oxe;
+
+    class OLoop extends Component {
+
+        data = {
+            items: [],
+            message: '',
+            count: 100000,
+            one: { two: 'three' },
+            raw() {
+                console.time('raw');
+                const template = document.createElement('template');
+                let html = '';
+                for (var i = 0; i < this.count; i++) {
+                    html += `
+					<div class="box">
+						<div>${i}</div>
+					</div>
+					`;
+                }
+                template.innerHTML = html;
+                const raw = document.getElementById('raw');
+                raw.appendChild(template.content);
+                console.timeEnd('raw');
+            },
+            push() {
+                console.time('push');
+                for (var i = 0; i < this.count; i++) {
+                    this.items.push({ number: i });
+                    // this.items.push({ name: i, numbers: [ i ] });
+                }
+                console.timeEnd('push');
+            },
+            overwrite() {
+                console.time('overwrite');
+
+                // var users = [];
+                // for (var i = 0; i < 200; i++) {
+                //     users.push({ number: i, id: `${i}`, name: `${i}` });
+                // }
+
+                // var items = [];
+                // for (var i = 0; i < this.count; i++) {
+                //     items.push({ users });
+                // }
+
+                var items = [];
+                for (var i = 0; i < this.count; i++) {
+                    items.push({ number: i });
+                    // items.push({ name: i, numbers: [ i ] });
+                }
+                this.items = items;
+                console.timeEnd('overwrite');
+            },
+            clear() {
+                this.items = [];
+            }
+        };
+
+        html = /*html*/`
+            <div class="wrap">
+                <div class="loader">Loader</div>
+            </div>
+
+			<h3><span>{{count}}</span> bound elements</h3>
+			<input value="{{count = $value}}" type="number">
+
+			<br>
+			<button onclick="{{push()}}">push</button>
+			<button onclick="{{overwrite()}}">overwrite</button>
+			<button onclick="{{raw()}}">raw</button>
+			<button onclick="{{clear()}}">clear</button>
+
+			<div each="{{item of items}}">
+                <div class="box">{{item.number}}</div>
+            </div>
+
+            <!--
+			<div each="{{item of items}}">
+                <select class="box" value="{{selected}}" each="{{user of item.users}}">
+                    <option value="{{user.id}}">{{user.number}} {{user.name}}</option>
+                </select>
+            </div>
+
+			<div each="{{item of items}}">
+                <div class="box" each="{{number of item.numbers}}">
+                    <i>{{number}} {{item.name}}</i>
+                </div>
+            </div>
+            -->
+
+			<div id="raw"></div>
+		`;
+
+        // <div each="{{item of items}}"><div class="box">{{ item.number }}</div></div>
+        // <input value="{{item.number = $value}}"></input>
+
+    }
+
+    Define(OLoop);
+</script>

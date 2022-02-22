@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <base href="/">
+
+    <script>
+        document.querySelector('base').href = window.location.hostname === 'vokeio.github.io' ? '/oxe/' : '/';
+    </script>
+
+    <meta charset="utf-8">
+    <meta name="theme-color" content="darkorange">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+
+    <meta name="keywords" content="oxe, tiny, web, components, framework, library">
+    <meta name="description" content="A mighty tiny web components framework">
+
+    <title>Oxe</title>
+
+    <script src="./assets/oxe.js" defer></script>
+    <script src="./index.js" type="module" defer></script>
+
+    <link rel="stylesheet" href="./index.css">
+
+</head>
+
+<body>
+
+    <div class="title">
+        <h1><span>O</span>xe</h1>
+        <h2>A mighty tiny web components framework</h2>
+    </div>
+
+    <div class="menu">
+        <a href="./">Home</a>
+        <a href="./performance" o-external>Performance</a>
+        <a href="./binders">Binders</a>
+    </div>
+
+    <main></main>
+
+</body>
+
+</html>
