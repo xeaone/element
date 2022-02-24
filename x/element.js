@@ -9,21 +9,23 @@ import html from './html.js';
 import text from './text.js';
 import on from './on.js';
 
-const get = function (task, path, target, key, receiver) {
+const scopeGet = function (event, reference, target, key, receiver) {
+    if (key === 'x') return { reference };
     const value = Reflect.get(target, key, receiver);
+
     if (value && typeof value === 'object') {
-        path = path ? `${path}.${key}` : `${key}`;
+        reference = reference ? `${reference}.${key}` : `${key}`;
         return new Proxy(value, {
-            get: get.bind(null, task, path),
-            set: set.bind(null, task, path),
-            deleteProperty: deleteProperty.bind(null, task, path)
+            get: scopeGet.bind(null, event, reference),
+            set: scopeSet.bind(null, event, reference),
+            deleteProperty: scopeDelete.bind(null, event, reference)
         });
-    } else {
-        return value;
     }
+
+    return value;
 };
 
-const deleteProperty = function (task, path, target, key) {
+const scopeDelete = function (event, reference, target, key) {
 
     if (target instanceof Array) {
         target.splice(key, 1);
@@ -31,25 +33,24 @@ const deleteProperty = function (task, path, target, key) {
         Reflect.deleteProperty(target, key);
     }
 
-    task(path ? `${path}.${key}` : `${key}`, 'delete');
+    event(reference ? `${reference}.${key}` : `${key}`, 'derender');
 
     return true;
 };
 
-const set = function (task, path, target, key, to, receiver) {
+const scopeSet = function (event, reference, target, key, to, receiver) {
     const from = Reflect.get(target, key, receiver);
 
     if (key === 'length') {
-        task(path, 'set');
-        task(path ? `${path}.${key}` : `${key}`, 'set');
+        event(reference, 'render');
+        event(reference ? `${reference}.${key}` : `${key}`, 'render');
         return true;
     } else if (from === to) {
         return true;
     }
 
     Reflect.set(target, key, to, receiver);
-
-    task(path ? `${path}.${key}` : `${key}`, 'set');
+    event(reference ? `${reference}.${key}` : `${key}`, 'render');
 
     return true;
 };
@@ -64,129 +65,142 @@ const handlers = {
     standard
 };
 
+const mutationOptions = { attributes: false, childList: true, subtree: true };
 const template = document.createElement('template');
 template.innerHTML = `<style>:host{display:block;}</style><slot></slot>`;
 
 export default class XElement extends HTMLElement {
 
-    #data;
-    #shadow;
-    #setup = false;
-    #template = document.createElement('template');
-
-    #binders = new Map();
-    get binders () { return this.#binders; }
+    scope;
+    shadow;
+    setup = false;
+    binders = new Map();
+    template = document.createElement('template');
 
     constructor () {
         super();
-
-        this.#shadow = this.attachShadow({ mode: 'open' });
-        this.#shadow.appendChild(template.content);
-
-        this.observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                // console.log(mutation);
-                mutation.removedNodes.forEach(node => this.#unbind(node));
-                mutation.addedNodes.forEach(node => this.#bind(node));
-            });
-        });
-
-        this.observer.observe(this, { attributes: false, childList: true, subtree: true });
+        this.shadow = this.attachShadow({ mode: 'open' });
+        this.shadow.appendChild(template.content);
+        this.observer = new MutationObserver(this.mutationEvent.bind(this));
+        this.observer.observe(this, mutationOptions);
     }
 
-    #task (path, type) {
-        this.#binders.get(path)?.forEach(binder => binder.render());
-    }
+    async unbind (node) {
+        const binders = this.binders.get(node);
+        if (!binders) return;
 
-    #unbind (node) {
-        const binder = this.#binders.get(node);
-        if (!binder) return;
-
-        binder.references.forEach(reference => {
-            this.#binders.get(reference).remove(binder);
-            if (!this.#binders.get(reference).size) {
-                this.#binders.delete(reference);
+        for (const binder of binders) {
+            for (const reference of binder.references) {
+                this.binders.get(reference)?.delete(binder);
+                if (!this.binders.get(reference).size) this.binders.delete(reference);
             }
-        });
+        }
 
-        this.#binders.delete(node);
+        this.binders.delete(node);
     }
 
-    #bind (node) {
+    async bind (node) {
 
         const attribute = node?.attributes?.bind;
-        if (!attribute || this.#binders.has(node)) return;
+        if (!attribute || this.binders.has(node)) return;
 
         // if (node.localName.includes('-')) {
         //     await window.customElements.whenDefined(node.localName);
         // }
 
+        if (!('x' in node)) node.x = {};
+        node.x.node = node;
+        node.x.container = this;
+        node.x.scope = this.scope;
+
         const properties = literal(attribute.value);
         for (const property of properties) {
-            const { key: name, value } = property;
+            const binder = {};
 
-            const binder = {
-                name, value, node,
-                container: this,
-                references: parser(value),
-                compute: computer(value, this.#data),
-                type: name.startsWith('on') ? 'on' : name in handlers ? name : 'standard',
-            };
-
+            binder.node = node;
+            binder.container = this;
+            binder.name = property.key;
+            binder.alias = node.x.alias;
+            binder.value = property.value;
+            binder.rewrites = node.x.rewrites;
+            binder.references = parser(property.value, node.x.rewrites);
+            binder.compute = computer(property.value, node.x.scope, node.x.alias);
+            binder.type = property.key.startsWith('on') ? 'on' : property.key in handlers ? property.key : 'standard';
             binder.render = handlers[ binder.type ].render.bind(null, binder);
             binder.derender = handlers[ binder.type ].derender.bind(null, binder);
 
             for (const reference of binder.references) {
-                if (this.#binders.has(reference)) {
-                    this.#binders.get(reference).add(binder);
+                if (this.binders.has(reference)) {
+                    this.binders.get(reference).add(binder);
                 } else {
-                    this.#binders.set(reference, new Set([ binder ]));
+                    this.binders.set(reference, new Set([ binder ]));
                 }
             }
 
-            this.#binders.set(node, binder);
+            if (this.binders.has(node)) {
+                this.binders.get(node).add(binder);
+            } else {
+                this.binders.set(node, new Set([ binder ]));
+            }
 
             binder.render();
         }
+
     }
 
-    #walk (method, node) {
+    async mutationEvent (mutations) {
+        for (const mutation of mutations) {
+            for (const node of mutation.removedNodes) this.unbind(node);
+            for (const node of mutation.addedNodes) this.bind(node);
+        }
+    }
+
+    async scopeEvent (reference, type) {
+        const binders = this.binders.get(reference);
+        if (binders) {
+            for (const binder of binders) {
+                binder[ type ]();
+            }
+        }
+    }
+
+    async walk (method, node) {
         let child = (node ?? this)?.firstChild;
         while (child) {
             method(child);
             if (!child?.attributes?.bind?.value?.includes('each:')) {
-                this.#walk(method, child);
+                this.walk(method, child);
             }
             child = child.nextSibling;
         }
     }
 
     async connectedCallback () {
-        if (this.#setup) return;
-        else this.#setup = true;
+        if (this.setup) return;
+        else this.setup = true;
 
         let data = {};
         if (this.data) data = await this.data();
 
-        this.#data = new Proxy(data, {
-            get: get.bind(null, this.#task.bind(this), ''),
-            set: set.bind(null, this.#task.bind(this), ''),
-            deleteProperty: deleteProperty.bind(null, this.#task.bind(this), '')
+        this.scope = new Proxy(data, {
+            get: scopeGet.bind(null, this.scopeEvent.bind(this), ''),
+            set: scopeSet.bind(null, this.scopeEvent.bind(this), ''),
+            deleteProperty: scopeDelete.bind(null, this.scopeEvent.bind(this), '')
         });
 
         // let render = `<style>:host{display:block;}</style><slot></slot>`;
         // if (this.render) render = await this.render();
-        // this.#template.innerHTML = render;
-        // this.#shadow.appendChild(this.#template.content);
+        // this.template.innerHTML = render;
+        // this.shadow.appendChild(this.template.content);
 
         let render;
         if (this.render) render = await this.render();
-        this.#template.innerHTML = render;
-        this.appendChild(this.#template.content);
+        this.template.innerHTML = render;
+        this.appendChild(this.template.content);
 
-        await this.#walk(node => this.#bind(node));
+        await this.walk(node => this.bind(node));
 
-        // customElements.whenDefined(this.localName).then(() => this.#walk(node => this.#bind(node)));
+        // customElements.whenDefined(this.localName).then(() => this.walk(node => this.bind(node)));
     }
 
 }

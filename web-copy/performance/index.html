@@ -150,7 +150,7 @@
                 <button bind="onclick:raw()">raw</button>
                 <button bind="onclick:clear()">clear</button>
 
-                <div bind="each:['item',items]">
+                <div bind="each:[items,'item']">
                     <div class="box" bind="text:item.number"></div>
                 </div>
 

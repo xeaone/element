@@ -37,7 +37,7 @@ const parser = function (data, rewrites) {
 
     if (rewrites) {
         for (const [ name, value ] of rewrites) {
-            data = data.replace(name, `$1${value}`);
+            data = data.replace(name, `${value}`);
         }
     }
 
