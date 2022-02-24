@@ -5,7 +5,7 @@ const handler = async function (binder, event) {
     const computed = await binder.compute({ $event: event, $checked: checked, $assignment: !!event });
 
     if (computed) {
-        binder.node.setAttributeNode(binder.node);
+        binder.node.setAttribute('checked', '');
     } else {
         binder.node.removeAttribute('checked');
     }
@@ -14,9 +14,9 @@ const handler = async function (binder, event) {
 
 const checkedRender = async function (binder) {
 
-    if (!binder.meta.setup) {
+    if (!binder.setup) {
         binder.node.value = '';
-        binder.meta.setup = true;
+        binder.setup = true;
 
         if (binder.node.type === 'radio') {
             binder.node.addEventListener('input', async event => {

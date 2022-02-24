@@ -39,6 +39,7 @@ const literal = function (string) {
     // Split into tokens
     const result = [];
     let tokens = string.match(bindingToken), key, values = [], depth = 0;
+    // console.log(tokens);
 
     if (tokens.length > 1) {
         for (let i = 0, token; token = tokens[ i ]; ++i) {
@@ -87,6 +88,7 @@ const literal = function (string) {
             throw Error("Unbalanced parentheses, braces, or brackets");
         }
     }
+    // console.log(result);
     return result;
 };
 

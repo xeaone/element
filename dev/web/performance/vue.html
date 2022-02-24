@@ -1,5 +1,5 @@
 <base href="/">
-<script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';</script>
+<script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/web/performance/';</script>
 <link rel="stylesheet" href="./index.css">
 
 <div id="scope">
@@ -19,21 +19,7 @@
     <div id="raw"></div>
 
     <div id="push">
-
         <div class="box" v-for="item in items">{{item.number}}</div>
-
-        <!--
-        <select class="box" v-bind="selected" v-for="item in items">
-            <option v-for="user in item.users" :value="user.id">{{user.number}} {{user.name}}</option>
-        </select>
-
-        <div class="box" v-for="item in items">
-            <div v-for="number of item.numbers">
-                <i>{{number}} {{item.name}}</i>
-            </div>
-        </div>
-        -->
-
     </div>
 
 </div>
