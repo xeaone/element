@@ -39,12 +39,15 @@ const finish = function (node, tree, depth, data) {
 
     tree.push(node);
 };
+const Node = function (value, type, depth) {
+    return { value, type, depth };
+};
 
 export default function expression (expression, data) {
     const tree = [];
 
-    let depth = 0;
-    let node = { depth, value: '', type: 'binder' };
+    let node, depth = 0;
+    // let node = { value: '', type: 'binder' };
 
     for (let i = 0; i < expression.length; i++) {
         const c = expression[ i ];
@@ -53,30 +56,28 @@ export default function expression (expression, data) {
 
         if (depth === 0 && c === ' ') {
             continue;
-        } else if (depth === 1 && c === ',') {
+        } else if (node?.type === $binder && c === ',') {
+            // } else if (node?.type === $binder && depth === 1 && c === ',') {
             finish(node, tree, depth);
-            node = { value: '', type: '' };
             depth--;
         } else if (depth === 0 && c === ':') {
             finish(node, tree, depth);
-            node = { value: '', type: '' };
             depth++;
-        } else if (depth === 0) {
+        } else if (!node && depth === 0) {
+            node = Node(c, $binder, depth);
+        } else if (!node && /'|`|"/.test(c)) {
+            node = Node(c, $string, depth);
+        } else if (/'|`|"/.test(c) && node?.type === $string) {
 
-            node.value += c;
-            node.type = 'binder';
-
-        } else if (/'|`|"/.test(c) && !node.type || node.type === $string) {
-            node.type = $string;
             node.value += c;
 
             if (node.value.length > 1 && node.value[ 0 ] === c && previous !== '\\') {
-                node.value = node.value.slice(1, -1);
                 finish(node, tree, depth, data);
-                node = { value: '' };
             }
 
-        } else if (/[0-9.]/.test(c) && !node.type || node.type === $number) {
+        } else if (!node && /[0-9.]/.test(c)) {
+            node = Node(c, $number, depth);
+        } else if (/[0-9.]/.test(c) && node?.type === $number) {
             node.type = $number;
             node.value += c;
 
