@@ -1,5 +1,8 @@
 
-const parserCache = new Map();
+const bindingCache = new Map();
+const bindingMatch = /([a-zA-Z$_][a-z0-9A-Z$_]+)\s*:\s*([^,\[\]]+|.*?{.*?}.*?|.*?\[.*?\].*?|.*?\(.*?\).*?)\s*(?:,|$)/g;
+
+const referenceCache = new Map();
 const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)', // string
@@ -31,7 +34,7 @@ const referenceMatch = new RegExp([
     // '([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)' // reference
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
-const parser = function (data, rewrites) {
+const referenceParse = function (data, rewrites) {
 
     data = data.replace(normalizeReference, '.$2');
 
@@ -41,24 +44,70 @@ const parser = function (data, rewrites) {
         }
     }
 
-    const cache = parserCache.get(data);
+    const cache = referenceCache.get(data);
     if (cache) return cache;
 
     const references = [];
-    parserCache.set(data, references);
+    referenceCache.set(data, references);
 
     let match;
     while (match = referenceMatch.exec(data)) {
         const reference = match[ 4 ];
         // const reference = match[ 6 ];
-        if (reference) {
-            references.push(reference);
-        }
+        if (reference) references.push(reference);
     }
 
     // console.log(data, references);
 
     return references;
 };
+
+const parser = function (data, rewrites) {
+    const results = [];
+
+    const cache = bindingCache.get(data);
+    if (cache) return cache;
+
+    bindingCache.set(data, results);
+
+    let match;
+    while (match = bindingMatch.exec(data)) {
+        const [ raw, name, value ] = match;
+        const references = referenceParse(value, rewrites);
+        results.push({ name, value, references });
+    }
+
+    return results;
+};
+
+// const parser = function (data, rewrites) {
+
+//     data = data.replace(normalizeReference, '.$2');
+
+//     if (rewrites) {
+//         for (const [ name, value ] of rewrites) {
+//             data = data.replace(name, `${value}`);
+//         }
+//     }
+
+//     const cache = parserCache.get(data);
+//     if (cache) return cache;
+
+//     const references = [];
+//     parserCache.set(data, references);
+
+//     let match;
+//     while (match = referenceMatch.exec(data)) {
+//         const reference = match[ 4 ];
+//         // const reference = match[ 6 ];
+//         if (reference) {
+//             references.push(reference);
+//         }
+//     }
+
+//     // console.log(data, references);
+
+//     return references;
+// };
 
 export default parser;

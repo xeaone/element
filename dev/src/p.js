@@ -1,23 +1,11 @@
 const $string = 'string';
 const $number = 'number';
 const $binder = 'binder';
+const $unknown = 'unknown';
 const $variable = 'variable';
 const $function = 'function';
 
-// const traverse = function (data, paths) {
-//     paths = typeof paths === 'string' ? paths.split(/\.|\[|\]/) : paths;
-
-//     if (!paths.length) {
-//         return data;
-//     } else if (typeof data !== 'object') {
-//         return undefined;
-//     } else {
-//         return traverse(data[ paths[ 0 ] ], paths.slice(1));
-//     }
-// };
-
-const finish = function (node, tree, depth, data) {
-    node.depth = depth;
+const finish = function (node, tree) {
 
     if (node.value === 'NaN') {
         node.type = 'nan';
@@ -33,15 +21,21 @@ const finish = function (node, tree, depth, data) {
     } else if (node.type === $string) {
     } else if (node.type === $function) {
     } else if (node.type === $binder) {
+    } else if (node.type === $variable) {
     } else {
-        node.type = $variable;
+        node.type = 'unknown';
     }
 
     tree.push(node);
+
+    return null;
 };
-const Node = function (value, type, depth) {
-    return { value, type, depth };
-};
+
+const unknown = (value, depth) => ({ value, type: '', depth });
+const binder = (value, depth) => ({ value, type: $binder, depth });
+const string = (value, depth) => ({ value, type: $string, depth });
+const number = (value, depth) => ({ value, type: $number, depth });
+const variable = (value, depth) => ({ value, type: $variable, depth });
 
 export default function expression (expression, data) {
     const tree = [];
@@ -49,96 +43,119 @@ export default function expression (expression, data) {
     let node, depth = 0;
     // let node = { value: '', type: 'binder' };
 
+    let level = '';
+
     for (let i = 0; i < expression.length; i++) {
         const c = expression[ i ];
         const next = expression[ i + 1 ];
         const previous = expression[ i - 1 ];
 
-        if (depth === 0 && c === ' ') {
+        if (
+            '=>{' === `${node?.value}${c}` ||
+            '=>' === `${node?.value}${c}` ||
+            '){' === `${node?.value}${c}`
+        ) {
+            level = 'function';
+            console.log(level, `${node?.value}${c}`);
+        }
+        console.log(level, `${node?.value}${c}`);
+
+        if (depth === 0) {
+            if (' ' === c) {
+                continue;
+            } else if (',' === c) {
+                finish(node, tree);
+                node = unknown(c, depth);
+                depth--;
+            } else if (':' === c) {
+                finish(node, tree);
+                depth++;
+                node = unknown(c, depth);
+            } else if (node?.type === $binder) {
+                node.value += c;
+            } else {
+                node = binder(c, depth);
+            }
+        } else if (node?.type === $string) {
+            node.value += c;
+            if (node.value[ 0 ] === c && previous !== '\\') {
+                finish(node, tree);
+                node = unknown(c, depth);
+                depth--;
+            }
+        } else if (' ' === c) {
             continue;
-        } else if (node?.type === $binder && c === ',') {
-            // } else if (node?.type === $binder && depth === 1 && c === ',') {
-            finish(node, tree, depth);
-            depth--;
-        } else if (depth === 0 && c === ':') {
-            finish(node, tree, depth);
-            depth++;
-        } else if (!node && depth === 0) {
-            node = Node(c, $binder, depth);
-        } else if (!node && /'|`|"/.test(c)) {
-            node = Node(c, $string, depth);
-        } else if (/'|`|"/.test(c) && node?.type === $string) {
-
-            node.value += c;
-
-            if (node.value.length > 1 && node.value[ 0 ] === c && previous !== '\\') {
-                finish(node, tree, depth, data);
-            }
-
-        } else if (!node && /[0-9.]/.test(c)) {
-            node = Node(c, $number, depth);
-        } else if (/[0-9.]/.test(c) && node?.type === $number) {
-            node.type = $number;
-            node.value += c;
-
-            if (!/[0-9.]/.test(next)) {
-                finish(node, tree, depth, data);
-                node = { value: '' };
-            }
-
+        } else if (
+            ';' === c ||
+            '=' === c ||
+            '<' === c ||
+            '>' === c
+        ) {
+            finish(node, tree);
+            node = unknown(c, depth);
         } else if (',' === c) {
-            if (node.value) {
-                finish(node, tree, depth, data);
-                node = { value: '' };
+            finish(node, tree);
+            depth--;
+            node = unknown(c, depth);
+        } else if (':' === c) {
+            if (depth > 0) {
+                node.type = '';
+                finish(node, tree);
             }
+            node = unknown(c, depth);
+        } else if ('[' === c || '{' === c) {
+            finish(node, tree);
+            node = unknown(c, depth);
+            depth++;
+        } else if (']' === c || '}' === c) {
+            finish(node, tree);
+            depth--;
+            node = unknown(c, depth);
         } else if ('(' === c) {
-            node.type = $function;
-            finish(node, tree, depth, data);
-            node = { value: '' };
-        } else if (')' === c) {
-            if (node.value) {
-                finish(node, tree, depth, data);
-            }
-            node = { value: '' };
-        } else if (/\s/.test(c)) {
-            continue;
-        } else if (/[a-zA-Z$_]/.test(c) && !node.type || node.type === $variable) {
-            // node.depth = depth;
             node.type = $variable;
-            node.value += c;
+            finish(node, tree);
+            node = unknown(c, depth);
+            depth++;
+        } else if (')' === c) {
+            finish(node, tree);
+            depth--;
+            node = unknown(c, depth);
+        } else if (node?.type === $variable) {
+            if (c === '?' && node?.value?.slice(-1) !== '.') {
+                finish(node, tree);
+                node = unknown(c, depth);
+            } else {
+                node.value += c;
+            }
+        } else if (c === '?') {
+            finish(node, tree);
+            node = unknown(c, depth);
+        } else if (/'|`|"/.test(c) && !node?.type) {
+            node = string(c, depth);
+            depth++;
+        } else if (/[0-9.]/.test(c) && !node?.type) {
+            node = number(c, depth);
+        } else if (/[a-zA-Z$_.?]/.test(c) && !node?.type) {
+            node = variable(c, depth);
         } else {
-            // node.depth = depth;
             node.value += c;
         }
-
+        console.log(node, c);
     }
 
     return tree;
 };
 
-// start: test
-const m = {
-    n1: 1,
-    n: { n2: 2 },
+// expression(`bin1:()=>test`);
+// expression(`bin1:()=>{test}`);
+// expression(`bin1:()=>({test})`);
+// expression(`bin1:var1, bin2:var2=var3, bin3:'string'`);
+expression(`bin1:{key1:var1,key2:var2,key3:{key4:var34}}`);
+// expression(`bin1:var1, bin2:var2=var3, bin3:'string', bin4:123, bin5:{foo:bar,deep:{test}}`);
 
-    w: 'world',
-
-    foo: 'sFoo',
-    bar: 'sBar',
-    one: (two, oneDotTwo, blue) => `sOne ${two} ${oneDotTwo + 2} ${blue}`,
-    two: (foo, three) => `sTwo ${foo} ${three}`,
-    three: (bar, helloWorld) => `sThree ${bar} ${helloWorld + 's'}`,
-};
-
-// console.log(expression(`hello {{w}}.`, m)());
-// console.log(expression(`{{n1}}`, m)());
-// console.log(expression(`{{n.n2}}`, m)());
-
-console.log(
-    expression(`{{one(two(foo, three(bar, 'hello world')), 1.2)}}`, m),
-    JSON.stringify(
-        expression(`value:checked, checked:checked=$checked??[1,'two']??{test:'test',foo:bar}, onchange:checkInput()`, m),
-        null,
-        '   '
-    )
-);
+// const object = /([a-zA-Z$_][a-z0-9A-Z$_]+):({.*?})(?:,|$)/;
+// const array = /([a-zA-Z$_][a-z0-9A-Z$_]+):(\[.*?\])(?:,|$)/;
+// const single = /([a-zA-Z$_][a-z0-9A-Z$_]+):('.*')(?:,|$)/;
+// const double = /([a-zA-Z$_][a-z0-9A-Z$_]+):(".*")(?:,|$)/;
+// const tick = /([a-zA-Z$_][a-z0-9A-Z$_]+):(`.*`)(?:,|$)/;
+// const fun = /([a-zA-Z$_][a-z0-9A-Z$_]+):(.*?=>.*?)(?:,|$)/;

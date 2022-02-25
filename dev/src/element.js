@@ -113,19 +113,28 @@ export default class XElement extends HTMLElement {
         node.x.container = this;
         node.x.scope = this.scope;
 
-        const properties = literal(attribute.value);
-        for (const property of properties) {
+        const parsed = parser(attribute.value, node.x.rewrites);
+        // console.log(parsed);
+
+        // const properties = literal(attribute.value);
+        // for (const property of properties) {
+        for (const { name, value, references } of parsed) {
             const binder = {};
 
             binder.node = node;
             binder.container = this;
-            binder.name = property.key;
+            // binder.name = property.key;
+            binder.name = name;
             binder.alias = node.x.alias;
-            binder.value = property.value;
+            // binder.value = property.value;
+            binder.value = value;
             binder.rewrites = node.x.rewrites;
-            binder.references = parser(property.value, node.x.rewrites);
-            binder.compute = computer(property.value, node.x.scope, node.x.alias);
-            binder.type = property.key.startsWith('on') ? 'on' : property.key in handlers ? property.key : 'standard';
+            // binder.references = parser(property.value, node.x.rewrites);
+            binder.references = references;
+            // binder.compute = computer(property.value, node.x.scope, node.x.alias);
+            binder.compute = computer(value, node.x.scope, node.x.alias);
+            // binder.type = property.key.startsWith('on') ? 'on' : property.key in handlers ? property.key : 'standard';
+            binder.type = name.startsWith('on') ? 'on' : name in handlers ? name : 'standard';
             binder.render = handlers[ binder.type ].render.bind(null, binder);
             binder.derender = handlers[ binder.type ].derender.bind(null, binder);
 
