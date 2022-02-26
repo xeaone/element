@@ -35,7 +35,7 @@ const submit = async function (event, binder) {
         }
 
         let data = form;
-        name.split(/\s*\.\s*/).forEach((part, index, parts) => {
+        name.split(/\s*\.\s*/).forEach(function (part, index, parts) {
             const next = parts[ index + 1 ];
             if (next) {
                 if (!data[ part ]) {
@@ -88,7 +88,7 @@ const reset = async function (event, binder) {
     return false;
 };
 
-const onRender = function (binder) {
+const onRender = async function (binder) {
     binder.node[ binder.name ] = null;
     const name = binder.name.slice(2);
 
@@ -96,7 +96,7 @@ const onRender = function (binder) {
         binder.node.removeEventListener(name, binder.method);
     }
 
-    binder.method = event => {
+    binder.method = function (event) {
         if (name === 'reset') {
             return reset(event, binder);
         } else if (name === 'submit') {
@@ -109,7 +109,7 @@ const onRender = function (binder) {
     binder.node.addEventListener(name, binder.method);
 };
 
-const onDerender = function (binder) {
+const onDerender = async function (binder) {
     binder.node[ binder.name ] = null;
     const name = binder.name.slice(2);
 

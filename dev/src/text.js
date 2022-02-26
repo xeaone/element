@@ -5,7 +5,7 @@ const textRender = async function (binder) {
     binder.node.textContent = format(data);
 };
 
-const textDerender = function (binder) {
+const textDerender = async function (binder) {
     binder.node.textContent = '';
 };
 

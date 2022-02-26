@@ -29,7 +29,7 @@ const htmlRender = async function (binder) {
     // binder.node.appendChild(template.content);
 };
 
-const htmlDerender = function (binder) {
+const htmlDerender = async function (binder) {
     // const tasks = [];
     // let node;
     // while (node = binder.node.lastChild) {

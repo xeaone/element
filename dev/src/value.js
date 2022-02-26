@@ -65,7 +65,9 @@ const valueRender = async function (binder) {
 
     if (!binder.setup) {
         binder.setup = true;
-        binder.node.addEventListener('input', event => input(binder, event));
+        binder.node.addEventListener('input', function valueRenderInputEvent (event) {
+            input(binder, event);
+        });
     }
 
     const computed = await binder.compute();
@@ -113,7 +115,7 @@ const valueRender = async function (binder) {
 
 };
 
-const valueDerender = function (binder) {
+const valueDerender = async function (binder) {
 
     if (binder.node.type === 'select-one' || binder.node.type === 'select-multiple') {
         for (const option of binder.node.options) {

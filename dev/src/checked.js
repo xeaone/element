@@ -19,7 +19,7 @@ const checkedRender = async function (binder) {
         binder.setup = true;
 
         if (binder.node.type === 'radio') {
-            binder.node.addEventListener('input', async event => {
+            binder.node.addEventListener('input', async function (event) {
                 if (event.detail === flag) return handler(binder, event);
 
                 const parent = binder.node.form || binder.node.getRootNode();
@@ -58,7 +58,9 @@ const checkedRender = async function (binder) {
 
             });
         } else {
-            binder.node.addEventListener('input', event => handler(binder, event));
+            binder.node.addEventListener('input', function (event) {
+                handler(binder, event);
+            });
         }
 
     }

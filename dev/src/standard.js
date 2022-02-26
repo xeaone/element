@@ -20,7 +20,7 @@ const standardRender = async function (binder) {
 
 };
 
-const standardDerender = function (binder) {
+const standardDerender = async function (binder) {
     const boolean = booleanTypes.includes(binder.name);
 
     if (boolean) {
