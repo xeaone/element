@@ -1,11 +1,11 @@
 import format from './format.js';
 
-const textRender = async function (binder) {
-    const data = await binder.compute();
+const textRender = function (binder) {
+    const data = binder.compute();
     binder.node.textContent = format(data);
 };
 
-const textDerender = async function (binder) {
+const textDerender = function (binder) {
     binder.node.textContent = '';
 };
 

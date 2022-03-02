@@ -1,6 +1,15 @@
 
-const eachRender = async function (binder) {
-    const [ items, variable ] = await binder.compute();
+const walk = function (parent, method) {
+    let child = parent?.firstElementChild;
+    while (child) {
+        if (!child.attributes?.bind?.value?.includes('each:')) walk(child, method);
+        if (child.attributes?.bind) method(child);
+        child = child.nextElementSibling;
+    }
+};
+
+const eachRender = function (binder) {
+    const [ items, variable ] = binder.compute();
     const reference = items.x.reference;
 
     binder.targetLength = items?.length ?? 0;
@@ -37,51 +46,46 @@ const eachRender = async function (binder) {
         }
     } else if (binder.currentLength < binder.targetLength) {
         const descriptors = binder.alias ? Object.getOwnPropertyDescriptors(binder.alias) : {};
-        const tasks = [];
 
-        console.time('each');
-
+        console.time('each: loop');
         while (binder.currentLength < binder.targetLength) {
             const clone = binder.templateElement.content.cloneNode(true);
-            const index = binder.currentLength;
 
-            for (const node of clone.children) {
+            // const index = binder.currentLength++;
+            // const nodes = clone.querySelectorAll('[bind]');
+            // for (const node of nodes) {
+            walk(clone, function walked (index, node) {
                 node.x = { alias: {} };
 
                 if (binder.rewrites) {
-                    node.x.rewrites = [ ...binder.rewrites, [ variable, `${reference}.${binder.currentLength}` ] ];
+                    node.x.rewrites = [ ...binder.rewrites, [ variable, `${reference}.${index}` ] ];
                 } else {
-                    node.x.rewrites = [ [ variable, `${reference}.${binder.currentLength}` ] ];
+                    node.x.rewrites = [ [ variable, `${reference}.${index}` ] ];
                 }
 
-                descriptors[ '$items' ] = descriptors[ variable ] = {
-                    get: function () { return items[ index ]; },
-                    set: function (data) { items[ index ] = data; }
+                descriptors.$item = descriptors[ variable ] = {
+                    get: function getAlias () { return items[ index ]; },
+                    set: function setAlias (data) { items[ index ] = data; }
                 };
 
                 Object.defineProperties(node.x.alias, descriptors);
-                // binder.templateContainer.content.insertBefore(node, binder.templateContainer.content.children[ (index - 1) + binder.templateLength ]);
-                // binder.container.bind(node);
-                // tasks.push(tick(() => binder.container.bind(node)));//5778
-                // tasks.push(binder.container.bind(node));//3202
-                tasks.push(binder.container.bind(node, true));//878
-                //600
-                binder.templateContainer.content.appendChild(node);
-            }
 
+                binder.container.bind(node);
+            }.bind(null, binder.currentLength++));
+            // }
 
-
-            binder.currentLength++;
+            binder.templateContainer.content.appendChild(clone);
         }
+        console.timeEnd('each: loop');
 
-        await Promise.all(tasks);
-        console.timeEnd('each');
+        console.time('each: append');
         binder.node.appendChild(binder.templateContainer.content);
+        console.timeEnd('each: append');
     }
 
 };
 
-const eachDerender = async function (binder) {
+const eachDerender = function (binder) {
     binder.targetLength = 0;
     binder.currentLength = 0;
     let node;
@@ -89,57 +93,3 @@ const eachDerender = async function (binder) {
 };
 
 export default { render: eachRender, derender: eachDerender };
-
-// const tick = Promise.resolve();
-
-// const tick = function (method) {
-//     return new Promise(function tickPromise (resolve, reject) {
-//         setTimeout(function tickTimer () {
-//             Promise.resolve().then(method).then(resolve).catch(reject);
-//         });
-//     });
-// };
-
-// const indexEach = async function (start, end, method) {
-//     const tasks = [];
-//     while (start < end) {
-//         tasks.push(Promise.resolve().then(function indexMethod (index) {
-//             return method(index);
-//         }.bind(null, start++)));
-
-//         // tasks.push(new Promise(function forEachPromise (index, resolve, reject) {
-//         //     // setTimeout(function forEachTimer () {
-//         //     Promise.resolve().then(function forEachMethod () {
-//         //         return method(index);
-//         //     }).then(resolve).catch(reject);
-//         //     // }, 0);
-//         // }.bind(null, start++)));
-//     }
-//     return Promise.all(tasks);
-// };
-
-// const forEach = async function (array, method) {
-//     const tasks = [];
-//     for (let index = 0; index < array.length; index++) {
-//         tasks.push(Promise.resolve().then(function forEachMethod () {
-//             return method(array[ index ]);
-//         }.bind(null, index)));
-
-//         // tasks.push(new Promise(function forEachPromise (index, resolve, reject) {
-//         //     // setTimeout(function forEachTimer () {
-//         //     Promise.resolve().then(function forEachMethod () {
-//         //         return method(array[ index ]);
-//         //     }).then(resolve).catch(reject);
-//         //     // }, 0);
-//         // }.bind(null, index)));
-//     }
-//     return Promise.all(tasks);
-// };
-
-// const node = function (name, attributes) {
-//     const element = document.createElement(name);
-//     for (const [ name, value ] of attributes) {
-//         element.setAttribute(name, value);
-//     }
-//     return node;
-// };

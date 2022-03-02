@@ -35,7 +35,6 @@ const scopeDelete = function (event, reference, target, key) {
         Reflect.deleteProperty(target, key);
     }
 
-    // event(reference ? `${reference}.${key}` : `${key}`, 'derender');
     tick.then(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'derender'));
 
     return true;
@@ -53,7 +52,6 @@ const scopeSet = function (event, reference, target, key, to, receiver) {
     }
 
     Reflect.set(target, key, to, receiver);
-    // event(reference ? `${reference}.${key}` : `${key}`, 'render');
     tick.then(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
 
     return true;
@@ -79,7 +77,6 @@ export default class XElement extends HTMLElement {
     shadow;
     setup = false;
     binders = new Map();
-    tick = Promise.resolve();
     template = document.createElement('template');
 
     constructor () {
@@ -90,7 +87,7 @@ export default class XElement extends HTMLElement {
         // this.observer.observe(this, mutationOptions);
     }
 
-    async unbind (node) {
+    unbind (node) {
         const binders = this.binders.get(node);
         if (!binders) return;
 
@@ -104,21 +101,15 @@ export default class XElement extends HTMLElement {
         this.binders.delete(node);
     }
 
-    async bind (node, skip) {
-
+    bind (node) {
         const attribute = node.attributes.bind;
-        if (!attribute || this.binders.has(node)) return;
 
-        // if (node.localName.includes('-')) {
-        //     await window.customElements.whenDefined(node.localName);
-        // }
-
-        if (!('x' in node)) node.x = {};
+        node.x = node.x ?? {};
+        node.x.alias = node.x.alias ?? {};
         node.x.node = node;
         node.x.container = this;
         node.x.scope = this.scope;
 
-        const tasks = [];
         const parsed = parser(attribute.value, node.x.rewrites);
 
         // const properties = literal(attribute.value);
@@ -136,10 +127,10 @@ export default class XElement extends HTMLElement {
             binder.node = node;
             binder.name = name;
             binder.value = value;
-            binder.container = this;
             binder.alias = node.x.alias;
             binder.references = references;
             binder.rewrites = node.x.rewrites;
+            binder.container = node.x.container;
             binder.compute = computer(value, node.x.scope, node.x.alias);
             binder.type = name.startsWith('on') ? 'on' : name in handlers ? name : 'standard';
             binder.render = handlers[ binder.type ].render.bind(null, binder);
@@ -159,55 +150,38 @@ export default class XElement extends HTMLElement {
                 this.binders.set(node, new Set([ binder ]));
             }
 
-            // if (skip) return;
-            tasks.push(binder.render()); // this is really slow
+            binder.render();
         }
 
-        return Promise.all(tasks);
     }
 
-    async mutationEvent (mutations) {
+    mutationEvent (mutations) {
         for (const mutation of mutations) {
             for (const node of mutation.removedNodes) {
-                tasks.push(async function task () {
-                    return this.unbind(node);
-                }.bind(this));
+                this.unbind(node);
             }
             for (const node of mutation.addedNodes) {
-                tasks.push(async function task () {
-                    return this.bind(node);
-                }.bind(this));
+                this.bind(node);
             }
         }
-        return Promise.all(tasks);
     }
 
-    async scopeEvent (reference, type) {
-        const tasks = [];
+    scopeEvent (reference, type) {
         const binders = this.binders.get(reference);
         if (binders) {
             for (const binder of binders) {
-                tasks.push(tick.then(binder[ type ]));
+                binder[ type ]();
             }
-            return Promise.all(tasks);
         }
     }
 
-    async walk (method, parent) {
-        const tasks = [];
-        let child = (parent ?? this)?.firstChild;
+    walk (parent, method) {
+        let child = parent?.firstElementChild;
         while (child) {
-            if (child.attributes?.bind) {
-                tasks.push(async function task (node) {
-                    await method(node);
-                    if (!node.attributes?.bind?.value?.includes('each:')) {
-                        return this.walk(method, node);
-                    }
-                }.call(this, child));
-            }
-            child = child.nextSibling;
+            if (!child.attributes?.bind?.value?.includes('each:')) this.walk(child, method);
+            if (child.attributes?.bind) method(child);
+            child = child.nextElementSibling;
         }
-        return Promise.all(tasks);
     }
 
     async connectedCallback () {
@@ -228,7 +202,7 @@ export default class XElement extends HTMLElement {
         this.template.innerHTML = render;
         this.appendChild(this.template.content);
 
-        return this.walk(this.bind.bind(this));
+        this.walk(this, this.bind.bind(this));
     }
 
 }
