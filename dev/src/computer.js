@@ -1,39 +1,24 @@
 
 const computerCache = new Map();
-// const ignores = [
-//     '$instance', '$event', '$value', '$checked', '$form',
-//     'this', 'window', 'document', 'console', 'location',
-//     'globalThis', 'Infinity', 'NaN', 'undefined',
-//     'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent ',
-//     'Error', 'EvalError', 'RangeError', 'ReferenceError', 'SyntaxError', 'TypeError', 'URIError', 'AggregateError',
-//     'Object', 'Function', 'Boolean', 'Symbole', 'Array',
-//     'Number', 'Math', 'Date', 'BigInt',
-//     'String', 'RegExp',
-//     'Array', 'Int8Array', 'Uint8Array', 'Uint8ClampedArray', 'Int16Array', 'Uint16Array',
-//     'Int32Array', 'Uint32Array', 'BigInt64Array', 'BigUint64Array', 'Float32Array', 'Float64Array',
-//     'Map', 'Set', 'WeakMap', 'WeakSet',
-//     'ArrayBuffer', 'SharedArrayBuffer', 'DataView', 'Atomics', 'JSON',
-//     'Promise', 'GeneratorFunction', 'AsyncGeneratorFunction', 'Generator', 'AsyncGenerator', 'AsyncFunction',
-//     'Reflect', 'Proxy',
-// ];
-
-// const has = function (target, key) {
-//     return ignores.includes(key) ? false : key in target;
-// };
+const assignmentPattern = /(?:".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)|(.+)([-+?^*%|\ ]*=[-+?^*%|\ ]*)([^<>=].*)/;
 
 const computer = function (data, scope, alias) {
+
     let cache = computerCache.get(data);
-    // if (cache) return cache.bind(null, new Proxy(scope, { has }), alias || {});
-    if (cache) return cache.bind(null, scope, alias || {});
+    if (cache) return cache.bind(null, scope, alias);
+
+    const assignments = data.match(assignmentPattern);
+    if (assignments && assignments[ 1 ] && assignments[ 2 ] && assignments[ 3 ]) {
+        data = `return $assignment ? (${data}) : (${data.replace(assignments[ 1 ] + assignments[ 2 ], '').replace(assignments[ 3 ], assignments[ 1 ])});`;
+    } else {
+        data = `return (${data});`;
+    }
 
     const code = `
         try {
-            $instance = $instance || { $value:undefined, $checked:undefined, $event:undefined, $form:undefined };
-            with ($instance) {
-                with ($scope) {
-                    with ($alias) {
-                        return ${data};
-                    }
+            with ($scope) {
+                with ($alias) {
+                    ${data}
                 }
             }
         } catch (error){
@@ -41,12 +26,10 @@ const computer = function (data, scope, alias) {
         }
     `;
 
-    cache = new Function('$scope', '$alias', '$instance', code);
-    // cache = new Function('$scope', '$alias', '$instance', code).bind(null, new Proxy(scope, { has }));
+    cache = new Function('$scope', '$alias', code);
     computerCache.set(data, cache);
 
-    return cache.bind(null, scope, alias || {});
-    // return cache.bind(null, new Proxy(scope, { has }), alias || {});
+    return cache.bind(null, scope, alias);
 };
 
 export default computer;

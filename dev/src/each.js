@@ -2,10 +2,15 @@
 const walk = function (parent, method) {
     let child = parent?.firstElementChild;
     while (child) {
-        if (!child.attributes?.bind?.value?.includes('each:')) walk(child, method);
-        if (child.attributes?.bind) method(child);
+        if (!child.attributes?.bind?.value?.includes('each:') && child.firstElementChild) {
+            walk(child, method);
+        }
+        if (child.attributes?.bind) {
+            method(child);
+        }
         child = child.nextElementSibling;
     }
+    return parent;
 };
 
 const eachRender = function (binder) {
@@ -39,42 +44,64 @@ const eachRender = function (binder) {
             count = binder.templateLength;
 
             while (count--) {
-                binder.node.removeChild(binder.node.lastChild);
+                // binder.node.removeChild(binder.node.lastChild);
+                binder.container.remove(binder.node.lastChild);
             }
 
             binder.currentLength--;
         }
     } else if (binder.currentLength < binder.targetLength) {
-        const descriptors = binder.alias ? Object.getOwnPropertyDescriptors(binder.alias) : {};
+        // const descriptors = binder.alias ? Object.getOwnPropertyDescriptors(binder.alias) : {};
+        const descriptors = Object.getOwnPropertyDescriptors(binder.alias);
 
         console.time('each: loop');
         while (binder.currentLength < binder.targetLength) {
-            const clone = binder.templateElement.content.cloneNode(true);
+            // const clone = binder.templateElement.content.cloneNode(true);
 
-            // const index = binder.currentLength++;
+            const index = binder.currentLength++;
             // const nodes = clone.querySelectorAll('[bind]');
             // for (const node of nodes) {
-            walk(clone, function walked (index, node) {
-                node.x = { alias: {} };
+            // binder.templateContainer.content.appendChild(walk(binder.templateElement.content.cloneNode(true), function walked (index, node) {
 
-                if (binder.rewrites) {
-                    node.x.rewrites = [ ...binder.rewrites, [ variable, `${reference}.${index}` ] ];
-                } else {
-                    node.x.rewrites = [ [ variable, `${reference}.${index}` ] ];
-                }
+            //    node.x = { alias: {} };
 
-                descriptors.$item = descriptors[ variable ] = {
-                    get: function getAlias () { return items[ index ]; },
-                    set: function setAlias (data) { items[ index ] = data; }
-                };
+            //     if (binder.rewrites) {
+            //         node.x.rewrites = [ ...binder.rewrites, [ variable, `${reference}.${index}` ] ];
+            //     } else {
+            //         node.x.rewrites = [ [ variable, `${reference}.${index}` ] ];
+            //     }
 
-                Object.defineProperties(node.x.alias, descriptors);
+            //     descriptors.$item = descriptors[ variable ] = {
+            //         get: function getAlias () { return items[ index ]; },
+            //         set: function setAlias (data) { items[ index ] = data; }
+            //     };
 
-                binder.container.bind(node);
-            }.bind(null, binder.currentLength++));
+            //     Object.defineProperties(node.x.alias, descriptors);
+
+            //     binder.container.bind(node);
+
+            let rewrites;
+            if (binder.rewrites) {
+                rewrites = [ ...binder.rewrites, [ variable, `${reference}.${index}` ] ];
+            } else {
+                rewrites = [ [ variable, `${reference}.${index}` ] ];
+            }
+
+            descriptors.$item = descriptors[ variable ] = {
+                get: function getAlias () { return items[ index ]; },
+                set: function setAlias (data) { items[ index ] = data; }
+            };
+
+            const options = {
+                rewrites,
+                container: binder.container,
+                alias: Object.defineProperties({}, descriptors),
+            };
+
+            binder.templateContainer.content.appendChild(binder.container.add(binder.templateElement.content.cloneNode(true), options));
+            // }.bind(null, binder.currentLength++)));
             // }
 
-            binder.templateContainer.content.appendChild(clone);
         }
         console.timeEnd('each: loop');
 

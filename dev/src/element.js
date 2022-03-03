@@ -1,6 +1,5 @@
 import computer from './computer.js';
 import standard from './standard.js';
-// import literal from './literal.js';
 import checked from './checked.js';
 import parser from './parser.js';
 import value from './value.js';
@@ -47,7 +46,7 @@ const scopeSet = function (event, reference, target, key, to, receiver) {
         event(reference, 'render');
         event(reference ? `${reference}.${key}` : `${key}`, 'render');
         return true;
-    } else if (from === to) {
+    } else if (from === to || isNaN(from) && to === isNaN(to)) {
         return true;
     }
 
@@ -67,7 +66,6 @@ const handlers = {
     standard
 };
 
-const mutationOptions = { attributes: false, childList: true, subtree: true };
 const template = document.createElement('template');
 template.innerHTML = `<style>:host{display:block;}</style><slot></slot>`;
 
@@ -83,6 +81,7 @@ export default class XElement extends HTMLElement {
         super();
         this.shadow = this.attachShadow({ mode: 'open' });
         this.shadow.appendChild(template.content);
+        // const mutationOptions = { attributes: false, childList: true, subtree: true };
         // this.observer = new MutationObserver(this.mutationEvent.bind(this));
         // this.observer.observe(this, mutationOptions);
     }
@@ -101,40 +100,37 @@ export default class XElement extends HTMLElement {
         this.binders.delete(node);
     }
 
-    bind (node) {
-        const attribute = node.attributes.bind;
+    bind (node, options) {
 
-        node.x = node.x ?? {};
-        node.x.alias = node.x.alias ?? {};
-        node.x.node = node;
-        node.x.container = this;
-        node.x.scope = this.scope;
+        options.attribute = node.attributes.bind;
+        options.container = options.container;
+        options.scope = options.container.scope;
 
-        const parsed = parser(attribute.value, node.x.rewrites);
+        options.alias = options.alias ?? {};
+        options.alias.$form = options.alias.$from ?? undefined;
+        options.alias.$event = options.alias.$event ?? undefined;
+        options.alias.$value = options.alias.$value ?? undefined;
+        options.alias.$checked = options.alias.$checked ?? undefined;
+        options.alias.$assignment = options.alias.$assignment ?? undefined;
 
-        // const properties = literal(attribute.value);
-        // for (const property of properties) {
+        const parsed = parser(option.attribute, options.rewrites);
 
         for (const { name, value, references } of parsed) {
             const binder = {};
 
-            // binder.name = property.key;
-            // binder.value = property.value;
-            // binder.references = parser(property.value, node.x.rewrites);
-            // binder.compute = computer(property.value, node.x.scope, node.x.alias);
-            // binder.type = property.key.startsWith('on') ? 'on' : property.key in handlers ? property.key : 'standard';
-
             binder.node = node;
             binder.name = name;
             binder.value = value;
-            binder.alias = node.x.alias;
+            binder.alias = options.alias;
             binder.references = references;
-            binder.rewrites = node.x.rewrites;
-            binder.container = node.x.container;
-            binder.compute = computer(value, node.x.scope, node.x.alias);
+            binder.rewrites = options.rewrites;
+            binder.container = options.container;
+            binder.compute = computer(value, options.scope, options.alias);
             binder.type = name.startsWith('on') ? 'on' : name in handlers ? name : 'standard';
             binder.render = handlers[ binder.type ].render.bind(null, binder);
             binder.derender = handlers[ binder.type ].derender.bind(null, binder);
+
+            // Object.defineProperties(binder, { alias: { value: node.x.alias } });
 
             for (const reference of binder.references) {
                 if (this.binders.has(reference)) {
@@ -155,16 +151,16 @@ export default class XElement extends HTMLElement {
 
     }
 
-    mutationEvent (mutations) {
-        for (const mutation of mutations) {
-            for (const node of mutation.removedNodes) {
-                this.unbind(node);
-            }
-            for (const node of mutation.addedNodes) {
-                this.bind(node);
-            }
-        }
-    }
+    // mutationEvent (mutations) {
+    //     for (const mutation of mutations) {
+    //         for (const node of mutation.removedNodes) {
+    //             this.unbind(node);
+    //         }
+    //         for (const node of mutation.addedNodes) {
+    //             this.bind(node);
+    //         }
+    //     }
+    // }
 
     scopeEvent (reference, type) {
         const binders = this.binders.get(reference);
@@ -173,6 +169,26 @@ export default class XElement extends HTMLElement {
                 binder[ type ]();
             }
         }
+    }
+
+    remove (parent) {
+        let child = parent?.firstElementChild;
+        while (child) {
+            if (child.firstElementChild) this.remove(child);
+            if (child.attributes?.bind) this.unbind(child);
+            child = child.nextElementSibling;
+        }
+        return parent;
+    }
+
+    add (parent, options) {
+        let child = parent?.firstElementChild;
+        while (child) {
+            if (!child.attributes.bind?.value?.includes('each:') && child.firstElementChild) this.add(child, options);
+            if (child.attributes.bind) this.bind(child, options);
+            child = child.nextElementSibling;
+        }
+        return parent;
     }
 
     walk (parent, method) {
@@ -184,25 +200,41 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    async connectedCallback () {
+    connectedCallback () {
         if (this.setup) return;
         else this.setup = true;
 
-        let data = {};
-        if (this.data) data = await this.data();
-
-        this.scope = new Proxy(data, {
-            get: scopeGet.bind(null, this.scopeEvent.bind(this), ''),
-            set: scopeSet.bind(null, this.scopeEvent.bind(this), ''),
-            deleteProperty: scopeDelete.bind(null, this.scopeEvent.bind(this), '')
-        });
+        let data;
+        if (this.data) data = this.data();
 
         let render;
-        if (this.render) render = await this.render();
-        this.template.innerHTML = render;
-        this.appendChild(this.template.content);
+        if (this.render) render = this.render();
 
-        this.walk(this, this.bind.bind(this));
+        if (data instanceof Promise || render instanceof Promise) {
+            return Promise.all([ data, render ]).then(function connectedCallbackPromise ([ data, render ]) {
+                this.scope = new Proxy(data ?? {}, {
+                    get: scopeGet.bind(null, this.scopeEvent.bind(this), ''),
+                    set: scopeSet.bind(null, this.scopeEvent.bind(this), ''),
+                    deleteProperty: scopeDelete.bind(null, this.scopeEvent.bind(this), '')
+                });
+
+                this.template.innerHTML = render;
+                this.walk(this.template.content, this.bind.bind(this));
+                this.appendChild(this.template.content);
+            });
+        } else {
+            this.scope = new Proxy(data ?? {}, {
+                get: scopeGet.bind(null, this.scopeEvent.bind(this), ''),
+                set: scopeSet.bind(null, this.scopeEvent.bind(this), ''),
+                deleteProperty: scopeDelete.bind(null, this.scopeEvent.bind(this), '')
+            });
+
+            this.template.innerHTML = render;
+            // this.walk(this.template.content, this.bind.bind(this));
+            this.add(this.template.content, { container: this });
+            this.appendChild(this.template.content);
+        }
+
     }
 
 }

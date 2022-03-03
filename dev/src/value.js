@@ -22,43 +22,28 @@ const stampToView = function (data) {
 };
 
 const input = function (binder, event) {
-    let display, computed;
+
+    binder.alias.$event = event;
+    binder.alias.$assignment = true;
 
     if (binder.node.type === 'select-one') {
         const [ option ] = binder.node.selectedOptions;
-        const value = option ? '$value' in option ? option.$value : option.value : undefined;
-        computed = binder.compute({ $event: event, $value: value, $assignment: true });
-        display = format(computed);
+        binder.alias.$value = value = option ? '$value' in option ? option.$value : option.value : undefined;
     } else if (binder.node.type === 'select-multiple') {
-        const value = [];
+        binder.alias.$value = [];
         for (const option of binder.node.selectedOptions) {
-            value.push('$value' in option ? option.$value : option.value);
+            binder.alias.$value.push('$value' in option ? option.$value : option.value);
         }
-        computed = binder.compute({ $event: event, $value: value, $assignment: true });
-        display = format(computed);
     } else if (binder.node.type === 'number' || binder.node.type === 'range') {
-        computed = binder.compute({ $event: event, $value: binder.node.valueAsNumber, $assignment: true });
-        // if (binder.node.typeof computed === 'number' && computed !== Infinity) binder.node.valueAsNumber = computed;
-        // else binder.node.value = computed;
-        binder.node.value = computed;
-        display = binder.node.value;
+        binder.alias.$value = binder.node.valueAsNumber;
     } else if (dates.includes(binder.node.type)) {
-        const value = typeof binder.node.$value === 'string' ? binder.node.value : stampFromView(binder.node.valueAsNumber);
-        computed = binder.compute({ $event: event, $value: value, $assignment: true });
-        if (typeof binder.node.$value === 'string') binder.node.value = computed;
-        else binder.node.valueAsNumber = stampToView(computed);
-        display = binder.node.value;
+        binder.alias.$value = typeof binder.node.$value === 'string' ? binder.node.value : stampFromView(binder.node.valueAsNumber);
     } else {
-        const value = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.value) : binder.node.value;
-        const checked = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.checked) : binder.node.checked;
-        computed = binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
-        display = format(computed);
-        binder.node.value = display;
+        binder.alias.$value = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.value) : binder.node.value;
+        binder.alias.$checked = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.checked) : binder.node.checked;
     }
 
-    binder.node.$value = computed;
-    if (binder.node.type === 'checked' || binder.node.type === 'radio') binder.node.$checked = computed;
-    binder.node.setAttribute('value', display);
+    binder.compute();
 };
 
 const valueRender = function (binder) {
@@ -70,6 +55,10 @@ const valueRender = function (binder) {
         });
     }
 
+    binder.alias.$event = undefined;
+    binder.alias.$value = undefined;
+    binder.alias.$assignment = false;
+    binder.alias.$checked = undefined;
     const computed = binder.compute();
 
     let display;
