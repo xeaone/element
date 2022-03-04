@@ -25,14 +25,14 @@ export default [
             banner,
             name: 'Oxe',
             file: 'pro/x-element.js',
-            format: 'umd',
+            format: 'esm',
             indent: '    ',
         },
         plugins: [
             typescript({
                 sourceMap: false,
                 declaration: false,
-                removeComments: false,
+                removeComments: true,
                 target: 'es6',
             }),
         ]
@@ -43,33 +43,42 @@ export default [
             banner,
             name: 'Oxe',
             file: 'pro/x-router.js',
-            format: 'umd',
+            format: 'esm',
             indent: '    ',
         },
         plugins: [
             typescript({
                 sourceMap: false,
                 declaration: false,
-                removeComments: false,
+                removeComments: true,
                 target: 'es6',
             }),
         ]
     },
     {
         input: 'src/index.ts',
-        output: {
-            banner,
-            name: 'Oxe',
-            file: 'pro/oxe.js',
-            format: 'umd',
-            indent: '    ',
-        },
+        output: [
+            {
+                banner,
+                name: 'Oxe',
+                file: 'pro/oxe.js',
+                format: 'umd',
+                indent: '    ',
+            },
+            {
+                banner,
+                name: 'Oxe',
+                file: 'pro/x.js',
+                format: 'umd',
+                indent: '    ',
+            }
+        ],
         plugins: [
             typescript({
                 sourceMap: false,
                 declaration: false,
-                removeComments: false,
-                target: 'es6',
+                removeComments: true,
+                target: 'es5',
             }),
         ]
     }
