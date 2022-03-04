@@ -1,7 +1,6 @@
 
-const htmlRender = async function (binder) {
-    const tasks = [];
-    let data = await binder.compute();
+const htmlRender = function (binder) {
+    let data = binder.compute();
 
     if (typeof data !== 'string') {
         data = '';
@@ -11,7 +10,7 @@ const htmlRender = async function (binder) {
     let removeChild;
     while (removeChild = binder.owner.lastChild) {
         binder.owner.removeChild(removeChild);
-        tasks.push(binder.binder.remove(removeChild));
+        binder.binder.remove(removeChild);
     }
 
     const template = document.createElement('template');
@@ -19,22 +18,19 @@ const htmlRender = async function (binder) {
 
     let addChild = template.content.firstChild;
     while (addChild) {
-        tasks.push(binder.binder.add.bind(binder.binder, addChild, binder.container));
+        binder.container.binds(addChild, binder.container);
         addChild = addChild.nextSibling;
     }
 
-    await Promise.all(tasks);
     binder.owner.appendChild(template.content);
 };
 
-const htmlUnrender = async function (binder) {
-    const tasks = [];
+const htmlUnrender = function (binder) {
     let node;
     while (node = binder.owner.lastChild) {
-        tasks.push(binder.binder.remove(node));
+        binder.container.unbinds(node);
         binder.owner.removeChild(node);
     }
-    await Promise.all(tasks);
 };
 
 export default { render: htmlRender, unrender: htmlUnrender };

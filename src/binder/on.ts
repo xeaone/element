@@ -6,7 +6,7 @@ const Value = function (element) {
     else return element.value;
 };
 
-const submit = async function (event, binder) {
+const submit = function (event, binder) {
     event.preventDefault();
 
     const form = {};
@@ -50,13 +50,13 @@ const submit = async function (event, binder) {
 
     }
 
-    await binder.compute({ $form: form, $event: event });
+    binder.compute({ $form: form, $event: event });
     if (target.getAttribute('reset')) target.reset();
 
     return false;
 };
 
-const reset = async function (event, binder) {
+const reset = function (event, binder) {
     event.preventDefault();
 
     const target = event.target;
@@ -84,12 +84,12 @@ const reset = async function (event, binder) {
         element.dispatchEvent(new Event('input'));
     }
 
-    await binder.compute({ $event: event });
+    binder.compute({ $event: event });
 
     return false;
 };
 
-const onRender = async function (binder) {
+const onRender = function (binder) {
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);
 
@@ -115,7 +115,7 @@ const onRender = async function (binder) {
     binder.owner.addEventListener(name, binder.meta.method);
 };
 
-const onUnrender = async function (binder) {
+const onUnrender = function (binder) {
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);
 

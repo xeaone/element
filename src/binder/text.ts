@@ -1,11 +1,11 @@
 import format from '../format';
 
-const textRender = async function (binder) {
-    let data = await binder.compute();
+const textRender = function (binder) {
+    let data = binder.compute();
     binder.owner.textContent = format(data);
 };
 
-const textUnrender = async function (binder) {
+const textUnrender = function (binder) {
     binder.owner.textContent = '';
 };
 

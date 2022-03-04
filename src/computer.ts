@@ -2,105 +2,71 @@
 const caches = new Map();
 const splitPattern = /\s*{{\s*|\s*}}\s*/;
 
-const instancePattern = /(\$\w+)/;
 const bracketPattern = /({{)|(}})/;
-const eachPattern = /({{.*?\s+(of|in)\s+(.*?)}})/;
+const stringPattern = /(".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)/;
 const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
-const codePattern = new RegExp(`${eachPattern.source}|${assignmentPattern.source}|${instancePattern.source}|${bracketPattern.source}`, 'g');
-
-const ignores = [
-    // '$assignee', '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-    // '$e', '$v', '$c', '$f',
-    '$instance', '$event', '$value', '$checked', '$form',
-    'this', 'window', 'document', 'console', 'location',
-    'globalThis', 'Infinity', 'NaN', 'undefined',
-    'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent ',
-    'Error', 'EvalError', 'RangeError', 'ReferenceError', 'SyntaxError', 'TypeError', 'URIError', 'AggregateError',
-    'Object', 'Function', 'Boolean', 'Symbole', 'Array',
-    'Number', 'Math', 'Date', 'BigInt',
-    'String', 'RegExp',
-    'Array', 'Int8Array', 'Uint8Array', 'Uint8ClampedArray', 'Int16Array', 'Uint16Array',
-    'Int32Array', 'Uint32Array', 'BigInt64Array', 'BigUint64Array', 'Float32Array', 'Float64Array',
-    'Map', 'Set', 'WeakMap', 'WeakSet',
-    'ArrayBuffer', 'SharedArrayBuffer', 'DataView', 'Atomics', 'JSON',
-    'Promise', 'GeneratorFunction', 'AsyncGeneratorFunction', 'Generator', 'AsyncGenerator', 'AsyncFunction',
-    'Reflect', 'Proxy',
-];
-
-const has = function (target, key) {
-    return ignores.includes(key) ? false : key in target;
-};
+const codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, 'g');
 
 const computer = function (binder) {
     let cache = caches.get(binder.value);
+    if (cache) return cache.bind(null, binder.context);
 
-    if (!cache) {
-        let code = binder.value;
+    let reference = '';
+    let assignment = '';
+    let code = binder.value;
 
-        const convert = code.split(splitPattern).filter(part => part).length > 1;
-        const isChecked = binder.node.name === 'checked';
-        const isValue = binder.node.name === 'value';
+    const isValue = binder.node.name === 'value';
+    const isChecked = binder.node.name === 'checked';
+    const convert = code.split(splitPattern).filter(part => part).length > 1;
 
-        let reference = '';
-        let assignment = '';
-        let usesInstance = false;
-        // let hasEvent, hasForm, hasValue, hasChecked;
-
-        code = code.replace(codePattern, function (match, g1, g2, ofInRight, assignee, assigneeLeft, ref, assigneeMiddle, assigneeRight, instance, bracketLeft, bracketRight) {
-            if (bracketLeft) return convert ? `' + (` : '(';
-            if (bracketRight) return convert ? `) + '` : ')';
-            if (ofInRight) return `(${ofInRight})`;
-            if (instance) {
-                usesInstance = true;
-                return match;
+    code = code.replace(codePattern, function (match, string, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight) {
+        if (string) return string;
+        if (bracketLeft) return convert ? `' + (` : '(';
+        if (bracketRight) return convert ? `) + '` : ')';
+        if (assignee) {
+            if (isValue || isChecked) {
+                reference = r;
+                assignment = assigneeLeft + assigneeRight;
+                return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+            } else {
+                return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
             }
-            if (assignee) {
-                if (isValue || isChecked) {
-                    reference = ref;
-                    usesInstance = true;
-                    assignment = assigneeLeft + assigneeRight;
-                    return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
-                } else {
-                    return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
-                }
-            }
-        });
-
-        code = convert ? `'${code}'` : code;
-
-        if (usesInstance) {
-            code = `
-            $instance = $instance || {};
-            with ($instance) {
-                with ($context) {
-                    if ($instance.$assignment) {
-                        return ${code};
-                    } else {
-                        ${isValue ? `$instance.$value = ${reference || `undefined`};` : ''}
-                        ${isChecked ? `$instance.$checked = ${reference || `undefined`};` : ''}
-                        return ${assignment || code};
-                    }
-                }
-            }
-            `;
-        } else {
-            code = `with ($context) { return ${code}; }`;
         }
+    });
 
+    code = convert ? `'${code}'` : code;
+
+    if (assignment) {
         code = `
-            try {
-                ${code}
-            } catch (error){
-                console.error(error);
+            if ($assignment) {
+                return ${code};
+            } else {
+                ${isValue ? `$value = ${reference || `undefined`};` : ''}
+                ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
+                return ${assignment || code};
             }
         `;
-
-        cache = new Function('$context', '$binder', '$instance', code);
-        caches.set(binder.value, cache);
+    } else {
+        code = `return ${code};`;
     }
 
-    return cache.bind(null, new Proxy(binder.context, { has }), binder);
-    // return cache.bind(null, binder.context, binder);
+    code = `
+    try {
+        $instance = $instance || {};
+        with ($context) {
+            with ($instance) {
+                ${code}
+            }
+        }
+    } catch (error){
+        console.error(error);
+    }
+    `;
+
+    cache = new Function('$context', '$instance', code);
+    caches.set(binder.value, cache);
+
+    return cache.bind(null, binder.context);
 };
 
 export default computer;

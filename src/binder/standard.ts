@@ -1,8 +1,8 @@
 import booleanTypes from '../types/boolean';
 import format from '../format';
 
-const standardRender = async function (binder) {
-    let data = await binder.compute();
+const standardRender = function (binder) {
+    let data = binder.compute();
 
     const boolean = booleanTypes.includes(binder.name);
 
@@ -20,7 +20,7 @@ const standardRender = async function (binder) {
 
 };
 
-const standardUnrender = async function (binder) {
+const standardUnrender = function (binder) {
     const boolean = booleanTypes.includes(binder.name);
 
     if (boolean) {

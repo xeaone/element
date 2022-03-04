@@ -10,7 +10,7 @@
 
     class OLoop extends Component {
 
-        data = {
+        static data = () => ({
             items: [],
             message: '',
             count: 100000,
@@ -63,9 +63,9 @@
             clear() {
                 this.items = [];
             }
-        };
+        });
 
-        html = /*html*/`
+        static html = () => /*html*/ `
             <div class="wrap">
                 <div class="loader">Loader</div>
             </div>
@@ -79,7 +79,7 @@
 			<button onclick="{{raw()}}">raw</button>
 			<button onclick="{{clear()}}">clear</button>
 
-			<div each="{{item of items}}">
+			<div each="{{[items,'item']}}">
                 <div class="box">{{item.number}}</div>
             </div>
 

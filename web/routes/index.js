@@ -79,7 +79,8 @@ export default class IndexRoute extends Component {
     title = 'Oxe';
     description = 'A mighty tiny web components framework/library.';
 
-    html = /*html*/`
+    // static html = () => /*html*/`
+    html = () => /*html*/`
 	<h2>Overview</h2>
 
 	<strong>Synopsis</strong>
@@ -134,3 +135,12 @@ export default class IndexRoute extends Component {
 	`;
 
 }
+
+// let i = document.createElement('route-index');
+// console.log(i, i.children);
+// customElements.whenDefined('route-index').then(() => {
+//     let i = document.createElement('route-index');
+//     console.log(i, i.children);
+//     document.body.appendChild(i);
+//     console.log(i, i.children);
+// });

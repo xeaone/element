@@ -1,9 +1,9 @@
 
 const flag = Symbol('RadioFlag');
 
-const handler = async function (binder, event?: Event) {
+const handler = function (binder, event?: Event) {
     const checked = binder.owner.checked;
-    const computed = await binder.compute({ $event: event, $checked: checked, $assignment: !!event });
+    const computed = binder.compute({ $event: event, $checked: checked, $assignment: !!event });
 
     if (computed) {
         binder.owner.setAttributeNode(binder.node);
@@ -13,14 +13,14 @@ const handler = async function (binder, event?: Event) {
 
 };
 
-const checkedRender = async function (binder) {
+const checkedRender = function (binder) {
 
     if (!binder.meta.setup) {
         binder.node.value = '';
         binder.meta.setup = true;
 
         if (binder.owner.type === 'radio') {
-            binder.owner.addEventListener('input', async event => {
+            binder.owner.addEventListener('input', event => {
                 if (event.detail === flag) return handler(binder, event);
 
                 const parent = binder.owner.form || binder.owner.getRootNode();
@@ -29,7 +29,7 @@ const checkedRender = async function (binder) {
 
                 for (const radio of radios) {
                     if (radio === event.target) {
-                        await handler(binder, event);
+                        handler(binder, event);
                     } else {
 
                         let checked;
@@ -64,10 +64,10 @@ const checkedRender = async function (binder) {
 
     }
 
-    await handler(binder);
+    handler(binder);
 };
 
-const checkedUnrender = async function (binder) {
+const checkedUnrender = function (binder) {
     binder.owner.removeAttribute('checked');
 };
 
