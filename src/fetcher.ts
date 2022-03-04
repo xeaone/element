@@ -18,7 +18,7 @@ type FetchOption = FetcherOption & {
     aborted?: boolean;
 };
 
-export default new class Fetcher {
+export default new class XFetcher {
 
     option: FetcherOption = {};
 

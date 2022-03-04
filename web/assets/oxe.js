@@ -172,6 +172,25 @@
     };
     var checked = { render: checkedRender, unrender: checkedUnrender };
 
+    const inheritRender = function (binder) {
+        if (!binder.meta.setup) {
+            binder.meta.setup = true;
+            binder.node.value = '';
+        }
+        if (!binder.owner.inherited) {
+            return console.warn(`inherited not implemented ${binder.owner.localName}`);
+        }
+        const inherited = binder.compute();
+        binder.owner.inherited?.(inherited);
+    };
+    const inheritUnrender = function (binder) {
+        if (!binder.owner.inherited) {
+            return console.warn(`inherited not implemented ${binder.owner.localName}`);
+        }
+        binder.owner.inherited?.();
+    };
+    var inherit = { render: inheritRender, unrender: inheritUnrender };
+
     var dates = ['date', 'datetime-local', 'month', 'time', 'week'];
 
     console.warn('value: setter/getter issue with multiselect');
@@ -723,7 +742,7 @@
 
     const TEXT = Node.TEXT_NODE;
     const ELEMENT = Node.ELEMENT_NODE;
-    class Component extends HTMLElement {
+    class XElement extends HTMLElement {
         static adopt = true;
         static data = () => ({});
         static attributes = () => [];
@@ -763,6 +782,7 @@
             each,
             value,
             checked,
+            inherit,
             standard
         };
         #adoptedEvent = new Event('adopted');
@@ -947,164 +967,6 @@
             this.dispatchEvent(this.#connectedEvent);
         }
     }
-
-    var Fetcher = new class Fetcher {
-        option = {};
-        types = [
-            'json',
-            'text',
-            'blob',
-            'formData',
-            'arrayBuffer'
-        ];
-        mime = {
-            xml: 'text/xml; charset=utf-8',
-            html: 'text/html; charset=utf-8',
-            text: 'text/plain; charset=utf-8',
-            json: 'application/json; charset=utf-8',
-            js: 'application/javascript; charset=utf-8'
-        };
-        async setup(option = {}) {
-            this.option.path = option.path;
-            this.option.method = option.method;
-            this.option.origin = option.origin;
-            this.option.before = option.before;
-            this.option.headers = option.headers;
-            this.option.after = option.after;
-            this.option.acceptType = option.acceptType;
-            this.option.credentials = option.credentials;
-            this.option.contentType = option.contentType;
-            this.option.responseType = option.responseType;
-        }
-        async method(method, data) {
-            data = typeof data === 'string' ? { url: data } : data;
-            return this.fetch({ ...data, method });
-        }
-        async get() {
-            return this.method('get', ...arguments);
-        }
-        async put() {
-            return this.method('put', ...arguments);
-        }
-        async post() {
-            return this.method('post', ...arguments);
-        }
-        async head() {
-            return this.method('head', ...arguments);
-        }
-        async patch() {
-            return this.method('patch', ...arguments);
-        }
-        async delete() {
-            return this.method('delete', ...arguments);
-        }
-        async options() {
-            return this.method('options', ...arguments);
-        }
-        async connect() {
-            return this.method('connect', ...arguments);
-        }
-        async serialize(data) {
-            let query = '';
-            for (const name in data) {
-                query = query.length > 0 ? query + '&' : query;
-                query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-            }
-            return query;
-        }
-        async fetch(data = {}) {
-            const { option } = this;
-            const context = { ...option, ...data };
-            if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/')
-                context.path = context.path.slice(1);
-            if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/')
-                context.origin = context.origin.slice(0, -1);
-            if (context.path && context.origin && !context.url)
-                context.url = context.origin + '/' + context.path;
-            if (!context.method)
-                throw new Error('Oxe.fetcher.fetch - requires method option');
-            if (!context.url)
-                throw new Error('Oxe.fetcher.fetch - requires url or origin and path option');
-            context.aborted = false;
-            context.headers = context.headers || {};
-            context.method = context.method.toUpperCase();
-            Object.defineProperty(context, 'abort', {
-                enumerable: true,
-                value() { context.aborted = true; return context; }
-            });
-            if (context.contentType) {
-                switch (context.contentType) {
-                    case 'js':
-                        context.headers['Content-Type'] = this.mime.js;
-                        break;
-                    case 'xml':
-                        context.headers['Content-Type'] = this.mime.xml;
-                        break;
-                    case 'html':
-                        context.headers['Content-Type'] = this.mime.html;
-                        break;
-                    case 'json':
-                        context.headers['Content-Type'] = this.mime.json;
-                        break;
-                    default: context.headers['Content-Type'] = context.contentType;
-                }
-            }
-            if (context.acceptType) {
-                switch (context.acceptType) {
-                    case 'js':
-                        context.headers['Accept'] = this.mime.js;
-                        break;
-                    case 'xml':
-                        context.headers['Accept'] = this.mime.xml;
-                        break;
-                    case 'html':
-                        context.headers['Accept'] = this.mime.html;
-                        break;
-                    case 'json':
-                        context.headers['Accept'] = this.mime.json;
-                        break;
-                    default: context.headers['Accept'] = context.acceptType;
-                }
-            }
-            if (typeof option.before === 'function')
-                await option.before(context);
-            if (context.aborted)
-                return;
-            if (context.body) {
-                if (context.method === 'GET') {
-                    context.url = context.url + '?' + await this.serialize(context.body);
-                    // } else if (context.contentType === 'json') {
-                }
-                else if (typeof context.body === 'object') {
-                    context.body = JSON.stringify(context.body);
-                }
-            }
-            const result = await window.fetch(context.url, context);
-            Object.defineProperties(context, {
-                result: { enumerable: true, value: result },
-                code: { enumerable: true, value: result.status }
-                // headers: { enumerable: true, value: result.headers }
-                // message: { enumerable: true, value: result.statusText }
-            });
-            const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
-            const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
-            let type;
-            if (responseType)
-                type = responseType;
-            else if (contentType.includes('application/json'))
-                type = 'json';
-            else if (contentType.includes('text/plain'))
-                type = 'text';
-            if (!this.types.includes(type))
-                throw new Error('Oxe.fetcher.fetch - invalid responseType');
-            context.body = await result[type]();
-            if (typeof option.after === 'function')
-                await option.after(context);
-            if (context.aborted)
-                return;
-            return context;
-        }
-    };
 
     // declare global {
     //     interface Window {
@@ -1352,7 +1214,7 @@
         a.href = path;
         return a.pathname;
     };
-    var Router = new class Router {
+    var Router = new class XRouter {
         #target;
         #data = {};
         #folder = '';
@@ -1585,17 +1447,163 @@
         }
     };
 
-    function define(component) {
-        if (typeof component === 'string') {
-            return load(component).then(loaded => define(loaded.default));
+    var Fetcher = new class XFetcher {
+        option = {};
+        types = [
+            'json',
+            'text',
+            'blob',
+            'formData',
+            'arrayBuffer'
+        ];
+        mime = {
+            xml: 'text/xml; charset=utf-8',
+            html: 'text/html; charset=utf-8',
+            text: 'text/plain; charset=utf-8',
+            json: 'application/json; charset=utf-8',
+            js: 'application/javascript; charset=utf-8'
+        };
+        async setup(option = {}) {
+            this.option.path = option.path;
+            this.option.method = option.method;
+            this.option.origin = option.origin;
+            this.option.before = option.before;
+            this.option.headers = option.headers;
+            this.option.after = option.after;
+            this.option.acceptType = option.acceptType;
+            this.option.credentials = option.credentials;
+            this.option.contentType = option.contentType;
+            this.option.responseType = option.responseType;
         }
-        else if (component instanceof Array) {
-            return Promise.all(component.map(data => define(data)));
+        async method(method, data) {
+            data = typeof data === 'string' ? { url: data } : data;
+            return this.fetch({ ...data, method });
         }
-        else {
-            customElements.define(dash(component.name), component);
+        async get() {
+            return this.method('get', ...arguments);
         }
-    }
+        async put() {
+            return this.method('put', ...arguments);
+        }
+        async post() {
+            return this.method('post', ...arguments);
+        }
+        async head() {
+            return this.method('head', ...arguments);
+        }
+        async patch() {
+            return this.method('patch', ...arguments);
+        }
+        async delete() {
+            return this.method('delete', ...arguments);
+        }
+        async options() {
+            return this.method('options', ...arguments);
+        }
+        async connect() {
+            return this.method('connect', ...arguments);
+        }
+        async serialize(data) {
+            let query = '';
+            for (const name in data) {
+                query = query.length > 0 ? query + '&' : query;
+                query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+            }
+            return query;
+        }
+        async fetch(data = {}) {
+            const { option } = this;
+            const context = { ...option, ...data };
+            if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/')
+                context.path = context.path.slice(1);
+            if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/')
+                context.origin = context.origin.slice(0, -1);
+            if (context.path && context.origin && !context.url)
+                context.url = context.origin + '/' + context.path;
+            if (!context.method)
+                throw new Error('Oxe.fetcher.fetch - requires method option');
+            if (!context.url)
+                throw new Error('Oxe.fetcher.fetch - requires url or origin and path option');
+            context.aborted = false;
+            context.headers = context.headers || {};
+            context.method = context.method.toUpperCase();
+            Object.defineProperty(context, 'abort', {
+                enumerable: true,
+                value() { context.aborted = true; return context; }
+            });
+            if (context.contentType) {
+                switch (context.contentType) {
+                    case 'js':
+                        context.headers['Content-Type'] = this.mime.js;
+                        break;
+                    case 'xml':
+                        context.headers['Content-Type'] = this.mime.xml;
+                        break;
+                    case 'html':
+                        context.headers['Content-Type'] = this.mime.html;
+                        break;
+                    case 'json':
+                        context.headers['Content-Type'] = this.mime.json;
+                        break;
+                    default: context.headers['Content-Type'] = context.contentType;
+                }
+            }
+            if (context.acceptType) {
+                switch (context.acceptType) {
+                    case 'js':
+                        context.headers['Accept'] = this.mime.js;
+                        break;
+                    case 'xml':
+                        context.headers['Accept'] = this.mime.xml;
+                        break;
+                    case 'html':
+                        context.headers['Accept'] = this.mime.html;
+                        break;
+                    case 'json':
+                        context.headers['Accept'] = this.mime.json;
+                        break;
+                    default: context.headers['Accept'] = context.acceptType;
+                }
+            }
+            if (typeof option.before === 'function')
+                await option.before(context);
+            if (context.aborted)
+                return;
+            if (context.body) {
+                if (context.method === 'GET') {
+                    context.url = context.url + '?' + await this.serialize(context.body);
+                    // } else if (context.contentType === 'json') {
+                }
+                else if (typeof context.body === 'object') {
+                    context.body = JSON.stringify(context.body);
+                }
+            }
+            const result = await window.fetch(context.url, context);
+            Object.defineProperties(context, {
+                result: { enumerable: true, value: result },
+                code: { enumerable: true, value: result.status }
+                // headers: { enumerable: true, value: result.headers }
+                // message: { enumerable: true, value: result.statusText }
+            });
+            const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
+            const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
+            let type;
+            if (responseType)
+                type = responseType;
+            else if (contentType.includes('application/json'))
+                type = 'json';
+            else if (contentType.includes('text/plain'))
+                type = 'text';
+            if (!this.types.includes(type))
+                throw new Error('Oxe.fetcher.fetch - invalid responseType');
+            context.body = await result[type]();
+            if (typeof option.after === 'function')
+                await option.after(context);
+            if (context.aborted)
+                return;
+            return context;
+        }
+    };
 
     // if (typeof window.CustomEvent !== 'function') {
     //     (window as any).CustomEvent = function CustomEvent (event, options) {
@@ -1659,16 +1667,15 @@
     //     }
     // }
     var index = Object.freeze(new class Oxe {
-        Component = Component;
-        component = Component;
+        XElement = XElement;
+        Element = XElement;
+        element = XElement;
+        XFetcher = Fetcher;
         Fetcher = Fetcher;
         fetcher = Fetcher;
+        XRouter = Router;
         Router = Router;
         router = Router;
-        Define = define;
-        define = define;
-        Load = load;
-        load = load;
     });
 
     return index;

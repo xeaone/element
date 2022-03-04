@@ -20,11 +20,29 @@ const banner = `
 
 export default [
     {
-        input: 'src/index.ts',
+        input: 'src/element/element.ts',
         output: {
             banner,
             name: 'Oxe',
-            file: 'pro/oxe.js',
+            file: 'pro/x-element.js',
+            format: 'umd',
+            indent: '    ',
+        },
+        plugins: [
+            typescript({
+                sourceMap: false,
+                declaration: false,
+                removeComments: false,
+                target: 'es6',
+            }),
+        ]
+    },
+    {
+        input: 'src/router/router.ts',
+        output: {
+            banner,
+            name: 'Oxe',
+            file: 'pro/x-router.js',
             format: 'umd',
             indent: '    ',
         },
@@ -42,7 +60,7 @@ export default [
         output: {
             banner,
             name: 'Oxe',
-            file: 'pro/oxe.min.js',
+            file: 'pro/oxe.js',
             format: 'umd',
             indent: '    ',
         },
@@ -50,7 +68,7 @@ export default [
             typescript({
                 sourceMap: false,
                 declaration: false,
-                removeComments: true,
+                removeComments: false,
                 target: 'es6',
             }),
         ]

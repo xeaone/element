@@ -17,7 +17,7 @@ const absolute = function (path: string) {
     return a.pathname;
 };
 
-export default new class Router {
+export default new class XRouter {
 
     #target: Element;
     #data: object = {};

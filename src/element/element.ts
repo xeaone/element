@@ -6,17 +6,17 @@ import value from './value';
 import each from './each';
 import html from './html';
 import text from './text';
-import tick from './tick';
 import on from './on';
 
 import computer from './computer';
 import parser from './parser';
 import dash from './dash';
+import tick from './tick';
 
 const TEXT = Node.TEXT_NODE;
 const ELEMENT = Node.ELEMENT_NODE;
 
-export default class Component extends HTMLElement {
+export default class XElement extends HTMLElement {
 
     static adopt = true;
     static data = () => ({});
@@ -28,7 +28,7 @@ export default class Component extends HTMLElement {
         return this.attributes();
     }
 
-    static define (name?: string, constructor?: typeof Component) {
+    static define (name?: string, constructor?: typeof XElement) {
         constructor = constructor ?? this;
         name = name ?? dash(this.name);
         customElements.define(name, constructor);
@@ -63,6 +63,7 @@ export default class Component extends HTMLElement {
         each,
         value,
         checked,
+        inherit,
         standard
     };
 

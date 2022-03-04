@@ -1,8 +1,6 @@
-import Component from './component';
+import Element from './element/element';
+import Router from './router/router';
 import Fetcher from './fetcher';
-import Router from './router';
-import Define from './define';
-import Load from './load';
 
 // if (typeof window.CustomEvent !== 'function') {
 //     (window as any).CustomEvent = function CustomEvent (event, options) {
@@ -74,20 +72,17 @@ import Load from './load';
 
 export default Object.freeze(new class Oxe {
 
-    Component = Component;
-    component = Component;
+    XElement = Element;
+    Element = Element;
+    element = Element;
 
+    XFetcher = Fetcher;
     Fetcher = Fetcher;
     fetcher = Fetcher;
 
+    XRouter = Router;
     Router = Router;
     router = Router;
-
-    Define = Define;
-    define = Define;
-
-    Load = Load;
-    load = Load;
 
 });
 
