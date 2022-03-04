@@ -2,13 +2,18 @@
 <script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';</script>
 <link rel="stylesheet" href="./index.css">
 
-<o-loop></o-loop>
+<o-loop>
+    <div>HERE</div>
+</o-loop>
 
 <script src="../assets/oxe.js"></script>
 <script>
     const { Component, Define } = Oxe;
 
     class OLoop extends Component {
+
+        static attributes = ()=>[ 'test' ]
+        static style = () => /*css*/ `@import'./index.css';`
 
         static data = () => ({
             items: [],
@@ -65,7 +70,7 @@
             }
         });
 
-        static html = () => /*html*/ `
+        static shadow = () => /*html*/ `
             <div class="wrap">
                 <div class="loader">Loader</div>
             </div>
@@ -103,8 +108,10 @@
         // <div each="{{item of items}}"><div class="box">{{ item.number }}</div></div>
         // <input value="{{item.number = $value}}"></input>
 
+        attributed () { console.log(arguments); }
+
     }
 
-    Define(OLoop);
+    OLoop.define();
 
 </script>

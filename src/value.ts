@@ -1,5 +1,5 @@
-import format from '../format';
-import dateTypes from '../types/date';
+import format from './format';
+import dates from './date';
 
 console.warn('value: setter/getter issue with multiselect');
 
@@ -46,7 +46,7 @@ const input = function (binder, event) {
         // owner.value = computed;
         // display = owner.value;
 
-    } else if (dateTypes.includes(type)) {
+    } else if (dates.includes(type)) {
         const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
         computed = binder.compute({ $event: event, $value: value, $assignment: true });
         // if (typeof owner.$value === 'string') owner.value = computed;
@@ -103,7 +103,7 @@ const valueRender = function (binder) {
         if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
         else owner.value = computed;
         display = owner.value;
-    } else if (dateTypes.includes(binder.owner.type)) {
+    } else if (dates.includes(binder.owner.type)) {
         if (typeof computed === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
         display = owner.value;

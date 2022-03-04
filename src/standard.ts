@@ -1,10 +1,10 @@
-import booleanTypes from '../types/boolean';
-import format from '../format';
+import booleans from './boolean';
+import format from './format';
 
 const standardRender = function (binder) {
     let data = binder.compute();
 
-    const boolean = booleanTypes.includes(binder.name);
+    const boolean = booleans.includes(binder.name);
 
     binder.node.value = '';
 
@@ -21,7 +21,7 @@ const standardRender = function (binder) {
 };
 
 const standardUnrender = function (binder) {
-    const boolean = booleanTypes.includes(binder.name);
+    const boolean = booleans.includes(binder.name);
 
     if (boolean) {
         binder.owner.removeAttribute(binder.name);

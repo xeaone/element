@@ -3,17 +3,16 @@ import Fetcher from './fetcher';
 import Router from './router';
 import Define from './define';
 import Load from './load';
-import Css from './css';
 
-if (typeof window.CustomEvent !== 'function') {
-    (window as any).CustomEvent = function CustomEvent (event, options) {
-        'use strict';
-        options = options || { bubbles: false, cancelable: false, detail: null };
-        var customEvent = document.createEvent('CustomEvent');
-        customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
-        return customEvent;
-    };
-}
+// if (typeof window.CustomEvent !== 'function') {
+//     (window as any).CustomEvent = function CustomEvent (event, options) {
+//         'use strict';
+//         options = options || { bubbles: false, cancelable: false, detail: null };
+//         var customEvent = document.createEvent('CustomEvent');
+//         customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
+//         return customEvent;
+//     };
+// }
 
 // if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
 //     window.Reflect = window.Reflect || {};
@@ -29,49 +28,49 @@ if (typeof window.CustomEvent !== 'function') {
 //     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
 // }
 
-if (!window.String.prototype.endsWith) {
-    window.String.prototype.endsWith = function (search, this_len) {
-        'use strict';
-        if (this_len === undefined || this_len > this.length) this_len = this.length;
-        return this.substring(this_len - search.length, this_len) === search;
-    };
-}
+// if (!window.String.prototype.endsWith) {
+//     window.String.prototype.endsWith = function (search, this_len) {
+//         'use strict';
+//         if (this_len === undefined || this_len > this.length) this_len = this.length;
+//         return this.substring(this_len - search.length, this_len) === search;
+//     };
+// }
 
-if (!window.String.prototype.startsWith) {
-    window.String.prototype.startsWith = function startsWith (search, rawPos) {
-        'use strict';
-        var pos = rawPos > 0 ? rawPos | 0 : 0;
-        return this.substring(pos, pos + search.length) === search;
-    };
-}
+// if (!window.String.prototype.startsWith) {
+//     window.String.prototype.startsWith = function startsWith (search, rawPos) {
+//         'use strict';
+//         var pos = rawPos > 0 ? rawPos | 0 : 0;
+//         return this.substring(pos, pos + search.length) === search;
+//     };
+// }
 
-if (!window.String.prototype.includes) {
-    window.String.prototype.includes = function includes (search: any, start) {
-        'use strict';
-        if (search instanceof RegExp) throw TypeError('first argument must not be a RegExp');
-        if (start === undefined) { start = 0; }
-        return this.indexOf(search, start) !== -1;
-    };
-}
+// if (!window.String.prototype.includes) {
+//     window.String.prototype.includes = function includes (search: any, start) {
+//         'use strict';
+//         if (search instanceof RegExp) throw TypeError('first argument must not be a RegExp');
+//         if (start === undefined) { start = 0; }
+//         return this.indexOf(search, start) !== -1;
+//     };
+// }
 
-if (!window.Node.prototype.getRootNode) {
-    window.Node.prototype.getRootNode = function getRootNode (opt) {
-        var composed = typeof opt === 'object' && Boolean(opt.composed);
-        return composed ? getShadowIncludingRoot(this) : getRoot(this);
-    };
-    function getShadowIncludingRoot (node) {
-        var root = getRoot(node);
-        if (isShadowRoot(root)) return getShadowIncludingRoot(root.host);
-        return root;
-    }
-    function getRoot (node) {
-        if (node.parentNode != null) return getRoot(node.parentNode);
-        return node;
-    }
-    function isShadowRoot (node) {
-        return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
-    }
-}
+// if (!window.Node.prototype.getRootNode) {
+//     window.Node.prototype.getRootNode = function getRootNode (opt) {
+//         var composed = typeof opt === 'object' && Boolean(opt.composed);
+//         return composed ? getShadowIncludingRoot(this) : getRoot(this);
+//     };
+//     function getShadowIncludingRoot (node) {
+//         var root = getRoot(node);
+//         if (isShadowRoot(root)) return getShadowIncludingRoot(root.host);
+//         return root;
+//     }
+//     function getRoot (node) {
+//         if (node.parentNode != null) return getRoot(node.parentNode);
+//         return node;
+//     }
+//     function isShadowRoot (node) {
+//         return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
+//     }
+// }
 
 export default Object.freeze(new class Oxe {
 
@@ -89,9 +88,6 @@ export default Object.freeze(new class Oxe {
 
     Load = Load;
     load = Load;
-
-    Css = Css;
-    css = Css;
 
 });
 

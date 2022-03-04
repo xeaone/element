@@ -5,11 +5,11 @@ const { Component } = Oxe;
 
 export default class BindersRoute extends Component {
 
-    static attributes = [ 'test' ];
+    title = 'Binders';
+    static attributes = () => [ 'test' ];
+    static style = () => /*css*/ `@import '/index.css';`;
     async attributed () { console.log(arguments); }
     async connected () { console.log('binders connected'); }
-
-    title = 'Binders';
 
     static data = () => ({
 
@@ -52,7 +52,7 @@ export default class BindersRoute extends Component {
         hyperText: '<strong>Hyper Text Markup Language</strong>',
     });
 
-    static html = () => /*html*/ `
+    static shadow = () => /*html*/ `
         <style>
             .default {
                 border: solid 5px transparent;

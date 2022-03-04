@@ -1,4 +1,4 @@
-import format from '../format';
+import format from './format';
 
 const textRender = function (binder) {
     let data = binder.compute();

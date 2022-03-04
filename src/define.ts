@@ -1,15 +1,12 @@
-import Load from './load';
+import load from './load';
+import dash from './dash';
 
-const toDash = (data: string) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[ 0 ]}-${c[ 1 ]}`.toLowerCase());
-
-export default async function Define (component: any) {
+export default function define (component: any) {
     if (typeof component === 'string') {
-        const loaded = await Load(component);
-        return Define(loaded.default);
+        return load(component).then(loaded => define(loaded.default));
     } else if (component instanceof Array) {
-        return Promise.all(component.map(data => Define(data)));
+        return Promise.all(component.map(data => define(data)));
     } else {
-        const name = toDash(component.name);
-        window.customElements.define(name, component);
+        customElements.define(dash(component.name), component);
     }
 }

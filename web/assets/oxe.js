@@ -16,7 +16,59 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 })(this, (function () { 'use strict';
 
-    var booleanTypes = [
+    const promise = Promise.resolve();
+    function tick(method) {
+        return promise.then(method);
+    }
+
+    const dataGet = function (event, reference, target, key, receiver) {
+        if (key === 'x')
+            return { reference };
+        const value = Reflect.get(target, key, receiver);
+        if (value && typeof value === 'object') {
+            reference = reference ? `${reference}.${key}` : `${key}`;
+            return new Proxy(value, {
+                get: dataGet.bind(null, event, reference),
+                set: dataSet.bind(null, event, reference),
+                deleteProperty: dataDelete.bind(null, event, reference)
+            });
+        }
+        return value;
+    };
+    const dataDelete = function (event, reference, target, key) {
+        if (target instanceof Array) {
+            target.splice(key, 1);
+        }
+        else {
+            Reflect.deleteProperty(target, key);
+        }
+        tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'derender'));
+        return true;
+    };
+    const dataSet = function (event, reference, target, key, to, receiver) {
+        const from = Reflect.get(target, key, receiver);
+        if (key === 'length') {
+            tick(event.bind(null, reference, 'render'));
+            tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
+            return true;
+        }
+        else if (from === to || isNaN(from) && to === isNaN(to)) {
+            return true;
+        }
+        Reflect.set(target, key, to, receiver);
+        tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
+        return true;
+    };
+    const dataEvent = function (data, reference, type) {
+        const binders = data.get(reference);
+        if (binders) {
+            for (const binder of binders) {
+                binder[type]();
+            }
+        }
+    };
+
+    var booleans = [
         'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
         'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
         'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
@@ -30,7 +82,7 @@
 
     const standardRender = function (binder) {
         let data = binder.compute();
-        const boolean = booleanTypes.includes(binder.name);
+        const boolean = booleans.includes(binder.name);
         binder.node.value = '';
         if (boolean) {
             data = data ? true : false;
@@ -46,7 +98,7 @@
         }
     };
     const standardUnrender = function (binder) {
-        const boolean = booleanTypes.includes(binder.name);
+        const boolean = booleans.includes(binder.name);
         if (boolean) {
             binder.owner.removeAttribute(binder.name);
         }
@@ -120,7 +172,7 @@
     };
     var checked = { render: checkedRender, unrender: checkedUnrender };
 
-    var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
+    var dates = ['date', 'datetime-local', 'month', 'time', 'week'];
 
     console.warn('value: setter/getter issue with multiselect');
     const defaultInputEvent = new Event('input');
@@ -159,7 +211,7 @@
             // owner.value = computed;
             // display = owner.value;
         }
-        else if (dateTypes.includes(type)) {
+        else if (dates.includes(type)) {
             const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
             binder.compute({ $event: event, $value: value, $assignment: true });
             // if (typeof owner.$value === 'string') owner.value = computed;
@@ -214,7 +266,7 @@
                 owner.value = computed;
             display = owner.value;
         }
-        else if (dateTypes.includes(binder.owner.type)) {
+        else if (dates.includes(binder.owner.type)) {
             if (typeof computed === 'string')
                 owner.value = computed;
             else
@@ -665,158 +717,89 @@
         return references;
     };
 
-    // import Observer from './observer';
-    const TN = Node.TEXT_NODE;
-    const EN = Node.ELEMENT_NODE;
-    const tick = Promise.resolve();
-    const scopeGet = function (event, reference, target, key, receiver) {
-        if (key === 'x')
-            return { reference };
-        const value = Reflect.get(target, key, receiver);
-        if (value && typeof value === 'object') {
-            reference = reference ? `${reference}.${key}` : `${key}`;
-            return new Proxy(value, {
-                get: scopeGet.bind(null, event, reference),
-                set: scopeSet.bind(null, event, reference),
-                deleteProperty: scopeDelete.bind(null, event, reference)
-            });
-        }
-        return value;
-    };
-    const scopeDelete = function (event, reference, target, key) {
-        if (target instanceof Array) {
-            target.splice(key, 1);
-        }
-        else {
-            Reflect.deleteProperty(target, key);
-        }
-        tick.then(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'derender'));
-        return true;
-    };
-    const scopeSet = function (event, reference, target, key, to, receiver) {
-        const from = Reflect.get(target, key, receiver);
-        if (key === 'length') {
-            tick.then(event.bind(null, reference, 'render'));
-            tick.then(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
-            return true;
-        }
-        else if (from === to || isNaN(from) && to === isNaN(to)) {
-            return true;
-        }
-        Reflect.set(target, key, to, receiver);
-        tick.then(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
-        return true;
-    };
-    const scopeEvent = function (data, reference, type) {
-        const binders = data.get(reference);
-        if (binders) {
-            for (const binder of binders) {
-                binder[type]();
-            }
-        }
-    };
-    const handlers = {
-        on,
-        text,
-        html,
-        each,
-        value,
-        checked,
-        standard
-    };
-    const template = document.createElement('template');
-    template.innerHTML = `<style>:host{display:block;}</style><slot></slot>`;
+    function dash(data) {
+        return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
+    }
+
+    const TEXT = Node.TEXT_NODE;
+    const ELEMENT = Node.ELEMENT_NODE;
     class Component extends HTMLElement {
-        static attributes;
-        static get observedAttributes() { return this.attributes; }
-        static set observedAttributes(attributes) { this.attributes = attributes; }
-        #setup = false;
-        prefix = 'o-';
-        prefixEach = 'o-each';
-        prefixValue = 'o-value';
-        syntaxEnd = '}}';
-        syntaxStart = '{{';
-        syntaxLength = 2;
-        binders = new Map();
-        syntaxMatch = new RegExp('{{.*?}}');
-        prefixReplace = new RegExp('^o-');
-        syntaxReplace = new RegExp('{{|}}', 'g');
-        data;
-        root;
-        html;
-        adopt;
-        shadow;
-        handlers = handlers;
-        template = document.createElement('template');
-        // adopted: () => void;
-        // rendered: () => void;
-        // connected: () => void;
-        // disconnected: () => void;
-        // attributed: (name: string, from: string, to: string) => void;
-        // #adopted: () => void;
-        // #rendered: () => void;
-        // #connected: () => void;
-        // #disconnected: () => void;
-        // #attributed: (name: string, from: string, to: string) => void;
-        // #afterRenderEvent = new Event('afterrender');
-        // #beforeRenderEvent = new Event('beforerender');
-        // #afterConnectedEvent = new Event('afterconnected');
-        // #beforeConnectedEvent = new Event('beforeconnected');
         static adopt = true;
-        static html = () => '';
         static data = () => ({});
-        static shadow = () => '<style>:host{display:block;}</style><slot></slot>';
+        static attributes = () => [];
+        static shadow = () => '<slot></slot>';
+        static style = () => ':host{box-sizing:border-box;display:block;}'; //:host([hidden]){display:none;}*{box-sizing:border-box;}
+        static get observedAttributes() {
+            return this.attributes();
+        }
+        static define(name, constructor) {
+            constructor = constructor ?? this;
+            name = name ?? dash(this.name);
+            customElements.define(name, constructor);
+        }
+        static defined(name) {
+            name = name ?? dash(this.name);
+            return customElements.whenDefined(name);
+        }
+        #setup = false;
+        #template = document.createElement('template');
+        // prefix = 'o-';
+        // prefixEach = 'o-each';
+        // prefixValue = 'o-value';
+        // #prefixReplace = new RegExp('^o-');
+        #syntaxEnd = '}}';
+        #syntaxStart = '{{';
+        #syntaxLength = 2;
+        #syntaxMatch = new RegExp('{{.*?}}');
+        html;
+        shadow;
+        data;
+        adopt;
+        binders = new Map();
+        handlers = {
+            on,
+            text,
+            html,
+            each,
+            value,
+            checked,
+            standard
+        };
+        #adoptedEvent = new Event('adopted');
+        #adoptingEvent = new Event('adopting');
+        #connectedEvent = new Event('connected');
+        #connectingEvent = new Event('connecting');
         constructor() {
             super();
-            // this.#adopted = (this as any).adopted;
-            // this.#rendered = (this as any).rendered;
-            // this.#connected = (this as any).connected;
-            // this.#attributed = (this as any).attributed;
-            // this.#disconnected = (this as any).disconnected;
-            let node;
-            const adopt = this.constructor?.adopt;
-            const data = this.constructor?.data?.();
-            const html = this.constructor?.html?.();
-            const shadow = this.constructor?.shadow?.();
+            const adopt = this.constructor.adopt;
+            const style = this.constructor.style?.();
+            const data = this.constructor.data?.();
+            const shadow = this.constructor.shadow?.();
             this.adopt = adopt;
             this.shadow = this.attachShadow({ mode: 'open' });
             this.data = new Proxy(data, {
-                get: scopeGet.bind(null, scopeEvent.bind(null, this.binders), ''),
-                set: scopeSet.bind(null, scopeEvent.bind(null, this.binders), ''),
-                deleteProperty: scopeDelete.bind(null, scopeEvent.bind(null, this.binders), '')
+                get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
+                set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
+                deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
             });
-            if (typeof shadow === 'string') {
-                this.shadow.innerHTML = shadow;
-                node = this.shadow.firstChild;
+            if (typeof style === 'string') {
+                this.#template.innerHTML = `<style>${style}</style>`;
+                this.shadow.appendChild(this.#template.content);
             }
             else {
-                node = shadow?.firstChild;
+                this.shadow.appendChild(style);
             }
+            if (typeof shadow === 'string') {
+                this.#template.innerHTML = shadow;
+                this.shadow.appendChild(this.#template.content);
+            }
+            else {
+                this.shadow.appendChild(shadow);
+            }
+            let node = this.shadow.firstChild;
             while (node) {
                 this.binds(node);
                 node = node.nextSibling;
-            }
-            if (adopt) {
-                node = this.firstChild;
-                while (node) {
-                    this.binds(node);
-                    node = node.nextSibling;
-                }
-            }
-            if (typeof html === 'string') {
-                this.html = document.createElement('template');
-                this.html.innerHTML = html;
-                this.html = this.html.content;
-                node = this.html.firstChild;
-            }
-            else {
-                node = html.firstChild;
-            }
-            if (adopt) {
-                while (node) {
-                    this.binds(node);
-                    node = node.nextSibling;
-                }
             }
         }
         // get (data: any) {
@@ -882,10 +865,10 @@
             binder.render();
         }
         unbinds(node) {
-            if (node.nodeType === TN) {
+            if (node.nodeType === TEXT) {
                 this.unbind(node);
             }
-            else if (node.nodeType === EN) {
+            else if (node.nodeType === ELEMENT) {
                 this.unbind(node);
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
@@ -899,22 +882,22 @@
             }
         }
         binds(node, context, rewrites) {
-            if (node.nodeType === TN) {
-                const start = node.nodeValue.indexOf(this.syntaxStart);
+            if (node.nodeType === TEXT) {
+                const start = node.nodeValue.indexOf(this.#syntaxStart);
                 if (start === -1)
                     return;
                 if (start !== 0)
                     node = node.splitText(start);
-                const end = node.nodeValue.indexOf(this.syntaxEnd);
+                const end = node.nodeValue.indexOf(this.#syntaxEnd);
                 if (end === -1)
                     return;
-                if (end + this.syntaxLength !== node.nodeValue.length) {
-                    const split = node.splitText(end + this.syntaxLength);
+                if (end + this.#syntaxLength !== node.nodeValue.length) {
+                    const split = node.splitText(end + this.#syntaxLength);
                     this.binds(split, context, rewrites);
                 }
                 this.bind(node, 'text', node.nodeValue, node, context, rewrites);
             }
-            else if (node.nodeType === EN) {
+            else if (node.nodeType === ELEMENT) {
                 const attributes = node.attributes;
                 const inherit = attributes['inherit'];
                 if (inherit)
@@ -930,134 +913,38 @@
                         while (child = child.nextSibling);
                     }
                 }
-                if (attributes.length) {
-                    for (const attribute of attributes) {
-                        if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.syntaxMatch.test(attribute.value)) {
-                            this.bind(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
-                        }
+                for (const attribute of attributes) {
+                    if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
+                        this.bind(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                     }
                 }
             }
         }
-        // #render () {
-        //     this.data = Observer(
-        //         typeof this.data === 'function' ? this.data() : this.data,
-        //         this.#observe.bind(this)
-        //     );
-        //     if (this.adopt) {
-        //         let child = this.firstChild;
-        //         while (child) {
-        //             this.#binder.add(child, this, this.data);
-        //             child = child.nextSibling;
-        //         }
-        //     }
-        //     const template = document.createElement('template');
-        //     template.innerHTML = this.html;
-        //     if (
-        //         !this.shadow ||
-        //         !('attachShadow' in document.body) &&
-        //         !('createShadowRoot' in document.body)
-        //     ) {
-        //         const templateSlots = template.content.querySelectorAll('slot[name]');
-        //         const defaultSlot = template.content.querySelector('slot:not([name])');
-        //         for (let i = 0; i < templateSlots.length; i++) {
-        //             const templateSlot = templateSlots[ i ];
-        //             const name = templateSlot.getAttribute('name');
-        //             const instanceSlot = this.querySelector('[slot="' + name + '"]');
-        //             if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-        //             else templateSlot.parentNode.removeChild(templateSlot);
-        //         }
-        //         if (this.children.length) {
-        //             while (this.firstChild) {
-        //                 if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-        //                 else this.removeChild(this.firstChild);
-        //             }
-        //         }
-        //         if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
-        //     }
-        //     let child = template.content.firstChild;
-        //     while (child) {
-        //         this.#binder.add(child, this, this.data);
-        //         child = child.nextSibling;
-        //     }
-        //     this.#root.appendChild(template.content);
-        // }
-        // attributeChangedCallback (name: string, from: string, to: string) {
-        //     this.#attributed(name, from, to);
-        // }
-        // adoptedCallback () {
-        //     if (this.#adopted) this.#adopted();
-        // }
-        // disconnectedCallback () {
-        //     if (this.#disconnected) this.#disconnected();
-        // }
+        attributeChangedCallback(name, from, to) {
+            this.attributed?.(name, from, to);
+        }
+        adoptedCallback() {
+            this.adopted?.();
+        }
+        disconnectedCallback() {
+            this.disconnected?.();
+        }
         connectedCallback() {
-            if (this.#setup)
-                return;
-            else
+            this.dispatchEvent(this.#connectingEvent);
+            if (!this.#setup) {
                 this.#setup = true;
-            if (this.html) {
-                this.appendChild(this.html);
-                this.html = this;
+                if (this.adopt) {
+                    this.dispatchEvent(this.#adoptingEvent);
+                    let node = this.firstChild;
+                    while (node) {
+                        tick(this.binds.bind(this, node));
+                        node = node.nextSibling;
+                    }
+                    this.dispatchEvent(this.#adoptedEvent);
+                }
             }
-            //     let data;
-            //     if (this.data) data = this.data;
-            //     // if (this.data) data = this.data();
-            //     let render;
-            //     if (this.html) render = this.html;
-            //     console.log(this.html);
-            //     // if (this.render) render = this.render();
-            //     if (data instanceof Promise || render instanceof Promise) {
-            //         return Promise.all([ data, render ]).then(function connectedCallbackPromise ([ data, render ]) {
-            //             this.data = new Proxy(data ?? {}, {
-            //                 get: scopeGet.bind(null, scopeEvent.bind(null, this.binders), ''),
-            //                 set: scopeSet.bind(null, scopeEvent.bind(null, this.binders), ''),
-            //                 deleteProperty: scopeDelete.bind(null, scopeEvent.bind(null, this.binders), '')
-            //             });
-            //             if (render) this.template.innerHTML = render;
-            //             let adoptNode = this.firstChild;
-            //             while (adoptNode) {
-            //                 this.binds(adoptNode);
-            //                 adoptNode = adoptNode.nextSibling;
-            //             }
-            //             let templateNode = this.template.content.firstChild;
-            //             while (templateNode) {
-            //                 this.binds(templateNode);
-            //                 templateNode = templateNode.nextSibling;
-            //             }
-            //             this.appendChild(this.template.content);
-            //         });
-            //     } else {
-            //         this.data = new Proxy(data ?? {}, {
-            //             get: scopeGet.bind(null, scopeEvent.bind(null, this.binders), ''),
-            //             set: scopeSet.bind(null, scopeEvent.bind(null, this.binders), ''),
-            //             deleteProperty: scopeDelete.bind(null, scopeEvent.bind(null, this.binders), '')
-            //         });
-            //         if (render) this.template.innerHTML = render;
-            //         let adoptNode = this.firstChild;
-            //         while (adoptNode) {
-            //             this.binds(adoptNode);
-            //             adoptNode = adoptNode.nextSibling;
-            //         }
-            //         let templateNode = this.template.content.firstChild;
-            //         while (templateNode) {
-            //             this.binds(templateNode);
-            //             templateNode = templateNode.nextSibling;
-            //         }
-            //         this.appendChild(this.template.content);
-            //     }
-            //     // if (!this.#flag) {
-            //     //     this.#flag = true;
-            //     //     this.dispatchEvent(this.#beforeRenderEvent);
-            //     //     this.#render();
-            //     //     if (this.#rendered) this.#rendered();
-            //     //     this.dispatchEvent(this.#afterRenderEvent);
-            //     //     this.#ready = true;
-            //     //     this.dispatchEvent(this.#readyEvent);
-            //     // }
-            //     // this.dispatchEvent(this.#beforeConnectedEvent);
-            //     // if (this.#connected) this.#connected();
-            //     // this.dispatchEvent(this.#afterConnectedEvent);
+            this.connected?.();
+            this.dispatchEvent(this.#connectedEvent);
         }
     }
 
@@ -1697,114 +1584,28 @@
             this.assign(target.href);
         }
     };
-    // function Query (data) {
-    //     data = data || window.location.search;
-    //     if (typeof data === 'string') {
-    //         const result = {};
-    //         if (data.indexOf('?') === 0) data = data.slice(1);
-    //         const queries = data.split('&');
-    //         for (let i = 0; i < queries.length; i++) {
-    //             const [ name, value ] = queries[i].split('=');
-    //             if (name !== undefined && value !== undefined) {
-    //                 if (name in result) {
-    //                     if (typeof result[name] === 'string') {
-    //                         result[name] = [ value ];
-    //                     } else {
-    //                         result[name].push(value);
-    //                     }
-    //                 } else {
-    //                     result[name] = value;
-    //                 }
-    //             }
-    //         }
-    //         return result;
-    //     } else {
-    //         const result = [];
-    //         for (const key in data) {
-    //             const value = data[key];
-    //             result.push(`${key}=${value}`);
-    //         }
-    //         return `?${result.join('&')}`;
-    //     }
-    // }
 
-    const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
-    async function Define(component) {
+    function define(component) {
         if (typeof component === 'string') {
-            const loaded = await load(component);
-            return Define(loaded.default);
+            return load(component).then(loaded => define(loaded.default));
         }
         else if (component instanceof Array) {
-            return Promise.all(component.map(data => Define(data)));
+            return Promise.all(component.map(data => define(data)));
         }
         else {
-            const name = toDash(component.name);
-            window.customElements.define(name, component);
+            customElements.define(dash(component.name), component);
         }
     }
 
-    var Css = new class Css {
-        #data = new Map();
-        #style = document.createElement('style');
-        #support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
-        constructor() {
-            this.#style.appendChild(document.createTextNode(':not(:defined){visibility:hidden;}'));
-            this.#style.setAttribute('title', 'oxe');
-            document.head.appendChild(this.#style);
-        }
-        scope(name, text) {
-            return text
-                .replace(/\t|\n\s*/g, '')
-                // .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
-                .replace(/:host/g, name);
-        }
-        transform(text = '') {
-            if (!this.#support) {
-                const matches = text.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
-                for (let i = 0; i < matches.length; i++) {
-                    const match = matches[i];
-                    const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-                    const pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
-                    text = text.replace(rule[0], '');
-                    text = text.replace(pattern, rule[2]);
-                }
-            }
-            return text;
-        }
-        detach(name) {
-            const item = this.#data.get(name);
-            if (!item)
-                return;
-            item.count--;
-            if (item.count === 1) {
-                this.#data.delete(name);
-                this.#style.removeChild(item.node);
-            }
-        }
-        attach(name, text) {
-            let item = this.#data.get(name);
-            if (item) {
-                item.count++;
-            }
-            else {
-                item = { count: 1, node: this.node(name, text) };
-                this.#data.set(name, item);
-                this.#style.appendChild(item.node);
-            }
-        }
-        node(name, text) {
-            return document.createTextNode(this.scope(name, this.transform(text)));
-        }
-    };
-
-    if (typeof window.CustomEvent !== 'function') {
-        window.CustomEvent = function CustomEvent(event, options) {
-            options = options || { bubbles: false, cancelable: false, detail: null };
-            var customEvent = document.createEvent('CustomEvent');
-            customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
-            return customEvent;
-        };
-    }
+    // if (typeof window.CustomEvent !== 'function') {
+    //     (window as any).CustomEvent = function CustomEvent (event, options) {
+    //         'use strict';
+    //         options = options || { bubbles: false, cancelable: false, detail: null };
+    //         var customEvent = document.createEvent('CustomEvent');
+    //         customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
+    //         return customEvent;
+    //     };
+    // }
     // if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
     //     window.Reflect = window.Reflect || {};
     //     window.Reflect.construct = function construct (parent, args, child) {
@@ -1817,49 +1618,46 @@
     // if (window.NodeList && !window.NodeList.prototype.forEach) {
     //     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
     // }
-    if (!window.String.prototype.endsWith) {
-        window.String.prototype.endsWith = function (search, this_len) {
-            if (this_len === undefined || this_len > this.length)
-                this_len = this.length;
-            return this.substring(this_len - search.length, this_len) === search;
-        };
-    }
-    if (!window.String.prototype.startsWith) {
-        window.String.prototype.startsWith = function startsWith(search, rawPos) {
-            var pos = rawPos > 0 ? rawPos | 0 : 0;
-            return this.substring(pos, pos + search.length) === search;
-        };
-    }
-    if (!window.String.prototype.includes) {
-        window.String.prototype.includes = function includes(search, start) {
-            if (search instanceof RegExp)
-                throw TypeError('first argument must not be a RegExp');
-            if (start === undefined) {
-                start = 0;
-            }
-            return this.indexOf(search, start) !== -1;
-        };
-    }
-    if (!window.Node.prototype.getRootNode) {
-        window.Node.prototype.getRootNode = function getRootNode(opt) {
-            var composed = typeof opt === 'object' && Boolean(opt.composed);
-            return composed ? getShadowIncludingRoot(this) : getRoot(this);
-        };
-        function getShadowIncludingRoot(node) {
-            var root = getRoot(node);
-            if (isShadowRoot(root))
-                return getShadowIncludingRoot(root.host);
-            return root;
-        }
-        function getRoot(node) {
-            if (node.parentNode != null)
-                return getRoot(node.parentNode);
-            return node;
-        }
-        function isShadowRoot(node) {
-            return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
-        }
-    }
+    // if (!window.String.prototype.endsWith) {
+    //     window.String.prototype.endsWith = function (search, this_len) {
+    //         'use strict';
+    //         if (this_len === undefined || this_len > this.length) this_len = this.length;
+    //         return this.substring(this_len - search.length, this_len) === search;
+    //     };
+    // }
+    // if (!window.String.prototype.startsWith) {
+    //     window.String.prototype.startsWith = function startsWith (search, rawPos) {
+    //         'use strict';
+    //         var pos = rawPos > 0 ? rawPos | 0 : 0;
+    //         return this.substring(pos, pos + search.length) === search;
+    //     };
+    // }
+    // if (!window.String.prototype.includes) {
+    //     window.String.prototype.includes = function includes (search: any, start) {
+    //         'use strict';
+    //         if (search instanceof RegExp) throw TypeError('first argument must not be a RegExp');
+    //         if (start === undefined) { start = 0; }
+    //         return this.indexOf(search, start) !== -1;
+    //     };
+    // }
+    // if (!window.Node.prototype.getRootNode) {
+    //     window.Node.prototype.getRootNode = function getRootNode (opt) {
+    //         var composed = typeof opt === 'object' && Boolean(opt.composed);
+    //         return composed ? getShadowIncludingRoot(this) : getRoot(this);
+    //     };
+    //     function getShadowIncludingRoot (node) {
+    //         var root = getRoot(node);
+    //         if (isShadowRoot(root)) return getShadowIncludingRoot(root.host);
+    //         return root;
+    //     }
+    //     function getRoot (node) {
+    //         if (node.parentNode != null) return getRoot(node.parentNode);
+    //         return node;
+    //     }
+    //     function isShadowRoot (node) {
+    //         return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
+    //     }
+    // }
     var index = Object.freeze(new class Oxe {
         Component = Component;
         component = Component;
@@ -1867,12 +1665,10 @@
         fetcher = Fetcher;
         Router = Router;
         router = Router;
-        Define = Define;
-        define = Define;
+        Define = define;
+        define = define;
         Load = load;
         load = load;
-        Css = Css;
-        css = Css;
     });
 
     return index;
