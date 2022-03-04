@@ -51,8 +51,6 @@ const eachRender = function (binder) {
             binder.currentLength--;
         }
     } else if (binder.currentLength < binder.targetLength) {
-        // const descriptors = binder.alias ? Object.getOwnPropertyDescriptors(binder.alias) : {};
-        const descriptors = Object.getOwnPropertyDescriptors(binder.alias);
 
         console.time('each: loop');
         while (binder.currentLength < binder.targetLength) {
@@ -87,16 +85,17 @@ const eachRender = function (binder) {
                 rewrites = [ [ variable, `${reference}.${index}` ] ];
             }
 
+            let descriptors;
+            if (binder.descriptors) {
+                descriptors = { ...binder.descriptors };
+            }
+
             descriptors.$item = descriptors[ variable ] = {
                 get: function getAlias () { return items[ index ]; },
                 set: function setAlias (data) { items[ index ] = data; }
             };
 
-            const options = {
-                rewrites,
-                container: binder.container,
-                alias: Object.defineProperties({}, descriptors),
-            };
+            const options = { rewrites, descriptors };
 
             binder.templateContainer.content.appendChild(binder.container.add(binder.templateElement.content.cloneNode(true), options));
             // }.bind(null, binder.currentLength++)));

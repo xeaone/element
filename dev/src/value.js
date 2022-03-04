@@ -22,28 +22,26 @@ const stampToView = function (data) {
 };
 
 const input = function (binder, event) {
-
-    binder.alias.$event = event;
-    binder.alias.$assignment = true;
+    let value, checked;
 
     if (binder.node.type === 'select-one') {
         const [ option ] = binder.node.selectedOptions;
-        binder.alias.$value = value = option ? '$value' in option ? option.$value : option.value : undefined;
+        value = option ? '$value' in option ? option.$value : option.value : undefined;
     } else if (binder.node.type === 'select-multiple') {
-        binder.alias.$value = [];
+        value = [];
         for (const option of binder.node.selectedOptions) {
-            binder.alias.$value.push('$value' in option ? option.$value : option.value);
+            value.push('$value' in option ? option.$value : option.value);
         }
     } else if (binder.node.type === 'number' || binder.node.type === 'range') {
-        binder.alias.$value = binder.node.valueAsNumber;
+        value = binder.node.valueAsNumber;
     } else if (dates.includes(binder.node.type)) {
-        binder.alias.$value = typeof binder.node.$value === 'string' ? binder.node.value : stampFromView(binder.node.valueAsNumber);
+        value = typeof binder.node.$value === 'string' ? binder.node.value : stampFromView(binder.node.valueAsNumber);
     } else {
-        binder.alias.$value = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.value) : binder.node.value;
-        binder.alias.$checked = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.checked) : binder.node.checked;
+        value = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.value) : binder.node.value;
+        checked = '$value' in binder.node && parseable(binder.node.$value) ? JSON.parse(binder.node.checked) : binder.node.checked;
     }
 
-    binder.compute();
+    binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
 };
 
 const valueRender = function (binder) {
@@ -55,11 +53,7 @@ const valueRender = function (binder) {
         });
     }
 
-    binder.alias.$event = undefined;
-    binder.alias.$value = undefined;
-    binder.alias.$assignment = false;
-    binder.alias.$checked = undefined;
-    const computed = binder.compute();
+    const computed = binder.compute({ $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
 
     let display;
     if (binder.node.type === 'select-one') {

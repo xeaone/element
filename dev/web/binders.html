@@ -35,15 +35,17 @@
     <section id="text">
         <h3>Text Binder</h3>
         <pre bind="text:'<span bind=\'text:text\'></span>'"></pre>
-        <pre bind="html:'<span bind=\'text:text\'></span>'"></pre>
-        <!-- <pre><span bind='text:text'></span></pre> -->
+        <pre>
+        <span bind="text:'<span bind=\'text:text\'>'"></span><span bind='text:text'></span><span bind="text:'</span>'"></span>
+        </pre>
     </section>
 
+        <!--
     <section id="checked">
         <h3>Checked Binder</h3>
         <br>
         <pre bind="text:`<input type='checkbox' bind='value:checked, checked:checked=$checked, onchange:checkInput()'>`"></pre>
-        <!-- <pre>${Code(`<input type="checkbox" value="{{checked}}"{{checked ? ' checked' : ''}}>`)}</pre> -->
+            <pre>${Code(`<input type="checkbox" value="{{checked}}"{{checked ? ' checked' : ''}}>`)}</pre>
         <br>
         <label>
             <input bind="value:checked, checked:checked=$checked??[1,'two']??{test:'test',foo:bar}, onchange:checkInput()" type="checkbox"> Checkbox
@@ -200,6 +202,7 @@
         <div html="{{hyperText}}"></div>
     </section>
 
+        -->
 </x-binders>
 
 <script type="module">

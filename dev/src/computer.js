@@ -4,21 +4,27 @@ const assignmentPattern = /(?:".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)|(.+)([-+?^*%|
 
 const computer = function (data, scope, alias) {
 
-    let cache = computerCache.get(data);
+    const key = data;
+    let cache = computerCache.get(key);
     if (cache) return cache.bind(null, scope, alias);
 
     const assignments = data.match(assignmentPattern);
-    if (assignments && assignments[ 1 ] && assignments[ 2 ] && assignments[ 3 ]) {
-        data = `return $assignment ? (${data}) : (${data.replace(assignments[ 1 ] + assignments[ 2 ], '').replace(assignments[ 3 ], assignments[ 1 ])});`;
+    const [ _, name, symbole, value ] = assignments ?? [];
+
+    if (assignments && name && symbole && value) {
+        data = `return $assignment ? (${data}) : (${data.replace(name + symbole, '').replace(value, name)});`;
     } else {
         data = `return (${data});`;
     }
 
-    const code = `
+    data = `
         try {
+            $instance= $instance || {};
             with ($scope) {
                 with ($alias) {
-                    ${data}
+                    with ($instance) {
+                        ${data}
+                    }
                 }
             }
         } catch (error){
@@ -26,8 +32,8 @@ const computer = function (data, scope, alias) {
         }
     `;
 
-    cache = new Function('$scope', '$alias', code);
-    computerCache.set(data, cache);
+    cache = new Function('$scope', '$alias', '$instance', data);
+    computerCache.set(key, cache);
 
     return cache.bind(null, scope, alias);
 };

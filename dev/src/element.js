@@ -101,31 +101,29 @@ export default class XElement extends HTMLElement {
     }
 
     bind (node, options) {
+        const { descriptors = {}, rewrites = [] } = options ?? {};
+        const container = this;
+        const { scope } = container;
 
-        options.attribute = node.attributes.bind;
-        options.container = options.container;
-        options.scope = options.container.scope;
-
-        options.alias = options.alias ?? {};
-        options.alias.$form = options.alias.$from ?? undefined;
-        options.alias.$event = options.alias.$event ?? undefined;
-        options.alias.$value = options.alias.$value ?? undefined;
-        options.alias.$checked = options.alias.$checked ?? undefined;
-        options.alias.$assignment = options.alias.$assignment ?? undefined;
-
-        const parsed = parser(option.attribute, options.rewrites);
+        const alias = Object.defineProperties({}, descriptors);
+        const parsed = parser(node.attributes.bind.value, rewrites);
 
         for (const { name, value, references } of parsed) {
             const binder = {};
 
+            binder.descriptors = descriptors;
+            binder.scope = scope;
+            // binder.alias = alias;
+            // binder.instance = {};
+            binder.rewrites = rewrites;
+            binder.container = container;
+            binder.references = references;
+
             binder.node = node;
             binder.name = name;
             binder.value = value;
-            binder.alias = options.alias;
-            binder.references = references;
-            binder.rewrites = options.rewrites;
-            binder.container = options.container;
-            binder.compute = computer(value, options.scope, options.alias);
+
+            binder.compute = computer(value, scope, alias);
             binder.type = name.startsWith('on') ? 'on' : name in handlers ? name : 'standard';
             binder.render = handlers[ binder.type ].render.bind(null, binder);
             binder.derender = handlers[ binder.type ].derender.bind(null, binder);
@@ -184,21 +182,21 @@ export default class XElement extends HTMLElement {
     add (parent, options) {
         let child = parent?.firstElementChild;
         while (child) {
-            if (!child.attributes.bind?.value?.includes('each:') && child.firstElementChild) this.add(child, options);
-            if (child.attributes.bind) this.bind(child, options);
+            if (!child.attributes?.bind?.value?.includes('each:') && child.firstElementChild) this.add(child, options);
+            if (child.attributes?.bind) this.bind(child, options);
             child = child.nextElementSibling;
         }
         return parent;
     }
 
-    walk (parent, method) {
-        let child = parent?.firstElementChild;
-        while (child) {
-            if (!child.attributes?.bind?.value?.includes('each:')) this.walk(child, method);
-            if (child.attributes?.bind) method(child);
-            child = child.nextElementSibling;
-        }
-    }
+    // walk (parent, method) {
+    //     let child = parent?.firstElementChild;
+    //     while (child) {
+    //         if (!child.attributes?.bind?.value?.includes('each:')) this.walk(child, method);
+    //         if (child.attributes?.bind) method(child);
+    //         child = child.nextElementSibling;
+    //     }
+    // }
 
     connectedCallback () {
         if (this.setup) return;
@@ -229,9 +227,9 @@ export default class XElement extends HTMLElement {
                 deleteProperty: scopeDelete.bind(null, this.scopeEvent.bind(this), '')
             });
 
-            this.template.innerHTML = render;
-            // this.walk(this.template.content, this.bind.bind(this));
-            this.add(this.template.content, { container: this });
+            this.template.innerHTML = render || '';
+            this.add(this);
+            this.add(this.template.content);
             this.appendChild(this.template.content);
         }
 
