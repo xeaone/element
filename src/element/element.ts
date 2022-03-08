@@ -51,7 +51,6 @@ export default class XElement extends HTMLElement {
     #syntaxLength = 2;
     #syntaxMatch = new RegExp('{{.*?}}');
 
-    html;
     shadow;
     data: {} | [];
     adopt: boolean;
@@ -109,14 +108,6 @@ export default class XElement extends HTMLElement {
         }
 
     }
-
-    // get (data: any) {
-    //     if (typeof data === 'string') {
-    //         return this.pathBinders.get(data);
-    //     } else {
-    //         return this.nodeBinders.get(data);
-    //     }
-    // }
 
     unbind (node: Node) {
         const binders = this.binders.get(node);
@@ -228,11 +219,20 @@ export default class XElement extends HTMLElement {
             const each = attributes[ 'each' ];
             if (each) this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
 
-            if (!each && !inherit) {
+            if (node instanceof XElement) {
+                if (!attributes[ 'adopt' ]) {
+                    let child = node.firstChild;
+                    while (child) {
+                        this.binds(child, context, rewrites);
+                        child = child.nextSibling;
+                    }
+                }
+            } else if (!each && !inherit) {
+                console.log(node instanceof XElement, attributes[ 'adopt' ], this, node);
                 let child = node.firstChild;
-                if (child) {
-                    do this.binds(child, context, rewrites);
-                    while (child = child.nextSibling);
+                while (child) {
+                    this.binds(child, context, rewrites);
+                    child = child.nextSibling;
                 }
             }
 
