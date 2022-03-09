@@ -755,6 +755,7 @@
             _XElement_connectedEvent.set(this, new Event('connected'));
             _XElement_connectingEvent.set(this, new Event('connecting'));
             _XElement_template.set(this, document.createElement('template'));
+            this.data = {};
             this.binders = new Map();
             this.handlers = {
                 on,

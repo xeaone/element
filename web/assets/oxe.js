@@ -768,7 +768,7 @@
         #connectingEvent = new Event('connecting');
         #template = document.createElement('template');
         shadow;
-        data;
+        data = {};
         binders = new Map();
         handlers = {
             on,
