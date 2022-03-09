@@ -1,7 +1,7 @@
 
 /*!
     Name: oxe
-    Version: 6.0.7
+    Version: 7.0.0
     License: MPL-2.0
     Author: Alexander Elias
     Email: alex.steven.elis@gmail.com
@@ -136,7 +136,7 @@
                         }
                         else {
                             let checked;
-                            const bounds = binder.binder.ownerBinders.get(binder.owner);
+                            const bounds = binder.container.binders.get(binder.owner);
                             if (bounds) {
                                 for (const bound of bounds) {
                                     if (bound.name === 'checked') {
@@ -743,11 +743,10 @@
     const TEXT = Node.TEXT_NODE;
     const ELEMENT = Node.ELEMENT_NODE;
     class XElement extends HTMLElement {
-        static adopt = true;
         static data = () => ({});
         static attributes = () => [];
-        static shadow = () => '<slot></slot>';
-        static style = () => ':host{box-sizing:border-box;display:block;}'; //:host([hidden]){display:none;}*{box-sizing:border-box;}
+        static style;
+        static shadow;
         static get observedAttributes() {
             return this.attributes();
         }
@@ -761,19 +760,15 @@
             return customElements.whenDefined(name);
         }
         #setup = false;
-        #template = document.createElement('template');
-        // prefix = 'o-';
-        // prefixEach = 'o-each';
-        // prefixValue = 'o-value';
-        // #prefixReplace = new RegExp('^o-');
         #syntaxEnd = '}}';
         #syntaxStart = '{{';
         #syntaxLength = 2;
         #syntaxMatch = new RegExp('{{.*?}}');
-        html;
+        #connectedEvent = new Event('connected');
+        #connectingEvent = new Event('connecting');
+        #template = document.createElement('template');
         shadow;
         data;
-        adopt;
         binders = new Map();
         handlers = {
             on,
@@ -785,18 +780,12 @@
             inherit,
             standard
         };
-        #adoptedEvent = new Event('adopted');
-        #adoptingEvent = new Event('adopting');
-        #connectedEvent = new Event('connected');
-        #connectingEvent = new Event('connecting');
         constructor() {
             super();
-            const adopt = this.constructor.adopt;
             const style = this.constructor.style?.();
             const data = this.constructor.data?.();
             const shadow = this.constructor.shadow?.();
-            this.adopt = adopt;
-            this.shadow = this.attachShadow({ mode: 'open' });
+            this.shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
             this.data = new Proxy(data, {
                 get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
                 set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
@@ -804,17 +793,17 @@
             });
             if (typeof style === 'string') {
                 this.#template.innerHTML = `<style>${style}</style>`;
-                this.shadow.appendChild(this.#template.content);
+                this.shadow.prepend(this.#template.content);
             }
-            else {
-                this.shadow.appendChild(style);
+            else if (shadow instanceof Element) {
+                this.shadow.prepend(style);
             }
             if (typeof shadow === 'string') {
                 this.#template.innerHTML = shadow;
-                this.shadow.appendChild(this.#template.content);
+                this.shadow.append(this.#template.content);
             }
-            else {
-                this.shadow.appendChild(shadow);
+            else if (shadow instanceof Element) {
+                this.shadow.append(shadow);
             }
             let node = this.shadow.firstChild;
             while (node) {
@@ -822,13 +811,6 @@
                 node = node.nextSibling;
             }
         }
-        // get (data: any) {
-        //     if (typeof data === 'string') {
-        //         return this.pathBinders.get(data);
-        //     } else {
-        //         return this.nodeBinders.get(data);
-        //     }
-        // }
         unbind(node) {
             const binders = this.binders.get(node);
             if (!binders)
@@ -925,12 +907,12 @@
                 const each = attributes['each'];
                 if (each)
                     this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
-                if (!each && !inherit) {
+                if (!each && !inherit && !(node instanceof XElement)) {
+                    // console.log(this, node);
                     let child = node.firstChild;
-                    if (child) {
-                        do
-                            this.binds(child, context, rewrites);
-                        while (child = child.nextSibling);
+                    while (child) {
+                        this.binds(child, context, rewrites);
+                        child = child.nextSibling;
                     }
                 }
                 for (const attribute of attributes) {
@@ -953,15 +935,6 @@
             this.dispatchEvent(this.#connectingEvent);
             if (!this.#setup) {
                 this.#setup = true;
-                if (this.adopt) {
-                    this.dispatchEvent(this.#adoptingEvent);
-                    let node = this.firstChild;
-                    while (node) {
-                        tick(this.binds.bind(this, node));
-                        node = node.nextSibling;
-                    }
-                    this.dispatchEvent(this.#adoptedEvent);
-                }
             }
             this.connected?.();
             this.dispatchEvent(this.#connectedEvent);
@@ -1605,67 +1578,6 @@
         }
     };
 
-    // if (typeof window.CustomEvent !== 'function') {
-    //     (window as any).CustomEvent = function CustomEvent (event, options) {
-    //         'use strict';
-    //         options = options || { bubbles: false, cancelable: false, detail: null };
-    //         var customEvent = document.createEvent('CustomEvent');
-    //         customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
-    //         return customEvent;
-    //     };
-    // }
-    // if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
-    //     window.Reflect = window.Reflect || {};
-    //     window.Reflect.construct = function construct (parent, args, child) {
-    //         'use strict';
-    //         var target = child === undefined ? parent : child;
-    //         var prototype = Object.create(target.prototype || Object.prototype);
-    //         return Function.prototype.apply.call(parent, prototype, args) || prototype;
-    //     };
-    // }
-    // if (window.NodeList && !window.NodeList.prototype.forEach) {
-    //     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
-    // }
-    // if (!window.String.prototype.endsWith) {
-    //     window.String.prototype.endsWith = function (search, this_len) {
-    //         'use strict';
-    //         if (this_len === undefined || this_len > this.length) this_len = this.length;
-    //         return this.substring(this_len - search.length, this_len) === search;
-    //     };
-    // }
-    // if (!window.String.prototype.startsWith) {
-    //     window.String.prototype.startsWith = function startsWith (search, rawPos) {
-    //         'use strict';
-    //         var pos = rawPos > 0 ? rawPos | 0 : 0;
-    //         return this.substring(pos, pos + search.length) === search;
-    //     };
-    // }
-    // if (!window.String.prototype.includes) {
-    //     window.String.prototype.includes = function includes (search: any, start) {
-    //         'use strict';
-    //         if (search instanceof RegExp) throw TypeError('first argument must not be a RegExp');
-    //         if (start === undefined) { start = 0; }
-    //         return this.indexOf(search, start) !== -1;
-    //     };
-    // }
-    // if (!window.Node.prototype.getRootNode) {
-    //     window.Node.prototype.getRootNode = function getRootNode (opt) {
-    //         var composed = typeof opt === 'object' && Boolean(opt.composed);
-    //         return composed ? getShadowIncludingRoot(this) : getRoot(this);
-    //     };
-    //     function getShadowIncludingRoot (node) {
-    //         var root = getRoot(node);
-    //         if (isShadowRoot(root)) return getShadowIncludingRoot(root.host);
-    //         return root;
-    //     }
-    //     function getRoot (node) {
-    //         if (node.parentNode != null) return getRoot(node.parentNode);
-    //         return node;
-    //     }
-    //     function isShadowRoot (node) {
-    //         return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
-    //     }
-    // }
     var index = Object.freeze(new class Oxe {
         XElement = XElement;
         Element = XElement;

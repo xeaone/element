@@ -1,21 +1,19 @@
 import Code from '../modules/code.js';
 import Say from '../modules/say.js';
 
-const { Component } = Oxe;
+const { XElement } = Oxe;
 
 const componentCode = Code(`
 // my-component.js
-
 const { Component } = Oxe;
 
 export default MyComponent extends Component {
     static attributes = []
     adopt = false
     shadow = false
-    css = '
-    '
+    css = ''
     html = \`
-    < h1 > {{ title }}</h1 >
+        < h1 > {{ title }}</h1 >
         <button onclick="{{greet()}}">Greet</button>;
     \`
     data = {
@@ -33,7 +31,6 @@ export default MyComponent extends Component {
 
 var indexRoute = Code(`
     // routes/index.js
-
     const { Component } = Oxe;
 
 	export default Index extends Component {
@@ -48,7 +45,6 @@ var indexRoute = Code(`
 
 var indexJs = Code(`
     // index.js
-
     await Oxe.define([
         './my-component.js'
     ]); // or import module and use window.customElements.define();
@@ -72,14 +68,16 @@ var indexHtml = Code(`
 	</html>
 `);
 
-export default class IndexRoute extends Component {
+export default class IndexRoute extends XElement {
 
     async connected () { Say('index connected'); }
 
     title = 'Oxe';
     description = 'A mighty tiny web components framework/library.';
 
-    html = /*html*/`
+    static style = () => /*css*/ `@import '/index.css';`;
+
+    static shadow = () => /*html*/ `
 	<h2>Overview</h2>
 
 	<strong>Synopsis</strong>
@@ -134,3 +132,4 @@ export default class IndexRoute extends Component {
 	`;
 
 }
+

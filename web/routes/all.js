@@ -1,6 +1,6 @@
-const { Component } = Oxe;
+const { XElement } = Oxe;
 
-export default class AllRoute extends Component {
+export default class AllRoute extends XElement {
 
     title = 'Error';
 

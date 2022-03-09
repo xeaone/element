@@ -18,11 +18,10 @@ const ELEMENT = Node.ELEMENT_NODE;
 
 export default class XElement extends HTMLElement {
 
-    static adopt = true;
     static data = () => ({});
     static attributes = () => [];
-    static shadow = () => '<slot></slot>';
-    static style = () => ':host{box-sizing:border-box;display:block;}'; //:host([hidden]){display:none;}*{box-sizing:border-box;}
+    static style: () => string | Element;
+    static shadow: () => string | Element;
 
     static get observedAttributes () {
         return this.attributes();
@@ -40,20 +39,16 @@ export default class XElement extends HTMLElement {
     }
 
     #setup = false;
-    #template = document.createElement('template');
-
-    // prefix = 'o-';
-    // prefixEach = 'o-each';
-    // prefixValue = 'o-value';
-    // #prefixReplace = new RegExp('^o-');
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
     #syntaxMatch = new RegExp('{{.*?}}');
+    #connectedEvent = new Event('connected');
+    #connectingEvent = new Event('connecting');
+    #template = document.createElement('template');
 
     shadow;
     data: {} | [];
-    adopt: boolean;
     binders: Map<any, any> = new Map();
     handlers = {
         on,
@@ -66,21 +61,14 @@ export default class XElement extends HTMLElement {
         standard
     };
 
-    #adoptedEvent = new Event('adopted');
-    #adoptingEvent = new Event('adopting');
-    #connectedEvent = new Event('connected');
-    #connectingEvent = new Event('connecting');
-
     constructor () {
         super();
 
-        const adopt = (this.constructor as any).adopt;
         const style = (this.constructor as any).style?.();
         const data = (this.constructor as any).data?.();
         const shadow = (this.constructor as any).shadow?.();
 
-        this.adopt = adopt;
-        this.shadow = this.attachShadow({ mode: 'open' });
+        this.shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
         this.data = new Proxy(data, {
             get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
             set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
@@ -89,16 +77,16 @@ export default class XElement extends HTMLElement {
 
         if (typeof style === 'string') {
             this.#template.innerHTML = `<style>${style}</style>`;
-            this.shadow.appendChild(this.#template.content);
-        } else {
-            this.shadow.appendChild(style);
+            this.shadow.prepend(this.#template.content);
+        } else if (shadow instanceof Element) {
+            this.shadow.prepend(style);
         }
 
         if (typeof shadow === 'string') {
             this.#template.innerHTML = shadow;
-            this.shadow.appendChild(this.#template.content);
-        } else {
-            this.shadow.appendChild(shadow);
+            this.shadow.append(this.#template.content);
+        } else if (shadow instanceof Element) {
+            this.shadow.append(shadow);
         }
 
         let node = this.shadow.firstChild;
@@ -219,16 +207,8 @@ export default class XElement extends HTMLElement {
             const each = attributes[ 'each' ];
             if (each) this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
 
-            if (node instanceof XElement) {
-                if (!attributes[ 'adopt' ]) {
-                    let child = node.firstChild;
-                    while (child) {
-                        this.binds(child, context, rewrites);
-                        child = child.nextSibling;
-                    }
-                }
-            } else if (!each && !inherit) {
-                console.log(node instanceof XElement, attributes[ 'adopt' ], this, node);
+            if (!each && !inherit && !(node instanceof XElement)) {
+                // console.log(this, node);
                 let child = node.firstChild;
                 while (child) {
                     this.binds(child, context, rewrites);
@@ -262,16 +242,6 @@ export default class XElement extends HTMLElement {
 
         if (!this.#setup) {
             this.#setup = true;
-            if (this.adopt) {
-                this.dispatchEvent(this.#adoptingEvent);
-                let node = this.firstChild;
-                while (node) {
-                    tick(this.binds.bind(this, node));
-                    node = node.nextSibling;
-                }
-                this.dispatchEvent(this.#adoptedEvent);
-            }
-
         }
 
         (this as any).connected?.();

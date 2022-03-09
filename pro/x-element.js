@@ -724,19 +724,21 @@ function dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
-var _XElement_setup, _XElement_template, _XElement_syntaxEnd, _XElement_syntaxStart, _XElement_syntaxLength, _XElement_syntaxMatch, _XElement_adoptedEvent, _XElement_adoptingEvent, _XElement_connectedEvent, _XElement_connectingEvent;
+var _XElement_setup, _XElement_syntaxEnd, _XElement_syntaxStart, _XElement_syntaxLength, _XElement_syntaxMatch, _XElement_connectedEvent, _XElement_connectingEvent, _XElement_template;
 const TEXT = Node.TEXT_NODE;
 const ELEMENT = Node.ELEMENT_NODE;
 class XElement extends HTMLElement {
     constructor() {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         super();
         _XElement_setup.set(this, false);
-        _XElement_template.set(this, document.createElement('template'));
         _XElement_syntaxEnd.set(this, '}}');
         _XElement_syntaxStart.set(this, '{{');
         _XElement_syntaxLength.set(this, 2);
         _XElement_syntaxMatch.set(this, new RegExp('{{.*?}}'));
+        _XElement_connectedEvent.set(this, new Event('connected'));
+        _XElement_connectingEvent.set(this, new Event('connecting'));
+        _XElement_template.set(this, document.createElement('template'));
         this.binders = new Map();
         this.handlers = {
             on,
@@ -748,16 +750,10 @@ class XElement extends HTMLElement {
             inherit,
             standard
         };
-        _XElement_adoptedEvent.set(this, new Event('adopted'));
-        _XElement_adoptingEvent.set(this, new Event('adopting'));
-        _XElement_connectedEvent.set(this, new Event('connected'));
-        _XElement_connectingEvent.set(this, new Event('connecting'));
-        const adopt = this.constructor.adopt;
         const style = (_b = (_a = this.constructor).style) === null || _b === void 0 ? void 0 : _b.call(_a);
         const data = (_d = (_c = this.constructor).data) === null || _d === void 0 ? void 0 : _d.call(_c);
         const shadow = (_f = (_e = this.constructor).shadow) === null || _f === void 0 ? void 0 : _f.call(_e);
-        this.adopt = adopt;
-        this.shadow = this.attachShadow({ mode: 'open' });
+        this.shadow = (_g = this.shadowRoot) !== null && _g !== void 0 ? _g : this.attachShadow({ mode: 'open' });
         this.data = new Proxy(data, {
             get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
             set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
@@ -765,17 +761,17 @@ class XElement extends HTMLElement {
         });
         if (typeof style === 'string') {
             __classPrivateFieldGet(this, _XElement_template, "f").innerHTML = `<style>${style}</style>`;
-            this.shadow.appendChild(__classPrivateFieldGet(this, _XElement_template, "f").content);
+            this.shadow.prepend(__classPrivateFieldGet(this, _XElement_template, "f").content);
         }
-        else {
-            this.shadow.appendChild(style);
+        else if (shadow instanceof Element) {
+            this.shadow.prepend(style);
         }
         if (typeof shadow === 'string') {
             __classPrivateFieldGet(this, _XElement_template, "f").innerHTML = shadow;
-            this.shadow.appendChild(__classPrivateFieldGet(this, _XElement_template, "f").content);
+            this.shadow.append(__classPrivateFieldGet(this, _XElement_template, "f").content);
         }
-        else {
-            this.shadow.appendChild(shadow);
+        else if (shadow instanceof Element) {
+            this.shadow.append(shadow);
         }
         let node = this.shadow.firstChild;
         while (node) {
@@ -892,17 +888,7 @@ class XElement extends HTMLElement {
             const each = attributes['each'];
             if (each)
                 this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
-            if (node instanceof XElement) {
-                if (!attributes['adopt']) {
-                    let child = node.firstChild;
-                    while (child) {
-                        this.binds(child, context, rewrites);
-                        child = child.nextSibling;
-                    }
-                }
-            }
-            else if (!each && !inherit) {
-                console.log(node instanceof XElement, attributes['adopt'], this, node);
+            if (!each && !inherit && !(node instanceof XElement)) {
                 let child = node.firstChild;
                 while (child) {
                     this.binds(child, context, rewrites);
@@ -933,25 +919,13 @@ class XElement extends HTMLElement {
         this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectingEvent, "f"));
         if (!__classPrivateFieldGet(this, _XElement_setup, "f")) {
             __classPrivateFieldSet(this, _XElement_setup, true, "f");
-            if (this.adopt) {
-                this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptingEvent, "f"));
-                let node = this.firstChild;
-                while (node) {
-                    tick(this.binds.bind(this, node));
-                    node = node.nextSibling;
-                }
-                this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptedEvent, "f"));
-            }
         }
         (_b = (_a = this).connected) === null || _b === void 0 ? void 0 : _b.call(_a);
         this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectedEvent, "f"));
     }
 }
-_XElement_setup = new WeakMap(), _XElement_template = new WeakMap(), _XElement_syntaxEnd = new WeakMap(), _XElement_syntaxStart = new WeakMap(), _XElement_syntaxLength = new WeakMap(), _XElement_syntaxMatch = new WeakMap(), _XElement_adoptedEvent = new WeakMap(), _XElement_adoptingEvent = new WeakMap(), _XElement_connectedEvent = new WeakMap(), _XElement_connectingEvent = new WeakMap();
-XElement.adopt = true;
+_XElement_setup = new WeakMap(), _XElement_syntaxEnd = new WeakMap(), _XElement_syntaxStart = new WeakMap(), _XElement_syntaxLength = new WeakMap(), _XElement_syntaxMatch = new WeakMap(), _XElement_connectedEvent = new WeakMap(), _XElement_connectingEvent = new WeakMap(), _XElement_template = new WeakMap();
 XElement.data = () => ({});
 XElement.attributes = () => [];
-XElement.shadow = () => '<slot></slot>';
-XElement.style = () => ':host{box-sizing:border-box;display:block;}';
 
 export { XElement as default };

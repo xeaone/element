@@ -1,19 +1,19 @@
 import Code from '../modules/code.js';
 import Color from '../modules/color.js';
 
-const { Component } = Oxe;
+const { XElement } = Oxe;
 
-export default class BindersRoute extends Component {
-
-    static attributes = [ 'test' ];
-    async attributed () { console.log(arguments); }
-
-    async connected () { console.log('binders connected'); }
+export default class BindersRoute extends XElement {
 
     title = 'Binders';
 
-    data = {
+    async attributed () { console.log(arguments); }
+    async connected () { console.log('binders connected'); }
 
+    static attributes = () => [ 'test' ];
+    static style = () => /*css*/ `@import '/index.css';`;
+
+    static data = () => ({
         text: 'Hello World',
 
         checked: true,
@@ -51,18 +51,17 @@ export default class BindersRoute extends Component {
         submit (form) { console.log(form); },
 
         hyperText: '<strong>Hyper Text Markup Language</strong>',
-    };
+    });
 
-    css = /*css*/`
-        .default {
-            border: solid 5px transparent;
-        }
-        .lightblue {
-            border-color: lightblue;
-        }
-    `;
-
-    html = /*html*/ `
+    static shadow = () => /*html*/ `
+        <style>
+            .default {
+                border: solid 5px transparent;
+            }
+            .lightblue {
+                border-color: lightblue;
+            }
+        </style>
 
         <section id="text">
             <h3>Text Binder</h3>
@@ -135,7 +134,7 @@ export default class BindersRoute extends Component {
             <h3>Each Binder</h3>
             <br>
             <pre>${Code(`
-            <div each="{{key, index, fruit of fruits}}">
+            <div each="{{[fruits, 'key', 'index', 'fruit']}}">
                 <div id="{{fruit.name}}">
                     <strong>Key: </strong>{{key}},
                     <strong>Index: </strong>{{index}},
@@ -143,7 +142,7 @@ export default class BindersRoute extends Component {
                 </div>
             </div>`, true)}</pre>
             <br>
-            <div each="{{key, index, fruit of fruits}}">
+            <div each="{{[fruits, 'key', 'index', 'fruit']}}">
                 <div id="{{fruit}}">
                     <strong>Key: </strong>{{key}},
                     <strong>Index: </strong>{{index}},
@@ -170,12 +169,12 @@ export default class BindersRoute extends Component {
             <br>
             <pre>${Code(`
             <div>{{selectEachResult}}</div>
-            <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
+            <select value="{{selectEachResult = $value}}" each="{{[fruits, 'fruit']}}">
                 <option value="{{fruit}}">{{fruit}}</option>
             </select>`, true)}</pre>
             <br>
             <div>{{selectEachResult}}</div>
-            <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
+            <select value="{{selectEachResult = $value}}" each="{{[fruits, 'fruit']}}">
                 <option value="{{fruit}}">{{fruit}}</option>
             </select>
             <br>
@@ -230,7 +229,6 @@ export default class BindersRoute extends Component {
             <br>
             <div html="{{hyperText}}"></div>
         </section>
-
     `;
 
 };

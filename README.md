@@ -27,6 +27,8 @@ A mighty tiny web components framework/library.
 - Mobile Safari
 - Chrome Android
 
+## Target
+es2016 use this for polyfill https://polyfill.io/v3/polyfill.min.js?features=es2015%2Ces2016
 
 ### Overview
 Live examples [vokeio.github.io/oxe/](https://vokeio.github.io/oxe/).

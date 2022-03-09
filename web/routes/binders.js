@@ -1,18 +1,19 @@
 import Code from '../modules/code.js';
 import Color from '../modules/color.js';
 
-const { Component } = Oxe;
+const { XElement } = Oxe;
 
-export default class BindersRoute extends Component {
+export default class BindersRoute extends XElement {
 
     title = 'Binders';
-    static attributes = () => [ 'test' ];
-    static style = () => /*css*/ `@import '/index.css';`;
+
     async attributed () { console.log(arguments); }
     async connected () { console.log('binders connected'); }
 
-    static data = () => ({
+    static attributes = () => [ 'test' ];
+    static style = () => /*css*/ `@import '/index.css';`;
 
+    static data = () => ({
         text: 'Hello World',
 
         checked: true,
@@ -228,7 +229,6 @@ export default class BindersRoute extends Component {
             <br>
             <div html="{{hyperText}}"></div>
         </section>
-
     `;
 
 };
