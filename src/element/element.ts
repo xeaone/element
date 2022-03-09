@@ -47,8 +47,8 @@ export default class XElement extends HTMLElement {
     #connectingEvent = new Event('connecting');
     #template = document.createElement('template');
 
-    shadow;
-    data: {} | [];
+    shadow: ShadowRoot;
+    data: {} | [] = {};
     binders: Map<any, any> = new Map();
     handlers = {
         on,
