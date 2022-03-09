@@ -33,25 +33,7 @@ export default [
                 sourceMap: false,
                 declaration: false,
                 removeComments: true,
-                target: 'es6',
-            }),
-        ]
-    },
-    {
-        input: 'src/router/router.ts',
-        output: {
-            banner,
-            name: 'Oxe',
-            file: 'pro/x-router.js',
-            format: 'esm',
-            indent: '    ',
-        },
-        plugins: [
-            typescript({
-                sourceMap: false,
-                declaration: false,
-                removeComments: true,
-                target: 'es6',
+                target: 'es2016',
             }),
         ]
     },
@@ -78,7 +60,7 @@ export default [
                 sourceMap: false,
                 declaration: false,
                 removeComments: true,
-                target: 'es5',
+                target: 'es2016',
             }),
         ]
     }
