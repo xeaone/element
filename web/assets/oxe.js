@@ -254,7 +254,7 @@
             meta.setup = true;
             owner.addEventListener('input', event => input(binder, event));
         }
-        const computed = binder.compute({ $assignment: false });
+        const computed = binder.compute({ $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
         let display;
         if (binder.owner.type === 'select-one') {
             owner.value = undefined;
@@ -742,6 +742,19 @@
 
     const TEXT = Node.TEXT_NODE;
     const ELEMENT = Node.ELEMENT_NODE;
+    // declarative shadow root polyfill
+    if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
+        (function attachShadowRoots(root) {
+            const templates = root.querySelectorAll('template[shadowroot]');
+            for (const template of templates) {
+                const mode = template.getAttribute("shadowroot");
+                const shadowRoot = template.parentNode.attachShadow({ mode });
+                shadowRoot.appendChild(template.content);
+                template.remove();
+                attachShadowRoots(shadowRoot);
+            }
+        })(document);
+    }
     class XElement extends HTMLElement {
         static data = () => ({});
         static attributes = () => [];
@@ -759,18 +772,21 @@
             name = name ?? dash(this.name);
             return customElements.whenDefined(name);
         }
-        #setup = false;
+        // #setup = false;
         #syntaxEnd = '}}';
         #syntaxStart = '{{';
         #syntaxLength = 2;
         #syntaxMatch = new RegExp('{{.*?}}');
+        #adoptedEvent = new Event('adopted');
+        #adoptingEvent = new Event('adopting');
         #connectedEvent = new Event('connected');
         #connectingEvent = new Event('connecting');
+        #attributedEvent = new Event('attributed');
+        #attributingEvent = new Event('attributing');
+        #disconnectedEvent = new Event('disconnected');
+        #disconnectingEvent = new Event('disconnecting');
         #template = document.createElement('template');
-        shadow;
-        data = {};
-        binders = new Map();
-        handlers = {
+        #handlers = {
             on,
             text,
             html,
@@ -780,12 +796,16 @@
             inherit,
             standard
         };
+        data = {};
+        binders = new Map();
         constructor() {
             super();
             const style = this.constructor.style?.();
             const data = this.constructor.data?.();
             const shadow = this.constructor.shadow?.();
-            this.shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
+            if (!this.shadowRoot) {
+                this.attachShadow({ mode: 'open' });
+            }
             this.data = new Proxy(data, {
                 get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
                 set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
@@ -793,22 +813,30 @@
             });
             if (typeof style === 'string') {
                 this.#template.innerHTML = `<style>${style}</style>`;
-                this.shadow.prepend(this.#template.content);
+                this.shadowRoot.prepend(this.#template.content);
             }
             else if (shadow instanceof Element) {
-                this.shadow.prepend(style);
+                this.shadowRoot.prepend(style);
             }
             if (typeof shadow === 'string') {
                 this.#template.innerHTML = shadow;
-                this.shadow.append(this.#template.content);
+                this.shadowRoot.append(this.#template.content);
             }
             else if (shadow instanceof Element) {
-                this.shadow.append(shadow);
+                this.shadowRoot.append(shadow);
             }
-            let node = this.shadow.firstChild;
+            let node = this.shadowRoot.firstChild;
             while (node) {
                 this.binds(node);
                 node = node.nextSibling;
+            }
+            if (this.constructor.adopt) {
+                this.shadowRoot.appendChild(document.createElement('slot'));
+                let node = this.firstChild;
+                while (node) {
+                    this.binds(node);
+                    node = node.nextSibling;
+                }
             }
         }
         unbind(node) {
@@ -825,8 +853,8 @@
             this.binders.delete(node);
         }
         bind(node, name, value, owner, context, rewrites) {
-            const type = name.startsWith('on') ? 'on' : name in this.handlers ? name : 'standard';
-            const handler = this.handlers[type];
+            const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
+            const handler = this.#handlers[type];
             const container = this;
             context = context ?? this.data;
             const binder = {
@@ -923,19 +951,23 @@
             }
         }
         attributeChangedCallback(name, from, to) {
+            this.dispatchEvent(this.#attributingEvent);
             this.attributed?.(name, from, to);
+            this.dispatchEvent(this.#attributedEvent);
         }
         adoptedCallback() {
+            this.dispatchEvent(this.#adoptingEvent);
             this.adopted?.();
+            this.dispatchEvent(this.#adoptedEvent);
         }
         disconnectedCallback() {
+            this.dispatchEvent(this.#disconnectingEvent);
             this.disconnected?.();
+            this.dispatchEvent(this.#disconnectedEvent);
         }
         connectedCallback() {
             this.dispatchEvent(this.#connectingEvent);
-            if (!this.#setup) {
-                this.#setup = true;
-            }
+            // if (!this.#setup) this.#setup = true;
             this.connected?.();
             this.dispatchEvent(this.#connectedEvent);
         }

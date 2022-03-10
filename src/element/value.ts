@@ -73,7 +73,7 @@ const valueRender = function (binder) {
         owner.addEventListener('input', event => input(binder, event));
     }
 
-    const computed = binder.compute({ $assignment: false });
+    const computed = binder.compute({ $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
 
     let display;
     if (binder.owner.type === 'select-one') {

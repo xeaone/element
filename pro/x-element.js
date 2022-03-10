@@ -31,13 +31,6 @@ function __classPrivateFieldGet(receiver, state, kind, f) {
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 }
 
-function __classPrivateFieldSet(receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-}
-
 const promise = Promise.resolve();
 function tick(method) {
     return promise.then(method);
@@ -264,7 +257,7 @@ const valueRender = function (binder) {
         meta.setup = true;
         owner.addEventListener('input', event => input(binder, event));
     }
-    const computed = binder.compute({ $assignment: false });
+    const computed = binder.compute({ $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
     let display;
     if (binder.owner.type === 'select-one') {
         owner.value = undefined;
@@ -724,24 +717,39 @@ function dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
-var _XElement_setup, _XElement_syntaxEnd, _XElement_syntaxStart, _XElement_syntaxLength, _XElement_syntaxMatch, _XElement_connectedEvent, _XElement_connectingEvent, _XElement_template;
+var _XElement_syntaxEnd, _XElement_syntaxStart, _XElement_syntaxLength, _XElement_syntaxMatch, _XElement_adoptedEvent, _XElement_adoptingEvent, _XElement_connectedEvent, _XElement_connectingEvent, _XElement_attributedEvent, _XElement_attributingEvent, _XElement_disconnectedEvent, _XElement_disconnectingEvent, _XElement_template, _XElement_handlers;
 const TEXT = Node.TEXT_NODE;
 const ELEMENT = Node.ELEMENT_NODE;
+if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
+    (function attachShadowRoots(root) {
+        const templates = root.querySelectorAll('template[shadowroot]');
+        for (const template of templates) {
+            const mode = template.getAttribute("shadowroot");
+            const shadowRoot = template.parentNode.attachShadow({ mode });
+            shadowRoot.appendChild(template.content);
+            template.remove();
+            attachShadowRoots(shadowRoot);
+        }
+    })(document);
+}
 class XElement extends HTMLElement {
     constructor() {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f;
         super();
-        _XElement_setup.set(this, false);
         _XElement_syntaxEnd.set(this, '}}');
         _XElement_syntaxStart.set(this, '{{');
         _XElement_syntaxLength.set(this, 2);
         _XElement_syntaxMatch.set(this, new RegExp('{{.*?}}'));
+        _XElement_adoptedEvent.set(this, new Event('adopted'));
+        _XElement_adoptingEvent.set(this, new Event('adopting'));
         _XElement_connectedEvent.set(this, new Event('connected'));
         _XElement_connectingEvent.set(this, new Event('connecting'));
+        _XElement_attributedEvent.set(this, new Event('attributed'));
+        _XElement_attributingEvent.set(this, new Event('attributing'));
+        _XElement_disconnectedEvent.set(this, new Event('disconnected'));
+        _XElement_disconnectingEvent.set(this, new Event('disconnecting'));
         _XElement_template.set(this, document.createElement('template'));
-        this.data = {};
-        this.binders = new Map();
-        this.handlers = {
+        _XElement_handlers.set(this, {
             on,
             text,
             html,
@@ -750,11 +758,15 @@ class XElement extends HTMLElement {
             checked,
             inherit,
             standard
-        };
+        });
+        this.data = {};
+        this.binders = new Map();
         const style = (_b = (_a = this.constructor).style) === null || _b === void 0 ? void 0 : _b.call(_a);
         const data = (_d = (_c = this.constructor).data) === null || _d === void 0 ? void 0 : _d.call(_c);
         const shadow = (_f = (_e = this.constructor).shadow) === null || _f === void 0 ? void 0 : _f.call(_e);
-        this.shadow = (_g = this.shadowRoot) !== null && _g !== void 0 ? _g : this.attachShadow({ mode: 'open' });
+        if (!this.shadowRoot) {
+            this.attachShadow({ mode: 'open' });
+        }
         this.data = new Proxy(data, {
             get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
             set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
@@ -762,22 +774,30 @@ class XElement extends HTMLElement {
         });
         if (typeof style === 'string') {
             __classPrivateFieldGet(this, _XElement_template, "f").innerHTML = `<style>${style}</style>`;
-            this.shadow.prepend(__classPrivateFieldGet(this, _XElement_template, "f").content);
+            this.shadowRoot.prepend(__classPrivateFieldGet(this, _XElement_template, "f").content);
         }
         else if (shadow instanceof Element) {
-            this.shadow.prepend(style);
+            this.shadowRoot.prepend(style);
         }
         if (typeof shadow === 'string') {
             __classPrivateFieldGet(this, _XElement_template, "f").innerHTML = shadow;
-            this.shadow.append(__classPrivateFieldGet(this, _XElement_template, "f").content);
+            this.shadowRoot.append(__classPrivateFieldGet(this, _XElement_template, "f").content);
         }
         else if (shadow instanceof Element) {
-            this.shadow.append(shadow);
+            this.shadowRoot.append(shadow);
         }
-        let node = this.shadow.firstChild;
+        let node = this.shadowRoot.firstChild;
         while (node) {
             this.binds(node);
             node = node.nextSibling;
+        }
+        if (this.constructor.adopt) {
+            this.shadowRoot.appendChild(document.createElement('slot'));
+            let node = this.firstChild;
+            while (node) {
+                this.binds(node);
+                node = node.nextSibling;
+            }
         }
     }
     static get observedAttributes() {
@@ -807,8 +827,8 @@ class XElement extends HTMLElement {
         this.binders.delete(node);
     }
     bind(node, name, value, owner, context, rewrites) {
-        const type = name.startsWith('on') ? 'on' : name in this.handlers ? name : 'standard';
-        const handler = this.handlers[type];
+        const type = name.startsWith('on') ? 'on' : name in __classPrivateFieldGet(this, _XElement_handlers, "f") ? name : 'standard';
+        const handler = __classPrivateFieldGet(this, _XElement_handlers, "f")[type];
         const container = this;
         context = context !== null && context !== void 0 ? context : this.data;
         const binder = {
@@ -905,27 +925,30 @@ class XElement extends HTMLElement {
     }
     attributeChangedCallback(name, from, to) {
         var _a, _b;
+        this.dispatchEvent(__classPrivateFieldGet(this, _XElement_attributingEvent, "f"));
         (_b = (_a = this).attributed) === null || _b === void 0 ? void 0 : _b.call(_a, name, from, to);
+        this.dispatchEvent(__classPrivateFieldGet(this, _XElement_attributedEvent, "f"));
     }
     adoptedCallback() {
         var _a, _b;
+        this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptingEvent, "f"));
         (_b = (_a = this).adopted) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptedEvent, "f"));
     }
     disconnectedCallback() {
         var _a, _b;
+        this.dispatchEvent(__classPrivateFieldGet(this, _XElement_disconnectingEvent, "f"));
         (_b = (_a = this).disconnected) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this.dispatchEvent(__classPrivateFieldGet(this, _XElement_disconnectedEvent, "f"));
     }
     connectedCallback() {
         var _a, _b;
         this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectingEvent, "f"));
-        if (!__classPrivateFieldGet(this, _XElement_setup, "f")) {
-            __classPrivateFieldSet(this, _XElement_setup, true, "f");
-        }
         (_b = (_a = this).connected) === null || _b === void 0 ? void 0 : _b.call(_a);
         this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectedEvent, "f"));
     }
 }
-_XElement_setup = new WeakMap(), _XElement_syntaxEnd = new WeakMap(), _XElement_syntaxStart = new WeakMap(), _XElement_syntaxLength = new WeakMap(), _XElement_syntaxMatch = new WeakMap(), _XElement_connectedEvent = new WeakMap(), _XElement_connectingEvent = new WeakMap(), _XElement_template = new WeakMap();
+_XElement_syntaxEnd = new WeakMap(), _XElement_syntaxStart = new WeakMap(), _XElement_syntaxLength = new WeakMap(), _XElement_syntaxMatch = new WeakMap(), _XElement_adoptedEvent = new WeakMap(), _XElement_adoptingEvent = new WeakMap(), _XElement_connectedEvent = new WeakMap(), _XElement_connectingEvent = new WeakMap(), _XElement_attributedEvent = new WeakMap(), _XElement_attributingEvent = new WeakMap(), _XElement_disconnectedEvent = new WeakMap(), _XElement_disconnectingEvent = new WeakMap(), _XElement_template = new WeakMap(), _XElement_handlers = new WeakMap();
 XElement.data = () => ({});
 XElement.attributes = () => [];
 
