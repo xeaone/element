@@ -31,6 +31,67 @@ if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
     })(document);
 }
 
+// const setInnerHTML = function (data: string) {
+//     this.observeProperties();
+
+//     let node;
+
+//     while (node = this.shadowRoot.firstChild) {
+//         this.unbinds(node);
+//         Element.prototype.removeChild.call(this.shadowRoot, node);
+//     }
+
+//     if (!this._template) {
+//         this._template = document.createElement('template');
+//     }
+
+//     this._template.innerHTML = data;
+//     node = this._template.content.firstChild;
+
+//     while (node) {
+//         this.binds(node);
+//         node = node.nextSibling;
+//     }
+
+//     Element.prototype.appendChild.call(this.shadowRoot, this._template.content);
+// };
+
+// const getInnerHTML = function () {
+//     return [ ...this.childNodes ].map(child => child.nodeValue ?? child.outerHTML).join('');
+// };
+
+// const append = function (...nodes: Node[]) {
+//     this.setup();
+//     nodes.forEach(node => this.binds(node));
+//     return Element.prototype.append(this.shadowRoot, ...nodes);
+// };
+
+// const prepend = function (...nodes: Node[]) {
+//     this.setup();
+//     nodes.forEach(node => this.binds(node));
+//     return Element.prototype.prepend.call(this.shadowRoot, ...nodes);
+// };
+
+// const appendChild = function (node: Node) {
+//     console.log(node.nodeType);
+//     this.setup();
+//     this.binds(node);
+//     return Element.prototype.appendChild.call(this.shadowRoot, node);
+// };
+
+// const removeChild = function (node: Node) {
+//     this.setup();
+//     this.unbinds(node);
+//     return Element.prototype.removeChild.call(this.shadowRoot, node);
+// };
+
+// const replaceChild = function (newChild: Node, oldChild: Node) {
+//     this.setup();
+//     this.binds(newChild);
+//     this.unbinds(oldChild);
+//     return Element.prototype.replaceChild.call(this.shadowRoot, newChild, oldChild);
+// };
+
 export default class XElement extends HTMLElement {
 
     static define (name?: string, constructor?: typeof XElement) {
@@ -48,11 +109,12 @@ export default class XElement extends HTMLElement {
     static observedProperties: string[] = [];
 
     #mutator;
-    #setup = false;
     #data: {} = {};
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
+    #setup = false;
+    #observed = false;
     #syntaxMatch = new RegExp('{{.*?}}');
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
@@ -62,6 +124,8 @@ export default class XElement extends HTMLElement {
     #attributingEvent = new Event('attributing');
     #disconnectedEvent = new Event('disconnected');
     #disconnectingEvent = new Event('disconnecting');
+    // #template = document.createElement('template');
+    // #mutator = new MutationObserver(this.#mutation);
     #handlers = {
         on,
         text,
@@ -76,16 +140,48 @@ export default class XElement extends HTMLElement {
     ready: () => void;
     binders: Map<any, any> = new Map();
 
+    // set innerHTML (data: string) {
+    //     this.observeProperties();
+
+    //     let node;
+
+    //     while (node = this.firstChild) {
+    //         this.unbinds(node);
+    //         Element.prototype.removeChild.call(this, node);
+    //     }
+
+    //     this.#template.innerHTML = data;
+    //     node = this.#template.content.firstChild;
+
+    //     while (node) {
+    //         this.binds(node);
+    //         node = node.nextSibling;
+    //     }
+
+    //     Element.prototype.appendChild.call(this, this.#template.content);
+    // }
+
+    // get innerHTML () {
+    //     return [ ...this.childNodes ].map(child => child.nodeValue ?? (child as any).outerHTML).join('');
+    // }
+
     constructor () {
         super();
 
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
+        // Object.defineProperty(this.shadowRoot, 'append', { value: append.bind(this) });
+        // Object.defineProperty(this.shadowRoot, 'prepend', { value: prepend.bind(this) });
+        // Object.defineProperty(this.shadowRoot, 'appendChild', { value: appendChild.bind(this) });
+        // Object.defineProperty(this.shadowRoot, 'removeChild', { value: removeChild.bind(this) });
+        // Object.defineProperty(this.shadowRoot, 'replaceChild', { value: replaceChild.bind(this) });
+        // Object.defineProperty(this.shadowRoot, 'innerHTML', { get: getInnerHTML, set: setInnerHTML.bind(this) });
 
         const setup = (this.constructor as any).setup;
         if (setup === true) tick(() => this.setup());
     }
 
     setup () {
+        console.log('setup');
         if (this.#setup) return;
         else this.#setup = true;
 
@@ -124,7 +220,7 @@ export default class XElement extends HTMLElement {
         this.#mutator.observe(this, { childList: true });
         this.#mutator.observe(this.shadowRoot, { childList: true });
 
-        if (this.ready) (this as any).ready();
+        if (this.ready) this.ready();
     }
 
     #mutation (mutations) {
@@ -137,6 +233,37 @@ export default class XElement extends HTMLElement {
             }
         }
     };
+
+    // append (...nodes: Node[]) {
+    //     this.setup();
+    //     nodes.forEach(node => this.binds(node));
+    //     return super.append.call(this, ...nodes);
+    // }
+
+    // prepend (...nodes: Node[]) {
+    //     this.setup();
+    //     nodes.forEach(node => this.binds(node));
+    //     return Element.prototype.prepend.call(this, ...nodes);
+    // }
+
+    // appendChild (node: Node) {
+    //     this.setup();
+    //     this.binds(node);
+    //     return super.appendChild.call(this, node);
+    // }
+
+    // removeChild (node: Node) {
+    //     this.setup();
+    //     this.unbinds(node);
+    //     return super.removeChild.call(this, node);
+    // }
+
+    // replaceChild (newChild: Node, oldChild: Node) {
+    //     this.setup();
+    //     this.binds(newChild);
+    //     this.unbinds(oldChild);
+    //     return super.replaceChild.call(this, newChild, oldChild);
+    // }
 
     unbind (node: Node) {
         const binders = this.binders.get(node);
@@ -278,25 +405,25 @@ export default class XElement extends HTMLElement {
 
     attributeChangedCallback (name: string, from: string, to: string) {
         this.dispatchEvent(this.#attributingEvent);
-        if ((this as any).attributed) (this as any).attributed(name, from, to);
+        (this as any).attributed?.(name, from, to);
         this.dispatchEvent(this.#attributedEvent);
     }
 
     adoptedCallback () {
         this.dispatchEvent(this.#adoptingEvent);
-        if ((this as any).adopted) (this as any).adopted();
+        (this as any).adopted?.();
         this.dispatchEvent(this.#adoptedEvent);
     }
 
     disconnectedCallback () {
         this.dispatchEvent(this.#disconnectingEvent);
-        if ((this as any).disconnected) (this as any).disconnected();
+        (this as any).disconnected?.();
         this.dispatchEvent(this.#disconnectedEvent);
     }
 
     connectedCallback () {
         this.dispatchEvent(this.#connectingEvent);
-        if ((this as any).connected) (this as any).connected();
+        (this as any).connected?.();
         this.dispatchEvent(this.#connectedEvent);
     }
 

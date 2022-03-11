@@ -742,6 +742,7 @@
 
     const TEXT = Node.TEXT_NODE;
     const ELEMENT = Node.ELEMENT_NODE;
+    const FRAGMENT = Node.DOCUMENT_FRAGMENT_NODE;
     // declarative shadow root polyfill
     if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
         (function attachShadowRoots(root) {
@@ -756,13 +757,6 @@
         })(document);
     }
     class XElement extends HTMLElement {
-        static data = () => ({});
-        static attributes = () => [];
-        static style;
-        static shadow;
-        static get observedAttributes() {
-            return this.attributes();
-        }
         static define(name, constructor) {
             constructor = constructor ?? this;
             name = name ?? dash(this.name);
@@ -772,7 +766,11 @@
             name = name ?? dash(this.name);
             return customElements.whenDefined(name);
         }
-        // #setup = false;
+        static setup = true;
+        static observedProperties = [];
+        #mutator;
+        #setup = false;
+        #data = {};
         #syntaxEnd = '}}';
         #syntaxStart = '{{';
         #syntaxLength = 2;
@@ -785,7 +783,6 @@
         #attributingEvent = new Event('attributing');
         #disconnectedEvent = new Event('disconnected');
         #disconnectingEvent = new Event('disconnecting');
-        #template = document.createElement('template');
         #handlers = {
             on,
             text,
@@ -796,49 +793,63 @@
             inherit,
             standard
         };
-        data = {};
+        ready;
         binders = new Map();
         constructor() {
             super();
-            const style = this.constructor.style?.();
-            const data = this.constructor.data?.();
-            const shadow = this.constructor.shadow?.();
-            if (!this.shadowRoot) {
+            if (!this.shadowRoot)
                 this.attachShadow({ mode: 'open' });
+            const setup = this.constructor.setup;
+            if (setup === true)
+                tick(() => this.setup());
+        }
+        setup() {
+            if (this.#setup)
+                return;
+            else
+                this.#setup = true;
+            const data = {};
+            const properties = this.constructor.observedProperties;
+            for (const property of properties) {
+                data[property] = this[property];
+                Object.defineProperty(this, property, {
+                    get() { return this.#data[property]; },
+                    set(value) { this.#data[property] = value; }
+                });
             }
-            this.data = new Proxy(data, {
+            this.#data = new Proxy(data, {
                 get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
                 set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
                 deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
             });
-            if (typeof style === 'string') {
-                this.#template.innerHTML = `<style>${style}</style>`;
-                this.shadowRoot.prepend(this.#template.content);
-            }
-            else if (shadow instanceof Element) {
-                this.shadowRoot.prepend(style);
-            }
-            if (typeof shadow === 'string') {
-                this.#template.innerHTML = shadow;
-                this.shadowRoot.append(this.#template.content);
-            }
-            else if (shadow instanceof Element) {
-                this.shadowRoot.append(shadow);
-            }
-            let node = this.shadowRoot.firstChild;
+            let node;
+            node = this.shadowRoot.firstChild;
             while (node) {
                 this.binds(node);
                 node = node.nextSibling;
             }
-            if (this.constructor.adopt) {
-                this.shadowRoot.appendChild(document.createElement('slot'));
-                let node = this.firstChild;
-                while (node) {
+            node = this.firstChild;
+            while (node) {
+                this.binds(node);
+                node = node.nextSibling;
+            }
+            this.#mutator = new MutationObserver(this.#mutation.bind(this));
+            this.#mutator.observe(this, { childList: true });
+            this.#mutator.observe(this.shadowRoot, { childList: true });
+            if (this.ready)
+                this.ready();
+        }
+        #mutation(mutations) {
+            for (const mutation of mutations) {
+                for (const node of mutation.removedNodes) {
+                    this.unbinds(node);
+                }
+                for (const node of mutation.addedNodes) {
                     this.binds(node);
-                    node = node.nextSibling;
                 }
             }
         }
+        ;
         unbind(node) {
             const binders = this.binders.get(node);
             if (!binders)
@@ -853,10 +864,14 @@
             this.binders.delete(node);
         }
         bind(node, name, value, owner, context, rewrites) {
+            if (this.binders.has(node))
+                return console.log(node);
             const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
             const handler = this.#handlers[type];
             const container = this;
-            context = context ?? this.data;
+            // context = context ?? this;
+            // context = context ?? this.data;
+            context = context ?? this.#data;
             const binder = {
                 meta: {},
                 binder: this,
@@ -912,7 +927,14 @@
             }
         }
         binds(node, context, rewrites) {
-            if (node.nodeType === TEXT) {
+            if (node.nodeType === FRAGMENT) {
+                node = node.firstChild;
+                while (node) {
+                    this.binds(node, context, rewrites);
+                    node = node.nextSibling;
+                }
+            }
+            else if (node.nodeType === TEXT) {
                 const start = node.nodeValue.indexOf(this.#syntaxStart);
                 if (start === -1)
                     return;
@@ -952,23 +974,26 @@
         }
         attributeChangedCallback(name, from, to) {
             this.dispatchEvent(this.#attributingEvent);
-            this.attributed?.(name, from, to);
+            if (this.attributed)
+                this.attributed(name, from, to);
             this.dispatchEvent(this.#attributedEvent);
         }
         adoptedCallback() {
             this.dispatchEvent(this.#adoptingEvent);
-            this.adopted?.();
+            if (this.adopted)
+                this.adopted();
             this.dispatchEvent(this.#adoptedEvent);
         }
         disconnectedCallback() {
             this.dispatchEvent(this.#disconnectingEvent);
-            this.disconnected?.();
+            if (this.disconnected)
+                this.disconnected();
             this.dispatchEvent(this.#disconnectedEvent);
         }
         connectedCallback() {
             this.dispatchEvent(this.#connectingEvent);
-            // if (!this.#setup) this.#setup = true;
-            this.connected?.();
+            if (this.connected)
+                this.connected();
             this.dispatchEvent(this.#connectedEvent);
         }
     }

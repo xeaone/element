@@ -2,89 +2,98 @@
 <script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';</script>
 <link rel="stylesheet" href="./index.css">
 
-<o-loop>
+<x-child>
+    <template shadowroot="open">
+        <div>{{shadow}}</div>
+        <slot></slot>
+    </template>
+</x-child>
 
-    <x-child>
-        <template shadowroot="open">
-            <div>{{test}}</div>
-        </template>
-    </x-child>
-
-</o-loop>
+<o-loop></o-loop>
 
 <script src="../assets/oxe.js"></script>
 <script>
     const { XElement } = Oxe;
 
-    class XChild extends XElement{
-        // static shadow=()=>''
-        static data=()=>({
-            test:'test'
-        })
+    class XChild extends XElement {
 
-        // constructor (){
-        //     super()
-        //     let slots = this.shadowRoot.querySelectorAll('slot');
-        //     slots[0].addEventListener('slotchange', function(e) {
-        //         let nodes = slots[0].assignedNodes();
-        //         console.log(nodes);
-        //         // console.log('Element in Slot "' + slots[1].name + '" changed to "' + nodes[0].outerHTML + '".');
-        //     });
-        // }
+        static observedProperties = ['self','shadow'];
+
+        self='self';
+        shadow='shadow';
+
+        constructor () {
+            super();
+            // this.setup();
+
+            const template = document.createElement('template');
+
+            template.innerHTML ='<div>{{self}}</div>';
+            this.appendChild(template.content);
+
+            // template.innerHTML ='<div>{{shadow}}</div>';
+            // this.shadowRoot.appendChild(template.content);
+        }
+
     }
     XChild.define();
 
     class OLoop extends XElement {
 
-        attributed () { console.log(arguments); }
+        static observedProperties = [
+            'clear',
+            'overwrite',
+            'push',
+            'raw',
+            'one',
+            'count',
+            'message',
+            'items'
+        ];
 
-        static attributes = ()=>[ 'test' ]
-        static style = () => /*css*/ `@import'./index.css';`
-
-        static data = () => ({
-            items: [],
-            message: '',
-            count: 100000,
-            one: { two: 'three' },
-            raw() {
-                console.time('raw');
-                const template = document.createElement('template');
-                let html = '';
-                for (var i = 0; i < this.count; i++) {
-                    html += `
-					<div class="box">
-						<div>${i}</div>
-					</div>
-					`;
-                }
-                template.innerHTML = html;
-                const raw = document.querySelector('o-loop').shadowRoot.getElementById('raw');
-                raw.appendChild(template.content);
-                console.timeEnd('raw');
-            },
-            push() {
-                console.time('push');
-                for (var i = 0; i < this.count; i++) {
-                    this.items.push({ number: i });
-                }
-                console.timeEnd('push');
-            },
-            overwrite() {
-                console.time('overwrite');
-                var items = [];
-                for (var i = 0; i < this.count; i++) {
-                    items.push({ number: i });
-                }
-                this.items = items;
-                console.timeEnd('overwrite');
-            },
-            clear() {
-                this.items = [];
+        items= [];
+        message= '';
+        count= 100000;
+        one= { two: 'three' };
+        raw() {
+            console.time('raw');
+            const template = document.createElement('template');
+            let html = '';
+            for (var i = 0; i < this.count; i++) {
+                html += `
+                <div class="box">
+                    <div>${i}</div>
+                </div>
+                `;
             }
-        });
+            template.innerHTML = html;
+            const raw = document.querySelector('o-loop').shadowRoot.getElementById('raw');
+            raw.appendChild(template.content);
+            console.timeEnd('raw');
+        };
+        push() {
+            console.time('push');
+            for (var i = 0; i < this.count; i++) {
+                this.items.push({ number: i });
+            }
+            console.timeEnd('push');
+        };
+        overwrite() {
+            console.time('overwrite');
+            var items = [];
+            for (var i = 0; i < this.count; i++) {
+                items.push({ number: i });
+            }
+            this.items = items;
+            console.timeEnd('overwrite');
+        };
+        clear() {
+            this.items = [];
+        };
 
-        static shadow = () => /*html*/ `
-            <slot></slot>
+        html = /*html*/ `
+            <link rel="stylesheet" href="./index.css">
+
             <div class="wrap">
                 <div class="loader">Loader</div>
             </div>
@@ -104,6 +113,12 @@
                 <div class="box">{{item.number}}</div>
             </div>
 		`;
+
+        constructor () {
+            super();
+            // this.super();
+            this.shadowRoot.innerHTML = this.html;
+        }
 
     }
 
