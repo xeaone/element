@@ -1,45 +1,163 @@
-<!DOCTYPE html>
-<html lang="en">
+<base href="/">
+<script>document.querySelector('base').href = window.location.hostname === 'vokeio.github.io' ? '/oxe/' : '/';</script>
+<meta name="theme-color" content="darkorange">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<meta name="keywords" content="oxe, tiny, web, components, framework, library">
+<meta name="description" content="A mighty tiny web components framework">
+<title>Oxe</title>
+<link href="./index.css" rel="stylesheet" >
 
-<head>
+<div class="title">
+    <h1><span>O</span>xe</h1>
+    <h2>A mighty tiny web components framework</h2>
+</div>
 
-    <base href="/">
+<div class="menu">
+    <a href="./">Home</a>
+    <a href="./performance" o-external>Performance</a>
+    <a href="./binders">Binders</a>
+</div>
 
-    <script>
-        document.querySelector('base').href = window.location.hostname === 'vokeio.github.io' ? '/oxe/' : '/';
-    </script>
+<x-route>
+    <h2>Overview</h2>
 
-    <meta charset="utf-8">
-    <meta name="theme-color" content="darkorange">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <strong>Synopsis</strong>
+    <p>A mighty tiny web components framework that should feel like your using native JS and HTML to write and bind Custom Elements.</p>
 
-    <meta name="keywords" content="oxe, tiny, web, components, framework, library">
-    <meta name="description" content="A mighty tiny web components framework">
+    <strong>Project Goal</strong>
+    <ul>
+        <li>Easy learning curve</li>
+        <li>Feels like JS and HTML not a framework</li>
+    </ul>
 
-    <title>Oxe</title>
+    <strong>Feature Highlight</strong>
+    <ul>
+        <li>Zero config smart front end routing</li>
+        <li>Dynamic ES6/ESM module rewrites (Use ES6 modules in browsers that don't have native support)</li>
+        <li>Dynamic Template string rewrites (Use template strings in browsers that don't have native support)</li>
+    </ul>
 
-    <script src="./assets/oxe.js" defer></script>
-    <script src="./index.js" type="module" defer></script>
+    <strong>Polyfill You Might Need</strong>
+    <ul>
+        <li>customElements</li>
+        <li>URL, Promise, fetch</li>
+        <li>HTMLTemplateElement</li>
+        <li>Event, CustomEvent</li>
+    </ul>
 
-    <link rel="stylesheet" href="./index.css">
+    <strong>Browser Support</strong>
+    <ul>
+        <li>IE11~</li>
+        <li>Chrome</li>
+        <li>Firefox</li>
+        <li>Safari 7</li>
+        <li>Mobile Safari</li>
+        <li>Chrome Android</li>
+    </ul>
 
-</head>
+    <strong>Install</strong>
+    <ul>
+        <li><i>npm install oxe --save</i></li>
+        <li>UMD <i>"pro/oxe.min.js"</i></li>
+    </ul>
 
-<body>
+    <h2>Element Example</h2>
+    <pre><code class="language-js">{{elementCode}}</code></pre>
 
-    <div class="title">
-        <h1><span>O</span>xe</h1>
-        <h2>A mighty tiny web components framework</h2>
-    </div>
+    <h2>Route Example</h2>
+    <pre><code class="language-js">{{indexRoute}}</code></pre>
+    <br>
+    <pre><code class="language-js">{{indexJs}}</code></pre>
+    <br>
+    <pre><code class="language-html">{{indexHtml}}</code></pre>
 
-    <div class="menu">
-        <a href="./">Home</a>
-        <a href="./performance" o-external>Performance</a>
-        <a href="./binders">Binders</a>
-    </div>
+</x-route>
 
-    <main></main>
+<script type="module">
+    import XElement from './x-element.js';
+    import Highlight from './highlight.js';
 
-</body>
+    class XRoute extends XElement {
 
-</html>
+        static observedProperties = [
+            'elementCode',
+            'indexRoute',
+            'indexJs',
+            'indexHtml'
+        ]
+
+        constructor (){
+            super();
+            // this.setup();
+            this.shadowRoot.innerHTML = '<slot></slot>';
+            Highlight();
+        }
+
+        elementCode = `
+        import XElement from '/x-element.js';
+
+        MyElement extends XElement {
+
+            static observedProperties = ['greeting','greet']
+
+            greeting: '',
+            greet () { this.greeting = 'Hola Mundo'; }
+
+            constructor () {
+                super();
+                this.greeting = 'Hello World';
+                this.shadowRoot.innerHTML = \`
+                    <h1>{{title}}</h1 >
+                    <button onclick="{{greet()}}">Greet</button>;
+                \`;
+            }
+
+        }
+
+        MyElement.define();
+        `;
+
+        indexRoute = `
+        // routes/index.js
+        import XElement from '/x-element.js';
+
+        export default IndexRoute extends XElement {
+            title = 'Index Route'
+            description = 'Index Description'
+            constructor () {
+                super();
+                this.shadowRoot.innerHTML = \`<h1>Hello World</h1>\`;
+            }
+        }
+        `;
+
+        indexJs = `
+        // index.js
+        import XRouter from '/x-router.js';
+
+        await XRouter.setup({
+            target: 'main',
+            folder: 'routes'
+        });
+        `;
+
+        indexHtml = `
+        <!-- index.html -->
+        <html>
+        <head>
+            \<script src="/index.js" defer\>\<\/script\>
+        </head>
+        <body>
+            <main></main>
+        </body>
+        </html>
+        `;
+
+    }
+
+    XRoute.define();
+</script>
+
+<!-- <link href="./assets/prism.css" rel="stylesheet">
+<script src="./assets/prism.js"></script> -->
+

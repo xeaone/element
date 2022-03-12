@@ -91,7 +91,7 @@ const eachRender = function (binder) {
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                binder.binder.remove(node);
+                binder.removes(node);
             }
 
             binder.meta.currentLength--;
@@ -127,8 +127,7 @@ const eachRender = function (binder) {
 
             let node = clone.firstChild;
             while (node) {
-                binder.container.binds(node, context, rewrites);
-                // binder.binder.add(node, binder.container, binder.context, rewrites, descriptors);
+                binder.adds(node, context, rewrites);
                 node = node.nextSibling;
             }
 

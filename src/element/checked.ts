@@ -33,7 +33,7 @@ const checkedRender = function (binder) {
                     } else {
 
                         let checked;
-                        const bounds = binder.container.binders.get(binder.owner);
+                        const bounds = binder.binders.get(binder.owner);
                         if (bounds) {
                             for (const bound of bounds) {
                                 if (bound.name === 'checked') {

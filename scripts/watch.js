@@ -26,4 +26,5 @@ await Press('c', () => exit());
 await Press('e', () => exit());
 await build();
 
-const child = await Spawn('muleify -ss web');
+const child = await Spawn('muleify -s web');
+// const child = await Spawn('muleify -ss web');

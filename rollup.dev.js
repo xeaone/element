@@ -20,6 +20,24 @@ const banner = `
 
 export default [
     {
+        input: 'src/element/element.ts',
+        output: {
+            banner,
+            name: 'Oxe',
+            file: 'web/x-element.js',
+            format: 'esm',
+            indent: '    ',
+        },
+        plugins: [
+            typescript({
+                sourceMap: false,
+                declaration: false,
+                removeComments: true,
+                target: 'esnext',
+            }),
+        ]
+    },
+    {
         input: 'src/index.ts',
         output: {
             banner,

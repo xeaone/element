@@ -24,18 +24,19 @@
 
         constructor () {
             super();
-            // this.setup();
+            this.setup();
 
             const template = document.createElement('template');
 
             template.innerHTML ='<div>{{self}}</div>';
             this.appendChild(template.content);
 
-            // template.innerHTML ='<div>{{shadow}}</div>';
-            // this.shadowRoot.appendChild(template.content);
+            template.innerHTML ='<div>{{shadow}}</div>';
+            this.shadowRoot.appendChild(template.content);
         }
 
     }
+
     XChild.define();
 
     class OLoop extends XElement {
@@ -51,10 +52,10 @@
             'items'
         ];
 
-        items= [];
-        message= '';
-        count= 100000;
-        one= { two: 'three' };
+        items = [];
+        message = '';
+        count = 100000;
+        one = { two: 'three' };
         raw() {
             console.time('raw');
             const template = document.createElement('template');
@@ -116,7 +117,6 @@
 
         constructor () {
             super();
-            // this.super();
             this.shadowRoot.innerHTML = this.html;
         }
 

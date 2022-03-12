@@ -44,7 +44,6 @@ export default class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
-    static setup: boolean = true;
     static observedProperties: string[] = [];
 
     #mutator;
@@ -53,6 +52,7 @@ export default class XElement extends HTMLElement {
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
+    #binders: Map<any, any> = new Map();
     #syntaxMatch = new RegExp('{{.*?}}');
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
@@ -73,16 +73,18 @@ export default class XElement extends HTMLElement {
         standard
     };
 
-    ready: () => void;
-    binders: Map<any, any> = new Map();
+    ready?: () => void;
+    adopted?: () => void;
+    connected?: () => void;
+    attributed?: () => void;
+    disconnected?: () => void;
 
     constructor () {
         super();
-
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-
-        const setup = (this.constructor as any).setup;
-        if (setup === true) tick(() => this.setup());
+        this.#mutator = new MutationObserver(this.#mutation.bind(this));
+        this.#mutator.observe(this, { childList: true });
+        this.#mutator.observe(this.shadowRoot, { childList: true });
     }
 
     setup () {
@@ -101,77 +103,77 @@ export default class XElement extends HTMLElement {
         }
 
         this.#data = new Proxy(data, {
-            get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
-            set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
-            deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
+            get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
+            set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
+            deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
         });
 
         let node;
 
         node = this.shadowRoot.firstChild;
         while (node) {
-            this.binds(node);
+            this.#adds(node);
             node = node.nextSibling;
         }
 
         node = this.firstChild;
         while (node) {
-            this.binds(node);
+            this.#adds(node);
             node = node.nextSibling;
         }
 
-        this.#mutator = new MutationObserver(this.#mutation.bind(this));
-        this.#mutator.observe(this, { childList: true });
-        this.#mutator.observe(this.shadowRoot, { childList: true });
+        // this.#mutator = new MutationObserver(this.#mutation.bind(this));
+        // this.#mutator.observe(this, { childList: true });
+        // this.#mutator.observe(this.shadowRoot, { childList: true });
 
         if (this.ready) (this as any).ready();
     }
 
     #mutation (mutations) {
+        if (!this.#setup) return this.setup();
         for (const mutation of mutations) {
             for (const node of mutation.removedNodes) {
-                this.unbinds(node);
+                this.#removes(node);
             }
             for (const node of mutation.addedNodes) {
-                this.binds(node);
+                this.#adds(node);
             }
         }
     };
 
-    unbind (node: Node) {
-        const binders = this.binders.get(node);
+    #remove (node: Node) {
+        const binders = this.#binders.get(node);
         if (!binders) return;
 
         for (const binder of binders) {
             for (const reference of binder.references) {
-                this.binders.get(reference)?.delete(binder);
-                if (!this.binders.get(reference).size) this.binders.delete(reference);
+                this.#binders.get(reference)?.delete(binder);
+                if (!this.#binders.get(reference).size) this.#binders.delete(reference);
             }
         }
 
-        this.binders.delete(node);
+        this.#binders.delete(node);
     }
 
-    bind (node: Node, name, value, owner, context?: any, rewrites?: any) {
-        if (this.binders.has(node)) return console.log(node);
+    #add (node: Node, name, value, owner, context?: any, rewrites?: any) {
+        if (this.#binders.has(node)) return console.log(node);
 
         const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
         const handler = this.#handlers[ type ];
-        const container = this;
-
-        // context = context ?? this;
-        // context = context ?? this.data;
-        context = context ?? this.#data;
 
         const binder = {
             meta: {},
-            binder: this,
+            container: this,
             render: undefined,
             compute: undefined,
             unrender: undefined,
             references: undefined,
+            binders: this.#binders,
             rewrites: rewrites ?? [],
-            node, owner, name, value, context, container, type,
+            context: context ?? this.#data,
+            adds: this.#adds.bind(this),
+            removes: this.#removes.bind(this),
+            node, owner, name, value, type,
         };
 
         const references = parser(value);
@@ -190,46 +192,46 @@ export default class XElement extends HTMLElement {
                 }
             }
 
-            if (this.binders.has(binder.references[ i ])) {
-                this.binders.get(binder.references[ i ]).add(binder);
+            if (this.#binders.has(binder.references[ i ])) {
+                this.#binders.get(binder.references[ i ]).add(binder);
             } else {
-                this.binders.set(binder.references[ i ], new Set([ binder ]));
+                this.#binders.set(binder.references[ i ], new Set([ binder ]));
             }
         }
 
-        if (this.binders.has(binder.owner)) {
-            this.binders.get(binder.owner).add(binder);
+        if (this.#binders.has(binder.owner)) {
+            this.#binders.get(binder.owner).add(binder);
         } else {
-            this.binders.set(binder.owner, new Set([ binder ]));
+            this.#binders.set(binder.owner, new Set([ binder ]));
         }
 
         binder.render();
     }
 
-    unbinds (node: Node) {
+    #removes (node: Node) {
         if (node.nodeType === TEXT) {
-            this.unbind(node);
+            this.#remove(node);
         } else if (node.nodeType === ELEMENT) {
-            this.unbind(node);
+            this.#remove(node);
             const attributes = (node as Element).attributes;
             for (const attribute of attributes) {
-                this.unbind(attribute);
+                this.#remove(attribute);
             }
 
             let child = node.firstChild;
             while (child) {
-                this.unbinds(child);
+                this.#removes(child);
                 child = child.nextSibling;
             }
 
         }
     }
 
-    binds (node: Node, context?: any, rewrites?: any) {
+    #adds (node: Node, context?: any, rewrites?: any) {
         if (node.nodeType === FRAGMENT) {
             node = node.firstChild;
             while (node) {
-                this.binds(node, context, rewrites);
+                this.#adds(node, context, rewrites);
                 node = node.nextSibling;
             }
         } else if (node.nodeType === TEXT) {
@@ -244,42 +246,36 @@ export default class XElement extends HTMLElement {
 
             if (end + this.#syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.#syntaxLength);
-                this.binds(split, context, rewrites);
+                this.#adds(split, context, rewrites);
             }
 
-            this.bind(node, 'text', node.nodeValue, node, context, rewrites);
+            this.#add(node, 'text', node.nodeValue, node, context, rewrites);
 
         } else if (node.nodeType === ELEMENT) {
             const attributes = (node as Element).attributes;
 
             const inherit = attributes[ 'inherit' ];
-            if (inherit) this.bind(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
+            if (inherit) this.#add(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
 
             const each = attributes[ 'each' ];
-            if (each) this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
+            if (each) this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
 
             if (!each && !inherit && !(node instanceof XElement)) {
                 // console.log(this, node);
                 let child = node.firstChild;
                 while (child) {
-                    this.binds(child, context, rewrites);
+                    this.#adds(child, context, rewrites);
                     child = child.nextSibling;
                 }
             }
 
             for (const attribute of attributes) {
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
-                    this.bind(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                    this.#add(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                 }
             }
 
         }
-    }
-
-    attributeChangedCallback (name: string, from: string, to: string) {
-        this.dispatchEvent(this.#attributingEvent);
-        if ((this as any).attributed) (this as any).attributed(name, from, to);
-        this.dispatchEvent(this.#attributedEvent);
     }
 
     adoptedCallback () {
@@ -288,16 +284,22 @@ export default class XElement extends HTMLElement {
         this.dispatchEvent(this.#adoptedEvent);
     }
 
+    connectedCallback () {
+        this.dispatchEvent(this.#connectingEvent);
+        if ((this as any).connected) (this as any).connected();
+        this.dispatchEvent(this.#connectedEvent);
+    }
+
     disconnectedCallback () {
         this.dispatchEvent(this.#disconnectingEvent);
         if ((this as any).disconnected) (this as any).disconnected();
         this.dispatchEvent(this.#disconnectedEvent);
     }
 
-    connectedCallback () {
-        this.dispatchEvent(this.#connectingEvent);
-        if ((this as any).connected) (this as any).connected();
-        this.dispatchEvent(this.#connectedEvent);
+    attributeChangedCallback (name: string, from: string, to: string) {
+        this.dispatchEvent(this.#attributingEvent);
+        if ((this as any).attributed) (this as any).attributed(name, from, to);
+        this.dispatchEvent(this.#attributedEvent);
     }
 
 }

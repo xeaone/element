@@ -136,7 +136,7 @@
                         }
                         else {
                             let checked;
-                            const bounds = binder.container.binders.get(binder.owner);
+                            const bounds = binder.binders.get(binder.owner);
                             if (bounds) {
                                 for (const bound of bounds) {
                                     if (bound.name === 'checked') {
@@ -403,7 +403,7 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    binder.binder.remove(node);
+                    binder.removes(node);
                 }
                 binder.meta.currentLength--;
             }
@@ -434,8 +434,7 @@
                 const clone = binder.meta.templateElement.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
-                    binder.container.binds(node, context, rewrites);
-                    // binder.binder.add(node, binder.container, binder.context, rewrites, descriptors);
+                    binder.adds(node, context, rewrites);
                     node = node.nextSibling;
                 }
                 binder.meta.queueElement.content.appendChild(clone);
@@ -467,13 +466,13 @@
         let removeChild;
         while (removeChild = binder.owner.lastChild) {
             binder.owner.removeChild(removeChild);
-            binder.binder.remove(removeChild);
+            binder.removes(removeChild);
         }
         const template = document.createElement('template');
         template.innerHTML = data;
         let addChild = template.content.firstChild;
         while (addChild) {
-            binder.container.binds(addChild, binder.container);
+            binder.adds(addChild);
             addChild = addChild.nextSibling;
         }
         binder.owner.appendChild(template.content);
@@ -481,7 +480,7 @@
     const htmlUnrender = function (binder) {
         let node;
         while (node = binder.owner.lastChild) {
-            binder.container.unbinds(node);
+            binder.removes(node);
             binder.owner.removeChild(node);
         }
     };
@@ -766,7 +765,6 @@
             name = name ?? dash(this.name);
             return customElements.whenDefined(name);
         }
-        static setup = true;
         static observedProperties = [];
         #mutator;
         #setup = false;
@@ -774,6 +772,7 @@
         #syntaxEnd = '}}';
         #syntaxStart = '{{';
         #syntaxLength = 2;
+        #binders = new Map();
         #syntaxMatch = new RegExp('{{.*?}}');
         #adoptedEvent = new Event('adopted');
         #adoptingEvent = new Event('adopting');
@@ -794,14 +793,17 @@
             standard
         };
         ready;
-        binders = new Map();
+        adopted;
+        connected;
+        attributed;
+        disconnected;
         constructor() {
             super();
             if (!this.shadowRoot)
                 this.attachShadow({ mode: 'open' });
-            const setup = this.constructor.setup;
-            if (setup === true)
-                tick(() => this.setup());
+            this.#mutator = new MutationObserver(this.#mutation.bind(this));
+            this.#mutator.observe(this, { childList: true });
+            this.#mutator.observe(this.shadowRoot, { childList: true });
         }
         setup() {
             if (this.#setup)
@@ -818,69 +820,71 @@
                 });
             }
             this.#data = new Proxy(data, {
-                get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
-                set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
-                deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
+                get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
+                set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
+                deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
             });
             let node;
             node = this.shadowRoot.firstChild;
             while (node) {
-                this.binds(node);
+                this.#adds(node);
                 node = node.nextSibling;
             }
             node = this.firstChild;
             while (node) {
-                this.binds(node);
+                this.#adds(node);
                 node = node.nextSibling;
             }
-            this.#mutator = new MutationObserver(this.#mutation.bind(this));
-            this.#mutator.observe(this, { childList: true });
-            this.#mutator.observe(this.shadowRoot, { childList: true });
+            // this.#mutator = new MutationObserver(this.#mutation.bind(this));
+            // this.#mutator.observe(this, { childList: true });
+            // this.#mutator.observe(this.shadowRoot, { childList: true });
             if (this.ready)
                 this.ready();
         }
         #mutation(mutations) {
+            if (!this.#setup)
+                return this.setup();
             for (const mutation of mutations) {
                 for (const node of mutation.removedNodes) {
-                    this.unbinds(node);
+                    this.#removes(node);
                 }
                 for (const node of mutation.addedNodes) {
-                    this.binds(node);
+                    this.#adds(node);
                 }
             }
         }
         ;
-        unbind(node) {
-            const binders = this.binders.get(node);
+        #remove(node) {
+            const binders = this.#binders.get(node);
             if (!binders)
                 return;
             for (const binder of binders) {
                 for (const reference of binder.references) {
-                    this.binders.get(reference)?.delete(binder);
-                    if (!this.binders.get(reference).size)
-                        this.binders.delete(reference);
+                    this.#binders.get(reference)?.delete(binder);
+                    if (!this.#binders.get(reference).size)
+                        this.#binders.delete(reference);
                 }
             }
-            this.binders.delete(node);
+            this.#binders.delete(node);
         }
-        bind(node, name, value, owner, context, rewrites) {
-            if (this.binders.has(node))
+        #add(node, name, value, owner, context, rewrites) {
+            if (this.#binders.has(node))
                 return console.log(node);
             const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
             const handler = this.#handlers[type];
-            const container = this;
-            // context = context ?? this;
-            // context = context ?? this.data;
-            context = context ?? this.#data;
             const binder = {
                 meta: {},
-                binder: this,
+                container: this,
                 render: undefined,
                 compute: undefined,
                 unrender: undefined,
                 references: undefined,
+                binders: this.#binders,
                 rewrites: rewrites ?? [],
-                node, owner, name, value, context, container, type,
+                context: context ?? this.#data,
+                adds: this.#adds.bind(this),
+                removes: this.#removes.bind(this),
+                node, owner, name, value, type,
             };
             const references = parser(value);
             const compute = computer(binder);
@@ -894,43 +898,43 @@
                         binder.references[i] = binder.references[i].replace(name, value);
                     }
                 }
-                if (this.binders.has(binder.references[i])) {
-                    this.binders.get(binder.references[i]).add(binder);
+                if (this.#binders.has(binder.references[i])) {
+                    this.#binders.get(binder.references[i]).add(binder);
                 }
                 else {
-                    this.binders.set(binder.references[i], new Set([binder]));
+                    this.#binders.set(binder.references[i], new Set([binder]));
                 }
             }
-            if (this.binders.has(binder.owner)) {
-                this.binders.get(binder.owner).add(binder);
+            if (this.#binders.has(binder.owner)) {
+                this.#binders.get(binder.owner).add(binder);
             }
             else {
-                this.binders.set(binder.owner, new Set([binder]));
+                this.#binders.set(binder.owner, new Set([binder]));
             }
             binder.render();
         }
-        unbinds(node) {
+        #removes(node) {
             if (node.nodeType === TEXT) {
-                this.unbind(node);
+                this.#remove(node);
             }
             else if (node.nodeType === ELEMENT) {
-                this.unbind(node);
+                this.#remove(node);
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
-                    this.unbind(attribute);
+                    this.#remove(attribute);
                 }
                 let child = node.firstChild;
                 while (child) {
-                    this.unbinds(child);
+                    this.#removes(child);
                     child = child.nextSibling;
                 }
             }
         }
-        binds(node, context, rewrites) {
+        #adds(node, context, rewrites) {
             if (node.nodeType === FRAGMENT) {
                 node = node.firstChild;
                 while (node) {
-                    this.binds(node, context, rewrites);
+                    this.#adds(node, context, rewrites);
                     node = node.nextSibling;
                 }
             }
@@ -945,38 +949,32 @@
                     return;
                 if (end + this.#syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.#syntaxLength);
-                    this.binds(split, context, rewrites);
+                    this.#adds(split, context, rewrites);
                 }
-                this.bind(node, 'text', node.nodeValue, node, context, rewrites);
+                this.#add(node, 'text', node.nodeValue, node, context, rewrites);
             }
             else if (node.nodeType === ELEMENT) {
                 const attributes = node.attributes;
                 const inherit = attributes['inherit'];
                 if (inherit)
-                    this.bind(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
+                    this.#add(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
                 const each = attributes['each'];
                 if (each)
-                    this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
+                    this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
                 if (!each && !inherit && !(node instanceof XElement)) {
                     // console.log(this, node);
                     let child = node.firstChild;
                     while (child) {
-                        this.binds(child, context, rewrites);
+                        this.#adds(child, context, rewrites);
                         child = child.nextSibling;
                     }
                 }
                 for (const attribute of attributes) {
                     if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
-                        this.bind(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                        this.#add(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                     }
                 }
             }
-        }
-        attributeChangedCallback(name, from, to) {
-            this.dispatchEvent(this.#attributingEvent);
-            if (this.attributed)
-                this.attributed(name, from, to);
-            this.dispatchEvent(this.#attributedEvent);
         }
         adoptedCallback() {
             this.dispatchEvent(this.#adoptingEvent);
@@ -984,17 +982,23 @@
                 this.adopted();
             this.dispatchEvent(this.#adoptedEvent);
         }
+        connectedCallback() {
+            this.dispatchEvent(this.#connectingEvent);
+            if (this.connected)
+                this.connected();
+            this.dispatchEvent(this.#connectedEvent);
+        }
         disconnectedCallback() {
             this.dispatchEvent(this.#disconnectingEvent);
             if (this.disconnected)
                 this.disconnected();
             this.dispatchEvent(this.#disconnectedEvent);
         }
-        connectedCallback() {
-            this.dispatchEvent(this.#connectingEvent);
-            if (this.connected)
-                this.connected();
-            this.dispatchEvent(this.#connectedEvent);
+        attributeChangedCallback(name, from, to) {
+            this.dispatchEvent(this.#attributingEvent);
+            if (this.attributed)
+                this.attributed(name, from, to);
+            this.dispatchEvent(this.#attributedEvent);
         }
     }
 

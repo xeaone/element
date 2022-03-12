@@ -10,7 +10,7 @@ const htmlRender = function (binder) {
     let removeChild;
     while (removeChild = binder.owner.lastChild) {
         binder.owner.removeChild(removeChild);
-        binder.binder.remove(removeChild);
+        binder.removes(removeChild);
     }
 
     const template = document.createElement('template');
@@ -18,7 +18,7 @@ const htmlRender = function (binder) {
 
     let addChild = template.content.firstChild;
     while (addChild) {
-        binder.container.binds(addChild, binder.container);
+        binder.adds(addChild);
         addChild = addChild.nextSibling;
     }
 
@@ -28,7 +28,7 @@ const htmlRender = function (binder) {
 const htmlUnrender = function (binder) {
     let node;
     while (node = binder.owner.lastChild) {
-        binder.container.unbinds(node);
+        binder.removes(node);
         binder.owner.removeChild(node);
     }
 };

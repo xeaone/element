@@ -1,0 +1,279 @@
+<base href="/">
+<script>document.querySelector('base').href = window.location.hostname === 'vokeio.github.io' ? '/oxe/' : '/';</script>
+<meta name="theme-color" content="darkorange">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<meta name="keywords" content="oxe, tiny, web, components, framework, library">
+<meta name="description" content="A mighty tiny web components framework">
+<title>Oxe</title>
+<link href="./index.css" rel="stylesheet" >
+
+<div class="title">
+    <h1><span>O</span>xe</h1>
+    <h2>A mighty tiny web components framework</h2>
+</div>
+
+<div class="menu">
+    <a href="./">Home</a>
+    <a href="./performance" o-external>Performance</a>
+    <a href="./binders">Binders</a>
+</div>
+
+<x-route></x-route>
+
+<script type="module">
+import XElement from './x-element.js';
+import Highlight from './highlight.js';
+import Code from '../modules/code.js';
+import Color from '../modules/color.js';
+
+class XRoute extends XElement {
+
+    static observedProperties = [
+        'title', 'text', 'checked', 'check', 'checkResult',
+        'checkInput', 'r1', 'r2', 'color', 'colorChange',
+        'active', 'lightblue', 'classToggle', 'value',
+        'fruits', 'log', 'selectedPlant', 'selectEachResult',
+        'multipleSelectResult', 'radio', 'agree', 'lastName',
+        'firstName', 'favoriteNumber', 'submit', 'hyperText',
+
+         'checkedResult'
+    ];
+
+    title = 'Binders';
+    text = 'Hello World';
+
+    checked = true;
+    check = 'checked';
+    checkedResult = '';
+    checkResult = checked => checked ? 'checked' : '';
+    checkInput (e) {
+        this.checkedResult = Highlight(e.target.outerHTML);
+        console.log(this.checkedResult);
+        console.log(this.checked);
+    };
+
+    r1 = undefined;
+    r2 = undefined;
+
+    color = Color();
+    colorChange () { this.color = Color(); };
+
+    active = true;
+    lightblue = active => active ? 'lightblue' : '';
+    classToggle () { this.active = !this.active; };
+
+    value = {
+        text: 'hello world',
+        upper: text => text?.toUpperCase(),
+    };
+
+    fruits = [ 'apple', 'orange', 'tomato' ];
+    log () { console.log(arguments); };
+
+    selectedPlant = undefined;
+    selectEachResult = 'orange';
+    multipleSelectResult = [];
+
+    radio = false;
+    agree = true;
+    lastName = 'bond';
+    firstName = 'james';
+    favoriteNumber = undefined;
+    submit (form) { console.log(form); };
+
+    hyperText = '<strong>Hyper Text Markup Language</strong>';
+
+    html = /*html*/`
+    <style>
+        .default {
+            border: solid 5px transparent;
+        }
+        .lightblue {
+            border-color: lightblue;
+        }
+    </style>
+
+    <section id="text">
+        <h3>Text Binder</h3>
+        <pre><code class="language-html" text="{{'<span>{{text}}</span>'}}"></code></pre>
+        <pre><code class="language-html" html="{{'<span>{{text}}</span>'}}"></code></pre>
+    </section>
+
+    <section id="checked">
+        <h3>Checked Binder</h3>
+        <br>
+        <pre><code class="language-html" text="{{'${Code(`<input type="checkbox" value="{{checked}}" checked="{{checked = $checked}}">`, true)}'}}"></code></pre>
+        <pre><code html="{{checkedResult}}" ></code></pre>
+        <br>
+        <label>
+            <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox" onchange="{{checkInput($event)}}"> Checkbox
+        </label>
+        <br>
+        <pre><code class="language-html">${Code(`
+        <input type="radio" name="radio" value="one" checked="{{r1=$checked}}">
+        <input type="radio" name="radio" value="two" checked="{{r2=$checked}}">
+        `, true)}</code></pre>
+        <pre><code class="language-html">${Code(`
+        <input type="radio" name="radio" value="one" {{r1 ? ' checked': ''}}>
+        <input type="radio" name="radio" value="two" {{r2 ? ' checked': ''}}>
+        `)}</code></pre>
+        <br>
+        <label>
+            <input type="radio" name="radio" value="one" checked="{{r1=$checked}}"> Radio One
+        </label>
+        <label>
+            <input type="radio" name="radio" value="two" checked="{{r2=$checked}}"> Radio Two
+        </label>
+    </section>
+
+    <section id="style">
+        <h2>Style Binder</h2>
+        <br>
+        <pre style="color: {{color}}"><code class="language-html">${Code(`<div style="color: {{color}}">Look at my style</div>`, true)}</code></pre>
+        <pre style="color: {{color}}"><code class="language-html">${Code(`<div style="color: {{color}}">Look at my style</div>`)}</code></pre>
+        <br>
+        <button onclick="{{colorChange()}}">Change Color</button>
+    </section>
+
+    <section id="class">
+        <h3>Class Binder</h3>
+        <br>
+        <pre class="default {{lightblue(active)}}"><code class="language-html">${Code(`class="default {{lightblue(active)}}"`, true)}</code></pre>
+        <pre class="default {{lightblue(active)}}"><code class="language-html">${Code(`class="default {{lightblue(active)}}"`)}</code></pre>
+        <pre class="default {{active ? 'lightblue' : ''}}"><code class="language-html">${Code(`class="default {{active ? 'lightblue' : ''}}"`, true)}</pre>
+        <pre class="default {{active ? 'lightblue' : ''}}"><code class="language-html">${Code(`class="default {{active ? 'lightblue' : ''}}"`)}</code></pre>
+        <br>
+        <button onclick="{{classToggle()}}">Toggle Active</button>
+    </section>
+
+    <section id="value">
+        <h3>Value Binder</h3>
+        <br>
+        <pre><code class="language-html">${Code(`
+        <strong>{{value.text}}</strong>
+        <input value="{{value.text = $value.toUpperCase() }}">
+        <input value="{{(value.text = $value).toLowerCase()}}">`, true)}</code></pre>
+        <br>
+        <strong>{{value.text}}</strong>
+        <br>
+        <input value="{{value.text = $value.toUpperCase() }}">
+        <input value="{{(value.text = $value).toLowerCase()}}">
+    </section>
+
+    <section id="each">
+        <h3>Each Binder</h3>
+        <br>
+        <pre><code class="language-html">${Code(`
+        <div each="{{[fruits, 'key', 'index', 'fruit']}}">
+            <div id="{{fruit.name}}">
+                <strong>Key: </strong>{{key}},
+                <strong>Index: </strong>{{index}},
+                <strong>Value: </strong>{{fruit}}
+            </div>
+        </div>`, true)}</code></pre>
+        <br>
+        <div each="{{[fruits, 'key', 'index', 'fruit']}}">
+            <div id="{{fruit}}">
+                <strong>Key: </strong>{{key}},
+                <strong>Index: </strong>{{index}},
+                <strong>Value: </strong>{{fruit}}
+            </div>
+        </div>
+    </section>
+
+    <section id="select">
+        <h3>Select Binder</h3>
+        <br>
+        <pre><code class="language-html">${Code(`
+        <div>{{selectPlant}}</div>
+        <select value="{{selectedPlant = $value}}">
+            <option value="tree">Tree</option>
+            <option value="cactus">Cactus</option>
+        </select>`, true)}</code></pre>
+        <br>
+        <div>{{selectedPlant}}</div>
+        <select value="{{selectedPlant = $value}}">
+            <option value="tree">Tree</option>
+            <option value="cactus">Cactus</option>
+        </select>
+        <br>
+        <pre><code class="language-html">${Code(`
+        <div>{{selectEachResult}}</div>
+        <select value="{{selectEachResult = $value}}" each="{{[fruits, 'fruit']}}">
+            <option value="{{fruit}}">{{fruit}}</option>
+        </select>`, true)}</code></pre>
+        <br>
+        <div>{{selectEachResult}}</div>
+        <select value="{{selectEachResult = $value}}" each="{{[fruits, 'fruit']}}">
+            <option value="{{fruit}}">{{fruit}}</option>
+        </select>
+        <br>
+        <pre><code class="language-html">${Code(`
+        <div>{{multipleSelectResult}}</div>
+        <select value="{{multipleSelectResult = $value}}" multiple>
+            <option value="volvo">Volvo</option>
+            <option value="saab">Saab</option>
+            <option value="opel">Opel</option>
+            <option value="audi">Audi</option>
+        </select>`, true)}</code></pre>
+        <br>
+        <div>{{multipleSelectResult}}</div>
+        <select value="{{multipleSelectResult = $value}}" multiple>
+            <option value="volvo">Volvo</option>
+            <option value="saab">Saab</option>
+            <option value="opel">Opel</option>
+            <option value="audi">Audi</option>
+        </select>
+    </section>
+
+    <section>
+        <h3>Submit Binder</h3>
+        <br>
+        <form onsubmit="{{submit($form)}}">
+            <div>{{firstName}}</div>
+            <input name="name.first" value="{{firstName = $value}}" placeholder="first name">
+            <div>{{lastName}}</div>
+            <input name="name.last" value="{{$value ?? lastName}}" placeholder="last name">
+            <br>
+            <br>
+            <input type="checkbox" name="agree" value="{{agree ? 'yes' : 'no'}}" checked="{{agree = $checked}}">Agree? {{agree ? 'yes': 'no'}}
+            <br>
+            <br>
+            <strong>Animal:</strong>
+            <input type="radio" name="animal" value="{{'dogs'}}" checked="{{$checked}}">Dogs
+            <input type="radio" name="animal" value="cats" checked="{{$checked}}">Cats
+            <br>
+            <br>
+            <div>{{favoriteNumber}}</div>
+            <input name="favoriteNumber" type="number" value="{{favoriteNumber = $value}}">
+            <br>
+            <br>
+            <input type="submit" value="submit">
+        </form>
+    </section>
+
+    <section>
+        <h3>HTML Binder</h3>
+        <strong>HTML binding should be avoided</strong>
+        <br>
+        <pre><code class="language-html">${Code(`<div html="{{'<strong>Hyper Text Markup Language</strong>'}}"></div>`, true)}</code></pre>
+        <br>
+        <pre><code class="language-html">${Code(`<div>{{'<strong>Hyper Text Markup Language</strong>'}}</div>`)}</code></pre>
+    </section>
+    `
+
+    constructor () {
+        super();
+        this.shadowRoot.innerHTML='<slot></slot>';
+        this.innerHTML = this.html;
+        Highlight();
+    }
+
+};
+
+XRoute.define();
+</script>
+
+
+
+
