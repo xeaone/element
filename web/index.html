@@ -2,28 +2,49 @@
 <script>document.querySelector('base').href = window.location.hostname === 'vokeio.github.io' ? '/oxe/' : '/';</script>
 <meta name="theme-color" content="darkorange">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
-<meta name="keywords" content="oxe, tiny, web, components, framework, library">
+<meta name="keywords" content="xenon, tiny, web, components, framework, library">
 <meta name="description" content="A mighty tiny web components framework">
-<title>Oxe</title>
+<title>Xenon</title>
 <link href="./index.css" rel="stylesheet" >
 
 <div class="title">
-    <h1><span>O</span>xe</h1>
-    <h2>A mighty tiny web components framework</h2>
+    <h1><span>Xe</span>non</h1>
+    <h2>The Agnostic Non Framework</h2>
 </div>
 
 <div class="menu">
     <a href="./">Home</a>
-    <a href="./performance" o-external>Performance</a>
-    <a href="./binders">Binders</a>
+    <a href="./guide">Guide</a>
+    <a href="https://github.com/vokeio/xe" target="_blank">Github</a>
+    <a href="./performance">Performance</a>
 </div>
 
 <x-route>
-    <h2>Overview</h2>
 
-    <strong>Synopsis</strong>
-    <p>A mighty tiny web components framework that should feel like your using native JS and HTML to write and bind Custom Elements.</p>
+    <h2>Vision</h2>
+    <h4>Xenon's vision is to provide a near zero learning requirement for building and distributing agnostic custom elements. This is achieved by a single class that enhances and uses native custom element functionality and standards.</h4>
 
+    <h2>Features</h2>
+    <div class="tiles">
+        <div class="tile">
+            <h4>&#128118; Simple</h4>
+            <span>Simple to learning and get started using.</span>
+        </div>
+        <div class="tile">
+            <h4>&#128230; Shareable</h4>
+            <span>Build a single component or an entire app.</span>
+        </div>
+        <div class="tile">
+            <h4>&#9889; Fast</h4>
+            <span>Tiny footprint ~2KB (minified and compressed).</span>
+        </div>
+        <div class="tile">
+            <h4>&#127959; Framework Agnostic</h4>
+            <span>Use Xenon with any framework - React, Vue, Angular...</span>
+        </div>
+    </div>
+
+    <!--
     <strong>Project Goal</strong>
     <ul>
         <li>Easy learning curve</li>
@@ -61,15 +82,16 @@
         <li>UMD <i>"pro/oxe.min.js"</i></li>
     </ul>
 
-    <h2>Element Example</h2>
-    <pre><code class="language-js">{{elementCode}}</code></pre>
-
     <h2>Route Example</h2>
     <pre><code class="language-js">{{indexRoute}}</code></pre>
     <br>
     <pre><code class="language-js">{{indexJs}}</code></pre>
     <br>
     <pre><code class="language-html">{{indexHtml}}</code></pre>
+    -->
+
+    <h2>Example</h2>
+    <pre><code class="language-js">{{example}}</code></pre>
 
 </x-route>
 
@@ -80,20 +102,20 @@
     class XRoute extends XElement {
 
         static observedProperties = [
-            'elementCode',
-            'indexRoute',
-            'indexJs',
-            'indexHtml'
+            'example',
+            // 'indexRoute',
+            // 'indexJs',
+            // 'indexHtml'
         ]
 
-        constructor (){
+        constructor() {
             super();
-            // this.setup();
             this.shadowRoot.innerHTML = '<slot></slot>';
             Highlight();
+            document.body.style.opacity = 1;
         }
 
-        elementCode = `
+        example = /*js*/`
         import XElement from '/x-element.js';
 
         MyElement extends XElement {
@@ -117,47 +139,43 @@
         MyElement.define();
         `;
 
-        indexRoute = `
-        // routes/index.js
-        import XElement from '/x-element.js';
+        // indexRoute = `
+        // // routes/index.js
+        // import XElement from '/x-element.js';
 
-        export default IndexRoute extends XElement {
-            title = 'Index Route'
-            description = 'Index Description'
-            constructor () {
-                super();
-                this.shadowRoot.innerHTML = \`<h1>Hello World</h1>\`;
-            }
-        }
-        `;
+        // export default IndexRoute extends XElement {
+        //     title = 'Index Route'
+        //     description = 'Index Description'
+        //     constructor () {
+        //         super();
+        //         this.shadowRoot.innerHTML = \`<h1>Hello World</h1>\`;
+        //     }
+        // }
+        // `;
 
-        indexJs = `
-        // index.js
-        import XRouter from '/x-router.js';
+        // indexJs = `
+        // // index.js
+        // import XRouter from '/x-router.js';
 
-        await XRouter.setup({
-            target: 'main',
-            folder: 'routes'
-        });
-        `;
+        // await XRouter.setup({
+        //     target: 'main',
+        //     folder: 'routes'
+        // });
+        // `;
 
-        indexHtml = `
-        <!-- index.html -->
-        <html>
-        <head>
-            \<script src="/index.js" defer\>\<\/script\>
-        </head>
-        <body>
-            <main></main>
-        </body>
-        </html>
-        `;
+        // indexHtml = `
+        // <!-- index.html -->
+        // <html>
+        // <head>
+        //     \<script src="/index.js" defer\>\<\/script\>
+        // </head>
+        // <body>
+        //     <main></main>
+        // </body>
+        // </html>
+        // `;
 
     }
 
     XRoute.define();
 </script>
-
-<!-- <link href="./assets/prism.css" rel="stylesheet">
-<script src="./assets/prism.js"></script> -->
-

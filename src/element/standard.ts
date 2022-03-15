@@ -31,7 +31,5 @@ const standardUnrender = function (binder) {
 
 };
 
-
-
 export default { render: standardRender, unrender: standardUnrender };
 
