@@ -2,7 +2,8 @@ import tick from './tick';
 
 export const dataGet = function (event, reference, target, key, receiver) {
     if (key === 'x') return { reference };
-    const value = Reflect.get(target, key, receiver);
+    const value = Reflect.get(target, key);
+    // const value = Reflect.get(target, key, receiver);
 
     if (value && typeof value === 'object') {
         reference = reference ? `${reference}.${key}` : `${key}`;

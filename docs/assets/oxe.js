@@ -24,7 +24,8 @@
     const dataGet = function (event, reference, target, key, receiver) {
         if (key === 'x')
             return { reference };
-        const value = Reflect.get(target, key, receiver);
+        const value = Reflect.get(target, key);
+        // const value = Reflect.get(target, key, receiver);
         if (value && typeof value === 'object') {
             reference = reference ? `${reference}.${key}` : `${key}`;
             return new Proxy(value, {
@@ -136,7 +137,7 @@
                         }
                         else {
                             let checked;
-                            const bounds = binder.container.binders.get(binder.owner);
+                            const bounds = binder.binders.get(binder.owner);
                             if (bounds) {
                                 for (const bound of bounds) {
                                     if (bound.name === 'checked') {
@@ -323,20 +324,20 @@
             key === '$index' ||
             key === '$item' ||
             key === '$key' ||
-            key in target;
+            Reflect.has(target, key);
     };
-    const eachGet = function (binder, indexValue, keyValue, target, key) {
+    const eachGet = function (binder, indexValue, keyValue, target, key, receiver) {
         if (key === binder.meta.variableName || key === '$item') {
             return binder.meta.data[keyValue];
         }
         else if (key === binder.meta.indexName || key === '$index') {
             return indexValue;
         }
-        else if (key === binder.meta.keyName || '$key') {
+        else if (key === binder.meta.keyName || key === '$key') {
             return keyValue;
         }
         else {
-            return binder.context[key];
+            return Reflect.get(target, key);
         }
     };
     const eachSet = function (binder, indexValue, keyValue, target, key, value) {
@@ -347,7 +348,7 @@
             return true;
         }
         else {
-            binder.context[key] = value;
+            return Reflect.set(target, key, value);
         }
         return true;
     };
@@ -403,7 +404,7 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    binder.binder.remove(node);
+                    binder.removes(node);
                 }
                 binder.meta.currentLength--;
             }
@@ -434,18 +435,10 @@
                 const clone = binder.meta.templateElement.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
-                    binder.container.binds(node, context, rewrites);
-                    // binder.binder.add(node, binder.container, binder.context, rewrites, descriptors);
+                    binder.adds(node, context, rewrites);
                     node = node.nextSibling;
                 }
                 binder.meta.queueElement.content.appendChild(clone);
-                // var d = document.createElement('div');
-                // d.classList.add('box');
-                // // var t = document.createTextNode(index);
-                // var t = document.createTextNode('{{item.number}}');
-                // binder.binder.add(t, binder.container, binder.context, rewrites, descriptors);
-                // d.appendChild(t);
-                // binder.meta.queueElement.content.appendChild(d);
             }
             console.timeEnd('each while');
         }
@@ -467,13 +460,13 @@
         let removeChild;
         while (removeChild = binder.owner.lastChild) {
             binder.owner.removeChild(removeChild);
-            binder.binder.remove(removeChild);
+            binder.removes(removeChild);
         }
         const template = document.createElement('template');
         template.innerHTML = data;
         let addChild = template.content.firstChild;
         while (addChild) {
-            binder.container.binds(addChild, binder.container);
+            binder.adds(addChild);
             addChild = addChild.nextSibling;
         }
         binder.owner.appendChild(template.content);
@@ -481,7 +474,7 @@
     const htmlUnrender = function (binder) {
         let node;
         while (node = binder.owner.lastChild) {
-            binder.container.unbinds(node);
+            binder.removes(node);
             binder.owner.removeChild(node);
         }
     };
@@ -656,13 +649,13 @@
         code = convert ? `'${code}'` : code;
         if (assignment) {
             code = `
-            if ($assignment) {
-                return ${code};
-            } else {
-                ${isValue ? `$value = ${reference || `undefined`};` : ''}
-                ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
-                return ${assignment || code};
-            }
+        if ($assignment) {
+            return ${code};
+        } else {
+            ${isValue ? `$value = ${reference || `undefined`};` : ''}
+            ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
+            return ${assignment || code};
+        }
         `;
         }
         else {
@@ -688,27 +681,26 @@
     // const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
     const referenceMatch = new RegExp([
         '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
-        '([^{}]*{{.*?\\s+(?:of|in)\\s+)',
         '((?:^|}}).*?{{)',
         '(}}.*?(?:{{|$))',
         `(
         (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-            this|window|document|console|location|
-            globalThis|Infinity|NaN|undefined|
-            isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-            Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-            Object|Function|Boolean|Symbole|Array|
-            Number|Math|Date|BigInt|
-            String|RegExp|
-            Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-            Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-            Map|Set|WeakMap|WeakSet|
-            ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-            Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-            Reflect|Proxy|
-            true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-            yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        [a-zA-Z0-9$_.?\\[\\]]*
+        this|window|document|console|location|
+        globalThis|Infinity|NaN|undefined|
+        isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+        Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+        Object|Function|Boolean|Symbole|Array|
+        Number|Math|Date|BigInt|
+        String|RegExp|
+        Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+        Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+        Map|Set|WeakMap|WeakSet|
+        ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+        Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+        Reflect|Proxy|
+        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
+        (?:[.][a-zA-Z0-9$_.?\\[\\]]*|\\b)
     )`,
         '([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)' // reference
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
@@ -723,12 +715,11 @@
         const cached = cache.get(data);
         if (cached)
             return cached;
-        // console.log('not cached pareser');
         const references = [];
         cache.set(data, references);
         let match;
         while (match = referenceMatch.exec(data)) {
-            let reference = match[6];
+            let reference = match[5];
             if (reference) {
                 references.push(reference);
             }
@@ -742,6 +733,7 @@
 
     const TEXT = Node.TEXT_NODE;
     const ELEMENT = Node.ELEMENT_NODE;
+    const FRAGMENT = Node.DOCUMENT_FRAGMENT_NODE;
     // declarative shadow root polyfill
     if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
         (function attachShadowRoots(root) {
@@ -756,13 +748,6 @@
         })(document);
     }
     class XElement extends HTMLElement {
-        static data = () => ({});
-        static attributes = () => [];
-        static style;
-        static shadow;
-        static get observedAttributes() {
-            return this.attributes();
-        }
         static define(name, constructor) {
             constructor = constructor ?? this;
             name = name ?? dash(this.name);
@@ -772,10 +757,14 @@
             name = name ?? dash(this.name);
             return customElements.whenDefined(name);
         }
-        // #setup = false;
+        static observedProperties = [];
+        #mutator;
+        #setup = false;
+        #data = {};
         #syntaxEnd = '}}';
         #syntaxStart = '{{';
         #syntaxLength = 2;
+        #binders = new Map();
         #syntaxMatch = new RegExp('{{.*?}}');
         #adoptedEvent = new Event('adopted');
         #adoptingEvent = new Event('adopting');
@@ -785,7 +774,6 @@
         #attributingEvent = new Event('attributing');
         #disconnectedEvent = new Event('disconnected');
         #disconnectingEvent = new Event('disconnecting');
-        #template = document.createElement('template');
         #handlers = {
             on,
             text,
@@ -796,76 +784,105 @@
             inherit,
             standard
         };
-        data = {};
-        binders = new Map();
+        ready;
+        adopted;
+        connected;
+        attributed;
+        disconnected;
         constructor() {
             super();
-            const style = this.constructor.style?.();
-            const data = this.constructor.data?.();
-            const shadow = this.constructor.shadow?.();
-            if (!this.shadowRoot) {
+            if (!this.shadowRoot)
                 this.attachShadow({ mode: 'open' });
+            this.#mutator = new MutationObserver(this.#mutation.bind(this));
+            this.#mutator.observe(this, { childList: true });
+            this.#mutator.observe(this.shadowRoot, { childList: true });
+        }
+        setup() {
+            if (this.#setup)
+                return;
+            else
+                this.#setup = true;
+            const data = {};
+            const properties = this.constructor.observedProperties;
+            for (const property of properties) {
+                // const value = this[ property ];
+                // if (typeof value === 'function') {
+                //     data[ property ] = value.bind(this);
+                // } else {
+                //     data[ property ] = value;
+                // }
+                data[property] = this[property];
+                // Object.defineProperty(this, property, {
+                //     get () { return this.#data[ property ]; },
+                //     set (value) { this.#data[ property ] = value; }
+                // });
             }
-            this.data = new Proxy(data, {
-                get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
-                set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
-                deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
+            this.#data = new Proxy(data, {
+                get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
+                set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
+                deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
             });
-            if (typeof style === 'string') {
-                this.#template.innerHTML = `<style>${style}</style>`;
-                this.shadowRoot.prepend(this.#template.content);
-            }
-            else if (shadow instanceof Element) {
-                this.shadowRoot.prepend(style);
-            }
-            if (typeof shadow === 'string') {
-                this.#template.innerHTML = shadow;
-                this.shadowRoot.append(this.#template.content);
-            }
-            else if (shadow instanceof Element) {
-                this.shadowRoot.append(shadow);
-            }
-            let node = this.shadowRoot.firstChild;
+            let node;
+            node = this.shadowRoot.firstChild;
             while (node) {
-                this.binds(node);
+                this.#adds(node);
                 node = node.nextSibling;
             }
-            if (this.constructor.adopt) {
-                this.shadowRoot.appendChild(document.createElement('slot'));
-                let node = this.firstChild;
-                while (node) {
-                    this.binds(node);
-                    node = node.nextSibling;
+            node = this.firstChild;
+            while (node) {
+                this.#adds(node);
+                node = node.nextSibling;
+            }
+            // this.#mutator = new MutationObserver(this.#mutation.bind(this));
+            // this.#mutator.observe(this, { childList: true });
+            // this.#mutator.observe(this.shadowRoot, { childList: true });
+            if (this.ready)
+                this.ready();
+        }
+        #mutation(mutations) {
+            if (!this.#setup)
+                return this.setup();
+            for (const mutation of mutations) {
+                for (const node of mutation.removedNodes) {
+                    this.#removes(node);
+                }
+                for (const node of mutation.addedNodes) {
+                    this.#adds(node);
                 }
             }
         }
-        unbind(node) {
-            const binders = this.binders.get(node);
+        ;
+        #remove(node) {
+            const binders = this.#binders.get(node);
             if (!binders)
                 return;
             for (const binder of binders) {
                 for (const reference of binder.references) {
-                    this.binders.get(reference)?.delete(binder);
-                    if (!this.binders.get(reference).size)
-                        this.binders.delete(reference);
+                    this.#binders.get(reference)?.delete(binder);
+                    if (!this.#binders.get(reference).size)
+                        this.#binders.delete(reference);
                 }
             }
-            this.binders.delete(node);
+            this.#binders.delete(node);
         }
-        bind(node, name, value, owner, context, rewrites) {
+        #add(node, name, value, owner, context, rewrites) {
+            if (this.#binders.has(node))
+                return console.warn(node);
             const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
             const handler = this.#handlers[type];
-            const container = this;
-            context = context ?? this.data;
             const binder = {
                 meta: {},
-                binder: this,
+                container: this,
                 render: undefined,
                 compute: undefined,
                 unrender: undefined,
                 references: undefined,
+                binders: this.#binders,
                 rewrites: rewrites ?? [],
-                node, owner, name, value, context, container, type,
+                context: context ?? this.#data,
+                adds: this.#adds.bind(this),
+                removes: this.#removes.bind(this),
+                node, owner, name, value, type,
             };
             const references = parser(value);
             const compute = computer(binder);
@@ -879,40 +896,47 @@
                         binder.references[i] = binder.references[i].replace(name, value);
                     }
                 }
-                if (this.binders.has(binder.references[i])) {
-                    this.binders.get(binder.references[i]).add(binder);
+                if (this.#binders.has(binder.references[i])) {
+                    this.#binders.get(binder.references[i]).add(binder);
                 }
                 else {
-                    this.binders.set(binder.references[i], new Set([binder]));
+                    this.#binders.set(binder.references[i], new Set([binder]));
                 }
             }
-            if (this.binders.has(binder.owner)) {
-                this.binders.get(binder.owner).add(binder);
+            if (this.#binders.has(binder.owner)) {
+                this.#binders.get(binder.owner).add(binder);
             }
             else {
-                this.binders.set(binder.owner, new Set([binder]));
+                this.#binders.set(binder.owner, new Set([binder]));
             }
             binder.render();
         }
-        unbinds(node) {
+        #removes(node) {
             if (node.nodeType === TEXT) {
-                this.unbind(node);
+                this.#remove(node);
             }
             else if (node.nodeType === ELEMENT) {
-                this.unbind(node);
+                this.#remove(node);
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
-                    this.unbind(attribute);
+                    this.#remove(attribute);
                 }
                 let child = node.firstChild;
                 while (child) {
-                    this.unbinds(child);
+                    this.#removes(child);
                     child = child.nextSibling;
                 }
             }
         }
-        binds(node, context, rewrites) {
-            if (node.nodeType === TEXT) {
+        #adds(node, context, rewrites) {
+            if (node.nodeType === FRAGMENT) {
+                node = node.firstChild;
+                while (node) {
+                    this.#adds(node, context, rewrites);
+                    node = node.nextSibling;
+                }
+            }
+            else if (node.nodeType === TEXT) {
                 const start = node.nodeValue.indexOf(this.#syntaxStart);
                 if (start === -1)
                     return;
@@ -923,53 +947,55 @@
                     return;
                 if (end + this.#syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.#syntaxLength);
-                    this.binds(split, context, rewrites);
+                    this.#adds(split, context, rewrites);
                 }
-                this.bind(node, 'text', node.nodeValue, node, context, rewrites);
+                this.#add(node, 'text', node.nodeValue, node, context, rewrites);
             }
             else if (node.nodeType === ELEMENT) {
                 const attributes = node.attributes;
                 const inherit = attributes['inherit'];
                 if (inherit)
-                    this.bind(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
+                    this.#add(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
                 const each = attributes['each'];
                 if (each)
-                    this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
+                    this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
                 if (!each && !inherit && !(node instanceof XElement)) {
-                    // console.log(this, node);
                     let child = node.firstChild;
                     while (child) {
-                        this.binds(child, context, rewrites);
+                        this.#adds(child, context, rewrites);
                         child = child.nextSibling;
                     }
                 }
                 for (const attribute of attributes) {
                     if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
-                        this.bind(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                        this.#add(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                     }
                 }
             }
         }
-        attributeChangedCallback(name, from, to) {
-            this.dispatchEvent(this.#attributingEvent);
-            this.attributed?.(name, from, to);
-            this.dispatchEvent(this.#attributedEvent);
-        }
         adoptedCallback() {
             this.dispatchEvent(this.#adoptingEvent);
-            this.adopted?.();
+            if (this.adopted)
+                this.adopted();
             this.dispatchEvent(this.#adoptedEvent);
-        }
-        disconnectedCallback() {
-            this.dispatchEvent(this.#disconnectingEvent);
-            this.disconnected?.();
-            this.dispatchEvent(this.#disconnectedEvent);
         }
         connectedCallback() {
             this.dispatchEvent(this.#connectingEvent);
-            // if (!this.#setup) this.#setup = true;
-            this.connected?.();
+            if (this.connected)
+                this.connected();
             this.dispatchEvent(this.#connectedEvent);
+        }
+        disconnectedCallback() {
+            this.dispatchEvent(this.#disconnectingEvent);
+            if (this.disconnected)
+                this.disconnected();
+            this.dispatchEvent(this.#disconnectedEvent);
+        }
+        attributeChangedCallback(name, from, to) {
+            this.dispatchEvent(this.#attributingEvent);
+            if (this.attributed)
+                this.attributed(name, from, to);
+            this.dispatchEvent(this.#attributedEvent);
         }
     }
 

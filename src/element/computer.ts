@@ -38,13 +38,13 @@ const computer = function (binder) {
 
     if (assignment) {
         code = `
-            if ($assignment) {
-                return ${code};
-            } else {
-                ${isValue ? `$value = ${reference || `undefined`};` : ''}
-                ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
-                return ${assignment || code};
-            }
+        if ($assignment) {
+            return ${code};
+        } else {
+            ${isValue ? `$value = ${reference || `undefined`};` : ''}
+            ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
+            return ${assignment || code};
+        }
         `;
     } else {
         code = `return ${code};`;

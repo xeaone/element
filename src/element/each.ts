@@ -7,18 +7,18 @@ const eachHas = function (binder, indexValue, keyValue, target, key) {
         key === '$index' ||
         key === '$item' ||
         key === '$key' ||
-        key in target;
+        Reflect.has(target, key);
 };
 
-const eachGet = function (binder, indexValue, keyValue, target, key) {
+const eachGet = function (binder, indexValue, keyValue, target, key, receiver) {
     if (key === binder.meta.variableName || key === '$item') {
         return binder.meta.data[ keyValue ];
     } else if (key === binder.meta.indexName || key === '$index') {
         return indexValue;
-    } else if (key === binder.meta.keyName || '$key') {
+    } else if (key === binder.meta.keyName || key === '$key') {
         return keyValue;
     } else {
-        return binder.context[ key ];
+        return Reflect.get(target, key);
     }
 };
 
@@ -28,7 +28,7 @@ const eachSet = function (binder, indexValue, keyValue, target, key, value) {
     } else if (key === binder.meta.indexName || key === binder.meta.keyName) {
         return true;
     } else {
-        binder.context[ key ] = value;
+        return Reflect.set(target, key, value);
     }
     return true;
 };
@@ -132,15 +132,6 @@ const eachRender = function (binder) {
             }
 
             binder.meta.queueElement.content.appendChild(clone);
-
-            // var d = document.createElement('div');
-            // d.classList.add('box');
-            // // var t = document.createTextNode(index);
-            // var t = document.createTextNode('{{item.number}}');
-            // binder.binder.add(t, binder.container, binder.context, rewrites, descriptors);
-            // d.appendChild(t);
-            // binder.meta.queueElement.content.appendChild(d);
-
         }
         console.timeEnd('each while');
     }

@@ -62,7 +62,7 @@
     const dataGet = function (event, reference, target, key, receiver) {
         if (key === 'x')
             return { reference };
-        const value = Reflect.get(target, key, receiver);
+        const value = Reflect.get(target, key);
         if (value && typeof value === 'object') {
             reference = reference ? `${reference}.${key}` : `${key}`;
             return new Proxy(value, {
@@ -174,7 +174,7 @@
                         }
                         else {
                             let checked;
-                            const bounds = binder.container.binders.get(binder.owner);
+                            const bounds = binder.binders.get(binder.owner);
                             if (bounds) {
                                 for (const bound of bounds) {
                                     if (bound.name === 'checked') {
@@ -349,20 +349,20 @@
             key === '$index' ||
             key === '$item' ||
             key === '$key' ||
-            key in target;
+            Reflect.has(target, key);
     };
-    const eachGet = function (binder, indexValue, keyValue, target, key) {
+    const eachGet = function (binder, indexValue, keyValue, target, key, receiver) {
         if (key === binder.meta.variableName || key === '$item') {
             return binder.meta.data[keyValue];
         }
         else if (key === binder.meta.indexName || key === '$index') {
             return indexValue;
         }
-        else if (key === binder.meta.keyName || '$key') {
+        else if (key === binder.meta.keyName || key === '$key') {
             return keyValue;
         }
         else {
-            return binder.context[key];
+            return Reflect.get(target, key);
         }
     };
     const eachSet = function (binder, indexValue, keyValue, target, key, value) {
@@ -373,7 +373,7 @@
             return true;
         }
         else {
-            binder.context[key] = value;
+            return Reflect.set(target, key, value);
         }
         return true;
     };
@@ -428,7 +428,7 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    binder.binder.remove(node);
+                    binder.removes(node);
                 }
                 binder.meta.currentLength--;
             }
@@ -453,7 +453,7 @@
                 const clone = binder.meta.templateElement.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
-                    binder.container.binds(node, context, rewrites);
+                    binder.adds(node, context, rewrites);
                     node = node.nextSibling;
                 }
                 binder.meta.queueElement.content.appendChild(clone);
@@ -475,13 +475,13 @@
         let removeChild;
         while (removeChild = binder.owner.lastChild) {
             binder.owner.removeChild(removeChild);
-            binder.binder.remove(removeChild);
+            binder.removes(removeChild);
         }
         const template = document.createElement('template');
         template.innerHTML = data;
         let addChild = template.content.firstChild;
         while (addChild) {
-            binder.container.binds(addChild, binder.container);
+            binder.adds(addChild);
             addChild = addChild.nextSibling;
         }
         binder.owner.appendChild(template.content);
@@ -489,7 +489,7 @@
     const htmlUnrender = function (binder) {
         let node;
         while (node = binder.owner.lastChild) {
-            binder.container.unbinds(node);
+            binder.removes(node);
             binder.owner.removeChild(node);
         }
     };
@@ -664,13 +664,13 @@
         code = convert ? `'${code}'` : code;
         if (assignment) {
             code = `
-            if ($assignment) {
-                return ${code};
-            } else {
-                ${isValue ? `$value = ${reference || `undefined`};` : ''}
-                ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
-                return ${assignment || code};
-            }
+        if ($assignment) {
+            return ${code};
+        } else {
+            ${isValue ? `$value = ${reference || `undefined`};` : ''}
+            ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
+            return ${assignment || code};
+        }
         `;
         }
         else {
@@ -695,27 +695,26 @@
 
     const referenceMatch = new RegExp([
         '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
-        '([^{}]*{{.*?\\s+(?:of|in)\\s+)',
         '((?:^|}}).*?{{)',
         '(}}.*?(?:{{|$))',
         `(
         (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-            this|window|document|console|location|
-            globalThis|Infinity|NaN|undefined|
-            isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-            Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-            Object|Function|Boolean|Symbole|Array|
-            Number|Math|Date|BigInt|
-            String|RegExp|
-            Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-            Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-            Map|Set|WeakMap|WeakSet|
-            ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-            Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-            Reflect|Proxy|
-            true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-            yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        [a-zA-Z0-9$_.?\\[\\]]*
+        this|window|document|console|location|
+        globalThis|Infinity|NaN|undefined|
+        isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+        Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+        Object|Function|Boolean|Symbole|Array|
+        Number|Math|Date|BigInt|
+        String|RegExp|
+        Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+        Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+        Map|Set|WeakMap|WeakSet|
+        ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+        Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+        Reflect|Proxy|
+        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
+        (?:[.][a-zA-Z0-9$_.?\\[\\]]*|\\b)
     )`,
         '([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)'
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
@@ -728,7 +727,7 @@
         cache.set(data, references);
         let match;
         while (match = referenceMatch.exec(data)) {
-            let reference = match[6];
+            let reference = match[5];
             if (reference) {
                 references.push(reference);
             }
@@ -740,9 +739,10 @@
         return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
     }
 
-    var _XElement_syntaxEnd, _XElement_syntaxStart, _XElement_syntaxLength, _XElement_syntaxMatch, _XElement_adoptedEvent, _XElement_adoptingEvent, _XElement_connectedEvent, _XElement_connectingEvent, _XElement_attributedEvent, _XElement_attributingEvent, _XElement_disconnectedEvent, _XElement_disconnectingEvent, _XElement_template, _XElement_handlers;
+    var _XElement_instances, _XElement_mutator, _XElement_setup, _XElement_data, _XElement_syntaxEnd, _XElement_syntaxStart, _XElement_syntaxLength, _XElement_binders, _XElement_syntaxMatch, _XElement_adoptedEvent, _XElement_adoptingEvent, _XElement_connectedEvent, _XElement_connectingEvent, _XElement_attributedEvent, _XElement_attributingEvent, _XElement_disconnectedEvent, _XElement_disconnectingEvent, _XElement_handlers, _XElement_mutation, _XElement_remove, _XElement_add, _XElement_removes, _XElement_adds;
     const TEXT = Node.TEXT_NODE;
     const ELEMENT = Node.ELEMENT_NODE;
+    const FRAGMENT = Node.DOCUMENT_FRAGMENT_NODE;
     if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
         (function attachShadowRoots(root) {
             const templates = root.querySelectorAll('template[shadowroot]');
@@ -757,11 +757,15 @@
     }
     class XElement extends HTMLElement {
         constructor() {
-            var _a, _b, _c, _d, _e, _f;
             super();
+            _XElement_instances.add(this);
+            _XElement_mutator.set(this, void 0);
+            _XElement_setup.set(this, false);
+            _XElement_data.set(this, {});
             _XElement_syntaxEnd.set(this, '}}');
             _XElement_syntaxStart.set(this, '{{');
             _XElement_syntaxLength.set(this, 2);
+            _XElement_binders.set(this, new Map());
             _XElement_syntaxMatch.set(this, new RegExp('{{.*?}}'));
             _XElement_adoptedEvent.set(this, new Event('adopted'));
             _XElement_adoptingEvent.set(this, new Event('adopting'));
@@ -771,7 +775,6 @@
             _XElement_attributingEvent.set(this, new Event('attributing'));
             _XElement_disconnectedEvent.set(this, new Event('disconnected'));
             _XElement_disconnectingEvent.set(this, new Event('disconnecting'));
-            _XElement_template.set(this, document.createElement('template'));
             _XElement_handlers.set(this, {
                 on,
                 text,
@@ -782,49 +785,11 @@
                 inherit,
                 standard
             });
-            this.data = {};
-            this.binders = new Map();
-            const style = (_b = (_a = this.constructor).style) === null || _b === void 0 ? void 0 : _b.call(_a);
-            const data = (_d = (_c = this.constructor).data) === null || _d === void 0 ? void 0 : _d.call(_c);
-            const shadow = (_f = (_e = this.constructor).shadow) === null || _f === void 0 ? void 0 : _f.call(_e);
-            if (!this.shadowRoot) {
+            if (!this.shadowRoot)
                 this.attachShadow({ mode: 'open' });
-            }
-            this.data = new Proxy(data, {
-                get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
-                set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
-                deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
-            });
-            if (typeof style === 'string') {
-                __classPrivateFieldGet(this, _XElement_template, "f").innerHTML = `<style>${style}</style>`;
-                this.shadowRoot.prepend(__classPrivateFieldGet(this, _XElement_template, "f").content);
-            }
-            else if (shadow instanceof Element) {
-                this.shadowRoot.prepend(style);
-            }
-            if (typeof shadow === 'string') {
-                __classPrivateFieldGet(this, _XElement_template, "f").innerHTML = shadow;
-                this.shadowRoot.append(__classPrivateFieldGet(this, _XElement_template, "f").content);
-            }
-            else if (shadow instanceof Element) {
-                this.shadowRoot.append(shadow);
-            }
-            let node = this.shadowRoot.firstChild;
-            while (node) {
-                this.binds(node);
-                node = node.nextSibling;
-            }
-            if (this.constructor.adopt) {
-                this.shadowRoot.appendChild(document.createElement('slot'));
-                let node = this.firstChild;
-                while (node) {
-                    this.binds(node);
-                    node = node.nextSibling;
-                }
-            }
-        }
-        static get observedAttributes() {
-            return this.attributes();
+            __classPrivateFieldSet(this, _XElement_mutator, new MutationObserver(__classPrivateFieldGet(this, _XElement_instances, "m", _XElement_mutation).bind(this)), "f");
+            __classPrivateFieldGet(this, _XElement_mutator, "f").observe(this, { childList: true });
+            __classPrivateFieldGet(this, _XElement_mutator, "f").observe(this.shadowRoot, { childList: true });
         }
         static define(name, constructor) {
             constructor = constructor !== null && constructor !== void 0 ? constructor : this;
@@ -835,145 +800,192 @@
             name = name !== null && name !== void 0 ? name : dash(this.name);
             return customElements.whenDefined(name);
         }
-        unbind(node) {
-            var _a;
-            const binders = this.binders.get(node);
-            if (!binders)
+        setup() {
+            if (__classPrivateFieldGet(this, _XElement_setup, "f"))
                 return;
-            for (const binder of binders) {
-                for (const reference of binder.references) {
-                    (_a = this.binders.get(reference)) === null || _a === void 0 ? void 0 : _a.delete(binder);
-                    if (!this.binders.get(reference).size)
-                        this.binders.delete(reference);
-                }
+            else
+                __classPrivateFieldSet(this, _XElement_setup, true, "f");
+            const data = {};
+            const properties = this.constructor.observedProperties;
+            for (const property of properties) {
+                data[property] = this[property];
             }
-            this.binders.delete(node);
+            __classPrivateFieldSet(this, _XElement_data, new Proxy(data, {
+                get: dataGet.bind(null, dataEvent.bind(null, __classPrivateFieldGet(this, _XElement_binders, "f")), ''),
+                set: dataSet.bind(null, dataEvent.bind(null, __classPrivateFieldGet(this, _XElement_binders, "f")), ''),
+                deleteProperty: dataDelete.bind(null, dataEvent.bind(null, __classPrivateFieldGet(this, _XElement_binders, "f")), '')
+            }), "f");
+            let node;
+            node = this.shadowRoot.firstChild;
+            while (node) {
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_adds).call(this, node);
+                node = node.nextSibling;
+            }
+            node = this.firstChild;
+            while (node) {
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_adds).call(this, node);
+                node = node.nextSibling;
+            }
+            if (this.ready)
+                this.ready();
         }
-        bind(node, name, value, owner, context, rewrites) {
-            const type = name.startsWith('on') ? 'on' : name in __classPrivateFieldGet(this, _XElement_handlers, "f") ? name : 'standard';
-            const handler = __classPrivateFieldGet(this, _XElement_handlers, "f")[type];
-            const container = this;
-            context = context !== null && context !== void 0 ? context : this.data;
-            const binder = {
-                meta: {},
-                binder: this,
-                render: undefined,
-                compute: undefined,
-                unrender: undefined,
-                references: undefined,
-                rewrites: rewrites !== null && rewrites !== void 0 ? rewrites : [],
-                node, owner, name, value, context, container, type,
-            };
-            const references = parser(value);
-            const compute = computer(binder);
-            binder.compute = compute;
-            binder.references = [...references];
-            binder.render = handler.render.bind(null, binder);
-            binder.unrender = handler.unrender.bind(null, binder);
-            for (let i = 0; i < binder.references.length; i++) {
-                if (rewrites) {
-                    for (const [name, value] of rewrites) {
-                        binder.references[i] = binder.references[i].replace(name, value);
-                    }
-                }
-                if (this.binders.has(binder.references[i])) {
-                    this.binders.get(binder.references[i]).add(binder);
-                }
-                else {
-                    this.binders.set(binder.references[i], new Set([binder]));
+        ;
+        adoptedCallback() {
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptingEvent, "f"));
+            if (this.adopted)
+                this.adopted();
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptedEvent, "f"));
+        }
+        connectedCallback() {
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectingEvent, "f"));
+            if (this.connected)
+                this.connected();
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectedEvent, "f"));
+        }
+        disconnectedCallback() {
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_disconnectingEvent, "f"));
+            if (this.disconnected)
+                this.disconnected();
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_disconnectedEvent, "f"));
+        }
+        attributeChangedCallback(name, from, to) {
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_attributingEvent, "f"));
+            if (this.attributed)
+                this.attributed(name, from, to);
+            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_attributedEvent, "f"));
+        }
+    }
+    _XElement_mutator = new WeakMap(), _XElement_setup = new WeakMap(), _XElement_data = new WeakMap(), _XElement_syntaxEnd = new WeakMap(), _XElement_syntaxStart = new WeakMap(), _XElement_syntaxLength = new WeakMap(), _XElement_binders = new WeakMap(), _XElement_syntaxMatch = new WeakMap(), _XElement_adoptedEvent = new WeakMap(), _XElement_adoptingEvent = new WeakMap(), _XElement_connectedEvent = new WeakMap(), _XElement_connectingEvent = new WeakMap(), _XElement_attributedEvent = new WeakMap(), _XElement_attributingEvent = new WeakMap(), _XElement_disconnectedEvent = new WeakMap(), _XElement_disconnectingEvent = new WeakMap(), _XElement_handlers = new WeakMap(), _XElement_instances = new WeakSet(), _XElement_mutation = function _XElement_mutation(mutations) {
+        if (!__classPrivateFieldGet(this, _XElement_setup, "f"))
+            return this.setup();
+        for (const mutation of mutations) {
+            for (const node of mutation.removedNodes) {
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_removes).call(this, node);
+            }
+            for (const node of mutation.addedNodes) {
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_adds).call(this, node);
+            }
+        }
+    }, _XElement_remove = function _XElement_remove(node) {
+        var _a;
+        const binders = __classPrivateFieldGet(this, _XElement_binders, "f").get(node);
+        if (!binders)
+            return;
+        for (const binder of binders) {
+            for (const reference of binder.references) {
+                (_a = __classPrivateFieldGet(this, _XElement_binders, "f").get(reference)) === null || _a === void 0 ? void 0 : _a.delete(binder);
+                if (!__classPrivateFieldGet(this, _XElement_binders, "f").get(reference).size)
+                    __classPrivateFieldGet(this, _XElement_binders, "f").delete(reference);
+            }
+        }
+        __classPrivateFieldGet(this, _XElement_binders, "f").delete(node);
+    }, _XElement_add = function _XElement_add(node, name, value, owner, context, rewrites) {
+        if (__classPrivateFieldGet(this, _XElement_binders, "f").has(node))
+            return console.warn(node);
+        const type = name.startsWith('on') ? 'on' : name in __classPrivateFieldGet(this, _XElement_handlers, "f") ? name : 'standard';
+        const handler = __classPrivateFieldGet(this, _XElement_handlers, "f")[type];
+        const binder = {
+            meta: {},
+            container: this,
+            render: undefined,
+            compute: undefined,
+            unrender: undefined,
+            references: undefined,
+            binders: __classPrivateFieldGet(this, _XElement_binders, "f"),
+            rewrites: rewrites !== null && rewrites !== void 0 ? rewrites : [],
+            context: context !== null && context !== void 0 ? context : __classPrivateFieldGet(this, _XElement_data, "f"),
+            adds: __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_adds).bind(this),
+            removes: __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_removes).bind(this),
+            node, owner, name, value, type,
+        };
+        const references = parser(value);
+        const compute = computer(binder);
+        binder.compute = compute;
+        binder.references = [...references];
+        binder.render = handler.render.bind(null, binder);
+        binder.unrender = handler.unrender.bind(null, binder);
+        for (let i = 0; i < binder.references.length; i++) {
+            if (rewrites) {
+                for (const [name, value] of rewrites) {
+                    binder.references[i] = binder.references[i].replace(name, value);
                 }
             }
-            if (this.binders.has(binder.owner)) {
-                this.binders.get(binder.owner).add(binder);
+            if (__classPrivateFieldGet(this, _XElement_binders, "f").has(binder.references[i])) {
+                __classPrivateFieldGet(this, _XElement_binders, "f").get(binder.references[i]).add(binder);
             }
             else {
-                this.binders.set(binder.owner, new Set([binder]));
+                __classPrivateFieldGet(this, _XElement_binders, "f").set(binder.references[i], new Set([binder]));
             }
-            binder.render();
         }
-        unbinds(node) {
-            if (node.nodeType === TEXT) {
-                this.unbind(node);
+        if (__classPrivateFieldGet(this, _XElement_binders, "f").has(binder.owner)) {
+            __classPrivateFieldGet(this, _XElement_binders, "f").get(binder.owner).add(binder);
+        }
+        else {
+            __classPrivateFieldGet(this, _XElement_binders, "f").set(binder.owner, new Set([binder]));
+        }
+        binder.render();
+    }, _XElement_removes = function _XElement_removes(node) {
+        if (node.nodeType === TEXT) {
+            __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_remove).call(this, node);
+        }
+        else if (node.nodeType === ELEMENT) {
+            __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_remove).call(this, node);
+            const attributes = node.attributes;
+            for (const attribute of attributes) {
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_remove).call(this, attribute);
             }
-            else if (node.nodeType === ELEMENT) {
-                this.unbind(node);
-                const attributes = node.attributes;
-                for (const attribute of attributes) {
-                    this.unbind(attribute);
-                }
+            let child = node.firstChild;
+            while (child) {
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_removes).call(this, child);
+                child = child.nextSibling;
+            }
+        }
+    }, _XElement_adds = function _XElement_adds(node, context, rewrites) {
+        if (node.nodeType === FRAGMENT) {
+            node = node.firstChild;
+            while (node) {
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_adds).call(this, node, context, rewrites);
+                node = node.nextSibling;
+            }
+        }
+        else if (node.nodeType === TEXT) {
+            const start = node.nodeValue.indexOf(__classPrivateFieldGet(this, _XElement_syntaxStart, "f"));
+            if (start === -1)
+                return;
+            if (start !== 0)
+                node = node.splitText(start);
+            const end = node.nodeValue.indexOf(__classPrivateFieldGet(this, _XElement_syntaxEnd, "f"));
+            if (end === -1)
+                return;
+            if (end + __classPrivateFieldGet(this, _XElement_syntaxLength, "f") !== node.nodeValue.length) {
+                const split = node.splitText(end + __classPrivateFieldGet(this, _XElement_syntaxLength, "f"));
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_adds).call(this, split, context, rewrites);
+            }
+            __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_add).call(this, node, 'text', node.nodeValue, node, context, rewrites);
+        }
+        else if (node.nodeType === ELEMENT) {
+            const attributes = node.attributes;
+            const inherit = attributes['inherit'];
+            if (inherit)
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_add).call(this, inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
+            const each = attributes['each'];
+            if (each)
+                __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_add).call(this, each, each.name, each.value, each.ownerElement, context, rewrites);
+            if (!each && !inherit && !(node instanceof XElement)) {
                 let child = node.firstChild;
                 while (child) {
-                    this.unbinds(child);
+                    __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_adds).call(this, child, context, rewrites);
                     child = child.nextSibling;
                 }
             }
-        }
-        binds(node, context, rewrites) {
-            if (node.nodeType === TEXT) {
-                const start = node.nodeValue.indexOf(__classPrivateFieldGet(this, _XElement_syntaxStart, "f"));
-                if (start === -1)
-                    return;
-                if (start !== 0)
-                    node = node.splitText(start);
-                const end = node.nodeValue.indexOf(__classPrivateFieldGet(this, _XElement_syntaxEnd, "f"));
-                if (end === -1)
-                    return;
-                if (end + __classPrivateFieldGet(this, _XElement_syntaxLength, "f") !== node.nodeValue.length) {
-                    const split = node.splitText(end + __classPrivateFieldGet(this, _XElement_syntaxLength, "f"));
-                    this.binds(split, context, rewrites);
-                }
-                this.bind(node, 'text', node.nodeValue, node, context, rewrites);
-            }
-            else if (node.nodeType === ELEMENT) {
-                const attributes = node.attributes;
-                const inherit = attributes['inherit'];
-                if (inherit)
-                    this.bind(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
-                const each = attributes['each'];
-                if (each)
-                    this.bind(each, each.name, each.value, each.ownerElement, context, rewrites);
-                if (!each && !inherit && !(node instanceof XElement)) {
-                    let child = node.firstChild;
-                    while (child) {
-                        this.binds(child, context, rewrites);
-                        child = child.nextSibling;
-                    }
-                }
-                for (const attribute of attributes) {
-                    if (attribute.name !== 'each' && attribute.name !== 'inherit' && __classPrivateFieldGet(this, _XElement_syntaxMatch, "f").test(attribute.value)) {
-                        this.bind(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
-                    }
+            for (const attribute of attributes) {
+                if (attribute.name !== 'each' && attribute.name !== 'inherit' && __classPrivateFieldGet(this, _XElement_syntaxMatch, "f").test(attribute.value)) {
+                    __classPrivateFieldGet(this, _XElement_instances, "m", _XElement_add).call(this, attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                 }
             }
         }
-        attributeChangedCallback(name, from, to) {
-            var _a, _b;
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_attributingEvent, "f"));
-            (_b = (_a = this).attributed) === null || _b === void 0 ? void 0 : _b.call(_a, name, from, to);
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_attributedEvent, "f"));
-        }
-        adoptedCallback() {
-            var _a, _b;
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptingEvent, "f"));
-            (_b = (_a = this).adopted) === null || _b === void 0 ? void 0 : _b.call(_a);
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_adoptedEvent, "f"));
-        }
-        disconnectedCallback() {
-            var _a, _b;
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_disconnectingEvent, "f"));
-            (_b = (_a = this).disconnected) === null || _b === void 0 ? void 0 : _b.call(_a);
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_disconnectedEvent, "f"));
-        }
-        connectedCallback() {
-            var _a, _b;
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectingEvent, "f"));
-            (_b = (_a = this).connected) === null || _b === void 0 ? void 0 : _b.call(_a);
-            this.dispatchEvent(__classPrivateFieldGet(this, _XElement_connectedEvent, "f"));
-        }
-    }
-    _XElement_syntaxEnd = new WeakMap(), _XElement_syntaxStart = new WeakMap(), _XElement_syntaxLength = new WeakMap(), _XElement_syntaxMatch = new WeakMap(), _XElement_adoptedEvent = new WeakMap(), _XElement_adoptingEvent = new WeakMap(), _XElement_connectedEvent = new WeakMap(), _XElement_connectingEvent = new WeakMap(), _XElement_attributedEvent = new WeakMap(), _XElement_attributingEvent = new WeakMap(), _XElement_disconnectedEvent = new WeakMap(), _XElement_disconnectingEvent = new WeakMap(), _XElement_template = new WeakMap(), _XElement_handlers = new WeakMap();
-    XElement.data = () => ({});
-    XElement.attributes = () => [];
+    };
+    XElement.observedProperties = [];
 
     const S_EXPORT = `
 

@@ -125,6 +125,4 @@ const onUnrender = function (binder) {
 
 };
 
-
-
 export default { render: onRender, unrender: onUnrender };

@@ -24,7 +24,8 @@
     const dataGet = function (event, reference, target, key, receiver) {
         if (key === 'x')
             return { reference };
-        const value = Reflect.get(target, key, receiver);
+        const value = Reflect.get(target, key);
+        // const value = Reflect.get(target, key, receiver);
         if (value && typeof value === 'object') {
             reference = reference ? `${reference}.${key}` : `${key}`;
             return new Proxy(value, {
@@ -323,20 +324,20 @@
             key === '$index' ||
             key === '$item' ||
             key === '$key' ||
-            key in target;
+            Reflect.has(target, key);
     };
-    const eachGet = function (binder, indexValue, keyValue, target, key) {
+    const eachGet = function (binder, indexValue, keyValue, target, key, receiver) {
         if (key === binder.meta.variableName || key === '$item') {
             return binder.meta.data[keyValue];
         }
         else if (key === binder.meta.indexName || key === '$index') {
             return indexValue;
         }
-        else if (key === binder.meta.keyName || '$key') {
+        else if (key === binder.meta.keyName || key === '$key') {
             return keyValue;
         }
         else {
-            return binder.context[key];
+            return Reflect.get(target, key);
         }
     };
     const eachSet = function (binder, indexValue, keyValue, target, key, value) {
@@ -347,7 +348,7 @@
             return true;
         }
         else {
-            binder.context[key] = value;
+            return Reflect.set(target, key, value);
         }
         return true;
     };
@@ -438,13 +439,6 @@
                     node = node.nextSibling;
                 }
                 binder.meta.queueElement.content.appendChild(clone);
-                // var d = document.createElement('div');
-                // d.classList.add('box');
-                // // var t = document.createTextNode(index);
-                // var t = document.createTextNode('{{item.number}}');
-                // binder.binder.add(t, binder.container, binder.context, rewrites, descriptors);
-                // d.appendChild(t);
-                // binder.meta.queueElement.content.appendChild(d);
             }
             console.timeEnd('each while');
         }
@@ -655,13 +649,13 @@
         code = convert ? `'${code}'` : code;
         if (assignment) {
             code = `
-            if ($assignment) {
-                return ${code};
-            } else {
-                ${isValue ? `$value = ${reference || `undefined`};` : ''}
-                ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
-                return ${assignment || code};
-            }
+        if ($assignment) {
+            return ${code};
+        } else {
+            ${isValue ? `$value = ${reference || `undefined`};` : ''}
+            ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
+            return ${assignment || code};
+        }
         `;
         }
         else {
@@ -811,11 +805,17 @@
             const data = {};
             const properties = this.constructor.observedProperties;
             for (const property of properties) {
+                // const value = this[ property ];
+                // if (typeof value === 'function') {
+                //     data[ property ] = value.bind(this);
+                // } else {
+                //     data[ property ] = value;
+                // }
                 data[property] = this[property];
-                Object.defineProperty(this, property, {
-                    get() { return this.#data[property]; },
-                    set(value) { this.#data[property] = value; }
-                });
+                // Object.defineProperty(this, property, {
+                //     get () { return this.#data[ property ]; },
+                //     set (value) { this.#data[ property ] = value; }
+                // });
             }
             this.#data = new Proxy(data, {
                 get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
@@ -867,7 +867,7 @@
         }
         #add(node, name, value, owner, context, rewrites) {
             if (this.#binders.has(node))
-                return console.log(node);
+                return console.warn(node);
             const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
             const handler = this.#handlers[type];
             const binder = {
@@ -960,7 +960,6 @@
                 if (each)
                     this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
                 if (!each && !inherit && !(node instanceof XElement)) {
-                    // console.log(this, node);
                     let child = node.firstChild;
                     while (child) {
                         this.#adds(child, context, rewrites);

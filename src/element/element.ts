@@ -95,11 +95,17 @@ export default class XElement extends HTMLElement {
         const properties = (this.constructor as any).observedProperties;
 
         for (const property of properties) {
+            // const value = this[ property ];
+            // if (typeof value === 'function') {
+            //     data[ property ] = value.bind(this);
+            // } else {
+            //     data[ property ] = value;
+            // }
             data[ property ] = this[ property ];
-            Object.defineProperty(this, property, {
-                get () { return this.#data[ property ]; },
-                set (value) { this.#data[ property ] = value; }
-            });
+            // Object.defineProperty(this, property, {
+            //     get () { return this.#data[ property ]; },
+            //     set (value) { this.#data[ property ] = value; }
+            // });
         }
 
         this.#data = new Proxy(data, {
@@ -156,7 +162,7 @@ export default class XElement extends HTMLElement {
     }
 
     #add (node: Node, name, value, owner, context?: any, rewrites?: any) {
-        if (this.#binders.has(node)) return console.log(node);
+        if (this.#binders.has(node)) return console.warn(node);
 
         const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
         const handler = this.#handlers[ type ];
@@ -261,7 +267,6 @@ export default class XElement extends HTMLElement {
             if (each) this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
 
             if (!each && !inherit && !(node instanceof XElement)) {
-                // console.log(this, node);
                 let child = node.firstChild;
                 while (child) {
                     this.#adds(child, context, rewrites);
