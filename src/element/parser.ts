@@ -1,5 +1,5 @@
 
-// const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 
 const referenceMatch = new RegExp([
     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)', // string
@@ -31,8 +31,6 @@ const cache = new Map();
 
 const parser = function (data) {
 
-    // data = data.replace(normalizeReference, '.$2');
-
     // if (rewrites) {
     //     for (const [ name, value ] of rewrites) {
     //         data = data.replace(name, `$1${value}`);
@@ -41,6 +39,8 @@ const parser = function (data) {
 
     const cached = cache.get(data);
     if (cached) return cached;
+
+    data = data.replace(normalizeReference, '.$2');
 
     const references = [];
     cache.set(data, references);

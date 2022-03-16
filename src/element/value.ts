@@ -24,45 +24,29 @@ const stampToView = function (data: number) {
 const input = function (binder, event) {
     const { owner } = binder;
     const { type } = owner;
-    let display, computed;
 
     if (type === 'select-one') {
         const [ option ] = owner.selectedOptions;
         const value = option ? '$value' in option ? option.$value : option.value : undefined;
-        computed = binder.compute({ $event: event, $value: value, $assignment: true });
-        // display = format(computed);
+        binder.compute({ $event: event, $value: value, $assignment: true });
     } else if (type === 'select-multiple') {
         const value = [];
         for (const option of owner.selectedOptions) {
             value.push('$value' in option ? option.$value : option.value);
         }
-        computed = binder.compute({ $event: event, $value: value, $assignment: true });
-        // display = format(computed);
+        binder.compute({ $event: event, $value: value, $assignment: true });
     } else if (type === 'number' || type === 'range') {
-        computed = binder.compute({ $event: event, $value: owner.valueAsNumber, $assignment: true });
-        // if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
-        // else owner.value = computed;
-
-        // owner.value = computed;
-        // display = owner.value;
-
+        binder.compute({ $event: event, $value: owner.valueAsNumber, $assignment: true });
     } else if (dates.includes(type)) {
         const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
-        computed = binder.compute({ $event: event, $value: value, $assignment: true });
-        // if (typeof owner.$value === 'string') owner.value = computed;
-        // else owner.valueAsNumber = stampToView(computed);
-        // display = owner.value;
+        binder.compute({ $event: event, $value: value, $assignment: true });
     } else {
-        const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
-        const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
-        computed = binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
-        // display = format(computed);
-        // owner.value = display;
+        // const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
+        // const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
+        // binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
+        binder.compute({ $event: event, $value: owner.value, $checked: owner.checked, $assignment: true });
     }
 
-    // owner.$value = computed;
-    // if (type === 'checked' || type === 'radio') owner.$checked = computed;
-    // owner.setAttribute('value', display);
 };
 
 const valueRender = function (binder) {

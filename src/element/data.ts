@@ -48,10 +48,13 @@ export const dataSet = function (event, reference, target, key, to, receiver) {
 };
 
 export const dataEvent = function (data, reference, type) {
-    const binders = data.get(reference);
-    if (binders) {
-        for (const binder of binders) {
-            binder[ type ]();
+    for (const [ key, binders ] of data) {
+        if (typeof key === 'string' && (key === reference || key.startsWith(`${reference}.`))) {
+            if (binders) {
+                for (const binder of binders) {
+                    binder[ type ]();
+                }
+            }
         }
     }
 };
