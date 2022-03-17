@@ -54,10 +54,13 @@ const dataSet = function (event, reference, target, key, to, receiver) {
     return true;
 };
 const dataEvent = function (data, reference, type) {
-    const binders = data.get(reference);
-    if (binders) {
-        for (const binder of binders) {
-            binder[type]();
+    for (const [key, binders] of data) {
+        if (typeof key === 'string' && (key === reference || key.startsWith(`${reference}.`))) {
+            if (binders) {
+                for (const binder of binders) {
+                    binder[type]();
+                }
+            }
         }
     }
 };
@@ -189,9 +192,6 @@ var dates = ['date', 'datetime-local', 'month', 'time', 'week'];
 
 console.warn('value: setter/getter issue with multiselect');
 const defaultInputEvent = new Event('input');
-const parseable = function (value) {
-    return !isNaN(value) && value !== null && value !== undefined && typeof value !== 'string';
-};
 const stampFromView = function (data) {
     const date = new Date(data);
     return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -223,9 +223,7 @@ const input = function (binder, event) {
         binder.compute({ $event: event, $value: value, $assignment: true });
     }
     else {
-        const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
-        const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
-        binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
+        binder.compute({ $event: event, $value: owner.value, $checked: owner.checked, $assignment: true });
     }
 };
 const valueRender = function (binder) {
@@ -644,6 +642,7 @@ const computer = function (binder) {
     return cache.bind(null, binder.context);
 };
 
+const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
     '((?:^|}}).*?{{)',
@@ -674,6 +673,7 @@ const parser = function (data) {
     const cached = cache.get(data);
     if (cached)
         return cached;
+    data = data.replace(normalizeReference, '.$2');
     const references = [];
     cache.set(data, references);
     let match;
