@@ -1,13 +1,13 @@
-import format from './format';
-import dates from './date';
+import format from './format.ts';
+import date from './date.ts';
 
 console.warn('value: setter/getter issue with multiselect');
 
 const defaultInputEvent = new Event('input');
 
-const parseable = function (value) {
-    return !isNaN(value) && value !== null && value !== undefined && typeof value !== 'string';
-};
+// const parseable = function (value:any) {
+//     return !isNaN(value) && value !== null && value !== undefined && typeof value !== 'string';
+// };
 
 const stampFromView = function (data: number) {
     const date = new Date(data);
@@ -21,7 +21,7 @@ const stampToView = function (data: number) {
         date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds())).getTime();
 };
 
-const input = function (binder, event) {
+const input = function (binder: any, event: Event) {
     const { owner } = binder;
     const { type } = owner;
 
@@ -37,7 +37,7 @@ const input = function (binder, event) {
         binder.compute({ $event: event, $value: value, $assignment: true });
     } else if (type === 'number' || type === 'range') {
         binder.compute({ $event: event, $value: owner.valueAsNumber, $assignment: true });
-    } else if (dates.includes(type)) {
+    } else if (date.includes(type)) {
         const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
         binder.compute({ $event: event, $value: value, $assignment: true });
     } else {
@@ -49,12 +49,12 @@ const input = function (binder, event) {
 
 };
 
-const valueRender = function (binder) {
+const valueRender = function (binder: any) {
     const { owner, meta } = binder;
 
     if (!meta.setup) {
         meta.setup = true;
-        owner.addEventListener('input', event => input(binder, event));
+        owner.addEventListener('input', (event: Event) => input(binder, event));
     }
 
     const computed = binder.compute({ $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
@@ -87,7 +87,7 @@ const valueRender = function (binder) {
         if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
         else owner.value = computed;
         display = owner.value;
-    } else if (dates.includes(binder.owner.type)) {
+    } else if (date.includes(binder.owner.type)) {
         if (typeof computed === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
         display = owner.value;
@@ -102,7 +102,7 @@ const valueRender = function (binder) {
 
 };
 
-const valueUnrender = function (binder) {
+const valueUnrender = function (binder: any) {
 
     if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
         for (const option of binder.owner.options) {

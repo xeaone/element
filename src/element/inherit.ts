@@ -1,5 +1,5 @@
 
-const inheritRender = function (binder) {
+const inheritRender = function (binder: any) {
 
     if (!binder.meta.setup) {
         binder.meta.setup = true;
@@ -15,7 +15,7 @@ const inheritRender = function (binder) {
 
 };
 
-const inheritUnrender = function (binder) {
+const inheritUnrender = function (binder: any) {
 
     if (!binder.owner.inherited) {
         return console.warn(`inherited not implemented ${binder.owner.localName}`);

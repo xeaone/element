@@ -1,18 +1,19 @@
 
-const Value = function (element) {
+type FormChild = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+const Value = function (element: any) {
     if (!element) return undefined;
     else if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
     else if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
     else return element.value;
 };
 
-const submit = function (event, binder) {
+const submit = function (event: Event, binder: any) {
     event.preventDefault();
 
-    const form = {};
-    const target = event.target;
-    // const elements = target?.elements || target?.form?.elements;
-    const elements = (target?.form || target)?.querySelectorAll('[name]');
+    const form: any = {};
+    const target: any = event.target;
+    const elements: NodeListOf<any> = ((target as HTMLInputElement)?.form || target)?.querySelectorAll('[name]');
 
     for (const element of elements) {
         const { type, name, checked, hidden } = element;
@@ -22,7 +23,7 @@ const submit = function (event, binder) {
         if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
 
-        let value;
+        let value: string | string[];
         if (type === 'select-multiple') {
             value = [];
             for (const option of element.selectedOptions) {
@@ -36,7 +37,7 @@ const submit = function (event, binder) {
         }
 
         let data = form;
-        name.split(/\s*\.\s*/).forEach((part, index, parts) => {
+        name.split(/\s*\.\s*/).forEach((part: string, index: number, parts: []) => {
             const next = parts[ index + 1 ];
             if (next) {
                 if (!data[ part ]) {
@@ -56,12 +57,11 @@ const submit = function (event, binder) {
     return false;
 };
 
-const reset = function (event, binder) {
+const reset = function (event: Event, binder: any) {
     event.preventDefault();
 
-    const target = event.target;
-    // const elements = target?.elements || target?.form?.elements;
-    const elements = (target?.form || target)?.querySelectorAll('[name]');
+    const target = (event.target as Element);
+    const elements: NodeListOf<any> = ((target as HTMLInputElement)?.form || target)?.querySelectorAll('[name]');
 
     for (const element of elements) {
         const { type, name, checked, hidden, nodeName } = element;
@@ -89,7 +89,7 @@ const reset = function (event, binder) {
     return false;
 };
 
-const onRender = function (binder) {
+const onRender = function (binder: any) {
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);
 
@@ -102,7 +102,7 @@ const onRender = function (binder) {
         binder.owner.removeEventListener(name, binder.meta.method);
     }
 
-    binder.meta.method = event => {
+    binder.meta.method = (event: Event) => {
         if (name === 'reset') {
             return reset(event, binder);
         } else if (name === 'submit') {
@@ -115,7 +115,7 @@ const onRender = function (binder) {
     binder.owner.addEventListener(name, binder.meta.method);
 };
 
-const onUnrender = function (binder) {
+const onUnrender = function (binder: any) {
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);
 

@@ -1,17 +1,17 @@
-import { dataDelete, dataEvent, dataGet, dataSet } from './data';
-import standard from './standard';
-import checked from './checked';
-import inherit from './inherit';
-import value from './value';
-import each from './each';
-import html from './html';
-import text from './text';
-import on from './on';
+import { dataDelete, dataEvent, dataGet, dataSet } from './data.ts';
+import standard from './standard.ts';
+import checked from './checked.ts';
+import inherit from './inherit.ts';
+import value from './value.ts';
+import each from './each.ts';
+import html from './html.ts';
+import text from './text.ts';
+import on from './on.ts';
 
-import computer from './computer';
-import parser from './parser';
-import dash from './dash';
-import tick from './tick';
+import computer from './computer.ts';
+import parser from './parser.ts';
+import dash from './dash.ts';
+// import tick from './tick';
 
 const TEXT = Node.TEXT_NODE;
 const ELEMENT = Node.ELEMENT_NODE;
@@ -31,6 +31,25 @@ if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
     })(document);
 }
 
+type Binder = {
+    meta: any;
+    container: any;
+    render?: any;
+    compute?: any;
+    unrender?: any;
+    references?: string[];
+    binders: Map<any, any>;
+    rewrites: string[];
+    context: any;
+    adds: any;
+    removes: any;
+    node: any;
+    owner: any;
+    name: string;
+    value: string;
+    type: string;
+};
+
 export default class XElement extends HTMLElement {
 
     static define (name?: string, constructor?: typeof XElement) {
@@ -47,8 +66,8 @@ export default class XElement extends HTMLElement {
     static observedProperties: string[] = [];
 
     #mutator;
+    #data = {};
     #setup = false;
-    #data: {} = {};
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
@@ -62,7 +81,7 @@ export default class XElement extends HTMLElement {
     #attributingEvent = new Event('attributing');
     #disconnectedEvent = new Event('disconnected');
     #disconnectingEvent = new Event('disconnecting');
-    #handlers = {
+    #handlers: Record<string, any> = {
         on,
         text,
         html,
@@ -84,14 +103,14 @@ export default class XElement extends HTMLElement {
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
         this.#mutator = new MutationObserver(this.#mutation.bind(this));
         this.#mutator.observe(this, { childList: true });
-        this.#mutator.observe(this.shadowRoot, { childList: true });
+        this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
     }
 
     setup () {
         if (this.#setup) return;
         else this.#setup = true;
 
-        const data = {};
+        const data: Record<any, any> = {};
         const properties = (this.constructor as any).observedProperties;
 
         for (const property of properties) {
@@ -101,7 +120,7 @@ export default class XElement extends HTMLElement {
             // } else {
             //     data[ property ] = value;
             // }
-            data[ property ] = this[ property ];
+            data[ property ] = (this as any)[ property ];
             // Object.defineProperty(this, property, {
             //     get () { return this.#data[ property ]; },
             //     set (value) { this.#data[ property ] = value; }
@@ -116,7 +135,7 @@ export default class XElement extends HTMLElement {
 
         let node;
 
-        node = this.shadowRoot.firstChild;
+        node = this.shadowRoot?.firstChild;
         while (node) {
             this.#adds(node);
             node = node.nextSibling;
@@ -135,7 +154,7 @@ export default class XElement extends HTMLElement {
         if (this.ready) (this as any).ready();
     }
 
-    #mutation (mutations) {
+    #mutation (mutations: Array<MutationRecord>) {
         if (!this.#setup) return this.setup();
         for (const mutation of mutations) {
             for (const node of mutation.removedNodes) {
@@ -145,7 +164,7 @@ export default class XElement extends HTMLElement {
                 this.#adds(node);
             }
         }
-    };
+    }
 
     #remove (node: Node) {
         const binders = this.#binders.get(node);
@@ -161,19 +180,19 @@ export default class XElement extends HTMLElement {
         this.#binders.delete(node);
     }
 
-    #add (node: Node, name, value, owner, context?: any, rewrites?: any) {
+    #add (node: Node, name: string, value: string, owner: Node | Element | null, context?: any, rewrites?: any) {
         if (this.#binders.has(node)) return console.warn(node);
 
-        const type = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
+        const type: string = name.startsWith('on') ? 'on' : name in this.#handlers ? name : 'standard';
         const handler = this.#handlers[ type ];
 
-        const binder = {
+        const binder: Binder = {
             meta: {},
             container: this,
-            render: undefined,
-            compute: undefined,
-            unrender: undefined,
-            references: undefined,
+            // render: undefined,
+            // compute: undefined,
+            // unrender: undefined,
+            // references: [],
             binders: this.#binders,
             rewrites: rewrites ?? [],
             context: context ?? this.#data,
@@ -234,36 +253,39 @@ export default class XElement extends HTMLElement {
     }
 
     #adds (node: Node, context?: any, rewrites?: any) {
+        // if (node === null) {
+        //     return;
+        // } else
         if (node.nodeType === FRAGMENT) {
-            node = node.firstChild;
+            node = node.firstChild as Node;
             while (node) {
                 this.#adds(node, context, rewrites);
-                node = node.nextSibling;
+                node = node.nextSibling as Node;
             }
         } else if (node.nodeType === TEXT) {
 
-            const start = node.nodeValue.indexOf(this.#syntaxStart);
+            const start = node.nodeValue?.indexOf(this.#syntaxStart) ?? -1;
             if (start === -1) return;
 
             if (start !== 0) node = (node as Text).splitText(start);
 
-            const end = node.nodeValue.indexOf(this.#syntaxEnd);
+            const end = node.nodeValue?.indexOf(this.#syntaxEnd) ?? -1;
             if (end === -1) return;
 
-            if (end + this.#syntaxLength !== node.nodeValue.length) {
+            if (end + this.#syntaxLength !== node.nodeValue?.length) {
                 const split = (node as Text).splitText(end + this.#syntaxLength);
                 this.#adds(split, context, rewrites);
             }
 
-            this.#add(node, 'text', node.nodeValue, node, context, rewrites);
+            this.#add(node, 'text', node.nodeValue ?? '', node, context, rewrites);
 
         } else if (node.nodeType === ELEMENT) {
             const attributes = (node as Element).attributes;
 
-            const inherit = attributes[ 'inherit' ];
+            const inherit = (attributes as any)[ 'inherit' ];
             if (inherit) this.#add(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
 
-            const each = attributes[ 'each' ];
+            const each = (attributes as any)[ 'each' ];
             if (each) this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
 
             if (!each && !inherit && !(node instanceof XElement)) {

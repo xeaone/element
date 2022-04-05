@@ -1,11 +1,11 @@
-import format from './format';
+import format from './format.ts';
 
-const textRender = function (binder) {
-    let data = binder.compute();
+const textRender = function (binder: any) {
+    const data = binder.compute();
     binder.owner.textContent = format(data);
 };
 
-const textUnrender = function (binder) {
+const textUnrender = function (binder: any) {
     binder.owner.textContent = '';
 };
 

@@ -1,6 +1,6 @@
 const whitespace = /\s+/;
 
-const eachHas = function (binder, indexValue, keyValue, target, key) {
+const eachHas = function (binder: any, indexValue: any, keyValue: any, target: any, key: any) {
     return key === binder.meta.variableName ||
         key === binder.meta.indexName ||
         key === binder.meta.keyName ||
@@ -10,7 +10,7 @@ const eachHas = function (binder, indexValue, keyValue, target, key) {
         Reflect.has(target, key);
 };
 
-const eachGet = function (binder, indexValue, keyValue, target, key, receiver) {
+const eachGet = function (binder: any, indexValue: any, keyValue: any, target: any, key: any, receiver: any) {
     if (key === binder.meta.variableName || key === '$item') {
         return binder.meta.data[ keyValue ];
     } else if (key === binder.meta.indexName || key === '$index') {
@@ -22,7 +22,7 @@ const eachGet = function (binder, indexValue, keyValue, target, key, receiver) {
     }
 };
 
-const eachSet = function (binder, indexValue, keyValue, target, key, value) {
+const eachSet = function (binder: any, indexValue: any, keyValue: any, target: any, key: any, value: any) {
     if (key === binder.meta.variableName || key === '$item') {
         binder.meta.data[ keyValue ] = value;
     } else if (key === binder.meta.indexName || key === binder.meta.keyName) {
@@ -33,7 +33,7 @@ const eachSet = function (binder, indexValue, keyValue, target, key, value) {
     return true;
 };
 
-const eachUnrender = function (binder) {
+const eachUnrender = function (binder: any) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
     let node;
@@ -41,7 +41,7 @@ const eachUnrender = function (binder) {
     while (node = binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(node);
 };
 
-const eachRender = function (binder) {
+const eachRender = function (binder: any) {
     const [ data, variable, key, index ] = binder.compute();
     const [ reference ] = binder.references;
 

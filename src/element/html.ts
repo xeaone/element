@@ -1,5 +1,5 @@
 
-const htmlRender = function (binder) {
+const htmlRender = function (binder: any) {
     let data = binder.compute();
 
     if (typeof data !== 'string') {
@@ -25,7 +25,7 @@ const htmlRender = function (binder) {
     binder.owner.appendChild(template.content);
 };
 
-const htmlUnrender = function (binder) {
+const htmlUnrender = function (binder: any) {
     let node;
     while (node = binder.owner.lastChild) {
         binder.removes(node);

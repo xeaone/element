@@ -31,7 +31,7 @@ const referenceMatch = new RegExp([
 
 const cache = new Map();
 
-const parser = function (data) {
+const parser = function (data: string) {
 
     // if (rewrites) {
     //     for (const [ name, value ] of rewrites) {
@@ -44,7 +44,7 @@ const parser = function (data) {
 
     data = data.replace(normalizeReference, '.$2');
 
-    const references = [];
+    const references: Array<string> = [];
     cache.set(data, references);
 
     let match;
@@ -55,7 +55,7 @@ const parser = function (data) {
         }
     }
 
-    console.log(data, references);
+    // console.log(data, references);
 
     return references;
 };

@@ -1,7 +1,7 @@
-import booleans from './boolean';
-import format from './format';
+import booleans from './boolean.ts';
+import format from './format.ts';
 
-const standardRender = function (binder) {
+const standardRender = function (binder: any) {
     let data = binder.compute();
 
     const boolean = booleans.includes(binder.name);
@@ -20,7 +20,7 @@ const standardRender = function (binder) {
 
 };
 
-const standardUnrender = function (binder) {
+const standardUnrender = function (binder: any) {
     const boolean = booleans.includes(binder.name);
 
     if (boolean) {

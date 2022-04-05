@@ -1,7 +1,7 @@
 
 const flag = Symbol('RadioFlag');
 
-const handler = function (binder, event?: Event) {
+const handler = function (binder: any, event?: InputEvent | CustomEvent) {
     const checked = binder.owner.checked;
     const computed = binder.compute({ $event: event, $checked: checked, $assignment: !!event });
 
@@ -13,14 +13,14 @@ const handler = function (binder, event?: Event) {
 
 };
 
-const checkedRender = function (binder) {
+const checkedRender = function (binder: any) {
 
     if (!binder.meta.setup) {
         binder.node.value = '';
         binder.meta.setup = true;
 
         if (binder.owner.type === 'radio') {
-            binder.owner.addEventListener('input', event => {
+            binder.owner.addEventListener('input', (event: InputEvent | CustomEvent) => {
                 if (event.detail === flag) return handler(binder, event);
 
                 const parent = binder.owner.form || binder.owner.getRootNode();
@@ -46,7 +46,7 @@ const checkedRender = function (binder) {
                         if (checked) {
                             radio.dispatchEvent(input);
                         } else {
-                            radio.checked = !event.target.checked;
+                            radio.checked = !(event.target as HTMLInputElement).checked;
                             if (radio.checked) {
                                 radio.setAttribute('checked', '');
                             } else {
@@ -59,7 +59,7 @@ const checkedRender = function (binder) {
 
             });
         } else {
-            binder.owner.addEventListener('input', event => handler(binder, event));
+            binder.owner.addEventListener('input', (event: InputEvent | CustomEvent) => handler(binder, event));
         }
 
     }
@@ -67,7 +67,7 @@ const checkedRender = function (binder) {
     handler(binder);
 };
 
-const checkedUnrender = function (binder) {
+const checkedUnrender = function (binder: any) {
     binder.owner.removeAttribute('checked');
 };
 
