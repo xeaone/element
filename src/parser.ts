@@ -23,9 +23,9 @@ const referenceMatch = new RegExp([
             Reflect|Proxy|
             true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
             yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        [a-zA-Z0-9$_.?\\[\\]]*
+        (?:[.][a-zA-Z0-9$_.? ]*)?\\b
     )`,
-    '([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)' // reference
+    '(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)' // reference
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
 const cache = new Map();
