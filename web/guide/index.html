@@ -132,7 +132,7 @@
         <h3>Each Binder</h3>
         <br>
         <pre><code class="language-html">
-            &lt;div each="{&zwnj;{[fruits, 'key', 'index', 'fruit']}&zwnj;}"&gt;
+            &lt;div each="{&zwnj;{[ fruits, 'fruit', 'key', 'index' ]}&zwnj;}"&gt;
                 &lt;div id="{&zwnj;{fruit.name}&zwnj;}"&gt;
                     &lt;strong&gt;Key: &lt;/strong&gt;{&zwnj;{key}&zwnj;},
                     &lt;strong&gt;Index: &lt;/strong&gt;{&zwnj;{index}&zwnj;},
@@ -141,7 +141,7 @@
             &lt;/div&gt;
          </code></pre>
         <br>
-        <div each="{{[fruits, 'key', 'index', 'fruit']}}">
+        <div each="{{[ fruits, 'fruit', 'key', 'index' ]}}">
             <div id="{{fruit}}">
                 <strong>Key: </strong>{{key}},
                 <strong>Index: </strong>{{index}},

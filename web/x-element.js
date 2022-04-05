@@ -339,7 +339,7 @@ const eachUnrender = function (binder) {
         binder.meta.queueElement.content.removeChild(node);
 };
 const eachRender = function (binder) {
-    const [data, variable, index, key] = binder.compute();
+    const [data, variable, key, index] = binder.compute();
     const [reference] = binder.references;
     binder.meta.data = data;
     binder.meta.keyName = key;
@@ -664,9 +664,9 @@ const referenceMatch = new RegExp([
         Reflect|Proxy|
         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        (?:[.][a-zA-Z0-9$_.?\\[\\]]*|\\b)
+        (?:[.][a-zA-Z0-9$_.? ]*\\b)
     )`,
-    '([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)'
+    '(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)'
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 const cache = new Map();
 const parser = function (data) {
@@ -683,6 +683,7 @@ const parser = function (data) {
             references.push(reference);
         }
     }
+    console.log(data, references);
     return references;
 };
 

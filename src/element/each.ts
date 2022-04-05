@@ -42,7 +42,7 @@ const eachUnrender = function (binder) {
 };
 
 const eachRender = function (binder) {
-    const [ data, variable, index, key ] = binder.compute();
+    const [ data, variable, key, index ] = binder.compute();
     const [ reference ] = binder.references;
 
     binder.meta.data = data;

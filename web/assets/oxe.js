@@ -61,10 +61,13 @@
         return true;
     };
     const dataEvent = function (data, reference, type) {
-        const binders = data.get(reference);
-        if (binders) {
-            for (const binder of binders) {
-                binder[type]();
+        for (const [key, binders] of data) {
+            if (typeof key === 'string' && (key === reference || key.startsWith(`${reference}.`))) {
+                if (binders) {
+                    for (const binder of binders) {
+                        binder[type]();
+                    }
+                }
             }
         }
     };
@@ -196,9 +199,6 @@
 
     console.warn('value: setter/getter issue with multiselect');
     const defaultInputEvent = new Event('input');
-    const parseable = function (value) {
-        return !isNaN(value) && value !== null && value !== undefined && typeof value !== 'string';
-    };
     const stampFromView = function (data) {
         const date = new Date(data);
         return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -214,7 +214,6 @@
             const [option] = owner.selectedOptions;
             const value = option ? '$value' in option ? option.$value : option.value : undefined;
             binder.compute({ $event: event, $value: value, $assignment: true });
-            // display = format(computed);
         }
         else if (type === 'select-multiple') {
             const value = [];
@@ -222,32 +221,20 @@
                 value.push('$value' in option ? option.$value : option.value);
             }
             binder.compute({ $event: event, $value: value, $assignment: true });
-            // display = format(computed);
         }
         else if (type === 'number' || type === 'range') {
             binder.compute({ $event: event, $value: owner.valueAsNumber, $assignment: true });
-            // if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
-            // else owner.value = computed;
-            // owner.value = computed;
-            // display = owner.value;
         }
         else if (dates.includes(type)) {
             const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
             binder.compute({ $event: event, $value: value, $assignment: true });
-            // if (typeof owner.$value === 'string') owner.value = computed;
-            // else owner.valueAsNumber = stampToView(computed);
-            // display = owner.value;
         }
         else {
-            const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
-            const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
-            binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
-            // display = format(computed);
-            // owner.value = display;
+            // const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
+            // const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
+            // binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
+            binder.compute({ $event: event, $value: owner.value, $checked: owner.checked, $assignment: true });
         }
-        // owner.$value = computed;
-        // if (type === 'checked' || type === 'radio') owner.$checked = computed;
-        // owner.setAttribute('value', display);
     };
     const valueRender = function (binder) {
         const { owner, meta } = binder;
@@ -362,7 +349,7 @@
             binder.meta.queueElement.content.removeChild(node);
     };
     const eachRender = function (binder) {
-        const [data, variable, index, key] = binder.compute();
+        const [data, variable, key, index] = binder.compute();
         const [reference] = binder.references;
         binder.meta.data = data;
         binder.meta.keyName = key;
@@ -678,7 +665,7 @@
         return cache.bind(null, binder.context);
     };
 
-    // const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+    const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
     const referenceMatch = new RegExp([
         '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
         '((?:^|}}).*?{{)',
@@ -700,13 +687,14 @@
         Reflect|Proxy|
         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        (?:[.][a-zA-Z0-9$_.?\\[\\]]*|\\b)
+        (?:[.][a-zA-Z0-9$_.? ]*\\b)
     )`,
-        '([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)' // reference
+        '(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)' // reference
+        //(?:[.][a-zA-Z0-9$_.?\\[\\]]*|\\b)
+        //'([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)' // reference
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
     const cache = new Map();
     const parser = function (data) {
-        // data = data.replace(normalizeReference, '.$2');
         // if (rewrites) {
         //     for (const [ name, value ] of rewrites) {
         //         data = data.replace(name, `$1${value}`);
@@ -715,6 +703,7 @@
         const cached = cache.get(data);
         if (cached)
             return cached;
+        data = data.replace(normalizeReference, '.$2');
         const references = [];
         cache.set(data, references);
         let match;
@@ -724,6 +713,7 @@
                 references.push(reference);
             }
         }
+        console.log(data, references);
         return references;
     };
 
