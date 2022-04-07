@@ -126,19 +126,28 @@ select, input:not([type="button"],[type="submit"]) {
     background: var(--layer1);
     border-bottom: 1px solid var(--accent);
 }
-x-route {
+[slot="body"] {
+/* x-route { */
     width: 100%;
     display: block;
     padding: 0 5vw;
 	margin: 5vh auto;
 	max-width: 1200px;
 }
-x-route:defined {
-    opacity: 1;
+x-router {
+    width: 100%;
+    display: block;
     transition: opacity 300ms ease-in-out;
 }
-x-route:not(:defined) {
+:defined {
+    opacity: 1;
+    box-sizing: border-box;
+    transition: opacity 300ms ease-in-out;
+}
+:not(:defined) {
     opacity: 0;
+    box-sizing: border-box;
+    transition: opacity 300ms ease-in-out;
 }
 .title {
 	display: block;

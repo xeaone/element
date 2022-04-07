@@ -720,7 +720,7 @@ function dash(data) {
 const TEXT = Node.TEXT_NODE;
 const ELEMENT = Node.ELEMENT_NODE;
 const FRAGMENT = Node.DOCUMENT_FRAGMENT_NODE;
-if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
+if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
     (function attachShadowRoots(root) {
         const templates = root.querySelectorAll('template[shadowroot]');
         for (const template of templates){
@@ -818,11 +818,11 @@ class XElement extends HTMLElement {
      #mutation(mutations) {
         if (!this.#setup) return this.setup();
         for (const mutation of mutations){
-            for (const node of mutation.removedNodes){
-                this.#removes(node);
+            for (const node of mutation.addedNodes){
+                this.#adds(node);
             }
-            for (const node1 of mutation.addedNodes){
-                this.#adds(node1);
+            for (const node1 of mutation.removedNodes){
+                this.#removes(node1);
             }
         }
     }

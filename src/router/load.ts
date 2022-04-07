@@ -1,13 +1,13 @@
 
-// declare global {
-//     interface Window {
-//         LOAD: any;
-//         MODULES: any;
-//         REGULAR: any;
-//         REGULAR_SUPPORT: any;
-//         DYNAMIC_SUPPORT: any;
-//     }
-// }
+declare global {
+    interface Window {
+        LOAD: any;
+        MODULES: any;
+        REGULAR: any;
+        REGULAR_SUPPORT: any;
+        DYNAMIC_SUPPORT: any;
+    }
+}
 
 // https://regexr.com/5nj32
 const S_EXPORT = `
@@ -109,7 +109,7 @@ const resolve = function (...paths: string[]) {
     return a.href;
 };
 
-const fetch = function (url) {
+const fetch = function (url: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
 
@@ -133,7 +133,7 @@ const fetch = function (url) {
     });
 };
 
-const run = function (code) {
+const run = function (code: string): Promise<void> {
     return new Promise(function (resolve, reject) {
         const blob = new Blob([ code ], { type: 'text/javascript' });
         const script = document.createElement('script');
@@ -148,8 +148,8 @@ const run = function (code) {
             URL.revokeObjectURL(script.src);
         };
 
-        script.onload = function (error) {
-            resolve(error);
+        script.onload = function () {
+            resolve();
             script.remove();
             URL.revokeObjectURL(script.src);
         };
@@ -160,7 +160,7 @@ const run = function (code) {
     });
 };
 
-const transform = function (code, url) {
+const transform = function (code: string, url: string) {
 
     let before = `window.MODULES["${url}"] = Promise.all([\n`;
     let after = ']).then(function ($MODULES) {\n';
@@ -198,7 +198,8 @@ const transform = function (code, url) {
         before = `${before} \twindow.LOAD("${pathImport}"),\n`;
         after = `${after}var ${nameImport} = $MODULES[${i}].default;\n`;
 
-        code = code.replace(rawImport, '') || [];
+        code = code.replace(rawImport, '');
+        // code = code.replace(rawImport, '') || [];
     }
 
     let hasDefault = false;
@@ -229,43 +230,35 @@ const transform = function (code, url) {
 };
 
 const load = async function (url: string) {
-    if (!url) throw new Error('Oxe.load - url required');
+    if (!url) throw new Error('load - url required');
 
     url = resolve(url);
 
-    // window.REGULAR_SUPPORT = false;
-    // window.DYNAMIC_SUPPORT = false;
-
-    if (typeof (window as any).DYNAMIC_SUPPORT !== 'boolean') {
+    if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
         await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
-        (window as any).DYNAMIC_SUPPORT = (window as any).DYNAMIC_SUPPORT || false;
+        window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
     }
 
-    if ((window as any).DYNAMIC_SUPPORT === true) {
-        // console.log('native import');
+    if (window.DYNAMIC_SUPPORT === true) {
         await run(`window.MODULES["${url}"] = import("${url}");`);
-        return (window as any).MODULES[ url ];
+        return window.MODULES[ url ];
     }
 
-    // console.log('not native import');
-
-    if ((window as any).MODULES[ url ]) {
+    if (window.MODULES[ url ]) {
         // maybe clean up
-        return (window as any).MODULES[ url ];
+        return window.MODULES[ url ];
     }
 
-    if (typeof (window as any).REGULAR_SUPPORT !== 'boolean') {
+    if (typeof window.REGULAR_SUPPORT !== 'boolean') {
         const script = document.createElement('script');
-        (window as any).REGULAR_SUPPORT = 'noModule' in script;
+        window.REGULAR_SUPPORT = 'noModule' in script;
     }
 
-    let code;
+    let code: string;
 
-    if ((window as any).REGULAR_SUPPORT) {
-        // console.log('noModule: yes');
+    if (window.REGULAR_SUPPORT) {
         code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
     } else {
-        // console.log('noModule: no');
         code = await fetch(url);
         code = transform(code, url);
     }
@@ -273,13 +266,13 @@ const load = async function (url: string) {
     try {
         await run(code);
     } catch {
-        throw new Error(`Oxe.load - failed to import: ${url}`);
+        throw new Error(`load - failed to import: ${url}`);
     }
 
-    return this.modules[ url ];
+    return window.MODULES[ url ];
 };
 
-(window as any).LOAD = (window as any).LOAD || load;
-(window as any).MODULES = (window as any).MODULES || {};
+window.LOAD = window.LOAD || load;
+window.MODULES = window.MODULES || {};
 
 export default load;
