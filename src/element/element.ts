@@ -18,7 +18,7 @@ const ELEMENT = Node.ELEMENT_NODE;
 const FRAGMENT = Node.DOCUMENT_FRAGMENT_NODE;
 
 // declarative shadow root polyfill
-if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
+if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
     (function attachShadowRoots (root) {
         const templates = root.querySelectorAll('template[shadowroot]');
         for (const template of templates) {
@@ -50,6 +50,11 @@ type Binder = {
     type: string;
 };
 
+type Handler = {
+    render: (binder: Binder) => void;
+    unrender: (binder: Binder) => void;
+};
+
 export default class XElement extends HTMLElement {
 
     static define (name?: string, constructor?: typeof XElement) {
@@ -71,7 +76,7 @@ export default class XElement extends HTMLElement {
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
-    #binders: Map<any, any> = new Map();
+    #binders: Map<string | Node, any> = new Map();
     #syntaxMatch = new RegExp('{{.*?}}');
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
@@ -81,7 +86,8 @@ export default class XElement extends HTMLElement {
     #attributingEvent = new Event('attributing');
     #disconnectedEvent = new Event('disconnected');
     #disconnectingEvent = new Event('disconnecting');
-    #handlers: Record<string, any> = {
+
+    #handlers: Record<string, Handler> = {
         on,
         text,
         html,
@@ -157,11 +163,11 @@ export default class XElement extends HTMLElement {
     #mutation (mutations: Array<MutationRecord>) {
         if (!this.#setup) return this.setup();
         for (const mutation of mutations) {
-            for (const node of mutation.removedNodes) {
-                this.#removes(node);
-            }
             for (const node of mutation.addedNodes) {
                 this.#adds(node);
+            }
+            for (const node of mutation.removedNodes) {
+                this.#removes(node);
             }
         }
     }
@@ -213,6 +219,7 @@ export default class XElement extends HTMLElement {
 
             if (rewrites) {
                 for (const [ name, value ] of rewrites) {
+                    // might need to improve the name boundary
                     binder.references[ i ] = binder.references[ i ].replace(name, value);
                 }
             }
