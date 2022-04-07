@@ -1,9 +1,14 @@
 {
-    "name": "oxe",
+    "name": "xelement",
     "version": "7.0.0",
     "type": "module",
     "description": "A mighty tiny web components framework/library",
-    "main": "pro/oxe.min.js",
+    "browser": "./pro/x-element.js",
+    "module": "./pro/x-element.js",
+    "exports": {
+        ".": { "import": "./pro/x-element.js" },
+        "./router": { "import": "./pro/x-router.js" }
+    },
     "scripts": {
         "pro": "npx rollup -c rollup.pro.js",
         "w": "node scripts/watch.js",
@@ -12,15 +17,15 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/vokeio/oxe.git"
+        "url": "git+https://github.com/xeaone/oxe.git"
     },
     "author": "Alexander Elias",
     "email": "alex.steven.elis@gmail.com",
     "license": "MPL-2.0",
     "bugs": {
-        "url": "https://github.com/vokeio/oxe/issues"
+        "url": "https://github.com/xeaone/oxe/issues"
     },
-    "homepage": "https://github.com/vokeio/oxe#readme",
+    "homepage": "https://github.com/xeaone/oxe#readme",
     "keywords": [
         "web",
         "component",
@@ -39,7 +44,9 @@
         "front-end",
         "x-tag",
         "polymer",
-        "oxe"
+        "oxe",
+        "element",
+        "xelement"
     ],
     "directories": {
         "docs": "docs",

@@ -23,10 +23,10 @@ export default [
         input: 'src/element/element.ts',
         output: {
             banner,
-            name: 'Oxe',
+            name: 'XElement',
             file: 'web/x-element.js',
             format: 'esm',
-            indent: '    ',
+            indent: '\t',
         },
         plugins: [
             typescript({
@@ -38,21 +38,21 @@ export default [
         ]
     },
     {
-        input: 'src/index.ts',
+        input: 'src/router/router.ts',
         output: {
             banner,
-            name: 'Oxe',
-            file: 'web/assets/oxe.js',
-            format: 'umd',
-            indent: '    ',
+            name: 'XRouter',
+            file: 'web/x-router.js',
+            format: 'esm',
+            indent: '\t',
         },
         plugins: [
             typescript({
                 sourceMap: false,
                 declaration: false,
-                removeComments: false,
+                removeComments: true,
                 target: 'esnext',
             }),
         ]
-    }
+    },
 ];

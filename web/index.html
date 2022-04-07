@@ -4,31 +4,18 @@
     <base href="/">
     <script>document.querySelector('base').href = window.location.hostname === 'xeaone.github.io' ? '/oxe/' : '/';</script>
     <meta charset="UTF-8">
-    <meta name="theme-color" content="darkorange">
+    <meta name="theme-color" content="#2299ff">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
     <meta name="keywords" content="XElement, x, element, tiny, web, components, framework, library">
     <meta name="description" content="A mighty tiny web components framework">
     <title>XElement</title>
     <link href="./index.css" rel="stylesheet" >
+    <script src="./index.js" type="module"></script>
 </head>
 <body>
 
-    <!--
-    <div class="title">
-        <h1><span>X</span>Element</h1>
-        <h2>The Agnostic Non Framework</h2>
-    </div>
-
-    <div class="menu">
-        <a href="./">Home</a>
-        <a href="./guide">Guide</a>
-        <a href="https://github.com/vokeio/xe" target="_blank">Github</a>
-        <a href="./performance">Performance</a>
-    </div>
-    -->
-
-    <x-router paths="*">
+    <x-router>
 
         <div slot="head">
             <div class="title">
@@ -38,7 +25,7 @@
             <div class="menu">
                 <a href="./">Home</a>
                 <a href="./guide">Guide</a>
-                <a href="https://github.com/vokeio/xe" target="_blank">Github</a>
+                <a href="https://github.com/xeaone/oxe" target="_blank">Github</a>
                 <a href="./performance" target="_blank">Performance</a>
             </div>
         </div>
@@ -48,11 +35,6 @@
         <div slot="foot"></div>
 
     </x-router>
-
-    <script type="module">
-        import XRouter from './x-router.js';
-        XRouter.define();
-    </script>
 
 </body>
 </html>
