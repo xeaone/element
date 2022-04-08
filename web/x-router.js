@@ -170,7 +170,7 @@ class XRouter extends HTMLElement {
         } else {
             this.appendChild(element);
         }
-        if (this.#onBefore) await this.#onBefore(location, element);
+        if (this.#onAfter) await this.#onAfter(location, element);
     }
     async #state(event) {
         const { href , pathname  } = this.#location(event?.state?.href || window.location.href);

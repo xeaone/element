@@ -66,8 +66,8 @@ export default class XRouter extends HTMLElement {
         this.#folder = folder ?? this.#folder;
         this.#paths = paths?.split(/\s*,\s*/) ?? this.#paths;
         this.#cache = cache === 'true' ? true : cache === 'false' ? false : this.#cache;
-        this.#stateInstance = this.#state.bind(this);
-        this.#clickInstance = this.#click.bind(this);
+        this.#stateInstance = function (event) { this.#state(event); };
+        this.#clickInstance = function (event) { this.#click(event, this as any); };
 
         this.attachShadow({ mode: 'open' }).innerHTML = `
             <slot name="head"></slot>
@@ -213,7 +213,7 @@ export default class XRouter extends HTMLElement {
             this.appendChild(element);
         }
 
-        if (this.#onBefore) await this.#onBefore(location, element);
+        if (this.#onAfter) await this.#onAfter(location, element);
     }
 
     async #state (event: PopStateEvent) {
@@ -226,7 +226,7 @@ export default class XRouter extends HTMLElement {
         globalThis.scroll(event?.state?.top || 0, 0);
     }
 
-    async #click (event: MouseEvent) {
+    async #click (event: MouseEvent, element: HTMLAnchorElement) {
 
         if (event.defaultPrevented ||
             event.button !== 0 ||
@@ -235,23 +235,21 @@ export default class XRouter extends HTMLElement {
             event.metaKey ||
             event.shiftKey) return;
 
-        const target = event.target as HTMLAnchorElement;
+        if (element.hasAttribute('download') ||
+            element.hasAttribute('external') ||
+            element.hasAttribute('target') ||
+            element.href.startsWith('tel:') ||
+            element.href.startsWith('ftp:') ||
+            element.href.startsWith('file:)') ||
+            element.href.startsWith('mailto:') ||
+            !element.href.startsWith(window.location.origin)) return;
 
-        if (target.hasAttribute('download') ||
-            target.hasAttribute('external') ||
-            target.hasAttribute('target') ||
-            target.href.startsWith('tel:') ||
-            target.href.startsWith('ftp:') ||
-            target.href.startsWith('file:)') ||
-            target.href.startsWith('mailto:') ||
-            !target.href.startsWith(window.location.origin)) return;
-
-        if (this.#paths.length && !this.#paths.includes(target.pathname)) return;
+        if (this.#paths.length && !this.#paths.includes(element.pathname)) return;
 
         event.preventDefault();
-        if (target.href === window.location.href) return;
+        if (element.href === window.location.href) return;
 
-        await this.assign(target.href);
+        await this.assign(element.href);
         globalThis.scroll(0, 0);
     }
 

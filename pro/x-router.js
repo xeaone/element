@@ -48,8 +48,12 @@ class XRouter extends HTMLElement {
         this.#folder = folder ?? this.#folder;
         this.#paths = paths?.split(/\s*,\s*/) ?? this.#paths;
         this.#cache = cache === 'true' ? true : cache === 'false' ? false : this.#cache;
-        this.#stateInstance = this.#state.bind(this);
-        this.#clickInstance = this.#click.bind(this);
+        this.#stateInstance = function(event) {
+            this.#state(event);
+        };
+        this.#clickInstance = function(event) {
+            this.#click(event, this);
+        };
         this.attachShadow({
             mode: 'open'
         }).innerHTML = `
@@ -179,7 +183,7 @@ class XRouter extends HTMLElement {
         } else {
             this.appendChild(element);
         }
-        if (this.#onBefore) await this.#onBefore(location, element);
+        if (this.#onAfter) await this.#onAfter(location, element);
     }
     async #state(event) {
         const { href , pathname  } = this.#location(event?.state?.href || window.location.href);
@@ -188,14 +192,13 @@ class XRouter extends HTMLElement {
         await this.replace(href);
         globalThis.scroll(event?.state?.top || 0, 0);
     }
-    async #click(event1) {
+    async #click(event1, element) {
         if (event1.defaultPrevented || event1.button !== 0 || event1.altKey || event1.ctrlKey || event1.metaKey || event1.shiftKey) return;
-        const target = event1.target;
-        if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('target') || target.href.startsWith('tel:') || target.href.startsWith('ftp:') || target.href.startsWith('file:)') || target.href.startsWith('mailto:') || !target.href.startsWith(window.location.origin)) return;
-        if (this.#paths.length && !this.#paths.includes(target.pathname)) return;
+        if (element.hasAttribute('download') || element.hasAttribute('external') || element.hasAttribute('target') || element.href.startsWith('tel:') || element.href.startsWith('ftp:') || element.href.startsWith('file:)') || element.href.startsWith('mailto:') || !element.href.startsWith(window.location.origin)) return;
+        if (this.#paths.length && !this.#paths.includes(element.pathname)) return;
         event1.preventDefault();
-        if (target.href === window.location.href) return;
-        await this.assign(target.href);
+        if (element.href === window.location.href) return;
+        await this.assign(element.href);
         globalThis.scroll(0, 0);
     }
     async connectedCallback() {
