@@ -6,7 +6,7 @@ const pkg = readFileSync('./package.json');
 const { name, version, license, author, email } = JSON.parse(pkg);
 
 const banner = `
-/*!
+/*
     Name: ${name}
     Version: ${version}
     License: ${license}
