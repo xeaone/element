@@ -42,6 +42,7 @@ class XRouter extends HTMLElement {
         this.#folder = option?.folder ?? this.#folder;
         this.#onAfter = option?.onAfter ?? this.#onAfter;
         this.#onBefore = option?.onBefore ?? this.#onBefore;
+        const instance = this;
         const paths = this.getAttribute('paths');
         const cache = this.getAttribute('cache');
         const folder = this.getAttribute('folder');
@@ -49,10 +50,10 @@ class XRouter extends HTMLElement {
         this.#paths = paths?.split(/\s*,\s*/) ?? this.#paths;
         this.#cache = cache === 'true' ? true : cache === 'false' ? false : this.#cache;
         this.#stateInstance = function(event) {
-            this.#state(event);
+            instance.#state(event);
         };
         this.#clickInstance = function(event) {
-            this.#click(event, this);
+            instance.#click(event, this);
         };
         this.attachShadow({
             mode: 'open'
