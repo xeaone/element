@@ -1,4 +1,3 @@
-
 // Name: X Element
 // Version: 7.0.0
 // License: MPL-2.0

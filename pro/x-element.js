@@ -1,4 +1,3 @@
-
 // Name: X Element
 // Version: 7.0.0
 // License: MPL-2.0
@@ -625,8 +624,8 @@ const __default9 = {
 const caches = new Map();
 const splitPattern = /\s*{{\s*|\s*}}\s*/;
 const bracketPattern = /({{)|(}})/;
-const stringPattern = /(".*?[^\]*"|'.*?[^\]*'|`.*?[^\]*`)/;
-const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\ ]*=[-+?^*%|\ ]*)([^<>=].*?)}})/;
+const stringPattern = /(".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)/;
+const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
 const codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, 'g');
 const computer = function(binder) {
     let cache1 = caches.get(binder.value);
@@ -684,11 +683,11 @@ const computer = function(binder) {
 };
 const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
-    '(".*?[^\\]*"|\'.*?[^\\]*\'|`.*?[^\\]*`)',
+    '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
     '((?:^|}}).*?{{)',
     '(}}.*?(?:{{|$))',
     `(
-        (?:\$assignee|\$instance|\$binder|\$event|\$value|\$checked|\$form|\$e|\$v|\$c|\$f|
+        (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
         this|window|document|console|location|
         globalThis|Infinity|NaN|undefined|
         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
@@ -704,11 +703,10 @@ const referenceMatch = new RegExp([
         Reflect|Proxy|
         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        (?:[.][a-zA-Z0-9$_.? ]*\b)
+        (?:[.][a-zA-Z0-9$_.? ]*\\b)
     )`,
-    '(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)'
-].join('|').replace(/\s|	|
-/g, ''), 'g');
+    '(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)'
+].join('|').replace(/\s|\t|\n/g, ''), 'g');
 const cache = new Map();
 const parser = function(data) {
     const cached = cache.get(data);
