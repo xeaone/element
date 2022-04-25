@@ -295,7 +295,8 @@ export default class XElement extends HTMLElement {
             const each = (attributes as any)[ 'each' ];
             if (each) this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
 
-            if (!each && !inherit && !(node instanceof XElement)) {
+            // if (!each && !inherit && !(node instanceof XElement)) {
+            if (!each && !inherit) {
                 let child = node.firstChild;
                 while (child) {
                     this.#adds(child, context, rewrites);
