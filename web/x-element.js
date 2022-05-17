@@ -26,7 +26,7 @@ const dataDelete = function(event, reference, target, key) {
     } else {
         Reflect.deleteProperty(target, key);
     }
-    tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'derender'));
+    tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'unrender'));
     return true;
 };
 const dataSet = function(event, reference, target, key, to, receiver) {
@@ -926,7 +926,7 @@ class XElement extends HTMLElement {
             if (inherit1) this.#add(inherit1, inherit1.name, inherit1.value, inherit1.ownerElement, context1, rewrites1);
             const each1 = attributes['each'];
             if (each1) this.#add(each1, each1.name, each1.value, each1.ownerElement, context1, rewrites1);
-            if (!each1 && !inherit1 && !(node4 instanceof XElement)) {
+            if (!each1 && !inherit1) {
                 let child = node4.firstChild;
                 while(child){
                     this.#adds(child, context1, rewrites1);

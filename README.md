@@ -2,6 +2,8 @@
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/xeaone/element.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/element/context:javascript)
 
 # XElement
+[https://cdn.jsdelivr.net/gh/xeaone/oxe@7.0.0/pro/x-router.js](https://cdn.jsdelivr.net/gh/xeaone/oxe@7.0.0/pro/x-router.js)
+[https://cdn.jsdelivr.net/gh/xeaone/oxe@7.0.0/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/oxe@7.0.0/pro/x-element.js)
 
 
 ## Author
