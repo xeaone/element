@@ -123,7 +123,7 @@ class XRouter extends HTMLElement {
             element = this.#cache ? this.#elements.get(location.pathname) : document.createElement(this.#names.get(location.pathname));
         } else {
             const file = location.pathname.endsWith('/') ? `${location.pathname}root` : location.pathname;
-            const base = document.baseURI.replace(window.location.origin, '');
+            const base = document.baseURI;
             const load = `${base}/${this.#folder}/${file}.js`.replace(/\/+/g, '/');
             let component;
             try {
