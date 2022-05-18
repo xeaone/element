@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.0.0
+// Version: 7.0.3
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com
@@ -132,7 +132,7 @@ class XRouter extends HTMLElement {
             element = this.#cache ? this.#elements.get(location.pathname) : document.createElement(this.#names.get(location.pathname));
         } else {
             const file = location.pathname.endsWith('/') ? `${location.pathname}root` : location.pathname;
-            const base = document.baseURI.replace(window.location.origin, '');
+            const base = document.baseURI;
             const load = `${base}/${this.#folder}/${file}.js`.replace(/\/+/g, '/');
             let component;
             try {
