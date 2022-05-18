@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.0.3
+// Version: 7.0.4
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com

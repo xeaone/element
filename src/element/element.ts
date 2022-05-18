@@ -126,11 +126,22 @@ export default class XElement extends HTMLElement {
             // } else {
             //     data[ property ] = value;
             // }
-            data[ property ] = (this as any)[ property ];
+            // data[ property ] = (this as any)[ property ];
             // Object.defineProperty(this, property, {
             //     get () { return this.#data[ property ]; },
             //     set (value) { this.#data[ property ] = value; }
             // });
+
+            const value = (this as any)[ property ];
+            if (typeof value === 'function') {
+                data[ property ] = value.bind(this);
+            } else {
+                data[ property ] = value;
+            }
+            Object.defineProperty(this, property, {
+                get () { return this.#data[ property ]; },
+                set (value) { this.#data[ property ] = value; }
+            });
         }
 
         this.#data = new Proxy(data, {
