@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.0.4
+// Version: 7.0.5
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com
@@ -854,7 +854,7 @@ class XElement extends HTMLElement {
         for (const binder of binders){
             for (const reference of binder.references){
                 this.#binders.get(reference)?.delete(binder);
-                if (!this.#binders.get(reference).size) this.#binders.delete(reference);
+                if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
             }
         }
         this.#binders.delete(node);
