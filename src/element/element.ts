@@ -190,7 +190,7 @@ export default class XElement extends HTMLElement {
         for (const binder of binders) {
             for (const reference of binder.references) {
                 this.#binders.get(reference)?.delete(binder);
-                if (!this.#binders.get(reference).size) this.#binders.delete(reference);
+                if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
             }
         }
 
