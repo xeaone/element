@@ -42,7 +42,6 @@ export default class XRoot extends XElement {
     `;
 
     #html = /*html*/`
-        <a href="/guide">guide</a>
         <section>
             <h2>Vision</h2>
             <h4>XElement's vision is to provide an agnostic non framework that enhances custom elements with functionality that mimics native custom element standards.</h4>

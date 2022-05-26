@@ -6,6 +6,7 @@ import Color from './modules/color.js';
 export default class XGuide extends XElement {
 
     static observedProperties = [
+        'disabled',
         'title', 'text', 'checked',
         'r1', 'r2', 'color', 'colorChange',
         'active', 'lightblue', 'classToggle', 'value',
@@ -13,6 +14,8 @@ export default class XGuide extends XElement {
         'multipleSelectResult', 'radio', 'agree', 'lastName',
         'firstName', 'favoriteNumber', 'form', 'submit'
     ];
+
+    disabled = false;
 
     title = 'Guide';
     text = 'Hello World';
@@ -73,7 +76,6 @@ export default class XGuide extends XElement {
     }
 
     #html = /*html*/`
-    <a href="/">root</a>
 
     <style>
         .default {
@@ -267,7 +269,7 @@ export default class XGuide extends XElement {
         <br>
         <form onsubmit="{{submit($form)}}">
             <div>{{firstName}}</div>
-            <input name="name.first" value="{{firstName = $value}}" placeholder="first name">
+            <input disabled="{{disabled}}" name="name.first" value="{{firstName = $value}}" placeholder="first name">
             <div>{{lastName}}</div>
             <input name="name.last" value="{{$value ?? lastName}}" placeholder="last name">
             <br>
