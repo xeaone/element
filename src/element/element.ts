@@ -298,12 +298,11 @@ export default class XElement extends HTMLElement {
             this.#add(node, 'text', node.nodeValue ?? '', node, context, rewrites);
 
         } else if (node.nodeType === ELEMENT) {
-            const attributes = (node as Element).attributes;
 
-            const inherit = (attributes as any)[ 'inherit' ];
+            const inherit = ((node as Element).attributes as any)[ 'inherit' ];
             if (inherit) this.#add(inherit, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
 
-            const each = (attributes as any)[ 'each' ];
+            const each = ((node as Element).attributes as any)[ 'each' ];
             if (each) this.#add(each, each.name, each.value, each.ownerElement, context, rewrites);
 
             // if (!each && !inherit && !(node instanceof XElement)) {
@@ -315,6 +314,7 @@ export default class XElement extends HTMLElement {
                 }
             }
 
+            const attributes = [ ...(node as Element).attributes ];
             for (const attribute of attributes) {
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);

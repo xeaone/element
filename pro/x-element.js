@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.0.5
+// Version: 7.0.6
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com
@@ -943,10 +943,9 @@ class XElement extends HTMLElement {
             }
             this.#add(node4, 'text', node4.nodeValue ?? '', node4, context1, rewrites1);
         } else if (node4.nodeType === ELEMENT) {
-            const attributes = node4.attributes;
-            const inherit1 = attributes['inherit'];
+            const inherit1 = node4.attributes['inherit'];
             if (inherit1) this.#add(inherit1, inherit1.name, inherit1.value, inherit1.ownerElement, context1, rewrites1);
-            const each1 = attributes['each'];
+            const each1 = node4.attributes['each'];
             if (each1) this.#add(each1, each1.name, each1.value, each1.ownerElement, context1, rewrites1);
             if (!each1 && !inherit1) {
                 let child = node4.firstChild;
@@ -955,6 +954,9 @@ class XElement extends HTMLElement {
                     child = child.nextSibling;
                 }
             }
+            const attributes = [
+                ...node4.attributes
+            ];
             for (const attribute of attributes){
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, attribute.name, attribute.value, attribute.ownerElement, context1, rewrites1);
