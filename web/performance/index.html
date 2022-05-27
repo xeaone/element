@@ -77,8 +77,12 @@
             'getter'
         ];
 
-        get getter () { return 'getter'; }
+        get getter () {
+            console.log(this);
+            return 'getter';
+        }
 
+        #private = 'private';
         items = [];
         message = '';
         count = 100000;
@@ -100,7 +104,7 @@
             console.timeEnd('raw');
         };
         push() {
-            console.log(this);
+            console.log(this.#private);
             console.time('push');
             for (var i = 0; i < this.count; i++) {
                 this.items.push({ number: i });

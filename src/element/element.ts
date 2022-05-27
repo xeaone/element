@@ -118,24 +118,21 @@ export default class XElement extends HTMLElement {
 
         const data: Record<any, any> = {};
         const properties = (this.constructor as any).observedProperties;
-
         for (const property of properties) {
             const descriptor = Object.getOwnPropertyDescriptor(this, property) ??
                 Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property) ?? {};
 
-            if (typeof descriptor.value === 'function') {
-                descriptor.value = descriptor.value.bind(this);
-            }
-
             Object.defineProperty(data, property, descriptor);
+
             Object.defineProperty(this, property, {
-                get () { return this.#data[ property ]; },
-                set (value) { this.#data[ property ] = value; }
+                get: () => Reflect.get(this.#data, property),
+                set: (value) => Reflect.set(this.#data, property, value)
             });
+
         }
 
         this.#data = new Proxy(data, {
-            get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
+            get: dataGet.bind(null, this, dataEvent.bind(null, this.#binders), ''),
             set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
             deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
         });

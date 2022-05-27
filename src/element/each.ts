@@ -97,7 +97,7 @@ const eachRender = function (binder: any) {
             binder.meta.currentLength--;
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        console.time('each while');
+        // console.time('each while');
         while (binder.meta.currentLength < binder.meta.targetLength) {
 
             const $key = binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength;
@@ -133,7 +133,7 @@ const eachRender = function (binder: any) {
 
             binder.meta.queueElement.content.appendChild(clone);
         }
-        console.timeEnd('each while');
+        // console.timeEnd('each while');
     }
 
     if (binder.meta.currentLength === binder.meta.targetLength) {

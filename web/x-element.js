@@ -6,13 +6,18 @@ const promise = Promise.resolve();
 function tick(method) {
     return promise.then(method);
 }
-const dataGet = function(event, reference, target, key, receiver) {
+const dataGet = function(context, event, reference, target, key) {
     if (typeof key === 'symbol') return target[key];
-    const value = Reflect.get(target, key);
+    const value = Reflect.get(target, key, context);
+    if (value && typeof value === 'function') {
+        return new Proxy(value, {
+            apply: (f, t, a)=>Reflect.apply(f, context ?? t, a)
+        });
+    }
     if (value && typeof value === 'object') {
         reference = reference ? `${reference}.${key}` : `${key}`;
         return new Proxy(value, {
-            get: dataGet.bind(null, event, reference),
+            get: dataGet.bind(null, undefined, event, reference),
             set: dataSet.bind(null, event, reference),
             deleteProperty: dataDelete.bind(null, event, reference)
         });
@@ -29,9 +34,9 @@ const dataDelete = function(event, reference, target, key) {
     tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'unrender'));
     return true;
 };
-const dataSet = function(event, reference, target, key, to, receiver) {
+const dataSet = function(event, reference, target, key, to) {
     if (typeof key === 'symbol') return true;
-    const from = Reflect.get(target, key, receiver);
+    const from = Reflect.get(target, key);
     if (key === 'length') {
         tick(event.bind(null, reference, 'render'));
         tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
@@ -39,7 +44,7 @@ const dataSet = function(event, reference, target, key, to, receiver) {
     } else if (from === to || isNaN(from) && to === isNaN(to)) {
         return true;
     }
-    Reflect.set(target, key, to, receiver);
+    Reflect.set(target, key, to);
     tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
     return true;
 };
@@ -417,7 +422,6 @@ const eachRender = function(binder) {
             binder.meta.currentLength--;
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        console.time('each while');
         while(binder.meta.currentLength < binder.meta.targetLength){
             const $key = binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength;
             const $index = binder.meta.currentLength++;
@@ -451,7 +455,6 @@ const eachRender = function(binder) {
             }
             binder.meta.queueElement.content.appendChild(clone);
         }
-        console.timeEnd('each while');
     }
     if (binder.meta.currentLength === binder.meta.targetLength) {
         binder.owner.appendChild(binder.meta.queueElement.content);
@@ -796,21 +799,15 @@ class XElement extends HTMLElement {
         const properties = this.constructor.observedProperties;
         for (const property of properties){
             const descriptor = (Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property)) ?? {};
-            if (typeof descriptor.value === 'function') {
-                descriptor.value = descriptor.value.bind(this);
-            }
             Object.defineProperty(data, property, descriptor);
             Object.defineProperty(this, property, {
-                get () {
-                    return this.#data[property];
-                },
-                set (value1) {
-                    this.#data[property] = value1;
-                }
+                get: ()=>Reflect.get(this.#data, property)
+                ,
+                set: (value1)=>Reflect.set(this.#data, property, value1)
             });
         }
         this.#data = new Proxy(data, {
-            get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
+            get: dataGet.bind(null, this, dataEvent.bind(null, this.#binders), ''),
             set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
             deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
         });
