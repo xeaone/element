@@ -73,8 +73,11 @@
             'one',
             'count',
             'message',
-            'items'
+            'items',
+            'getter'
         ];
+
+        get getter () { return 'getter'; }
 
         items = [];
         message = '';
@@ -97,6 +100,7 @@
             console.timeEnd('raw');
         };
         push() {
+            console.log(this);
             console.time('push');
             for (var i = 0; i < this.count; i++) {
                 this.items.push({ number: i });

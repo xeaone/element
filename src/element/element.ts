@@ -120,24 +120,14 @@ export default class XElement extends HTMLElement {
         const properties = (this.constructor as any).observedProperties;
 
         for (const property of properties) {
-            // const value = this[ property ];
-            // if (typeof value === 'function') {
-            //     data[ property ] = value.bind(this);
-            // } else {
-            //     data[ property ] = value;
-            // }
-            // data[ property ] = (this as any)[ property ];
-            // Object.defineProperty(this, property, {
-            //     get () { return this.#data[ property ]; },
-            //     set (value) { this.#data[ property ] = value; }
-            // });
+            const descriptor = Object.getOwnPropertyDescriptor(this, property) ??
+                Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property) ?? {};
 
-            const value = (this as any)[ property ];
-            if (typeof value === 'function') {
-                data[ property ] = value.bind(this);
-            } else {
-                data[ property ] = value;
+            if (typeof descriptor.value === 'function') {
+                descriptor.value = descriptor.value.bind(this);
             }
+
+            Object.defineProperty(data, property, descriptor);
             Object.defineProperty(this, property, {
                 get () { return this.#data[ property ]; },
                 set (value) { this.#data[ property ] = value; }

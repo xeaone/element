@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.0.6
+// Version: 7.0.7
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com
@@ -804,18 +804,17 @@ class XElement extends HTMLElement {
         const data = {};
         const properties = this.constructor.observedProperties;
         for (const property of properties){
-            const value1 = this[property];
-            if (typeof value1 === 'function') {
-                data[property] = value1.bind(this);
-            } else {
-                data[property] = value1;
+            const descriptor = (Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property)) ?? {};
+            if (typeof descriptor.value === 'function') {
+                descriptor.value = descriptor.value.bind(this);
             }
+            Object.defineProperty(data, property, descriptor);
             Object.defineProperty(this, property, {
                 get () {
                     return this.#data[property];
                 },
-                set (value2) {
-                    this.#data[property] = value2;
+                set (value1) {
+                    this.#data[property] = value1;
                 }
             });
         }
@@ -859,7 +858,7 @@ class XElement extends HTMLElement {
         }
         this.#binders.delete(node);
     }
-     #add(node2, name1, value3, owner, context, rewrites) {
+     #add(node2, name1, value2, owner, context, rewrites) {
         if (this.#binders.has(node2)) return console.warn(node2);
         const type = name1.startsWith('on') ? 'on' : name1 in this.#handlers ? name1 : 'standard';
         const handler = this.#handlers[type];
@@ -874,10 +873,10 @@ class XElement extends HTMLElement {
             node: node2,
             owner,
             name: name1,
-            value: value3,
+            value: value2,
             type
         };
-        const references = parser(value3);
+        const references = parser(value2);
         const compute = computer(binder);
         binder.compute = compute;
         binder.references = [
@@ -887,8 +886,8 @@ class XElement extends HTMLElement {
         binder.unrender = handler.unrender.bind(null, binder);
         for(let i = 0; i < binder.references.length; i++){
             if (rewrites) {
-                for (const [name, value4] of rewrites){
-                    binder.references[i] = binder.references[i].replace(name, value4);
+                for (const [name, value3] of rewrites){
+                    binder.references[i] = binder.references[i].replace(name, value3);
                 }
             }
             if (this.#binders.has(binder.references[i])) {
