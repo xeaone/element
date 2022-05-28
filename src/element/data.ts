@@ -4,19 +4,15 @@ import tick from './tick.ts';
 type DataKeys = string | number | symbol;
 type DataHandlers = 'render' | 'unrender';
 
-export const dataGet = function (context: any, event: any, reference: string, target: any, key: DataKeys): any {
+export const dataGet = function (event: any, reference: string, target: any, key: DataKeys): any {
     if (typeof key === 'symbol') return target[ key ];
 
-    const value = Reflect.get(target, key, context);
-
-    if (value && typeof value === 'function') {
-        return new Proxy(value, { apply: (f, t, a) => Reflect.apply(f, context ?? t, a) });
-    }
+    const value = Reflect.get(target, key);
 
     if (value && typeof value === 'object') {
         reference = reference ? `${reference}.${key}` : `${key}`;
         return new Proxy(value, {
-            get: dataGet.bind(null, undefined, event, reference),
+            get: dataGet.bind(null, event, reference),
             set: dataSet.bind(null, event, reference),
             deleteProperty: dataDelete.bind(null, event, reference)
         });
@@ -39,12 +35,10 @@ export const dataDelete = function (event: any, reference: string, target: any, 
     return true;
 };
 
-// export const dataSet = function (event: any, reference: string, target: any, key: DataKeys, to: any, receiver?: any) {
 export const dataSet = function (event: any, reference: string, target: any, key: DataKeys, to: any) {
     if (typeof key === 'symbol') return true;
 
     const from = Reflect.get(target, key);
-    // const from = Reflect.get(target, key, receiver);
 
     if (key === 'length') {
         tick(event.bind(null, reference, 'render'));
@@ -55,7 +49,6 @@ export const dataSet = function (event: any, reference: string, target: any, key
     }
 
     Reflect.set(target, key, to);
-    // Reflect.set(target, key, to, receiver);
     tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
 
     return true;

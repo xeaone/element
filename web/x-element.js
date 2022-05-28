@@ -6,18 +6,13 @@ const promise = Promise.resolve();
 function tick(method) {
     return promise.then(method);
 }
-const dataGet = function(context, event, reference, target, key) {
+const dataGet = function(event, reference, target, key) {
     if (typeof key === 'symbol') return target[key];
-    const value = Reflect.get(target, key, context);
-    if (value && typeof value === 'function') {
-        return new Proxy(value, {
-            apply: (f, t, a)=>Reflect.apply(f, context ?? t, a)
-        });
-    }
+    const value = Reflect.get(target, key);
     if (value && typeof value === 'object') {
         reference = reference ? `${reference}.${key}` : `${key}`;
         return new Proxy(value, {
-            get: dataGet.bind(null, undefined, event, reference),
+            get: dataGet.bind(null, event, reference),
             set: dataSet.bind(null, event, reference),
             deleteProperty: dataDelete.bind(null, event, reference)
         });
@@ -799,15 +794,18 @@ class XElement extends HTMLElement {
         const properties = this.constructor.observedProperties;
         for (const property of properties){
             const descriptor = (Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property)) ?? {};
+            if ('set' in descriptor) descriptor.set = descriptor.set?.bind(this);
+            if ('get' in descriptor) descriptor.get = descriptor.get?.bind(this);
+            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value?.bind?.(this);
             Object.defineProperty(data, property, descriptor);
             Object.defineProperty(this, property, {
-                get: ()=>Reflect.get(this.#data, property)
+                get: ()=>this.#data[property]
                 ,
-                set: (value1)=>Reflect.set(this.#data, property, value1)
+                set: (value1)=>this.#data[property] = value1
             });
         }
         this.#data = new Proxy(data, {
-            get: dataGet.bind(null, this, dataEvent.bind(null, this.#binders), ''),
+            get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
             set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
             deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
         });

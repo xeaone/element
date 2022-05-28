@@ -26,4 +26,3 @@ const inheritUnrender = function (binder: any) {
 };
 
 export default { render: inheritRender, unrender: inheritUnrender };
-

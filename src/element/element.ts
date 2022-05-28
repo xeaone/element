@@ -107,9 +107,11 @@ export default class XElement extends HTMLElement {
     constructor () {
         super();
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
+
         this.#mutator = new MutationObserver(this.#mutation.bind(this));
         this.#mutator.observe(this, { childList: true });
         this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
+
     }
 
     setup () {
@@ -118,21 +120,26 @@ export default class XElement extends HTMLElement {
 
         const data: Record<any, any> = {};
         const properties = (this.constructor as any).observedProperties;
+
         for (const property of properties) {
+
             const descriptor = Object.getOwnPropertyDescriptor(this, property) ??
                 Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property) ?? {};
 
-            Object.defineProperty(data, property, descriptor);
+            if ('set' in descriptor) descriptor.set = descriptor.set?.bind(this);
+            if ('get' in descriptor) descriptor.get = descriptor.get?.bind(this);
+            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value?.bind?.(this);
 
+            Object.defineProperty(data, property, descriptor);
             Object.defineProperty(this, property, {
-                get: () => Reflect.get(this.#data, property),
-                set: (value) => Reflect.set(this.#data, property, value)
+                get: () => (this as any).#data[ property ],
+                set: (value) => (this as any).#data[ property ] = value
             });
 
         }
 
         this.#data = new Proxy(data, {
-            get: dataGet.bind(null, this, dataEvent.bind(null, this.#binders), ''),
+            get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
             set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
             deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
         });
