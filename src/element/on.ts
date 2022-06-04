@@ -51,7 +51,7 @@ const submit = function (event: Event, binder: any) {
 
     }
 
-    binder.compute({ $form: form, $event: event });
+    binder.compute({ event, $form: form, $event: event });
     if (target.getAttribute('reset')) target.reset();
 
     return false;
@@ -84,7 +84,7 @@ const reset = function (event: Event, binder: any) {
         element.dispatchEvent(new Event('input'));
     }
 
-    binder.compute({ $event: event });
+    binder.compute({ event, $event: event });
 
     return false;
 };
@@ -108,7 +108,7 @@ const onRender = function (binder: any) {
         } else if (name === 'submit') {
             return submit(event, binder);
         } else {
-            return binder.compute({ $event: event });
+            return binder.compute({ event, $event: event });
         }
     };
 
