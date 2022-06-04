@@ -26,6 +26,7 @@ const standardUnrender = function (binder: any) {
     if (boolean) {
         binder.owner.removeAttribute(binder.name);
     } else {
+        binder.owner[ binder.name ] = undefined;
         binder.owner.setAttribute(binder.name, '');
     }
 
