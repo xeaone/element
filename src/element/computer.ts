@@ -27,28 +27,19 @@ const computer = function (binder: any) {
             if (isValue || isChecked) {
                 reference = r;
                 assignment = assigneeLeft + assigneeRight;
-                return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
-            } else {
-                return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
             }
+            return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
         }
     });
 
     code = convert ? `'${code}'` : code;
 
-    if (assignment) {
-        code = `
-        if ($assignment) {
-            return ${code};
-        } else {
-            ${isValue ? `$value = ${reference || `undefined`};` : ''}
-            ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
-            return ${assignment || code};
-        }
-        `;
-    } else {
-        code = `return ${code};`;
-    }
+    code =
+        (reference && isValue ? `$value = $assignment ? $value : ${reference};\n` : '') +
+        (reference && isChecked ? `$checked = $assignment ? $checked : ${reference};\n` : '') +
+        `return ${assignment ? `$assignment ? ${code} : ${assignment}` : `${code}`};`;
+
+    // console.log(code, binder.owner);
 
     code = `
     try {
@@ -66,7 +57,8 @@ const computer = function (binder: any) {
     cache = new Function('$context', '$instance', code);
     caches.set(binder.value, cache);
 
-    return cache.bind(null, binder.context);
+    return cache.bind(binder.owner, binder.context);
+    // return cache.bind(null, binder.context);
 };
 
 export default computer;
