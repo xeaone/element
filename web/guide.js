@@ -179,8 +179,8 @@ export default class XGuide extends XElement {
         <br>
         <div>{{value.text}}</div>
         <br>
-        <input value="{{value.text = $value.toUpperCase() }}">
-        <input value="{{(value.text = $value).toLowerCase()}}">
+        <input value="{{value.text = $value.toUpperCase()}}">
+        <input value="{{value.text = $value.toLowerCase()}}">
     </section>
 
     <section id="each">
