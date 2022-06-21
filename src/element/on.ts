@@ -1,11 +1,9 @@
 
-type FormChild = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-
 const Value = function (element: any) {
     if (!element) return undefined;
-    else if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
-    else if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
-    else return element.value;
+    if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+    if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
+    return element.value;
 };
 
 const submit = function (event: Event, binder: any) {
@@ -64,7 +62,7 @@ const reset = function (event: Event, binder: any) {
     const elements: NodeListOf<any> = ((target as HTMLInputElement)?.form || target)?.querySelectorAll('[name]');
 
     for (const element of elements) {
-        const { type, name, checked, hidden, nodeName } = element;
+        const { type, name, checked, hidden } = element;
 
         if (!name) continue;
         if (hidden) continue;
