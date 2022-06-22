@@ -195,31 +195,25 @@ class XRouter extends HTMLElement {
     }
     async connectedCallback() {
         await this.replace(window.location.href);
-        this.#target.querySelectorAll('a').forEach((node)=>node.addEventListener('click', this.#clickInstance, true)
-        );
+        this.#target.querySelectorAll('a').forEach((node)=>node.addEventListener('click', this.#clickInstance, true));
         this.#observer = new MutationObserver((mutations)=>mutations.forEach((mutation)=>{
                 const added = mutation.addedNodes;
                 for (const node of added){
                     if (node.nodeName === 'A') node.addEventListener('click', this.#clickInstance, true);
                     if (node.hasChildNodes() || node?.shadowRoot?.hasChildNodes()) {
-                        node.querySelectorAll('a').forEach((n)=>n.addEventListener('click', this.#clickInstance, true)
-                        );
-                        node?.shadowRoot?.querySelectorAll('a').forEach((n)=>n.addEventListener('click', this.#clickInstance, true)
-                        );
+                        node.querySelectorAll('a').forEach((n)=>n.addEventListener('click', this.#clickInstance, true));
+                        node?.shadowRoot?.querySelectorAll('a').forEach((n)=>n.addEventListener('click', this.#clickInstance, true));
                     }
                 }
                 const removed = mutation.removedNodes;
                 for (const node1 of removed){
                     if (node1.nodeName === 'A') node1.removeEventListener('click', this.#clickInstance, true);
                     if (node1.hasChildNodes() || node1?.shadowRoot?.hasChildNodes()) {
-                        node1.querySelectorAll('a').forEach((n)=>n.removeEventListener('click', this.#clickInstance, true)
-                        );
-                        node1?.shadowRoot?.querySelectorAll('a').forEach((n)=>n.removeEventListener('click', this.#clickInstance, true)
-                        );
+                        node1.querySelectorAll('a').forEach((n)=>n.removeEventListener('click', this.#clickInstance, true));
+                        node1?.shadowRoot?.querySelectorAll('a').forEach((n)=>n.removeEventListener('click', this.#clickInstance, true));
                     }
                 }
-            })
-        );
+            }));
         this.#observer.observe(this.#target, {
             childList: true,
             subtree: true

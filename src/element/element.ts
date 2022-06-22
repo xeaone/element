@@ -11,7 +11,6 @@ import on from './on.ts';
 import computer from './computer.ts';
 import parser from './parser.ts';
 import dash from './dash.ts';
-// import tick from './tick';
 
 const TEXT = Node.TEXT_NODE;
 const ELEMENT = Node.ELEMENT_NODE;
@@ -70,7 +69,7 @@ export default class XElement extends HTMLElement {
 
     static observedProperties: string[] = [];
 
-    #mutator;
+    #mutator: any;
     #data = {};
     #setup = false;
     #syntaxEnd = '}}';
@@ -98,25 +97,19 @@ export default class XElement extends HTMLElement {
         standard
     };
 
-    ready?: () => void;
-    adopted?: () => void;
-    connected?: () => void;
-    attributed?: () => void;
-    disconnected?: () => void;
-
     constructor () {
         super();
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-
         this.#mutator = new MutationObserver(this.#mutation.bind(this));
         this.#mutator.observe(this, { childList: true });
         this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
-
     }
 
     setup () {
         if (this.#setup) return;
         else this.#setup = true;
+
+        // (this as any).initialized?.();
 
         const data: Record<any, any> = {};
         const properties = (this.constructor as any).observedProperties;
@@ -158,23 +151,26 @@ export default class XElement extends HTMLElement {
             node = node.nextSibling;
         }
 
+        // (this as any).prepared?.();
+
         // this.#mutator = new MutationObserver(this.#mutation.bind(this));
         // this.#mutator.observe(this, { childList: true });
-        // this.#mutator.observe(this.shadowRoot, { childList: true });
-
-        if (this.ready) (this as any).ready();
+        // this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
     }
 
     #mutation (mutations: Array<MutationRecord>) {
+        // (this as any).mutating?.();
         if (!this.#setup) return this.setup();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
+                console.log(node);
                 this.#adds(node);
             }
             for (const node of mutation.removedNodes) {
                 this.#removes(node);
             }
         }
+        // (this as any).mutated?.();
     }
 
     #remove (node: Node) {
@@ -320,25 +316,25 @@ export default class XElement extends HTMLElement {
 
     adoptedCallback () {
         this.dispatchEvent(this.#adoptingEvent);
-        if ((this as any).adopted) (this as any).adopted();
+        (this as any).adopted?.();
         this.dispatchEvent(this.#adoptedEvent);
     }
 
     connectedCallback () {
         this.dispatchEvent(this.#connectingEvent);
-        if ((this as any).connected) (this as any).connected();
+        (this as any).connected?.();
         this.dispatchEvent(this.#connectedEvent);
     }
 
     disconnectedCallback () {
         this.dispatchEvent(this.#disconnectingEvent);
-        if ((this as any).disconnected) (this as any).disconnected();
+        (this as any).disconnected?.();
         this.dispatchEvent(this.#disconnectedEvent);
     }
 
     attributeChangedCallback (name: string, from: string, to: string) {
         this.dispatchEvent(this.#attributingEvent);
-        if ((this as any).attributed) (this as any).attributed(name, from, to);
+        (this as any).attributed?.(name, from, to);
         this.dispatchEvent(this.#attributedEvent);
     }
 

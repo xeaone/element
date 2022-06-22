@@ -16,6 +16,7 @@ export default function (data, type) {
     if (data) {
         return hljs.highlight(data, { language: type ?? 'html' }).value;
     } else {
-        requestAnimationFrame(() => hljs.highlightAll());
+        hljs.highlightAll();
+        // requestAnimationFrame(() => hljs.highlightAll());
     }
 }

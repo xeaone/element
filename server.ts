@@ -1,4 +1,5 @@
-import { File, Cors, Server, Router, Handler, Normalize } from 'https://deno.land/x/xserver@0.0.6/mod.ts';
+// import { File, Cors, Server, Router, Handler, Normalize } from '../server/mod.ts';
+import { File, Cors, Server, Router, Handler, Normalize } from 'https://deno.land/x/xserver@0.0.7/mod.ts';
 
 const port = 8000;
 const file = new File();

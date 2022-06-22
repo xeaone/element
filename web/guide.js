@@ -49,6 +49,7 @@ export default class XGuide extends XElement {
     agree = true;
     lastName = 'bond';
     firstName = 'james';
+    // favoriteNumber = NaN;
     favoriteNumber = undefined;
 
     submit (form) {
@@ -66,13 +67,15 @@ export default class XGuide extends XElement {
         // const escapePart = this.querySelectorAll('.escape-part');
         // escapePart.forEach(code=> code.innerHTML = Code(code.innerHTML));
 
-        Highlight();
         this.shadowRoot.innerHTML = '<slot></slot>';
         document.body.style.opacity = 1;
     }
 
     connectedCallback () {
+        super.connectedCallback();
         if (!this.innerHTML) this.innerHTML = this.#html;
+        Highlight();
+        // requestAnimationFrame(() => Highlight());
     }
 
     #html = /*html*/`
@@ -98,41 +101,30 @@ export default class XGuide extends XElement {
 
     <section id="checked">
         <h3>Checked Binder</h3>
-
         <br>
-
         <pre><code class="language-html">
             &lt;input type="checkbox" value="{&zwnj;{checked}&zwnj;}" checked="{&zwnj;{checked = $checked}&zwnj;}"&gt;
         </code></pre>
-
         <pre><code class="language-html">
             &lt;input type="checkbox" value="{{checked}}" {{checked ? 'checked' : ''}}&gt;
         </code></pre>
-
         <br>
-
         <label>
-            <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox"> Checkbox
+            <input class="example" value="{{checked}}" checked="{{checked = $checked}}" type="checkbox"> Checkbox
         </label>
-
         <br>
-
         <pre><code class="language-html">
             &lt;input type="radio" name="radio" value="one" checked="{&zwnj;{r1 = $checked}&zwnj;}"&gt;
             &lt;input type="radio" name="radio" value="two" checked="{&zwnj;{r2 = $checked}&zwnj;}"&gt;
         </code></pre>
-
         <pre><code class="language-html">
             &lt;input type="radio" name="radio" value="one" {{r1 ? 'checked' : ''}}&gt;
             &lt;input type="radio" name="radio" value="two" {{r2 ? 'checked' : ''}}&gt;
         </code></pre>
-
         <br>
-
         <label>
             <input type="radio" name="radio" value="one" checked="{{r1=$checked}}"> Radio One
         </label>
-
         <label>
             <input type="radio" name="radio" value="two" checked="{{r2=$checked}}"> Radio Two
         </label>
@@ -175,6 +167,11 @@ export default class XGuide extends XElement {
             &lt;div&gt;{&zwnj;{value.text}&zwnj;}&lt;/div&gt;
             &lt;input value="{&zwnj;{value.text = $value.toUpperCase()}&zwnj;}"&gt;
             &lt;input value="{&zwnj;{(value.text = $value).toLowerCase()}&zwnj;}"&gt;
+        </code></pre>
+        <pre><code class="language-html">
+            &lt;div&gt;{{value.text}}&lt;/div&gt;
+            &lt;input value="{{value.text?.toUpperCase()}}"&gt;
+            &lt;input value="{{value.text?.toLowerCase()}}"&gt;
         </code></pre>
         <br>
         <div>{{value.text}}</div>
@@ -283,7 +280,7 @@ export default class XGuide extends XElement {
             <br>
             <br>
             <div>{{favoriteNumber}}</div>
-            <input name="favoriteNumber" type="number" value="{{favoriteNumber = $value}}">
+            <input name="favoriteNumber" type="number" value="{{favoriteNumber = $value ?? NaN}}">
             <br>
             <br>
             <input type="submit" value="submit">

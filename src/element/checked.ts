@@ -25,7 +25,6 @@ const checkedRender = function (binder: any) {
 
                 const parent = binder.owner.form || binder.owner.getRootNode();
                 const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
-                const input = new CustomEvent('input', { detail: flag });
 
                 for (const radio of radios) {
                     if (radio === event.target) {
@@ -44,7 +43,7 @@ const checkedRender = function (binder: any) {
                         }
 
                         if (checked) {
-                            radio.dispatchEvent(input);
+                            radio.dispatchEvent(new CustomEvent('input', { detail: flag }));
                         } else {
                             radio.checked = !(event.target as HTMLInputElement).checked;
                             if (radio.checked) {

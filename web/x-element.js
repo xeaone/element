@@ -122,6 +122,7 @@ const standardUnrender = function(binder) {
     if (__boolean) {
         binder.owner.removeAttribute(binder.name);
     } else {
+        binder.owner[binder.name] = undefined;
         binder.owner.setAttribute(binder.name, '');
     }
 };
@@ -152,9 +153,6 @@ const checkedRender = function(binder) {
                 if (event.detail === flag) return handler(binder, event);
                 const parent = binder.owner.form || binder.owner.getRootNode();
                 const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
-                const input1 = new CustomEvent('input', {
-                    detail: flag
-                });
                 for (const radio of radios){
                     if (radio === event.target) {
                         handler(binder, event);
@@ -170,7 +168,9 @@ const checkedRender = function(binder) {
                             }
                         }
                         if (checked) {
-                            radio.dispatchEvent(input1);
+                            radio.dispatchEvent(new CustomEvent('input', {
+                                detail: flag
+                            }));
                         } else {
                             radio.checked = !event.target.checked;
                             if (radio.checked) {
@@ -183,8 +183,7 @@ const checkedRender = function(binder) {
                 }
             });
         } else {
-            binder.owner.addEventListener('input', (event)=>handler(binder, event)
-            );
+            binder.owner.addEventListener('input', (event)=>handler(binder, event));
         }
     }
     handler(binder);
@@ -224,15 +223,9 @@ const __default4 = [
     'time',
     'week'
 ];
-console.warn('value: setter/getter issue with multiselect');
 const defaultInputEvent = new Event('input');
-const stampFromView = function(data) {
-    const date1 = new Date(data);
-    return new Date(date1.getUTCFullYear(), date1.getUTCMonth(), date1.getUTCDate(), date1.getUTCHours(), date1.getUTCMinutes(), date1.getUTCSeconds(), date1.getUTCMilliseconds()).getTime();
-};
-const stampToView = function(data) {
-    const date2 = new Date(data);
-    return new Date(Date.UTC(date2.getFullYear(), date2.getMonth(), date2.getDate(), date2.getHours(), date2.getMinutes(), date2.getSeconds(), date2.getMilliseconds())).getTime();
+const parseable = function(value) {
+    return !isNaN(value) && value !== undefined && typeof value !== 'string';
 };
 const input = function(binder, event) {
     const { owner  } = binder;
@@ -240,102 +233,87 @@ const input = function(binder, event) {
     if (type === 'select-one') {
         const [option] = owner.selectedOptions;
         const value = option ? '$value' in option ? option.$value : option.value : undefined;
-        binder.compute({
+        owner.$value = binder.compute({
+            event,
             $event: event,
             $value: value,
             $assignment: true
         });
     } else if (type === 'select-multiple') {
-        const value = [];
-        for (const option of owner.selectedOptions){
-            value.push('$value' in option ? option.$value : option.value);
-        }
-        binder.compute({
+        const value = Array.prototype.map.call(owner.selectedOptions, (o)=>'$value' in o ? o.$value : o.value);
+        owner.$value = binder.compute({
+            event,
             $event: event,
             $value: value,
             $assignment: true
         });
-    } else if (type === 'number' || type === 'range') {
-        binder.compute({
-            $event: event,
-            $value: owner.valueAsNumber,
-            $assignment: true
-        });
-    } else if (__default4.includes(type)) {
-        const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
-        binder.compute({
+    } else if (type === 'number' || type === 'range' || __default4.includes(type)) {
+        const value = '$value' in owner && typeof owner.$value === 'number' ? owner.valueAsNumber : owner.value;
+        owner.$value = binder.compute({
+            event,
             $event: event,
             $value: value,
             $assignment: true
         });
     } else {
-        binder.compute({
+        const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
+        const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
+        owner.$value = binder.compute({
+            event,
             $event: event,
-            $value: owner.value,
-            $checked: owner.checked,
+            $value: value,
+            $checked: checked,
             $assignment: true
         });
     }
 };
 const valueRender = function(binder) {
     const { owner , meta  } = binder;
+    const { type  } = owner;
     if (!meta.setup) {
         meta.setup = true;
-        owner.addEventListener('input', (event)=>input(binder, event)
-        );
+        owner.addEventListener('input', (event)=>input(binder, event));
     }
     const computed = binder.compute({
+        event: undefined,
         $event: undefined,
         $value: undefined,
         $checked: undefined,
         $assignment: false
     });
     let display;
-    if (binder.owner.type === 'select-one') {
+    if (type === 'select-one') {
         owner.value = undefined;
-        for (const option of owner.options){
-            const optionValue = '$value' in option ? option.$value : option.value;
-            if (option.selected = optionValue === computed) break;
-        }
+        Array.prototype.find.call(owner.options, (o)=>'$value' in o ? o.$value : o.value === computed);
         if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
-            const [option] = owner.options;
-            option.selected = true;
+            owner.options[0].selected = true;
             return owner.dispatchEvent(defaultInputEvent);
         }
         display = format(computed);
         owner.value = display;
-    } else if (binder.owner.type === 'select-multiple') {
-        for (const option of owner.options){
-            const optionValue = '$value' in option ? option.$value : option.value;
-            option.selected = computed?.includes(optionValue);
-        }
+    } else if (type === 'select-multiple') {
+        Array.prototype.forEach.call(owner.options, (o)=>o.selected = computed?.includes('$value' in o ? o.$value : o.value));
         display = format(computed);
-    } else if (binder.owner.type === 'number' || binder.owner.type === 'range') {
-        if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
-        else owner.value = computed;
-        display = owner.value;
-    } else if (__default4.includes(binder.owner.type)) {
+    } else if (type === 'number' || type === 'range' || __default4.includes(type)) {
         if (typeof computed === 'string') owner.value = computed;
-        else owner.valueAsNumber = stampToView(computed);
+        else owner.valueAsNumber = computed;
         display = owner.value;
     } else {
         display = format(computed);
         owner.value = display;
     }
     owner.$value = computed;
-    if (binder.owner.type === 'checked' || binder.owner.type === 'radio') owner.$checked = computed;
     owner.setAttribute('value', display);
 };
 const valueUnrender = function(binder) {
-    if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
-        for (const option of binder.owner.options){
-            option.selected = false;
-        }
+    const { owner  } = binder;
+    const { type  } = owner;
+    if (type === 'select-one' || type === 'select-multiple') {
+        Array.prototype.forEach.call(owner.options, (option)=>option.selected = false);
     }
-    binder.owner.value = undefined;
-    binder.owner.$value = undefined;
-    if (binder.owner.type === 'checked' || binder.owner.type === 'radio') binder.owner.$checked = undefined;
-    binder.owner.setAttribute('value', '');
+    owner.value = undefined;
+    owner.$value = undefined;
+    owner.setAttribute('value', '');
 };
 const __default5 = {
     render: valueRender,
@@ -503,9 +481,9 @@ const __default8 = {
 };
 const Value = function(element) {
     if (!element) return undefined;
-    else if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
-    else if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
-    else return element.value;
+    if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+    if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
+    return element.value;
 };
 const submit = function(event, binder) {
     event.preventDefault();
@@ -544,6 +522,7 @@ const submit = function(event, binder) {
         });
     }
     binder.compute({
+        event,
         $form: form,
         $event: event
     });
@@ -555,7 +534,7 @@ const reset = function(event, binder) {
     const target = event.target;
     const elements = (target?.form || target)?.querySelectorAll('[name]');
     for (const element of elements){
-        const { type , name , checked , hidden , nodeName  } = element;
+        const { type , name , checked , hidden  } = element;
         if (!name) continue;
         if (hidden) continue;
         if (type === 'radio' && !checked) continue;
@@ -572,6 +551,7 @@ const reset = function(event, binder) {
         element.dispatchEvent(new Event('input'));
     }
     binder.compute({
+        event,
         $event: event
     });
     return false;
@@ -593,6 +573,7 @@ const onRender = function(binder) {
             return submit(event, binder);
         } else {
             return binder.compute({
+                event,
                 $event: event
             });
         }
@@ -624,8 +605,7 @@ const computer = function(binder) {
     let code = binder.value;
     const isValue = binder.node.name === 'value';
     const isChecked = binder.node.name === 'checked';
-    const convert = code.split(splitPattern).filter((part)=>part
-    ).length > 1;
+    const convert = code.split(splitPattern).filter((part)=>part).length > 1;
     code = code.replace(codePattern, function(_match, string, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight) {
         if (string) return string;
         if (bracketLeft) return convert ? `' + (` : '(';
@@ -634,26 +614,12 @@ const computer = function(binder) {
             if (isValue || isChecked) {
                 reference = r;
                 assignment = assigneeLeft + assigneeRight;
-                return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
-            } else {
-                return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
             }
+            return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
         }
     });
     code = convert ? `'${code}'` : code;
-    if (assignment) {
-        code = `
-        if ($assignment) {
-            return ${code};
-        } else {
-            ${isValue ? `$value = ${reference || `undefined`};` : ''}
-            ${isChecked ? `$checked = ${reference || `undefined`};` : ''}
-            return ${assignment || code};
-        }
-        `;
-    } else {
-        code = `return ${code};`;
-    }
+    code = (reference && isValue ? `$value = $assignment ? $value : ${reference};\n` : '') + (reference && isChecked ? `$checked = $assignment ? $checked : ${reference};\n` : '') + `return ${assignment ? `$assignment ? ${code} : ${assignment}` : `${code}`};`;
     code = `
     try {
         $instance = $instance || {};
@@ -668,7 +634,7 @@ const computer = function(binder) {
     `;
     cache1 = new Function('$context', '$instance', code);
     caches.set(binder.value, cache1);
-    return cache1.bind(null, binder.context);
+    return cache1.bind(binder.owner, binder.context);
 };
 const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
@@ -769,11 +735,6 @@ class XElement extends HTMLElement {
         inherit: __default3,
         standard: __default1
     };
-    ready;
-    adopted;
-    connected;
-    attributed;
-    disconnected;
     constructor(){
         super();
         if (!this.shadowRoot) this.attachShadow({
@@ -799,8 +760,7 @@ class XElement extends HTMLElement {
             if (typeof descriptor.value === 'function') descriptor.value = descriptor.value?.bind?.(this);
             Object.defineProperty(data, property, descriptor);
             Object.defineProperty(this, property, {
-                get: ()=>this.#data[property]
-                ,
+                get: ()=>this.#data[property],
                 set: (value1)=>this.#data[property] = value1
             });
         }
@@ -820,12 +780,12 @@ class XElement extends HTMLElement {
             this.#adds(node);
             node = node.nextSibling;
         }
-        if (this.ready) this.ready();
     }
      #mutation(mutations) {
         if (!this.#setup) return this.setup();
         for (const mutation of mutations){
             for (const node of mutation.addedNodes){
+                console.log(node);
                 this.#adds(node);
             }
             for (const node1 of mutation.removedNodes){
@@ -951,22 +911,22 @@ class XElement extends HTMLElement {
     }
     adoptedCallback() {
         this.dispatchEvent(this.#adoptingEvent);
-        if (this.adopted) this.adopted();
+        this.adopted?.();
         this.dispatchEvent(this.#adoptedEvent);
     }
     connectedCallback() {
         this.dispatchEvent(this.#connectingEvent);
-        if (this.connected) this.connected();
+        this.connected?.();
         this.dispatchEvent(this.#connectedEvent);
     }
     disconnectedCallback() {
         this.dispatchEvent(this.#disconnectingEvent);
-        if (this.disconnected) this.disconnected();
+        this.disconnected?.();
         this.dispatchEvent(this.#disconnectedEvent);
     }
     attributeChangedCallback(name, from, to) {
         this.dispatchEvent(this.#attributingEvent);
-        if (this.attributed) this.attributed(name, from, to);
+        this.attributed?.(name, from, to);
         this.dispatchEvent(this.#attributedEvent);
     }
 }
