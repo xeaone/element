@@ -1,6 +1,8 @@
+import Binder from './binder.ts';
+
 const whitespace = /\s+/;
 
-const eachHas = function (binder: any, indexValue: any, keyValue: any, target: any, key: any) {
+const eachHas = function (binder: Binder, indexValue: any, keyValue: any, target: any, key: any) {
     return key === binder.meta.variableName ||
         key === binder.meta.indexName ||
         key === binder.meta.keyName ||
@@ -10,7 +12,7 @@ const eachHas = function (binder: any, indexValue: any, keyValue: any, target: a
         Reflect.has(target, key);
 };
 
-const eachGet = function (binder: any, indexValue: any, keyValue: any, target: any, key: any, receiver: any) {
+const eachGet = function (binder: Binder, indexValue: any, keyValue: any, target: any, key: any) {
     if (key === binder.meta.variableName || key === '$item') {
         return binder.meta.data[ keyValue ];
     } else if (key === binder.meta.indexName || key === '$index') {
@@ -22,7 +24,7 @@ const eachGet = function (binder: any, indexValue: any, keyValue: any, target: a
     }
 };
 
-const eachSet = function (binder: any, indexValue: any, keyValue: any, target: any, key: any, value: any) {
+const eachSet = function (binder: Binder, indexValue: any, keyValue: any, target: any, key: any, value: any) {
     if (key === binder.meta.variableName || key === '$item') {
         binder.meta.data[ keyValue ] = value;
     } else if (key === binder.meta.indexName || key === binder.meta.keyName) {
@@ -33,117 +35,115 @@ const eachSet = function (binder: any, indexValue: any, keyValue: any, target: a
     return true;
 };
 
-const eachUnrender = function (binder: any) {
-    binder.meta.targetLength = 0;
-    binder.meta.currentLength = 0;
-    let node;
-    while (node = binder.owner.lastChild) binder.binder.remove(binder.owner.removeChild(node));
-    while (node = binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(node);
-};
+export default class Each extends Binder {
 
-const eachRender = function (binder: any) {
-    const [ data, variable, key, index ] = binder.compute();
-    const [ reference ] = binder.references;
-
-    binder.meta.data = data;
-    binder.meta.keyName = key;
-    binder.meta.indexName = index;
-    binder.meta.variableName = variable;
-
-    if (!binder.meta.setup) {
-        binder.node.value = '';
-
-        // binder.meta.variableNamePattern = new RegExp(`([^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
-        // binder.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
-
-        binder.meta.keys = [];
-        binder.meta.setup = true;
-        binder.meta.targetLength = 0;
-        binder.meta.currentLength = 0;
-        binder.meta.templateLength = 0;
-        binder.meta.queueElement = document.createElement('template');
-        binder.meta.templateElement = document.createElement('template');
-
-        let node = binder.owner.firstChild;
-        while (node) {
-            if (node.nodeType === 3 && whitespace.test(node.nodeValue)) {
-                binder.owner.removeChild(node);
-            } else {
-                binder.meta.templateLength++;
-                binder.meta.templateElement.content.appendChild(node);
-            }
-            node = binder.owner.firstChild;
-        }
-
+    reset () {
+        this.meta.targetLength = 0;
+        this.meta.currentLength = 0;
+        while (this.owner.lastChild) this.release(this.owner.removeChild(this.owner.lastChild));
+        while (this.meta.queueElement.content.lastChild) this.meta.queueElement.content.removeChild(this.meta.queueElement.content.lastChild);
     }
 
-    if (data?.constructor === Array) {
-        binder.meta.targetLength = data.length;
-    } else {
-        binder.meta.keys = Object.keys(data || {});
-        binder.meta.targetLength = binder.meta.keys.length;
-    }
+    render () {
+        const [ data, variable, key, index ] = this.compute();
+        const [ reference ] = this.references;
 
-    if (binder.meta.currentLength > binder.meta.targetLength) {
-        while (binder.meta.currentLength > binder.meta.targetLength) {
-            let count = binder.meta.templateLength;
+        this.meta.data = data;
+        this.meta.keyName = key;
+        this.meta.indexName = index;
+        this.meta.variableName = variable;
 
-            while (count--) {
-                const node = binder.owner.lastChild;
-                binder.owner.removeChild(node);
-                binder.removes(node);
-            }
+        if (!this.meta.setup) {
+            // this.node.value = '';
 
-            binder.meta.currentLength--;
-        }
-    } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        // console.time('each while');
-        while (binder.meta.currentLength < binder.meta.targetLength) {
+            // this.meta.variableNamePattern = new RegExp(`([^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
+            // this.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
 
-            const $key = binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength;
-            const $index = binder.meta.currentLength++;
+            this.meta.keys = [];
+            this.meta.setup = true;
+            this.meta.targetLength = 0;
+            this.meta.currentLength = 0;
+            this.meta.templateLength = 0;
+            this.meta.queueElement = document.createElement('template');
+            this.meta.templateElement = document.createElement('template');
 
-            const context = new Proxy(binder.context, {
-                has: eachHas.bind(null, binder, $index, $key),
-                get: eachGet.bind(null, binder, $index, $key),
-                set: eachSet.bind(null, binder, $index, $key),
-            });
-
-            // const variableValue = `${binder.meta.path}.${binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength}`;
-            // const rewrites = binder.rewrites?.slice() || [];
-            // if (binder.meta.keyName) rewrites.unshift([ binder.meta.keyName, keyValue ]);
-            // // if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
-            // // if (binder.meta.variableName) rewrites.unshift([ binder.meta.variableName, variableValue ]);
-            // if (binder.meta.variableName) rewrites.unshift([ binder.meta.variableNamePattern, variableValue ]);
-
-            let rewrites;
-            if (binder.rewrites) {
-                rewrites = [ ...binder.rewrites, [ variable, `${reference}.${$index}` ] ];
-            } else {
-                rewrites = [ [ variable, `${reference}.${$index}` ] ];
-            }
-
-            const clone = binder.meta.templateElement.content.cloneNode(true);
-
-            let node = clone.firstChild;
+            let node = this.owner.firstChild;
             while (node) {
-                binder.adds(node, context, rewrites);
-                node = node.nextSibling;
+                if (node.nodeType === 3 && whitespace.test(node.nodeValue as string)) {
+                    this.owner.removeChild(node);
+                } else {
+                    this.meta.templateLength++;
+                    this.meta.templateElement.content.appendChild(node);
+                }
+                node = this.owner.firstChild;
             }
 
-            binder.meta.queueElement.content.appendChild(clone);
         }
-        // console.timeEnd('each while');
+
+        if (data?.constructor === Array) {
+            this.meta.targetLength = data.length;
+        } else {
+            this.meta.keys = Object.keys(data || {});
+            this.meta.targetLength = this.meta.keys.length;
+        }
+
+        if (this.meta.currentLength > this.meta.targetLength) {
+            while (this.meta.currentLength > this.meta.targetLength) {
+                let count = this.meta.templateLength;
+
+                while (count--) {
+                    const node = this.owner.lastChild;
+                    if (!node) break;
+                    this.owner.removeChild(node);
+                    this.release(node);
+                }
+
+                this.meta.currentLength--;
+            }
+        } else if (this.meta.currentLength < this.meta.targetLength) {
+            // console.time('each while');
+            while (this.meta.currentLength < this.meta.targetLength) {
+
+                const $key = this.meta.keys[ this.meta.currentLength ] ?? this.meta.currentLength;
+                const $index = this.meta.currentLength++;
+
+                const context = new Proxy(this.context, {
+                    has: eachHas.bind(null, this, $index, $key),
+                    get: eachGet.bind(null, this, $index, $key),
+                    set: eachSet.bind(null, this, $index, $key),
+                });
+
+                // const variableValue = `${this.meta.path}.${this.meta.keys[ this.meta.currentLength ] ?? this.meta.currentLength}`;
+                // const rewrites = this.rewrites?.slice() || [];
+                // if (this.meta.keyName) rewrites.unshift([ this.meta.keyName, keyValue ]);
+                // // if (this.meta.indexName) rewrites.unshift([ this.meta.indexName, indexValue ]);
+                // // if (this.meta.variableName) rewrites.unshift([ this.meta.variableName, variableValue ]);
+                // if (this.meta.variableName) rewrites.unshift([ this.meta.variableNamePattern, variableValue ]);
+
+                let rewrites;
+                if (this.rewrites) {
+                    rewrites = [ ...this.rewrites, [ variable, `${reference}.${$index}` ] ];
+                } else {
+                    rewrites = [ [ variable, `${reference}.${$index}` ] ];
+                }
+
+                const clone = this.meta.templateElement.content.cloneNode(true);
+
+                let node = clone.firstChild;
+                while (node) {
+                    this.register(node, context, rewrites);
+                    node = node.nextSibling;
+                }
+
+                this.meta.queueElement.content.appendChild(clone);
+            }
+            // console.timeEnd('each while');
+        }
+
+        if (this.meta.currentLength === this.meta.targetLength) {
+            this.owner.appendChild(this.meta.queueElement.content);
+        }
+
     }
 
-    if (binder.meta.currentLength === binder.meta.targetLength) {
-        binder.owner.appendChild(binder.meta.queueElement.content);
-    }
-
-    // if (binder.owner.nodeName === 'SELECT') {
-    //     binder.binder.nodeBinders.get(binder.owner.attributes[ 'value' ])?.render();
-    // }
-
-};
-
-export default { render: eachRender, unrender: eachUnrender };
+}

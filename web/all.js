@@ -5,7 +5,6 @@ export default class XAll extends XElement {
     constructor () {
         super();
         this.shadowRoot.innerHTML = '<slot></slot>';
-        // document.body.style.opacity = 1;
     }
 
     #html = /*html*/`
@@ -14,7 +13,9 @@ export default class XAll extends XElement {
     `;
 
     connectedCallback () {
-        if (!this.innerHTML) this.innerHTML = this.#html;
+        if (this.innerHTML) return;
+        this.innerHTML = this.#html;
+        document.body.style.opacity = 1;
     }
 
 }

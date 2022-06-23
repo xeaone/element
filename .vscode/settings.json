@@ -3,4 +3,7 @@
     "deno.lint": true,
     "deno.unstable": false,
     "deno.config": "./deno.json"
+    // "deno.enablePaths": [
+    //     "./server.ts"
+    // ]
 }

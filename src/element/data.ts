@@ -2,7 +2,7 @@ import tick from './tick.ts';
 
 // type DataEvent<T> = T extends (arg: infer T) => any ? T : never;
 type DataKeys = string | number | symbol;
-type DataHandlers = 'render' | 'unrender';
+type DataHandlers = 'render' | 'reset';
 
 export const dataGet = function (event: any, reference: string, target: any, key: DataKeys): any {
     if (typeof key === 'symbol') return target[ key ];
@@ -30,7 +30,7 @@ export const dataDelete = function (event: any, reference: string, target: any, 
         Reflect.deleteProperty(target, key);
     }
 
-    tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'unrender'));
+    tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'reset'));
 
     return true;
 };

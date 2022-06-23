@@ -1,17 +1,33 @@
+import Binder from './binder.ts';
 
-const Value = function (element: any) {
+interface Target extends HTMLElement {
+    form: HTMLFormElement;
+}
+
+interface Child extends HTMLElement {
+    type: string;
+    name: string;
+    value: string;
+    $value: unknown;
+    checked: boolean;
+    valueAsNumber: number;
+    selectedIndex: number;
+    selectedOptions: NodeListOf<Child>;
+}
+
+const Value = function (element: Child) {
     if (!element) return undefined;
     if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
     if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
     return element.value;
 };
 
-const submit = function (event: Event, binder: any) {
+const submit = function (event: Event, binder: Binder) {
     event.preventDefault();
 
-    const form: any = {};
-    const target: any = event.target;
-    const elements: NodeListOf<any> = ((target as HTMLInputElement)?.form || target)?.querySelectorAll('[name]');
+    const form: Record<string, any> = {};
+    const target = (event.target as Target)?.form || event.target as HTMLFormElement;
+    const elements: NodeListOf<Child> = target?.querySelectorAll('[name]');
 
     for (const element of elements) {
         const { type, name, checked, hidden } = element;
@@ -35,7 +51,7 @@ const submit = function (event: Event, binder: any) {
         }
 
         let data = form;
-        name.split(/\s*\.\s*/).forEach((part: string, index: number, parts: []) => {
+        name.split(/\s*\.\s*/).forEach((part: string, index: number, parts: string[]) => {
             const next = parts[ index + 1 ];
             if (next) {
                 if (!data[ part ]) {
@@ -55,11 +71,11 @@ const submit = function (event: Event, binder: any) {
     return false;
 };
 
-const reset = function (event: Event, binder: any) {
+const reset = function (event: Event, binder: Binder) {
     event.preventDefault();
 
-    const target = (event.target as Element);
-    const elements: NodeListOf<any> = ((target as HTMLInputElement)?.form || target)?.querySelectorAll('[name]');
+    const target = (event.target as Target)?.form || event.target as HTMLFormElement;
+    const elements: NodeListOf<Child> = target?.querySelectorAll('[name]');
 
     for (const element of elements) {
         const { type, name, checked, hidden } = element;
@@ -76,7 +92,7 @@ const reset = function (event: Event, binder: any) {
         } else if (type === 'radio' || type === 'checkbox') {
             element.checked = false;
         } else {
-            element.value = undefined;
+            element.value = '';
         }
 
         element.dispatchEvent(new Event('input'));
@@ -87,40 +103,42 @@ const reset = function (event: Event, binder: any) {
     return false;
 };
 
-const onRender = function (binder: any) {
-    binder.owner[ binder.name ] = null;
-    const name = binder.name.slice(2);
+export default class On extends Binder {
 
-    if (!binder.meta.setup) {
-        binder.meta.setup = true;
-        binder.node.value = '';
-    }
+    render () {
+        (this.owner as any)[ this.name ] = null;
+        const name = this.name.slice(2);
 
-    if (binder.meta.method) {
-        binder.owner.removeEventListener(name, binder.meta.method);
-    }
-
-    binder.meta.method = (event: Event) => {
-        if (name === 'reset') {
-            return reset(event, binder);
-        } else if (name === 'submit') {
-            return submit(event, binder);
-        } else {
-            return binder.compute({ event, $event: event });
+        if (!this.meta.setup) {
+            this.meta.setup = true;
+            this.node.nodeValue = '';
         }
-    };
 
-    binder.owner.addEventListener(name, binder.meta.method);
-};
+        if (this.meta.method) {
+            this.owner.removeEventListener(name, this.meta.method);
+        }
 
-const onUnrender = function (binder: any) {
-    binder.owner[ binder.name ] = null;
-    const name = binder.name.slice(2);
+        this.meta.method = (event: Event) => {
+            if (name === 'reset') {
+                return reset(event, this);
+            } else if (name === 'submit') {
+                return submit(event, this);
+            } else {
+                return this.compute({ event, $event: event });
+            }
+        };
 
-    if (binder.meta.method) {
-        binder.owner.removeEventListener(name, binder.meta.method);
+        this.owner.addEventListener(name, this.meta.method);
     }
 
-};
+    reset () {
+        (this.owner as any)[ this.name ] = null;
+        const name = this.name.slice(2);
 
-export default { render: onRender, unrender: onUnrender };
+        if (this.meta.method) {
+            this.owner.removeEventListener(name, this.meta.method);
+        }
+
+    }
+
+}

@@ -1,3 +1,4 @@
+import Binder from './binder.ts';
 import format from './format.ts';
 import date from './date.ts';
 
@@ -41,58 +42,65 @@ const input = function (binder: any, event: Event) {
 
 };
 
-const valueRender = function (binder: any) {
-    const { owner, meta } = binder;
-    const { type } = owner;
+export default class Value extends Binder {
 
-    if (!meta.setup) {
-        meta.setup = true;
-        owner.addEventListener('input', (event: Event) => input(binder, event));
-    }
+    render () {
+        const { meta } = this;
+        const { type } = this.owner as HTMLInputElement | HTMLSelectElement;
 
-    const computed = binder.compute({ event: undefined, $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
-
-    let display;
-    if (type === 'select-one') {
-        owner.value = undefined;
-
-        Array.prototype.find.call(owner.options, o => '$value' in o ? o.$value : o.value === computed);
-
-        if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
-            owner.options[ 0 ].selected = true;
-            return owner.dispatchEvent(defaultInputEvent);
+        if (!meta.setup) {
+            meta.setup = true;
+            this.owner.addEventListener('input', (event: Event) => input(this, event));
         }
 
-        display = format(computed);
-        owner.value = display;
-    } else if (type === 'select-multiple') {
-        Array.prototype.forEach.call(owner.options, o => o.selected = computed?.includes('$value' in o ? o.$value : o.value));
-        display = format(computed);
-    } else if (type === 'number' || type === 'range' || date.includes(type)) {
-        if (typeof computed === 'string') owner.value = computed;
-        else owner.valueAsNumber = computed;
-        display = owner.value;
-    } else {
-        display = format(computed);
-        owner.value = display;
+        const computed = this.compute({ event: undefined, $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
+
+        let display;
+        if (type === 'select-one') {
+            const owner = this.owner as HTMLSelectElement;
+            owner.value = '';
+
+            Array.prototype.find.call(owner.options, o => '$value' in o ? o.$value : o.value === computed);
+
+            if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
+                owner.options[ 0 ].selected = true;
+                return owner.dispatchEvent(defaultInputEvent);
+            }
+
+            display = format(computed);
+            owner.value = display;
+        } else if (type === 'select-multiple') {
+            const owner = this.owner as HTMLSelectElement;
+            Array.prototype.forEach.call(owner.options, o => o.selected = computed?.includes('$value' in o ? o.$value : o.value));
+            display = format(computed);
+        } else if (type === 'number' || type === 'range' || date.includes(type)) {
+            const owner = this.owner as HTMLInputElement;
+            if (typeof computed === 'string') owner.value = computed;
+            else owner.valueAsNumber = computed;
+            display = owner.value;
+        } else {
+            const owner = this.owner as HTMLInputElement;
+            display = format(computed);
+            owner.value = display;
+        }
+
+        (this.owner as any).$value = computed;
+        this.owner.setAttribute('value', display);
+
     }
 
-    owner.$value = computed;
-    owner.setAttribute('value', display);
+    reset () {
+        const { type } = this.owner as HTMLInputElement | HTMLSelectElement;
 
-};
+        if (type === 'select-one' || type === 'select-multiple') {
+            const owner = this.owner as HTMLSelectElement;
+            Array.prototype.forEach.call(owner.options, option => option.selected = false);
+        }
 
-const valueUnrender = function (binder: any) {
-    const { owner } = binder;
-    const { type } = owner;
-
-    if (type === 'select-one' || type === 'select-multiple') {
-        Array.prototype.forEach.call(owner.options, option => option.selected = false);
+        (this.owner as any).value = '';
+        (this.owner as any).$value = undefined;
+        this.owner.setAttribute('value', '');
     }
 
-    owner.value = undefined;
-    owner.$value = undefined;
-    owner.setAttribute('value', '');
-};
+}
 
-export default { render: valueRender, unrender: valueUnrender };

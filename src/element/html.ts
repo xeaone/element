@@ -1,36 +1,41 @@
+import Binder from './binder.ts';
 
-const htmlRender = function (binder: any) {
-    let data = binder.compute();
+export default class Html extends Binder {
 
-    if (typeof data !== 'string') {
-        data = '';
-        console.warn('html binder requires a string');
+    render () {
+        let data = this.compute();
+
+        if (typeof data !== 'string') {
+            data = '';
+            console.warn('html binder requires a string');
+        }
+
+        let removeChild = this.owner.lastChild;
+        while (removeChild) {
+            this.owner.removeChild(removeChild);
+            this.release(removeChild);
+            removeChild = this.owner.lastChild;
+        }
+
+        const template = document.createElement('template');
+        template.innerHTML = data;
+
+        let addChild = template.content.firstChild;
+        while (addChild) {
+            this.register(addChild);
+            addChild = addChild.nextSibling;
+        }
+
+        this.owner.appendChild(template.content);
     }
 
-    let removeChild;
-    while (removeChild = binder.owner.lastChild) {
-        binder.owner.removeChild(removeChild);
-        binder.removes(removeChild);
+    reset () {
+        let node = this.owner.lastChild;
+        while (node) {
+            this.release(node);
+            this.owner.removeChild(node);
+            node = this.owner.lastChild;
+        }
     }
 
-    const template = document.createElement('template');
-    template.innerHTML = data;
-
-    let addChild = template.content.firstChild;
-    while (addChild) {
-        binder.adds(addChild);
-        addChild = addChild.nextSibling;
-    }
-
-    binder.owner.appendChild(template.content);
-};
-
-const htmlUnrender = function (binder: any) {
-    let node;
-    while (node = binder.owner.lastChild) {
-        binder.removes(node);
-        binder.owner.removeChild(node);
-    }
-};
-
-export default { render: htmlRender, unrender: htmlUnrender };
+}

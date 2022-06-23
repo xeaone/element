@@ -1,13 +1,16 @@
 import format from './format.ts';
+import Binder from './binder.ts';
 
-const textRender = function (binder: any) {
-    const data = binder.compute();
-    binder.owner.textContent = format(data);
-};
 
-const textUnrender = function (binder: any) {
-    binder.owner.textContent = '';
-};
+export default class Text extends Binder {
 
-export default { render: textRender, unrender: textUnrender };
+    render () {
+        const data = this.compute();
+        this.owner.textContent = format(data);
+    }
 
+    reset () {
+        this.owner.textContent = '';
+    }
+
+}

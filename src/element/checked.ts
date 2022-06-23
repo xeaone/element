@@ -1,7 +1,8 @@
+import Binder from './binder.ts';
 
 const flag = Symbol('RadioFlag');
 
-const handler = function (binder: any, event?: InputEvent | CustomEvent) {
+const handler = function (binder: any, event?: Event) {
     const checked = binder.owner.checked;
     const computed = binder.compute({ $event: event, $checked: checked, $assignment: !!event });
 
@@ -13,61 +14,63 @@ const handler = function (binder: any, event?: InputEvent | CustomEvent) {
 
 };
 
-const checkedRender = function (binder: any) {
+export default class Checked extends Binder {
 
-    if (!binder.meta.setup) {
-        binder.node.value = '';
-        binder.meta.setup = true;
+    render () {
 
-        if (binder.owner.type === 'radio') {
-            binder.owner.addEventListener('input', (event: InputEvent | CustomEvent) => {
-                if (event.detail === flag) return handler(binder, event);
+        if (!this.meta.setup) {
+            // this.node.value = '';
+            this.meta.setup = true;
 
-                const parent = binder.owner.form || binder.owner.getRootNode();
-                const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
+            if ((this.owner as any).type === 'radio') {
+                this.owner.addEventListener('input', (event) => {
+                    if ((event as any).detail === flag) return handler(this, event);
 
-                for (const radio of radios) {
-                    if (radio === event.target) {
-                        handler(binder, event);
-                    } else {
+                    const parent = (this.owner as any).form || this.owner.getRootNode();
+                    const radios = parent.querySelectorAll(`[type="radio"][name="${(this.owner as any).name}"]`);
 
-                        let checked;
-                        const bounds = binder.binders.get(binder.owner);
-                        if (bounds) {
-                            for (const bound of bounds) {
-                                if (bound.name === 'checked') {
-                                    checked = bound;
-                                    break;
+                    for (const radio of radios) {
+                        if (radio === event.target) {
+                            handler(this, event);
+                        } else {
+
+                            let checked;
+                            // const bounds = this.get(this.owner);
+                            // if (bounds) {
+                            //     for (const bound of bounds) {
+                            //         if (bound.name === 'checked') {
+                            //             checked = bound;
+                            //             break;
+                            //         }
+                            //     }
+                            // }
+
+                            if (checked) {
+                                radio.dispatchEvent(new CustomEvent('input', { detail: flag }));
+                            } else {
+                                radio.checked = !(event.target as HTMLInputElement).checked;
+                                if (radio.checked) {
+                                    radio.setAttribute('checked', '');
+                                } else {
+                                    radio.removeAttribute('checked');
                                 }
                             }
-                        }
 
-                        if (checked) {
-                            radio.dispatchEvent(new CustomEvent('input', { detail: flag }));
-                        } else {
-                            radio.checked = !(event.target as HTMLInputElement).checked;
-                            if (radio.checked) {
-                                radio.setAttribute('checked', '');
-                            } else {
-                                radio.removeAttribute('checked');
-                            }
                         }
-
                     }
-                }
 
-            });
-        } else {
-            binder.owner.addEventListener('input', (event: InputEvent | CustomEvent) => handler(binder, event));
+                });
+            } else {
+                this.owner.addEventListener('input', (event) => handler(this, event));
+            }
+
         }
 
+        handler(this);
     }
 
-    handler(binder);
-};
+    reset () {
+        this.owner.removeAttribute('checked');
+    }
 
-const checkedUnrender = function (binder: any) {
-    binder.owner.removeAttribute('checked');
-};
-
-export default { render: checkedRender, unrender: checkedUnrender };
+}

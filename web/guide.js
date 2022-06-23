@@ -1,29 +1,31 @@
 import XElement from './x-element.js';
 import Highlight from './highlight.js';
-// import Code from './modules/code.js';
 import Color from './modules/color.js';
 
 export default class XGuide extends XElement {
 
     static observedProperties = [
-        'disabled',
-        'title', 'text', 'checked',
-        'r1', 'r2', 'color', 'colorChange',
-        'active', 'lightblue', 'classToggle', 'value',
-        'fruits', 'log', 'selectedPlant', 'selectEachResult',
-        'multipleSelectResult', 'radio', 'agree', 'lastName',
-        'firstName', 'favoriteNumber', 'form', 'submit'
+        'highlight',
+
+        'title', 'text',
+        'checked',
+        'radioOne', 'radioTwo',
+        'color', 'colorChange',
+        'active', 'lightblue', 'classToggle',
+        'value',
+        'fruit', 'fruits', 'plant', 'cars',
+
+        'form', 'agree', 'disabled', 'lastName', 'firstName', 'favoriteNumber', 'submit'
     ];
 
-    disabled = false;
 
     title = 'Guide';
     text = 'Hello World';
 
     checked = true;
 
-    r1 = undefined;
-    r2 = undefined;
+    radioOne = undefined;
+    radioTwo = undefined;
 
     color = Color();
     colorChange () { this.color = Color(); }
@@ -32,54 +34,43 @@ export default class XGuide extends XElement {
     lightblue = active => active ? 'lightblue' : '';
     classToggle () { this.active = !this.active; }
 
-    value = {
-        text: 'hello world',
-        upper: text => text?.toUpperCase(),
-    };
+    value = { text: 'hello world' };
 
-    fruits = [ 'apple', 'orange', 'tomato' ];
-    log () { console.log(arguments); }
+    fruit = 'Orange';
+    fruits = [ 'Apple', 'Orange', 'Tomato' ];
 
-    selectedPlant = undefined;
-    selectEachResult = 'orange';
-    multipleSelectResult = [];
+    plant = undefined;
+    cars = [];
 
     form = '';
-    radio = false;
     agree = true;
+    disabled = false;
     lastName = 'bond';
     firstName = 'james';
-    // favoriteNumber = NaN;
     favoriteNumber = undefined;
-
     submit (form) {
+        this.form = JSON.stringify(form, null, '\t');
         console.log(form);
-        this.form = JSON.stringify(form);
         console.log(this);
+    }
+
+    highlight (query) {
+        return Highlight(this.querySelector(query).innerHTML, 'html')
+            .replace(/{{/g, '{&zwnj;{').replace(/}}/g, '}&zwnj;}').replace(/^(\t{4}|\s{16})/mg, '').slice(1);
     }
 
     constructor () {
         super();
-
-        // const escapeFull = this.querySelectorAll('.escape-full');
-        // escapeFull.forEach(code=> code.innerHTML = Code(code.innerHTML, true));
-
-        // const escapePart = this.querySelectorAll('.escape-part');
-        // escapePart.forEach(code=> code.innerHTML = Code(code.innerHTML));
-
         this.shadowRoot.innerHTML = '<slot></slot>';
-        document.body.style.opacity = 1;
     }
 
     connectedCallback () {
-        super.connectedCallback();
-        if (!this.innerHTML) this.innerHTML = this.#html;
-        Highlight();
-        // requestAnimationFrame(() => Highlight());
+        if (this.innerHTML) return;
+        this.innerHTML = this.#html;
+        document.body.style.opacity = 1;
     }
 
     #html = /*html*/`
-
     <style>
         .default {
             border: solid 5px transparent;
@@ -91,177 +82,127 @@ export default class XGuide extends XElement {
 
     <section id="text">
         <h3>Text Binder</h3>
-        <pre><code class="language-html">
-            &lt;span&gt;{&zwnj;{text}&zwnj;}&lt;/span&gt;
-        </code></pre>
-        <pre><code class="language-html">
-            &lt;span&gt;{{text}}&lt;/span&gt;
-        </code></pre>
+        <pre>
+            <code html="{{highlight('#text-demo')}}"></code>
+            <div id="text-demo">
+                <span>{{text}}</span>
+            </div>
+        </pre>
     </section>
 
     <section id="checked">
         <h3>Checked Binder</h3>
-        <br>
-        <pre><code class="language-html">
-            &lt;input type="checkbox" value="{&zwnj;{checked}&zwnj;}" checked="{&zwnj;{checked = $checked}&zwnj;}"&gt;
-        </code></pre>
-        <pre><code class="language-html">
-            &lt;input type="checkbox" value="{{checked}}" {{checked ? 'checked' : ''}}&gt;
-        </code></pre>
-        <br>
-        <label>
-            <input class="example" value="{{checked}}" checked="{{checked = $checked}}" type="checkbox"> Checkbox
-        </label>
-        <br>
-        <pre><code class="language-html">
-            &lt;input type="radio" name="radio" value="one" checked="{&zwnj;{r1 = $checked}&zwnj;}"&gt;
-            &lt;input type="radio" name="radio" value="two" checked="{&zwnj;{r2 = $checked}&zwnj;}"&gt;
-        </code></pre>
-        <pre><code class="language-html">
-            &lt;input type="radio" name="radio" value="one" {{r1 ? 'checked' : ''}}&gt;
-            &lt;input type="radio" name="radio" value="two" {{r2 ? 'checked' : ''}}&gt;
-        </code></pre>
-        <br>
-        <label>
-            <input type="radio" name="radio" value="one" checked="{{r1=$checked}}"> Radio One
-        </label>
-        <label>
-            <input type="radio" name="radio" value="two" checked="{{r2=$checked}}"> Radio Two
-        </label>
+        <pre>
+            <code html="{{highlight('#checked-demo')}}"></code>
+            <div id="checked-demo">
+                <input type="checkbox" value="{{checked}}" checked="{{checked = $checked}}"> Checkbox {{checked ? 'checked' : ''}}
+            </div>
+        </pre>
+        <pre>
+            <code html="{{highlight('#radio-demo')}}"></code>
+            <div id="radio-demo">
+                <input type="radio" name="radio" value="one" checked="{{radioOne = $checked}}"> Radio One {{radioOne ? 'checked' : ''}}
+                <input type="radio" name="radio" value="two" checked="{{radioTwo = $checked}}"> Radio Two {{radioTwo ? 'checked' : ''}}
+            </div>
+        </pre>
     </section>
 
     <section id="style">
         <h3>Style Binder</h3>
-        <br>
-        <pre><code class="language-html">
-            &lt;div style="color: {&zwnj;{color}&zwnj;}">Look at my style&lt;/div&gt;
-        </code></pre>
-        <pre><code class="language-html">
-            &lt;div style="color: {{color}}">Look at my style&lt;/div&gt;
-        </code></pre>
-        <br>
-        <div style="color: {{color}}">Look at my style</div>
-        <br>
-        <button onclick="{{colorChange()}}">Change Color</button>
+        <pre>
+            <code html="{{highlight('#style-demo')}}"></code>
+            <div id="style-demo">
+                <span style="color: {{color}}">Look at my style</span>
+                <button onclick="{{colorChange()}}">Change Color</button>
+            </div>
+        </pre>
     </section>
 
     <section id="class">
         <h3>Class Binder</h3>
-        <br>
-        <pre><code class="language-html">
-            &lt;div class="default {&zwnj;{active ? 'class-color' : ''}&zwnj;}"&gt;Look at my class&lt;/div&gt;
-        </code></pre>
-        <pre><code class="language-html">
-            &lt;div class="default {{active ? 'class-color' : ''}}"&gt;Look at my class&lt;/div&gt;
-        </code></pre>
-        <br>
-        <div class="default {{active ? 'class-color' : ''}}">Look at my class</div>
-        <br>
-        <button onclick="{{classToggle()}}">Toggle Active</button>
+        <pre>
+            <code html="{{highlight('#class-demo')}}"></code>
+            <div id="class-demo">
+                <span class="default {{active ? 'class-color' : ''}}">Look at my class</span>
+                <button onclick="{{classToggle()}}">Toggle Active</button>
+            </div>
+        </pre>
     </section>
 
     <section id="value">
         <h3>Value Binder</h3>
-        <br>
-        <pre><code class="language-html">
-            &lt;div&gt;{&zwnj;{value.text}&zwnj;}&lt;/div&gt;
-            &lt;input value="{&zwnj;{value.text = $value.toUpperCase()}&zwnj;}"&gt;
-            &lt;input value="{&zwnj;{(value.text = $value).toLowerCase()}&zwnj;}"&gt;
-        </code></pre>
-        <pre><code class="language-html">
-            &lt;div&gt;{{value.text}}&lt;/div&gt;
-            &lt;input value="{{value.text?.toUpperCase()}}"&gt;
-            &lt;input value="{{value.text?.toLowerCase()}}"&gt;
-        </code></pre>
-        <br>
-        <div>{{value.text}}</div>
-        <br>
-        <input value="{{value.text = $value.toUpperCase()}}">
-        <input value="{{value.text = $value.toLowerCase()}}">
+        <pre>
+            <code html="{{highlight('#value-demo')}}"></code>
+            <div id="value-demo">
+                <input value="{{value.text = $value.toUpperCase()}}">
+                <input value="{{value.text = $value.toLowerCase()}}">
+                <span>{{value.text}}</span>
+            </div>
+        </pre>
     </section>
 
     <section id="each">
         <h3>Each Binder</h3>
-        <br>
-        <pre><code class="language-html">
-            &lt;div each="{&zwnj;{[ fruits, 'fruit', 'key', 'index' ]}&zwnj;}"&gt;
-                &lt;div id="{&zwnj;{fruit.name}&zwnj;}"&gt;
-                    &lt;strong&gt;Key: &lt;/strong&gt;{&zwnj;{key}&zwnj;},
-                    &lt;strong&gt;Index: &lt;/strong&gt;{&zwnj;{index}&zwnj;},
-                    &lt;strong&gt;Value: &lt;/strong&gt;{&zwnj;{fruit}&zwnj;}
-                &lt;/div&gt;
-            &lt;/div&gt;
-         </code></pre>
-        <br>
-        <div each="{{[ fruits, 'fruit', 'key', 'index' ]}}">
-            <div id="{{fruit}}">
-                <strong>Key: </strong>{{key}},
-                <strong>Index: </strong>{{index}},
-                <strong>Value: </strong>{{fruit}}
+        <pre>
+            <code html="{{highlight('#each-demo')}}"></code>
+            <div id="each-demo">
+                <div each="{{[ fruits, 'fruit', 'key', 'index' ]}}">
+                    <div id="{{fruit}}">
+                        <strong>Key: </strong>{{key}},
+                        <strong>Index: </strong>{{index}},
+                        <strong>Value: </strong>{{fruit}}
+                    </div>
+                </div>
             </div>
-        </div>
+        </pre>
     </section>
 
     <section id="select">
         <h3>Select Binder</h3>
-        <br>
-
-        <pre><code class="language-html">
-            &lt;div&gt;{&zwnj;{selectPlant}&zwnj;}&lt;/div&gt;
-            &lt;select value="{&zwnj;{selectedPlant = $value}&zwnj;}"&gt;
-                &lt;option value="tree"&gt;Tree&lt;/option&gt;
-                &lt;option value="cactus"&gt;Cactus&lt;/option&gt;
-            &lt;/select&gt;
-        </code></pre>
-
-        <br>
-        <div>{{selectedPlant}}</div>
-        <select value="{{selectedPlant = $value}}">
-            <option value="tree">Tree</option>
-            <option value="cactus">Cactus</option>
-        </select>
-
-        <br>
-
-        <pre><code class="language-html">
-            &lt;div&gt;{&zwnj;{selectEachResult}&zwnj;}&lt;/div&gt;
-            &lt;select value="{&zwnj;{selectEachResult = $value}&zwnj;}" each="{&zwnj;{[fruits, 'fruit']}&zwnj;}"&gt;
-                &lt;option value="{&zwnj;{fruit}&zwnj;}"&gt;{&zwnj;{fruit}&zwnj;}&lt;/option&gt;
-            &lt;/select&gt;
-        </code></pre>
-
-        <br>
-
-        <div>{{selectEachResult}}</div>
-        <select value="{{selectEachResult = $value}}" each="{{[fruits, 'fruit']}}">
-            <option value="{{fruit}}">{{fruit}}</option>
-        </select>
-
-        <br>
-
-        <pre><code class="language-html">
-            &lt;div&gt;{&zwnj;{multipleSelectResult}&zwnj;}&lt;/div&gt;
-            &lt;select value="{&zwnj;{multipleSelectResult = $value}&zwnj;}" multiple&gt;
-                &lt;option value="volvo"&gt;Volvo&lt;/option&gt;
-                &lt;option value="saab"&gt;Saab&lt;/option&gt;
-                &lt;option value="opel"&gt;Opel&lt;/option&gt;
-                &lt;option value="audi"&gt;Audi&lt;/option&gt;
-            &lt;/select&gt;
-        </code></pre>
-
-        <br>
-
-        <div>{{multipleSelectResult}}</div>
-        <select value="{{multipleSelectResult = $value}}" multiple>
-            <option value="volvo">Volvo</option>
-            <option value="saab">Saab</option>
-            <option value="opel">Opel</option>
-            <option value="audi">Audi</option>
-        </select>
-
+        <pre>
+            <code html="{{highlight('#plant-demo')}}"></code>
+            <div id="plant-demo">
+                <select value="{{plant = $value}}">
+                    <option value="tree">Tree</option>
+                    <option value="cactus">Cactus</option>
+                </select>
+                <span>{{plant}}</span>
+            </div>
+        </pre>
+        <pre>
+            <code html="{{highlight('#fruit-demo')}}"></code>
+            <div id="fruit-demo">
+                <select value="{{fruit = $value}}" each="{{[fruits, 'fruit']}}">
+                    <option value="{{fruit}}">{{fruit}}</option>
+                </select>
+                <span>{{fruit}}</span>
+            </div>
+        </pre>
+        <pre>
+            <code html="{{highlight('#cars-demo')}}"></code>
+            <div id="cars-demo">
+                <select value="{{cars = $value}}" multiple>
+                    <option value="volvo">Volvo</option>
+                    <option value="saab">Saab</option>
+                    <option value="opel">Opel</option>
+                    <option value="audi">Audi</option>
+                </select>
+                <span>{{cars}}</span>
+            </div>
+        </pre>
     </section>
 
-    <section>
+    <section id="html">
+        <h3>HTML Binder</h3>
+        <pre>
+            <code html="{{highlight('#html-demo')}}"></code>
+            <div id="html-demo">
+                <div html="{{'<strong>Hyper Text Markup Language</strong>'}}"></div>
+            </div>
+        </pre>
+    </section>
+
+    <section id="submit">
         <h3>Submit Binder</h3>
         <br>
         <form onsubmit="{{submit($form)}}">
@@ -289,19 +230,6 @@ export default class XGuide extends XElement {
         <pre>{{form}}</pre>
     </section>
 
-    <section>
-        <h3>HTML Binder</h3>
-        <br>
-        <pre><code class="language-html">
-            &lt;div html="{&zwnj;{'&lt;strong&gt;Hyper Text Markup Language&lt;/strong&gt;'}&zwnj;}"&gt;&lt;/div&gt;
-        </code></pre>
-        <br>
-        <pre><code class="language-html">
-            &lt;div&gt;&lt;strong&gt;Hyper Text Markup Language&lt;/strong&gt;&lt;/div&gt;
-        </code></pre>
-        <br>
-        <div html="{{'<strong>Hyper Text Markup Language</strong>'}}"></div>
-    </section>
     `;
 
 }

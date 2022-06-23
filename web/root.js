@@ -5,19 +5,9 @@ export default class XRoot extends XElement {
 
     static observedProperties = [
         'example',
-        // 'indexRoute',
-        // 'indexJs',
-        // 'indexHtml'
     ];
 
-    constructor () {
-        super();
-        this.shadowRoot.innerHTML = '<slot></slot>';
-        Highlight();
-        document.body.style.opacity = 1;
-    }
-
-    example = /*js*/`
+    example = `
         import XElement from '/x-element.js';
 
         MyElement extends XElement {
@@ -44,13 +34,13 @@ export default class XRoot extends XElement {
     #html = /*html*/`
         <section>
             <h2>Vision</h2>
-            <h4>XElement's vision is to provide an agnostic non framework that enhances custom elements with functionality that mimics native custom element standards.</h4>
+            <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
 
             <h2>Features</h2>
             <div class="tiles">
                 <div class="tile">
                     <h4>&#128118; Simple</h4>
-                    <span>Simple to learning and get started.</span>
+                    <span>Simple to learning if you know custom elements you know XElement.</span>
                 </div>
                 <div class="tile">
                     <h4>&#128230; Shareable</h4>
@@ -71,46 +61,18 @@ export default class XRoot extends XElement {
         </section>
     `;
 
-    connectedCallback () {
-        if (!this.innerHTML) this.innerHTML = this.#html;
+    constructor () {
+        super();
+        this.shadowRoot.innerHTML = '<slot></slot>';
     }
 
-    // indexRoute = `
-    // // routes/index.js
-    // import XElement from '/x-element.js';
-
-    // export default IndexRoute extends XElement {
-    //     title = 'Index Route'
-    //     description = 'Index Description'
-    //     constructor () {
-    //         super();
-    //         this.shadowRoot.innerHTML = \`<h1>Hello World</h1>\`;
-    //     }
-    // }
-    // `;
-
-    // indexJs = `
-    // // index.js
-    // import XRouter from '/x-router.js';
-
-    // await XRouter.setup({
-    //     target: 'main',
-    //     folder: 'routes'
-    // });
-    // `;
-
-    // indexHtml = `
-    // <!-- index.html -->
-    // <html>
-    // <head>
-    //     \<script src="/index.js" defer\>\<\/script\>
-    // </head>
-    // <body>
-    //     <main></main>
-    // </body>
-    // </html>
-    // `;
+    connectedCallback () {
+        if (this.innerHTML) return;
+        this.innerHTML = this.#html;
+        requestAnimationFrame(() => {
+            Highlight();
+            document.body.style.opacity = 1;
+        });
+    }
 
 }
-
-// XIndex.define();
