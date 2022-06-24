@@ -30,10 +30,9 @@ const submit = function (event: Event, binder: Binder) {
     const elements: NodeListOf<Child> = target?.querySelectorAll('[name]');
 
     for (const element of elements) {
-        const { type, name, checked, hidden } = element;
+        const { type, name, checked } = element;
 
         if (!name) continue;
-        // if (hidden) continue;
         if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
 
@@ -65,9 +64,28 @@ const submit = function (event: Event, binder: Binder) {
 
     }
 
-    binder.compute({ event, $form: form, $event: event });
-    if (target.getAttribute('reset')) target.reset();
+    if (target.hasAttribute('reset')) {
+        for (const element of elements) {
+            const { type, name } = element;
 
+            if (!name) continue;
+            if (type === 'submit' || type === 'button') continue;
+
+            if (type === 'select-one') {
+                element.selectedIndex = 0;
+            } else if (type === 'select-multiple') {
+                element.selectedIndex = -1;
+            } else if (type === 'radio' || type === 'checkbox') {
+                element.checked = false;
+            } else {
+                element.value = '';
+            }
+
+            element.dispatchEvent(new Event('input'));
+        }
+    }
+
+    binder.compute({ event, $form: form, $event: event });
     return false;
 };
 
@@ -78,11 +96,9 @@ const reset = function (event: Event, binder: Binder) {
     const elements: NodeListOf<Child> = target?.querySelectorAll('[name]');
 
     for (const element of elements) {
-        const { type, name, checked, hidden } = element;
+        const { type, name } = element;
 
         if (!name) continue;
-        // if (hidden) continue;
-        if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
 
         if (type === 'select-one') {
@@ -99,7 +115,6 @@ const reset = function (event: Event, binder: Binder) {
     }
 
     binder.compute({ event, $event: event });
-
     return false;
 };
 

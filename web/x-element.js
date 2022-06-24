@@ -267,7 +267,6 @@ class Checked extends Binder {
                 this.owner?.addEventListener('input', (event)=>{
                     const parent = this.owner.form || this.owner?.getRootNode();
                     const radios = parent.querySelectorAll(`[type="radio"][name="${this.owner.name}"]`);
-                    this.owner.checked = true;
                     this.#handler(event);
                     for (const radio of radios){
                         if (radio === event.target) continue;
@@ -405,6 +404,7 @@ class Value extends Binder {
         } else if (type === 'number' || type === 'range' || __default1.includes(type)) {
             const owner = this.owner;
             if (typeof computed === 'string') owner.value = computed;
+            else if (isNaN(computed)) owner.value = '';
             else owner.valueAsNumber = computed;
             display = owner.value;
         } else {
@@ -594,7 +594,7 @@ const submit = function(event3, binder) {
     const target = event3.target?.form || event3.target;
     const elements = target?.querySelectorAll('[name]');
     for (const element of elements){
-        const { type , name , checked , hidden  } = element;
+        const { type , name , checked  } = element;
         if (!name) continue;
         if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
@@ -623,12 +623,28 @@ const submit = function(event3, binder) {
             }
         });
     }
+    if (target.hasAttribute('reset')) {
+        for (const element of elements){
+            const { type , name  } = element;
+            if (!name) continue;
+            if (type === 'submit' || type === 'button') continue;
+            if (type === 'select-one') {
+                element.selectedIndex = 0;
+            } else if (type === 'select-multiple') {
+                element.selectedIndex = -1;
+            } else if (type === 'radio' || type === 'checkbox') {
+                element.checked = false;
+            } else {
+                element.value = '';
+            }
+            element.dispatchEvent(new Event('input'));
+        }
+    }
     binder.compute({
         event: event3,
         $form: form,
         $event: event3
     });
-    if (target.getAttribute('reset')) target.reset();
     return false;
 };
 const reset = function(event4, binder) {
@@ -636,9 +652,8 @@ const reset = function(event4, binder) {
     const target = event4.target?.form || event4.target;
     const elements = target?.querySelectorAll('[name]');
     for (const element of elements){
-        const { type , name , checked , hidden  } = element;
+        const { type , name  } = element;
         if (!name) continue;
-        if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
         if (type === 'select-one') {
             element.selectedIndex = 0;

@@ -50,7 +50,7 @@ export default class Value extends Binder {
 
         if (!meta.setup) {
             meta.setup = true;
-            this.owner?.addEventListener('input', (event: Event) => input(this, event));
+            this.owner?.addEventListener('input', event => input(this, event));
         }
 
         const computed = this.compute({ event: undefined, $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
@@ -76,6 +76,7 @@ export default class Value extends Binder {
         } else if (type === 'number' || type === 'range' || date.includes(type)) {
             const owner = this.owner as HTMLInputElement;
             if (typeof computed === 'string') owner.value = computed;
+            else if (isNaN(computed)) owner.value = '';
             else owner.valueAsNumber = computed;
             display = owner.value;
         } else {
@@ -86,7 +87,6 @@ export default class Value extends Binder {
 
         (this.owner as any).$value = computed;
         this.owner?.setAttribute('value', display);
-
     }
 
     reset () {

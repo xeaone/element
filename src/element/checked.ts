@@ -18,7 +18,6 @@ export default class Checked extends Binder {
                     const parent = (this.owner as any).form || this.owner?.getRootNode();
                     const radios = parent.querySelectorAll(`[type="radio"][name="${(this.owner as any).name}"]`);
 
-                    (this.owner as any).checked = true;
                     this.#handler(event);
 
                     for (const radio of radios) {

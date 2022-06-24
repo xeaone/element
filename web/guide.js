@@ -205,7 +205,7 @@ export default class XGuide extends XElement {
     <section id="submit">
         <h3>Submit Binder</h3>
         <br>
-        <form onsubmit="{{submit($form)}}">
+        <form onsubmit="{{submit($form)}}" reset>
             <div>{{firstName}}</div>
             <input disabled="{{disabled}}" name="name.first" value="{{firstName = $value}}" placeholder="first name">
             <div>{{lastName}}</div>
