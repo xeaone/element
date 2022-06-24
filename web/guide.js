@@ -146,11 +146,11 @@ export default class XGuide extends XElement {
         <pre>
             <code html="{{highlight('#each-demo')}}"></code>
             <div id="each-demo">
-                <div each="{{[ fruits, 'fruit', 'key', 'index' ]}}">
-                    <div id="{{fruit}}">
+                <div each="{{[ fruits, 'ff', 'key', 'index' ]}}">
+                    <div id="{{ff}}">
                         <strong>Key: </strong>{{key}},
                         <strong>Index: </strong>{{index}},
-                        <strong>Value: </strong>{{fruit}}
+                        <strong>Value: </strong>{{ff}}
                     </div>
                 </div>
             </div>
@@ -172,8 +172,8 @@ export default class XGuide extends XElement {
         <pre>
             <code html="{{highlight('#fruit-demo')}}"></code>
             <div id="fruit-demo">
-                <select value="{{fruit = $value}}" each="{{[fruits, 'fruit']}}">
-                    <option value="{{fruit}}">{{fruit}}</option>
+                <select value="{{fruit = $value}}" each="{{[fruits, 'f']}}">
+                    <option value="{{f}}">{{f}}</option>
                 </select>
                 <span>{{fruit}}</span>
             </div>

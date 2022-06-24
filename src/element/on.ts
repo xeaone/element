@@ -33,7 +33,7 @@ const submit = function (event: Event, binder: Binder) {
         const { type, name, checked, hidden } = element;
 
         if (!name) continue;
-        if (hidden) continue;
+        // if (hidden) continue;
         if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
 
@@ -81,7 +81,7 @@ const reset = function (event: Event, binder: Binder) {
         const { type, name, checked, hidden } = element;
 
         if (!name) continue;
-        if (hidden) continue;
+        // if (hidden) continue;
         if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
 
@@ -106,16 +106,11 @@ const reset = function (event: Event, binder: Binder) {
 export default class On extends Binder {
 
     render () {
-        (this.owner as any)[ this.name ] = null;
+        (this.owner as any)[ this.name ] = undefined;
         const name = this.name.slice(2);
 
-        if (!this.meta.setup) {
-            this.meta.setup = true;
-            this.node.nodeValue = '';
-        }
-
         if (this.meta.method) {
-            this.owner.removeEventListener(name, this.meta.method);
+            this.owner?.removeEventListener(name, this.meta.method);
         }
 
         this.meta.method = (event: Event) => {
@@ -128,7 +123,7 @@ export default class On extends Binder {
             }
         };
 
-        this.owner.addEventListener(name, this.meta.method);
+        this.owner?.addEventListener(name, this.meta.method);
     }
 
     reset () {
@@ -136,7 +131,7 @@ export default class On extends Binder {
         const name = this.name.slice(2);
 
         if (this.meta.method) {
-            this.owner.removeEventListener(name, this.meta.method);
+            this.owner?.removeEventListener(name, this.meta.method);
         }
 
     }

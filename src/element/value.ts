@@ -50,7 +50,7 @@ export default class Value extends Binder {
 
         if (!meta.setup) {
             meta.setup = true;
-            this.owner.addEventListener('input', (event: Event) => input(this, event));
+            this.owner?.addEventListener('input', (event: Event) => input(this, event));
         }
 
         const computed = this.compute({ event: undefined, $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
@@ -85,7 +85,7 @@ export default class Value extends Binder {
         }
 
         (this.owner as any).$value = computed;
-        this.owner.setAttribute('value', display);
+        this.owner?.setAttribute('value', display);
 
     }
 
@@ -99,7 +99,7 @@ export default class Value extends Binder {
 
         (this.owner as any).value = '';
         (this.owner as any).$value = undefined;
-        this.owner.setAttribute('value', '');
+        this.owner?.setAttribute('value', '');
     }
 
 }

@@ -9,6 +9,8 @@ import HtmlBinder from './html.ts';
 import TextBinder from './text.ts';
 import OnBinder from './on.ts';
 
+// import tick from './tick.ts';
+
 import dash from './dash.ts';
 
 const TEXT = Node.TEXT_NODE;
@@ -66,15 +68,11 @@ export default class XElement extends HTMLElement {
         this.#mutator = new MutationObserver(this.#mutation.bind(this));
         this.#mutator.observe(this, { childList: true });
         this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
-        // this.#mutator.observe(this, { childList: true, subtree: true });
-        // this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true, subtree: true });
     }
 
     setup () {
         if (this.#setup) return;
         else this.#setup = true;
-
-        // (this as any).initialized?.();
 
         const data: Record<any, any> = {};
         const properties = (this.constructor as any).observedProperties;
@@ -102,41 +100,32 @@ export default class XElement extends HTMLElement {
             deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
         });
 
-        let node;
-
-        node = this.shadowRoot?.firstChild;
-        while (node) {
-            this.register(node);
-            node = node.nextSibling;
+        let shadowNode = this.shadowRoot?.firstChild;
+        while (shadowNode) {
+            const node = shadowNode;
+            shadowNode = node.nextSibling;
+            this.register(node, this.#data);
         }
 
-        node = this.firstChild;
-        while (node) {
-            this.register(node);
-            node = node.nextSibling;
+        let innerNode = this.firstChild;
+        while (innerNode) {
+            const node = innerNode;
+            innerNode = node.nextSibling;
+            this.register(node, this.#data);
         }
 
-        // (this as any).prepared?.();
-
-        // this.#mutator = new MutationObserver(this.#mutation.bind(this));
-        // this.#mutator.observe(this, { childList: true });
-        // this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
     }
 
     #mutation (mutations: Array<MutationRecord>) {
-        console.log(mutations);
-        // (this as any).mutating?.();
         if (!this.#setup) return this.setup();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
-                console.log(node);
-                this.register(node);
+                this.register(node, this.#data);
             }
             for (const node of mutation.removedNodes) {
                 this.release(node);
             }
         }
-        // (this as any).mutated?.();
     }
 
     #remove (node: Node) {
@@ -153,18 +142,18 @@ export default class XElement extends HTMLElement {
         this.binders.delete(node);
     }
 
-    #add (node: Node, context?: any, rewrites?: any) {
+    #add (node: Node, context: any, rewrites?: any) {
         if (this.binders.has(node)) return console.warn(node);
 
         let binder;
-        if (node.nodeName === '#text') binder = new TextBinder(node, this, context ?? this.#data, rewrites);
-        else if (node.nodeName === 'html') binder = new HtmlBinder(node, this, context ?? this.#data, rewrites);
-        else if (node.nodeName === 'each') binder = new EachBinder(node, this, context ?? this.#data, rewrites);
-        else if (node.nodeName === 'value') binder = new ValueBinder(node, this, context ?? this.#data, rewrites);
-        else if (node.nodeName === 'inherit') binder = new InheritBinder(node, this, context ?? this.#data);
-        else if (node.nodeName === 'checked') binder = new CheckedBinder(node, this, context ?? this.#data, rewrites);
-        else if (node.nodeName.startsWith('on')) binder = new OnBinder(node, this, context ?? this.#data, rewrites);
-        else binder = new StandardBinder(node, this, context ?? this.#data, rewrites);
+        if (node.nodeName === '#text') binder = new TextBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'html') binder = new HtmlBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'each') binder = new EachBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'value') binder = new ValueBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'inherit') binder = new InheritBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'checked') binder = new CheckedBinder(node, this, context, rewrites);
+        else if (node.nodeName.startsWith('on')) binder = new OnBinder(node, this, context, rewrites);
+        else binder = new StandardBinder(node, this, context, rewrites);
 
         for (let i = 0; i < binder.references.length; i++) {
 
@@ -180,22 +169,25 @@ export default class XElement extends HTMLElement {
             } else {
                 this.binders.set(binder.references[ i ], new Set([ binder ]));
             }
+
         }
 
-        if (this.binders.has(binder.owner)) {
-            this.binders.get(binder.owner).add(binder);
+        if (this.binders.has(binder.owner || binder.node)) {
+            this.binders.get(binder.owner || binder.node).add(binder);
         } else {
-            this.binders.set(binder.owner, new Set([ binder ]));
+            this.binders.set(binder.owner || binder.node, new Set([ binder ]));
         }
 
         binder.render();
     }
 
     release (node: Node) {
+
         if (node.nodeType === TEXT) {
             this.#remove(node);
         } else if (node.nodeType === ELEMENT) {
             this.#remove(node);
+
             const attributes = (node as Element).attributes;
             for (const attribute of attributes) {
                 this.#remove(attribute);
@@ -210,19 +202,19 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    register (node: Node, context?: any, rewrites?: any) {
+    register (node: Node, context: any, rewrites?: any) {
 
         if (node.nodeType === FRAGMENT) {
-            node = node.firstChild as Node;
-            while (node) {
-                this.register(node, context, rewrites);
-                node = node.nextSibling as Node;
+            let child = node.firstChild, register;
+            while (child) {
+                register = child;
+                child = node.nextSibling;
+                this.register(register, context, rewrites);
             }
         } else if (node.nodeType === TEXT) {
 
             const start = node.nodeValue?.indexOf(this.#syntaxStart) ?? -1;
             if (start === -1) return;
-
             if (start !== 0) node = (node as Text).splitText(start);
 
             const end = node.nodeValue?.indexOf(this.#syntaxEnd) ?? -1;
@@ -230,34 +222,45 @@ export default class XElement extends HTMLElement {
 
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
                 const split = (node as Text).splitText(end + this.#syntaxLength);
+                this.#add(node, context, rewrites);
                 this.register(split, context, rewrites);
+                // tick(this.#add.bind(this, node, context, rewrites));
+                // tick(this.register.bind(this, split, context, rewrites));
+            } else {
+                this.#add(node, context, rewrites);
+                // tick(this.#add.bind(this, node, context, rewrites));
             }
-
-            this.#add(node, context, rewrites);
 
         } else if (node.nodeType === ELEMENT) {
 
             const inherit = (node as Element).attributes.getNamedItem('inherit');
+            // if (inherit) tick(this.#add.bind(this, inherit, context, rewrites));
             if (inherit) this.#add(inherit, context, rewrites);
 
             const each = (node as Element).attributes.getNamedItem('each');
             if (each) this.#add(each, context, rewrites);
+            // if (each) tick(this.#add.bind(this, each, context, rewrites));
 
-            // if (!each && !inherit && !(node instanceof XElement)) {
             if (!each && !inherit) {
-                let child = node.firstChild;
+                let child = node.firstChild, register;
                 while (child) {
-                    this.register(child, context, rewrites);
+                    register = child;
                     child = child.nextSibling;
+                    // tick(this.register.bind(this, register, context, rewrites));
+                    this.register(register, context, rewrites);
                 }
             }
 
-            const attributes = [ ...(node as Element).attributes ];
-            for (const attribute of attributes) {
+            let attribute;
+            for (attribute of (node as Element).attributes) {
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, context, rewrites);
+                    // tick(this.#add.bind(this, attribute, context, rewrites));
                 }
             }
+
+        } else {
+            console.warn('not valid node type');
 
         }
     }

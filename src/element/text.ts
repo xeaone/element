@@ -6,11 +6,11 @@ export default class Text extends Binder {
 
     render () {
         const data = this.compute();
-        this.owner.textContent = format(data);
+        this.node.nodeValue = format(data);
     }
 
     reset () {
-        this.owner.textContent = '';
+        this.node.nodeValue = '';
     }
 
 }

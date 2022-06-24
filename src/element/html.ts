@@ -3,6 +3,12 @@ import Binder from './binder.ts';
 export default class Html extends Binder {
 
     render () {
+
+        if (!this.meta.setup) {
+            this.meta.setup = true;
+            this.node.nodeValue = '';
+        }
+
         let data = this.compute();
 
         if (typeof data !== 'string') {
@@ -10,11 +16,11 @@ export default class Html extends Binder {
             console.warn('html binder requires a string');
         }
 
-        let removeChild = this.owner.lastChild;
+        let removeChild = this.owner?.lastChild;
         while (removeChild) {
-            this.owner.removeChild(removeChild);
+            this.owner?.removeChild(removeChild);
             this.release(removeChild);
-            removeChild = this.owner.lastChild;
+            removeChild = this.owner?.lastChild;
         }
 
         const template = document.createElement('template');
@@ -22,19 +28,19 @@ export default class Html extends Binder {
 
         let addChild = template.content.firstChild;
         while (addChild) {
-            this.register(addChild);
+            this.register(addChild, this.context);
             addChild = addChild.nextSibling;
         }
 
-        this.owner.appendChild(template.content);
+        this.owner?.appendChild(template.content);
     }
 
     reset () {
-        let node = this.owner.lastChild;
+        let node = this.owner?.lastChild;
         while (node) {
             this.release(node);
-            this.owner.removeChild(node);
-            node = this.owner.lastChild;
+            this.owner?.removeChild(node);
+            node = this.owner?.lastChild;
         }
     }
 

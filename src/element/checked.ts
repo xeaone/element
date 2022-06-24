@@ -1,76 +1,56 @@
 import Binder from './binder.ts';
 
-const flag = Symbol('RadioFlag');
-
-const handler = function (binder: any, event?: Event) {
-    const checked = binder.owner.checked;
-    const computed = binder.compute({ $event: event, $checked: checked, $assignment: !!event });
-
-    if (computed) {
-        binder.owner.setAttributeNode(binder.node);
-    } else {
-        binder.owner.removeAttribute('checked');
-    }
-
-};
 
 export default class Checked extends Binder {
+
+    static xRadioInputHandlerEvent = new CustomEvent('xRadioInputHandler');
 
     render () {
 
         if (!this.meta.setup) {
-            // this.node.value = '';
             this.meta.setup = true;
+            this.node.nodeValue = '';
 
             if ((this.owner as any).type === 'radio') {
-                this.owner.addEventListener('input', (event) => {
-                    if ((event as any).detail === flag) return handler(this, event);
+                this.owner?.addEventListener('xRadioInputHandler', (event) => this.#handler(event));
 
-                    const parent = (this.owner as any).form || this.owner.getRootNode();
+                this.owner?.addEventListener('input', (event) => {
+                    const parent = (this.owner as any).form || this.owner?.getRootNode();
                     const radios = parent.querySelectorAll(`[type="radio"][name="${(this.owner as any).name}"]`);
 
+                    (this.owner as any).checked = true;
+                    this.#handler(event);
+
                     for (const radio of radios) {
-                        if (radio === event.target) {
-                            handler(this, event);
-                        } else {
-
-                            let checked;
-                            // const bounds = this.get(this.owner);
-                            // if (bounds) {
-                            //     for (const bound of bounds) {
-                            //         if (bound.name === 'checked') {
-                            //             checked = bound;
-                            //             break;
-                            //         }
-                            //     }
-                            // }
-
-                            if (checked) {
-                                radio.dispatchEvent(new CustomEvent('input', { detail: flag }));
-                            } else {
-                                radio.checked = !(event.target as HTMLInputElement).checked;
-                                if (radio.checked) {
-                                    radio.setAttribute('checked', '');
-                                } else {
-                                    radio.removeAttribute('checked');
-                                }
-                            }
-
-                        }
+                        if (radio === event.target) continue;
+                        radio.checked = false;
+                        radio.dispatchEvent(Checked.xRadioInputHandlerEvent);
                     }
 
                 });
             } else {
-                this.owner.addEventListener('input', (event) => handler(this, event));
+                this.owner?.addEventListener('input', event => this.#handler(event));
             }
 
         }
 
-        handler(this);
+        this.#handler();
     }
 
     reset () {
-        this.owner.removeAttribute('checked');
+        this.owner?.removeAttribute('checked');
+    }
+
+    #handler (event?: Event) {
+        const owner = this.owner as HTMLInputElement;
+        const checked = owner.checked;
+        const computed = this.compute({ $event: event, $checked: checked, $assignment: !!event });
+
+        if (computed) {
+            owner.setAttributeNode(this.node as Attr);
+        } else {
+            owner.removeAttribute('checked');
+        }
     }
 
 }
