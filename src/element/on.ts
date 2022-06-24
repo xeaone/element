@@ -22,7 +22,7 @@ const Value = function (element: Child) {
     return element.value;
 };
 
-const submit = function (event: Event, binder: Binder) {
+const submit = async function (event: Event, binder: Binder) {
     event.preventDefault();
 
     const form: Record<string, any> = {};
@@ -50,7 +50,9 @@ const submit = function (event: Event, binder: Binder) {
         }
 
         let data = form;
-        name.split(/\s*\.\s*/).forEach((part: string, index: number, parts: string[]) => {
+        const parts = name.split(/\s*\.\s*/);
+        for (let index = 0; index < parts.length; index++) {
+            const part = parts[ index ];
             const next = parts[ index + 1 ];
             if (next) {
                 if (!data[ part ]) {
@@ -60,36 +62,29 @@ const submit = function (event: Event, binder: Binder) {
             } else {
                 data[ part ] = value;
             }
-        });
+        }
 
     }
+
+    await binder.compute({ event, $form: form, $event: event });
 
     if (target.hasAttribute('reset')) {
         for (const element of elements) {
             const { type, name } = element;
-
             if (!name) continue;
-            if (type === 'submit' || type === 'button') continue;
-
-            if (type === 'select-one') {
-                element.selectedIndex = 0;
-            } else if (type === 'select-multiple') {
-                element.selectedIndex = -1;
-            } else if (type === 'radio' || type === 'checkbox') {
-                element.checked = false;
-            } else {
-                element.value = '';
-            }
-
+            else if (type === 'submit' || type === 'button') continue;
+            else if (type === 'select-one') element.selectedIndex = 0;
+            else if (type === 'select-multiple') element.selectedIndex = -1;
+            else if (type === 'radio' || type === 'checkbox') element.checked = false;
+            else element.value = '';
             element.dispatchEvent(new Event('input'));
         }
     }
 
-    binder.compute({ event, $form: form, $event: event });
     return false;
 };
 
-const reset = function (event: Event, binder: Binder) {
+const reset = async function (event: Event, binder: Binder) {
     event.preventDefault();
 
     const target = (event.target as Target)?.form || event.target as HTMLFormElement;
@@ -97,24 +92,17 @@ const reset = function (event: Event, binder: Binder) {
 
     for (const element of elements) {
         const { type, name } = element;
-
         if (!name) continue;
-        if (type === 'submit' || type === 'button') continue;
-
-        if (type === 'select-one') {
-            element.selectedIndex = 0;
-        } else if (type === 'select-multiple') {
-            element.selectedIndex = -1;
-        } else if (type === 'radio' || type === 'checkbox') {
-            element.checked = false;
-        } else {
-            element.value = '';
-        }
-
+        else if (type === 'submit' || type === 'button') continue;
+        else if (type === 'select-one') element.selectedIndex = 0;
+        else if (type === 'select-multiple') element.selectedIndex = -1;
+        else if (type === 'radio' || type === 'checkbox') element.checked = false;
+        else element.value = '';
         element.dispatchEvent(new Event('input'));
     }
 
-    binder.compute({ event, $event: event });
+    await binder.compute({ event, $event: event });
+
     return false;
 };
 
