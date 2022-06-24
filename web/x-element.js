@@ -404,8 +404,8 @@ class Value extends Binder {
         } else if (type === 'number' || type === 'range' || __default1.includes(type)) {
             const owner = this.owner;
             if (typeof computed === 'string') owner.value = computed;
-            else if (isNaN(computed)) owner.value = '';
-            else owner.valueAsNumber = computed;
+            else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
+            else owner.value = '';
             display = owner.value;
         } else {
             const owner = this.owner;
