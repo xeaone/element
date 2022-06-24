@@ -60,7 +60,7 @@ const referenceMatch = new RegExp([
     '((?:^|}}).*?{{)',
     '(}}.*?(?:{{|$))',
     `(
-        (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        (?:\\$assignee|\\$instance|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
         this|window|document|console|location|
         globalThis|Infinity|NaN|undefined|
         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
@@ -96,8 +96,8 @@ class Binder {
         'inherit',
         'standard'
     ];
-    #referenceCache = new Map();
-    #computeCache = new Map();
+    static referenceCache = new Map();
+    static computeCache = new Map();
     context;
     type;
     name;
@@ -121,11 +121,13 @@ class Binder {
         this.owner = node.ownerElement ?? undefined;
         this.register = this.container.register.bind(this.container);
         this.release = this.container.release.bind(this.container);
-        this.type = this.name.startsWith('on') ? 'on' : Binder.handlers.includes(this.name) ? this.name : 'standard';
+        this.type = this.name.startsWith('on') ? 'on' : this.constructor.handlers.includes(this.name) ? this.name : 'standard';
         this.node.nodeValue = '';
-        const referenceCache = this.#referenceCache.get(this.value);
+        const referenceCache = this.constructor.referenceCache.get(this.value);
         if (referenceCache) {
-            this.references = referenceCache;
+            this.references = [
+                ...referenceCache
+            ];
         } else {
             const data = this.value.replace(referenceNormalize, '.$2');
             const references = [];
@@ -135,12 +137,14 @@ class Binder {
                 if (reference) references.push(reference);
                 match = referenceMatch.exec(data);
             }
-            this.references = references;
-            this.#referenceCache.set(data, references);
+            this.references = [
+                ...references
+            ];
+            this.constructor.referenceCache.set(data, references);
         }
-        const compute = this.#computeCache.get(this.value);
+        const compute = this.constructor.computeCache.get(this.value);
         if (compute) {
-            this.compute = compute.bind(null, this.context);
+            this.compute = compute.bind(this.owner ?? this.node, this.context);
         } else {
             let reference = '';
             let assignment = '';
@@ -159,7 +163,7 @@ class Binder {
                     }
                     return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
                 }
-                console.warn('possible computer issue');
+                console.warn('possible compute issue');
                 return '';
             }) ?? '';
             code = convert ? `'${code}'` : code;
@@ -177,7 +181,7 @@ class Binder {
             }
             `;
             const compute = new Function('$context', '$instance', code);
-            this.#computeCache.set(this.value, compute);
+            this.constructor.computeCache.set(this.value, compute);
             this.compute = compute.bind(this.owner ?? this.node, this.context);
         }
     }
@@ -453,7 +457,6 @@ const eachSet = function(binder, indexValue, keyValue, target, key, value) {
 };
 class Each extends Binder {
     reset() {
-        console.log('reset');
         const owner = this.node.ownerElement;
         this.meta.targetLength = 0;
         this.meta.currentLength = 0;
@@ -464,7 +467,6 @@ class Each extends Binder {
         const [data, variable, key, index] = this.compute();
         const [reference] = this.references;
         const owner = this.node.ownerElement;
-        if (!owner) return console.warn('attr owner missing');
         this.meta.data = data;
         this.meta.keyName = key;
         this.meta.indexName = index;
@@ -478,6 +480,7 @@ class Each extends Binder {
             this.meta.templateLength = 0;
             this.meta.queueElement = document.createElement('template');
             this.meta.templateElement = document.createElement('template');
+            this.meta.variableNamePattern = new RegExp(`({{.*?)([^.a-zA-Z0-9$_\\[\\]]?)(${variable})(\\b.*?}})`);
             let node = owner.firstChild;
             while(node){
                 if (node.nodeType === 3 && whitespace.test(node.nodeValue)) {
@@ -495,6 +498,7 @@ class Each extends Binder {
             this.meta.keys = Object.keys(data || {});
             this.meta.targetLength = this.meta.keys.length;
         }
+        console.time('each');
         if (this.meta.currentLength > this.meta.targetLength) {
             while(this.meta.currentLength > this.meta.targetLength){
                 let count = this.meta.templateLength;
@@ -519,8 +523,8 @@ class Each extends Binder {
                 const rewrites = [
                     ...this.rewrites,
                     [
-                        variable,
-                        `${reference}.${$index}`
+                        this.meta.variableNamePattern,
+                        `$1$2${reference}[${$index}]$4`
                     ]
                 ];
                 const clone = this.meta.templateElement.content.cloneNode(true);
@@ -533,6 +537,7 @@ class Each extends Binder {
                 this.meta.queueElement.content.appendChild(clone);
             }
         }
+        console.timeEnd('each');
         if (this.meta.currentLength === this.meta.targetLength) {
             owner.appendChild(this.meta.queueElement.content);
         }
@@ -588,7 +593,7 @@ const Value1 = function(element) {
     if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
     return element.value;
 };
-const submit = function(event3, binder) {
+const submit = async function(event3, binder) {
     event3.preventDefault();
     const form = {};
     const target = event3.target?.form || event3.target;
@@ -611,7 +616,9 @@ const submit = function(event3, binder) {
             value = Value1(element);
         }
         let data = form;
-        name.split(/\s*\.\s*/).forEach((part, index, parts)=>{
+        const parts = name.split(/\s*\.\s*/);
+        for(let index = 0; index < parts.length; index++){
+            const part = parts[index];
             const next = parts[index + 1];
             if (next) {
                 if (!data[part]) {
@@ -621,52 +628,42 @@ const submit = function(event3, binder) {
             } else {
                 data[part] = value;
             }
-        });
-    }
-    if (target.hasAttribute('reset')) {
-        for (const element of elements){
-            const { type , name  } = element;
-            if (!name) continue;
-            if (type === 'submit' || type === 'button') continue;
-            if (type === 'select-one') {
-                element.selectedIndex = 0;
-            } else if (type === 'select-multiple') {
-                element.selectedIndex = -1;
-            } else if (type === 'radio' || type === 'checkbox') {
-                element.checked = false;
-            } else {
-                element.value = '';
-            }
-            element.dispatchEvent(new Event('input'));
         }
     }
-    binder.compute({
+    await binder.compute({
         event: event3,
         $form: form,
         $event: event3
     });
+    if (target.hasAttribute('reset')) {
+        for (const element of elements){
+            const { type , name  } = element;
+            if (!name) continue;
+            else if (type === 'submit' || type === 'button') continue;
+            else if (type === 'select-one') element.selectedIndex = 0;
+            else if (type === 'select-multiple') element.selectedIndex = -1;
+            else if (type === 'radio' || type === 'checkbox') element.checked = false;
+            else element.value = '';
+            element.dispatchEvent(new Event('input'));
+        }
+    }
     return false;
 };
-const reset = function(event4, binder) {
+const reset = async function(event4, binder) {
     event4.preventDefault();
     const target = event4.target?.form || event4.target;
     const elements = target?.querySelectorAll('[name]');
     for (const element of elements){
         const { type , name  } = element;
         if (!name) continue;
-        if (type === 'submit' || type === 'button') continue;
-        if (type === 'select-one') {
-            element.selectedIndex = 0;
-        } else if (type === 'select-multiple') {
-            element.selectedIndex = -1;
-        } else if (type === 'radio' || type === 'checkbox') {
-            element.checked = false;
-        } else {
-            element.value = '';
-        }
+        else if (type === 'submit' || type === 'button') continue;
+        else if (type === 'select-one') element.selectedIndex = 0;
+        else if (type === 'select-multiple') element.selectedIndex = -1;
+        else if (type === 'radio' || type === 'checkbox') element.checked = false;
+        else element.value = '';
         element.dispatchEvent(new Event('input'));
     }
-    binder.compute({
+    await binder.compute({
         event: event4,
         $event: event4
     });
@@ -830,8 +827,9 @@ class XElement extends HTMLElement {
         else binder = new Standard(node2, this, context1, rewrites1);
         for(let i = 0; i < binder.references.length; i++){
             if (rewrites1) {
-                for (const [name, value] of rewrites1){
-                    binder.references[i] = binder.references[i].replace(name, value);
+                let rewrite;
+                for (rewrite of rewrites1){
+                    binder.references[i] = binder.references[i].replace(rewrite[0], rewrite[1]);
                 }
             }
             if (this.binders.has(binder.references[i])) {

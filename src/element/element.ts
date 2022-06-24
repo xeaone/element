@@ -158,9 +158,9 @@ export default class XElement extends HTMLElement {
         for (let i = 0; i < binder.references.length; i++) {
 
             if (rewrites) {
-                for (const [ name, value ] of rewrites) {
-                    // might need to improve the name boundary
-                    binder.references[ i ] = binder.references[ i ].replace(name, value);
+                let rewrite;
+                for (rewrite of rewrites) {
+                    binder.references[ i ] = binder.references[ i ].replace(rewrite[ 0 ], rewrite[ 1 ]);
                 }
             }
 

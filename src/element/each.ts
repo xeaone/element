@@ -1,5 +1,4 @@
 import Binder from './binder.ts';
-import tick from "./tick.ts";
 
 const whitespace = /\s+/;
 
@@ -39,7 +38,6 @@ const eachSet = function (binder: Binder, indexValue: any, keyValue: any, target
 export default class Each extends Binder {
 
     reset () {
-        console.log('reset');
         const owner = (this.node as Attr).ownerElement;
         this.meta.targetLength = 0;
         this.meta.currentLength = 0;
@@ -50,8 +48,7 @@ export default class Each extends Binder {
     render () {
         const [ data, variable, key, index ] = this.compute();
         const [ reference ] = this.references;
-        const owner = (this.node as Attr).ownerElement;
-        if (!owner) return console.warn('attr owner missing');
+        const owner = (this.node as Attr).ownerElement as Element;
 
         this.meta.data = data;
         this.meta.keyName = key;
@@ -68,9 +65,7 @@ export default class Each extends Binder {
             this.meta.templateLength = 0;
             this.meta.queueElement = document.createElement('template');
             this.meta.templateElement = document.createElement('template');
-
-            // this.meta.variableNamePattern = new RegExp(`([^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
-            // this.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
+            this.meta.variableNamePattern = new RegExp(`({{.*?)([^.a-zA-Z0-9$_\\[\\]]?)(${variable})(\\b.*?}})`);
 
             let node = owner.firstChild;
             while (node) {
@@ -92,6 +87,7 @@ export default class Each extends Binder {
             this.meta.targetLength = this.meta.keys.length;
         }
 
+        console.time('each');
         if (this.meta.currentLength > this.meta.targetLength) {
             while (this.meta.currentLength > this.meta.targetLength) {
                 let count = this.meta.templateLength;
@@ -117,27 +113,24 @@ export default class Each extends Binder {
                     set: eachSet.bind(null, this, $index, $key),
                 });
 
-                // const variableValue = `${this.meta.path}.${this.meta.keys[ this.meta.currentLength ] ?? this.meta.currentLength}`;
-                // const rewrites = this.rewrites?.slice() || [];
-                // if (this.meta.keyName) rewrites.unshift([ this.meta.keyName, keyValue ]);
-                // // if (this.meta.indexName) rewrites.unshift([ this.meta.indexName, indexValue ]);
-                // // if (this.meta.variableName) rewrites.unshift([ this.meta.variableName, variableValue ]);
-                // if (this.meta.variableName) rewrites.unshift([ this.meta.variableNamePattern, variableValue ]);
+                const rewrites = [ ...this.rewrites, [
+                    this.meta.variableNamePattern,
+                    `$1$2${reference}[${$index}]$4`
+                ] ];
 
-                const rewrites = [ ...this.rewrites, [ variable, `${reference}.${$index}` ] ];
                 const clone = this.meta.templateElement.content.cloneNode(true);
 
                 let node = clone.firstChild, child;
                 while (node) {
                     child = node;
                     node = node.nextSibling;
-                    // tick(this.register.bind(this, child, context, rewrites));
                     this.register(child, context, rewrites);
                 }
 
                 this.meta.queueElement.content.appendChild(clone);
             }
         }
+        console.timeEnd('each');
 
         if (this.meta.currentLength === this.meta.targetLength) {
             owner.appendChild(this.meta.queueElement.content);

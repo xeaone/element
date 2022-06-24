@@ -48,8 +48,8 @@ export default class Binder {
         'standard'
     ];
 
-    #referenceCache: Map<string, Array<string>> = new Map();
-    #computeCache: Map<string, Compute> = new Map();
+    static referenceCache: Map<string, Array<string>> = new Map();
+    static computeCache: Map<string, Compute> = new Map();
 
     context: any;
     type: string;
@@ -83,18 +83,14 @@ export default class Binder {
         this.owner = (node as Attr).ownerElement ?? undefined;
         this.register = this.container.register.bind(this.container);
         this.release = this.container.release.bind(this.container);
-        this.type = this.name.startsWith('on') ? 'on' : Binder.handlers.includes(this.name) ? this.name : 'standard';
+        this.type = this.name.startsWith('on') ? 'on' : (this.constructor as any).handlers.includes(this.name) ? this.name : 'standard';
 
         this.node.nodeValue = '';
 
-        // if (rewrites) {
-        //     for (const [ name, value ] of rewrites) {
-        //         data = data.replace(name, `$1${value}`);
-        //     }
-        // }
-        const referenceCache = this.#referenceCache.get(this.value);
+        const referenceCache = (this.constructor as any).referenceCache.get(this.value);
         if (referenceCache) {
-            this.references = referenceCache;
+            // console.log('reference cache');
+            this.references = [ ...referenceCache ];
         } else {
             const data = this.value.replace(referenceNormalize, '.$2');
             const references = [];
@@ -102,18 +98,19 @@ export default class Binder {
             let match = referenceMatch.exec(data);
             while (match) {
                 const reference = match[ 5 ];
+                // console.log(reference);
                 if (reference) references.push(reference);
                 match = referenceMatch.exec(data);
             }
 
-            this.references = references;
-            this.#referenceCache.set(data, references);
+            this.references = [ ...references ];
+            (this.constructor as any).referenceCache.set(data, references);
         }
 
-
-        const compute = this.#computeCache.get(this.value);
+        const compute = (this.constructor as any).computeCache.get(this.value);
         if (compute) {
-            this.compute = compute.bind(null, this.context);
+            // console.log('computed cache');
+            this.compute = compute.bind(this.owner ?? this.node, this.context);
         } else {
             let reference = '';
             let assignment = '';
@@ -134,7 +131,7 @@ export default class Binder {
                     }
                     return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
                 }
-                console.warn('possible computer issue');
+                console.warn('possible compute issue');
                 return '';
             }) ?? '';
 
@@ -159,7 +156,7 @@ export default class Binder {
             `;
 
             const compute = new Function('$context', '$instance', code) as Compute;
-            this.#computeCache.set(this.value, compute);
+            (this.constructor as any).computeCache.set(this.value, compute);
             this.compute = compute.bind(this.owner ?? this.node, this.context);
         }
 
