@@ -6,7 +6,7 @@ const referenceMatch = new RegExp([
     '((?:^|}}).*?{{)',
     '(}}.*?(?:{{|$))',
     `(
-        (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        (?:\\$assignee|\\$instance|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
         this|window|document|console|location|
         globalThis|Infinity|NaN|undefined|
         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
