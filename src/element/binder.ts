@@ -1,6 +1,6 @@
 import XElement from './element.ts';
 
-const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+// const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)', // string
     '((?:^|}}).*?{{)',
@@ -22,7 +22,7 @@ const referenceMatch = new RegExp([
         Reflect|Proxy|
         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        (?:[.][a-zA-Z0-9$_.? ]*\\b)
+        (?:(?:[.][a-zA-Z0-9$_.? ]*)?\\b)
     )`,
     '(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)' // reference
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
@@ -34,6 +34,27 @@ const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|
 const codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, 'g');
 
 type Compute = (context: any, instance?: any) => any;
+
+const get = function (references: string[], reference: string, target: any, key: any): any {
+    if (typeof key !== 'string') return target[ key ];
+
+    let value;
+    const rewrite = target[ `$$${key}` ];
+    if (rewrite) {
+        key = `${rewrite[ 0 ]}.${rewrite[ 1 ]}`;
+        value = target[ rewrite[ 0 ] ][ rewrite[ 1 ] ];
+        references.push(reference ? `${reference}.${rewrite[ 0 ]}` : rewrite[ 0 ]);
+    } else {
+        value = target[ key ];
+    }
+
+    reference = reference ? `${reference}.${key}` : key;
+    references.push(reference);
+
+    return typeof value === 'object' ?
+        new Proxy(value, { get: get.bind(null, references, reference) }) :
+        value;
+};
 
 export default class Binder {
 
@@ -59,26 +80,23 @@ export default class Binder {
     node: Node;
     owner?: Element;
     container: XElement;
+    references: Array<string> = [];
 
-    references: Array<string>;
     compute: (instance?: any) => any;
 
     meta: Record<string, any> = {};
-    rewrites: Array<Array<string>> = [];
 
     register: XElement[ 'register' ];
     release: XElement[ 'release' ];
 
-    constructor (node: Node, container: XElement, context: any, rewrites?: Array<Array<string>>) {
+    constructor (node: Node, container: XElement, context: any) {
 
         this.node = node;
         this.context = context;
         this.container = container;
 
-        if (rewrites) this.rewrites.push(...rewrites);
-
-        this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
         this.value = node.nodeValue ?? '';
+        this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
 
         this.owner = (node as Attr).ownerElement ?? undefined;
         this.register = this.container.register.bind(this.container);
@@ -89,27 +107,31 @@ export default class Binder {
 
         const referenceCache = (this.constructor as any).referenceCache.get(this.value);
         if (referenceCache) {
-            // console.log('reference cache');
-            this.references = [ ...referenceCache ];
+            referenceCache.call(this.owner ?? this.node, new Proxy(this.context, { get: get.bind(null, this.references, '') }));
         } else {
-            const data = this.value.replace(referenceNormalize, '.$2');
-            const references = [];
+            const data = this.value;
 
+            // const data = this.value.replace(referenceNormalize, '.$2');
+            let references = '';
             let match = referenceMatch.exec(data);
             while (match) {
+                // console.log(match);
                 const reference = match[ 5 ];
-                // console.log(reference);
-                if (reference) references.push(reference);
+                if (reference) references += references ? `,${reference}` : reference;
                 match = referenceMatch.exec(data);
             }
 
-            this.references = [ ...references ];
-            (this.constructor as any).referenceCache.set(data, references);
+            if (references.length) {
+                // console.log(references, this.value);
+                const referenceCache = new Function('$context', `with($context){(${references});}`);
+                (this.constructor as any).referenceCache.set(data, referenceCache);
+                referenceCache.call(this.owner ?? this.node, new Proxy(this.context, { get: get.bind(null, this.references, '') }));
+            }
+
         }
 
         const compute = (this.constructor as any).computeCache.get(this.value);
         if (compute) {
-            // console.log('computed cache');
             this.compute = compute.bind(this.owner ?? this.node, this.context);
         } else {
             let reference = '';

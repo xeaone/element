@@ -2,37 +2,48 @@ import Binder from './binder.ts';
 
 const whitespace = /\s+/;
 
-const eachHas = function (binder: Binder, indexValue: any, keyValue: any, target: any, key: any) {
-    return key === binder.meta.variableName ||
-        key === binder.meta.indexName ||
-        key === binder.meta.keyName ||
+const eachHas = function (variable: string, indexName: string, keyName: string, target: any, key: any) {
+    return key === variable ||
+        key === `$$${variable}` ||
+        key === indexName ||
+        key === keyName ||
         key === '$index' ||
         key === '$item' ||
         key === '$key' ||
         Reflect.has(target, key);
 };
 
-const eachGet = function (binder: Binder, indexValue: any, keyValue: any, target: any, key: any) {
-    if (key === binder.meta.variableName || key === '$item') {
-        return binder.meta.data[ keyValue ];
-    } else if (key === binder.meta.indexName || key === '$index') {
+const eachSet = function (
+    reference: string, variable: string,
+    indexName: string, keyName: string, keyValue: number | string,
+    target: any, key: any, value: any) {
+    if (key === variable || key === '$item') {
+        return Reflect.set(Reflect.get(target, reference), keyValue, value);
+    } else if (key === indexName || key === keyName) {
+        return true;
+    }
+    return Reflect.set(target, key, value);
+};
+
+const eachGet = function (
+    reference: string, variable: string,
+    indexName: string, indexValue: number,
+    keyName: string, keyValue: number | string,
+    target: any, key: any) {
+
+    if (key === `$$${variable}`) {
+        return [ reference, keyValue ];
+    } else if (key === variable || key === '$item') {
+        // return binder.meta.data[ keyValue ];
+        return Reflect.get(Reflect.get(target, reference), keyValue);
+    } else if (key === indexName || key === '$index') {
         return indexValue;
-    } else if (key === binder.meta.keyName || key === '$key') {
+    } else if (key === keyName || key === '$key') {
+        console.log(key, keyValue);
         return keyValue;
     } else {
         return Reflect.get(target, key);
     }
-};
-
-const eachSet = function (binder: Binder, indexValue: any, keyValue: any, target: any, key: any, value: any) {
-    if (key === binder.meta.variableName || key === '$item') {
-        binder.meta.data[ keyValue ] = value;
-    } else if (key === binder.meta.indexName || key === binder.meta.keyName) {
-        return true;
-    } else {
-        return Reflect.set(target, key, value);
-    }
-    return true;
 };
 
 export default class Each extends Binder {
@@ -53,7 +64,9 @@ export default class Each extends Binder {
         this.meta.data = data;
         this.meta.keyName = key;
         this.meta.indexName = index;
-        this.meta.variableName = variable;
+
+        this.meta.variable = variable;
+        this.meta.reference = reference;
 
         if (!this.meta.setup) {
             this.node.nodeValue = '';
@@ -65,7 +78,6 @@ export default class Each extends Binder {
             this.meta.templateLength = 0;
             this.meta.queueElement = document.createElement('template');
             this.meta.templateElement = document.createElement('template');
-            this.meta.variableNamePattern = new RegExp(`({{.*?)([^.a-zA-Z0-9$_\\[\\]]?)(${variable})(\\b.*?}})`);
 
             let node = owner.firstChild;
             while (node) {
@@ -104,19 +116,14 @@ export default class Each extends Binder {
             }
         } else if (this.meta.currentLength < this.meta.targetLength) {
             while (this.meta.currentLength < this.meta.targetLength) {
-                const $key = this.meta.keys[ this.meta.currentLength ] ?? this.meta.currentLength;
-                const $index = this.meta.currentLength++;
+                const keyValue = this.meta.keys[ this.meta.currentLength ] ?? this.meta.currentLength;
+                const indexValue = this.meta.currentLength++;
 
                 const context = new Proxy(this.context, {
-                    has: eachHas.bind(null, this, $index, $key),
-                    get: eachGet.bind(null, this, $index, $key),
-                    set: eachSet.bind(null, this, $index, $key),
+                    has: eachHas.bind(null, this.meta.variable, this.meta.indexName, this.meta.keyName),
+                    set: eachSet.bind(null, this.meta.reference, this.meta.variable, this.meta.indexName, this.meta.keyName, keyValue),
+                    get: eachGet.bind(null, this.meta.reference, this.meta.variable, this.meta.indexName, indexValue, this.meta.keyName, keyValue)
                 });
-
-                const rewrites = [ ...this.rewrites, [
-                    this.meta.variableNamePattern,
-                    `$1$2${reference}[${$index}]$4`
-                ] ];
 
                 const clone = this.meta.templateElement.content.cloneNode(true);
 
@@ -124,7 +131,7 @@ export default class Each extends Binder {
                 while (node) {
                     child = node;
                     node = node.nextSibling;
-                    this.register(child, context, rewrites);
+                    this.register(child, context);
                 }
 
                 this.meta.queueElement.content.appendChild(clone);

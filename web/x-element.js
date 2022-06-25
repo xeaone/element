@@ -54,7 +54,6 @@ const dataEvent = function(data, reference, type) {
         }
     }
 };
-const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
     '((?:^|}}).*?{{)',
@@ -76,7 +75,7 @@ const referenceMatch = new RegExp([
         Reflect|Proxy|
         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        (?:[.][a-zA-Z0-9$_.? ]*\\b)
+        (?:(?:[.][a-zA-Z0-9$_.? ]*)?\\b)
     )`,
     '(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)'
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
@@ -85,6 +84,23 @@ const bracketPattern = /({{)|(}})/;
 const stringPattern = /(".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)/;
 const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
 const codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, 'g');
+const get = function(references, reference, target, key) {
+    if (typeof key !== 'string') return target[key];
+    let value;
+    const rewrite = target[`$$${key}`];
+    if (rewrite) {
+        key = `${rewrite[0]}.${rewrite[1]}`;
+        value = target[rewrite[0]][rewrite[1]];
+        references.push(reference ? `${reference}.${rewrite[0]}` : rewrite[0]);
+    } else {
+        value = target[key];
+    }
+    reference = reference ? `${reference}.${key}` : key;
+    references.push(reference);
+    return typeof value === 'object' ? new Proxy(value, {
+        get: get.bind(null, references, reference)
+    }) : value;
+};
 class Binder {
     static handlers = [
         'on',
@@ -105,19 +121,17 @@ class Binder {
     node;
     owner;
     container;
-    references;
+    references = [];
     compute;
     meta = {};
-    rewrites = [];
     register;
     release;
-    constructor(node, container, context, rewrites){
+    constructor(node, container, context){
         this.node = node;
         this.context = context;
         this.container = container;
-        if (rewrites) this.rewrites.push(...rewrites);
-        this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
         this.value = node.nodeValue ?? '';
+        this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
         this.owner = node.ownerElement ?? undefined;
         this.register = this.container.register.bind(this.container);
         this.release = this.container.release.bind(this.container);
@@ -125,22 +139,25 @@ class Binder {
         this.node.nodeValue = '';
         const referenceCache = this.constructor.referenceCache.get(this.value);
         if (referenceCache) {
-            this.references = [
-                ...referenceCache
-            ];
+            referenceCache.call(this.owner ?? this.node, new Proxy(this.context, {
+                get: get.bind(null, this.references, '')
+            }));
         } else {
-            const data = this.value.replace(referenceNormalize, '.$2');
-            const references = [];
+            const data = this.value;
+            let references = '';
             let match = referenceMatch.exec(data);
             while(match){
                 const reference = match[5];
-                if (reference) references.push(reference);
+                if (reference) references += references ? `,${reference}` : reference;
                 match = referenceMatch.exec(data);
             }
-            this.references = [
-                ...references
-            ];
-            this.constructor.referenceCache.set(data, references);
+            if (references.length) {
+                const referenceCache = new Function('$context', `with($context){(${references});}`);
+                this.constructor.referenceCache.set(data, referenceCache);
+                referenceCache.call(this.owner ?? this.node, new Proxy(this.context, {
+                    get: get.bind(null, this.references, '')
+                }));
+            }
         }
         const compute = this.constructor.computeCache.get(this.value);
         if (compute) {
@@ -431,29 +448,33 @@ class Value extends Binder {
     }
 }
 const whitespace = /\s+/;
-const eachHas = function(binder, indexValue, keyValue, target, key) {
-    return key === binder.meta.variableName || key === binder.meta.indexName || key === binder.meta.keyName || key === '$index' || key === '$item' || key === '$key' || Reflect.has(target, key);
+const eachHas = function(variable, indexName, keyName, target, key) {
+    return key === variable || key === `$$${variable}` || key === indexName || key === keyName || key === '$index' || key === '$item' || key === '$key' || Reflect.has(target, key);
 };
-const eachGet = function(binder, indexValue, keyValue, target, key) {
-    if (key === binder.meta.variableName || key === '$item') {
-        return binder.meta.data[keyValue];
-    } else if (key === binder.meta.indexName || key === '$index') {
+const eachSet = function(reference, variable, indexName, keyName, keyValue, target, key, value) {
+    if (key === variable || key === '$item') {
+        return Reflect.set(Reflect.get(target, reference), keyValue, value);
+    } else if (key === indexName || key === keyName) {
+        return true;
+    }
+    return Reflect.set(target, key, value);
+};
+const eachGet = function(reference, variable, indexName, indexValue, keyName, keyValue, target, key) {
+    if (key === `$$${variable}`) {
+        return [
+            reference,
+            keyValue
+        ];
+    } else if (key === variable || key === '$item') {
+        return Reflect.get(Reflect.get(target, reference), keyValue);
+    } else if (key === indexName || key === '$index') {
         return indexValue;
-    } else if (key === binder.meta.keyName || key === '$key') {
+    } else if (key === keyName || key === '$key') {
+        console.log(key, keyValue);
         return keyValue;
     } else {
         return Reflect.get(target, key);
     }
-};
-const eachSet = function(binder, indexValue, keyValue, target, key, value) {
-    if (key === binder.meta.variableName || key === '$item') {
-        binder.meta.data[keyValue] = value;
-    } else if (key === binder.meta.indexName || key === binder.meta.keyName) {
-        return true;
-    } else {
-        return Reflect.set(target, key, value);
-    }
-    return true;
 };
 class Each extends Binder {
     reset() {
@@ -470,7 +491,8 @@ class Each extends Binder {
         this.meta.data = data;
         this.meta.keyName = key;
         this.meta.indexName = index;
-        this.meta.variableName = variable;
+        this.meta.variable = variable;
+        this.meta.reference = reference;
         if (!this.meta.setup) {
             this.node.nodeValue = '';
             this.meta.keys = [];
@@ -480,7 +502,6 @@ class Each extends Binder {
             this.meta.templateLength = 0;
             this.meta.queueElement = document.createElement('template');
             this.meta.templateElement = document.createElement('template');
-            this.meta.variableNamePattern = new RegExp(`({{.*?)([^.a-zA-Z0-9$_\\[\\]]?)(${variable})(\\b.*?}})`);
             let node = owner.firstChild;
             while(node){
                 if (node.nodeType === 3 && whitespace.test(node.nodeValue)) {
@@ -513,26 +534,19 @@ class Each extends Binder {
             }
         } else if (this.meta.currentLength < this.meta.targetLength) {
             while(this.meta.currentLength < this.meta.targetLength){
-                const $key = this.meta.keys[this.meta.currentLength] ?? this.meta.currentLength;
-                const $index = this.meta.currentLength++;
+                const keyValue = this.meta.keys[this.meta.currentLength] ?? this.meta.currentLength;
+                const indexValue = this.meta.currentLength++;
                 const context = new Proxy(this.context, {
-                    has: eachHas.bind(null, this, $index, $key),
-                    get: eachGet.bind(null, this, $index, $key),
-                    set: eachSet.bind(null, this, $index, $key)
+                    has: eachHas.bind(null, this.meta.variable, this.meta.indexName, this.meta.keyName),
+                    set: eachSet.bind(null, this.meta.reference, this.meta.variable, this.meta.indexName, this.meta.keyName, keyValue),
+                    get: eachGet.bind(null, this.meta.reference, this.meta.variable, this.meta.indexName, indexValue, this.meta.keyName, keyValue)
                 });
-                const rewrites = [
-                    ...this.rewrites,
-                    [
-                        this.meta.variableNamePattern,
-                        `$1$2${reference}[${$index}]$4`
-                    ]
-                ];
                 const clone = this.meta.templateElement.content.cloneNode(true);
                 let node = clone.firstChild, child;
                 while(node){
                     child = node;
                     node = node.nextSibling;
-                    this.register(child, context, rewrites);
+                    this.register(child, context);
                 }
                 this.meta.queueElement.content.appendChild(clone);
             }
@@ -814,24 +828,18 @@ class XElement extends HTMLElement {
         }
         this.binders.delete(node3);
     }
-     #add(node2, context1, rewrites1) {
+     #add(node2, context1) {
         if (this.binders.has(node2)) return console.warn(node2);
         let binder;
-        if (node2.nodeName === '#text') binder = new Text(node2, this, context1, rewrites1);
-        else if (node2.nodeName === 'html') binder = new Html(node2, this, context1, rewrites1);
-        else if (node2.nodeName === 'each') binder = new Each(node2, this, context1, rewrites1);
-        else if (node2.nodeName === 'value') binder = new Value(node2, this, context1, rewrites1);
-        else if (node2.nodeName === 'inherit') binder = new inherit(node2, this, context1, rewrites1);
-        else if (node2.nodeName === 'checked') binder = new Checked(node2, this, context1, rewrites1);
-        else if (node2.nodeName.startsWith('on')) binder = new On(node2, this, context1, rewrites1);
-        else binder = new Standard(node2, this, context1, rewrites1);
+        if (node2.nodeName === '#text') binder = new Text(node2, this, context1);
+        else if (node2.nodeName === 'html') binder = new Html(node2, this, context1);
+        else if (node2.nodeName === 'each') binder = new Each(node2, this, context1);
+        else if (node2.nodeName === 'value') binder = new Value(node2, this, context1);
+        else if (node2.nodeName === 'inherit') binder = new inherit(node2, this, context1);
+        else if (node2.nodeName === 'checked') binder = new Checked(node2, this, context1);
+        else if (node2.nodeName.startsWith('on')) binder = new On(node2, this, context1);
+        else binder = new Standard(node2, this, context1);
         for(let i = 0; i < binder.references.length; i++){
-            if (rewrites1) {
-                let rewrite;
-                for (rewrite of rewrites1){
-                    binder.references[i] = binder.references[i].replace(rewrite[0], rewrite[1]);
-                }
-            }
             if (this.binders.has(binder.references[i])) {
                 this.binders.get(binder.references[i]).add(binder);
             } else {
@@ -865,13 +873,13 @@ class XElement extends HTMLElement {
             }
         }
     }
-    register(node, context, rewrites) {
+    register(node, context) {
         if (node.nodeType === FRAGMENT) {
             let child = node.firstChild, register;
             while(child){
                 register = child;
                 child = node.nextSibling;
-                this.register(register, context, rewrites);
+                this.register(register, context);
             }
         } else if (node.nodeType === TEXT) {
             const start = node.nodeValue?.indexOf(this.#syntaxStart) ?? -1;
@@ -881,28 +889,28 @@ class XElement extends HTMLElement {
             if (end === -1) return;
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
                 const split = node.splitText(end + this.#syntaxLength);
-                this.#add(node, context, rewrites);
-                this.register(split, context, rewrites);
+                this.#add(node, context);
+                this.register(split, context);
             } else {
-                this.#add(node, context, rewrites);
+                this.#add(node, context);
             }
         } else if (node.nodeType === ELEMENT) {
             const inherit1 = node.attributes.getNamedItem('inherit');
-            if (inherit1) this.#add(inherit1, context, rewrites);
+            if (inherit1) this.#add(inherit1, context);
             const each = node.attributes.getNamedItem('each');
-            if (each) this.#add(each, context, rewrites);
+            if (each) this.#add(each, context);
             if (!each && !inherit1) {
                 let child = node.firstChild, register;
                 while(child){
                     register = child;
                     child = child.nextSibling;
-                    this.register(register, context, rewrites);
+                    this.register(register, context);
                 }
             }
             let attribute;
             for (attribute of node.attributes){
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
-                    this.#add(attribute, context, rewrites);
+                    this.#add(attribute, context);
                 }
             }
         } else {
