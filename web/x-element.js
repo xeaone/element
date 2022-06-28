@@ -462,9 +462,9 @@ class Each extends Binder {
         }
         if (this.meta.currentLength > this.meta.targetLength) {
             while(this.meta.currentLength > this.meta.targetLength){
-                let count = this.meta.templateLength;
+                let count = this.meta.templateLength, node;
                 while(count--){
-                    const node = owner.lastChild;
+                    node = owner.lastChild;
                     if (node) {
                         owner.removeChild(node);
                         this.release(node);
@@ -474,9 +474,9 @@ class Each extends Binder {
             }
         } else if (this.meta.currentLength < this.meta.targetLength) {
             while(this.meta.currentLength < this.meta.targetLength){
+                const clone = this.meta.templateElement.content.cloneNode(true);
                 const keyValue = this.meta.keys[this.meta.currentLength] ?? this.meta.currentLength;
                 const indexValue = this.meta.currentLength++;
-                const clone = this.meta.templateElement.content.cloneNode(true);
                 const rewrites = [
                     ...this.rewrites,
                     [
