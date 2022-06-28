@@ -6,9 +6,14 @@ const promise = Promise.resolve();
 function tick(method) {
     return promise.then(method);
 }
-const dataGet = function(event, reference, target, key) {
-    if (typeof key === 'symbol') return target[key];
-    const value = Reflect.get(target, key);
+const dataHas = function(target, key) {
+    if (typeof key === 'string' && key.startsWith('$')) return false;
+    return Reflect.has(target, key);
+};
+const dataGet = function(event, reference, target, key, receiver) {
+    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+    if (!reference && key.startsWith('$')) return undefined;
+    const value = Reflect.get(target, key, receiver);
     if (value && typeof value === 'object') {
         reference = reference ? `${reference}.${key}` : `${key}`;
         return new Proxy(value, {
@@ -20,26 +25,24 @@ const dataGet = function(event, reference, target, key) {
     return value;
 };
 const dataDelete = function(event, reference, target, key) {
-    if (typeof key === 'symbol') return true;
-    if (target instanceof Array) {
-        target.splice(key, 1);
-    } else {
-        Reflect.deleteProperty(target, key);
-    }
+    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
+    if (!reference && key.startsWith('$')) return true;
+    Reflect.deleteProperty(target, key);
     tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'reset'));
     return true;
 };
-const dataSet = function(event, reference, target, key, to) {
-    if (typeof key === 'symbol') return true;
-    const from = Reflect.get(target, key);
+const dataSet = function(event, reference, target, key, to, receiver) {
+    if (typeof key === 'symbol') return Reflect.set(target, key, receiver);
+    if (!reference && key.startsWith('$')) return true;
+    const from = Reflect.get(target, key, receiver);
     if (key === 'length') {
         tick(event.bind(null, reference, 'render'));
         tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
-        return true;
+        return Reflect.set(target, key, to, receiver);
     } else if (from === to || isNaN(from) && to === isNaN(to)) {
-        return true;
+        return Reflect.set(target, key, to, receiver);
     }
-    Reflect.set(target, key, to);
+    Reflect.set(target, key, to, receiver);
     tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
     return true;
 };
@@ -59,7 +62,7 @@ const referenceMatch = new RegExp([
     '((?:^|}}).*?{{)',
     '(}}.*?(?:{{|$))',
     `(
-        (?:\\$assignee|\\$instance|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|event|
         this|window|document|console|location|
         globalThis|Infinity|NaN|undefined|
         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
@@ -84,23 +87,6 @@ const bracketPattern = /({{)|(}})/;
 const stringPattern = /(".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)/;
 const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
 const codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, 'g');
-const get = function(references, reference, target, key) {
-    if (typeof key !== 'string') return target[key];
-    let value;
-    const rewrite = target[`$$${key}`];
-    if (rewrite) {
-        key = `${rewrite[0]}.${rewrite[1]}`;
-        value = target[rewrite[0]][rewrite[1]];
-        references.push(reference ? `${reference}.${rewrite[0]}` : rewrite[0]);
-    } else {
-        value = target[key];
-    }
-    reference = reference ? `${reference}.${key}` : key;
-    references.push(reference);
-    return typeof value === 'object' ? new Proxy(value, {
-        get: get.bind(null, references, reference)
-    }) : value;
-};
 class Binder {
     static handlers = [
         'on',
@@ -114,23 +100,33 @@ class Binder {
     ];
     static referenceCache = new Map();
     static computeCache = new Map();
-    context;
     type;
     name;
     value;
-    node;
+    rewrites;
+    context;
+    instance;
+    code;
     owner;
+    node;
     container;
-    references = [];
+    references = new Set();
     compute;
-    meta = {};
+    meta;
     register;
     release;
-    constructor(node, container, context){
+    constructor(node, container, context, instance, rewrites){
+        this.meta = {};
         this.node = node;
         this.context = context;
         this.container = container;
         this.value = node.nodeValue ?? '';
+        this.rewrites = rewrites ? [
+            ...rewrites
+        ] : [];
+        this.instance = instance ? {
+            ...instance
+        } : {};
         this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
         this.owner = node.ownerElement ?? undefined;
         this.register = this.container.register.bind(this.container);
@@ -139,37 +135,32 @@ class Binder {
         this.node.nodeValue = '';
         const referenceCache = this.constructor.referenceCache.get(this.value);
         if (referenceCache) {
-            referenceCache.call(this.owner ?? this.node, new Proxy(this.context, {
-                get: get.bind(null, this.references, '')
-            }));
+            this.references = referenceCache;
         } else {
             const data = this.value;
-            let references = '';
+            const references = new Set();
             let match = referenceMatch.exec(data);
             while(match){
                 const reference = match[5];
-                if (reference) references += references ? `,${reference}` : reference;
+                if (reference) references.add(reference);
                 match = referenceMatch.exec(data);
             }
-            if (references.length) {
-                const referenceCache = new Function('$context', `with($context){(${references});}`);
-                this.constructor.referenceCache.set(data, referenceCache);
-                referenceCache.call(this.owner ?? this.node, new Proxy(this.context, {
-                    get: get.bind(null, this.references, '')
-                }));
+            if (references.size) {
+                this.constructor.referenceCache.set(this.value, references);
+                this.references = new Set(references);
             }
         }
         const compute = this.constructor.computeCache.get(this.value);
         if (compute) {
-            this.compute = compute.bind(this.owner ?? this.node, this.context);
+            this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
         } else {
             let reference = '';
             let assignment = '';
-            let code = this.value;
+            this.code = this.value;
             const isValue = this.name === 'value';
             const isChecked = this.name === 'checked';
-            const convert = code.split(splitPattern).filter((part)=>part).length > 1;
-            code = code.replace(codePattern, (_match, str, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight)=>{
+            const convert = this.code.split(splitPattern).filter((part)=>part).length > 1;
+            this.code = this.code.replace(codePattern, (_match, str, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight)=>{
                 if (str) return str;
                 if (bracketLeft) return convert ? `' + (` : '(';
                 if (bracketRight) return convert ? `) + '` : ')';
@@ -183,23 +174,22 @@ class Binder {
                 console.warn('possible compute issue');
                 return '';
             }) ?? '';
-            code = convert ? `'${code}'` : code;
-            code = (reference && isValue ? `$value = $assignment ? $value : ${reference};\n` : '') + (reference && isChecked ? `$checked = $assignment ? $checked : ${reference};\n` : '') + `return ${assignment ? `$assignment ? ${code} : ${assignment}` : `${code}`};`;
-            code = `
+            this.code = convert ? `'${this.code}'` : this.code;
+            this.code = (reference && isValue ? `$value = $assign ? $value : ${reference};\n` : '') + (reference && isChecked ? `$checked = $assign ? $checked : ${reference};\n` : '') + `return ${assignment ? `$assign ? ${this.code} : ${assignment}` : `${this.code}`};`;
+            this.code = `
             try {
-                $instance = $instance || {};
                 with ($context) {
                     with ($instance) {
-                        ${code}
+                        ${this.code}
                     }
                 }
             } catch (error){
                 console.error(error);
             }
             `;
-            const compute = new Function('$context', '$instance', code);
+            const compute = new Function('$context', '$instance', this.code);
             this.constructor.computeCache.set(this.value, compute);
-            this.compute = compute.bind(this.owner ?? this.node, this.context);
+            this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
         }
     }
 }
@@ -307,11 +297,11 @@ class Checked extends Binder {
      #handler(event) {
         const owner = this.owner;
         const checked = owner.checked;
-        const computed = this.compute({
-            $event: event,
-            $checked: checked,
-            $assignment: !!event
-        });
+        this.instance.event = event;
+        this.instance.$event = event;
+        this.instance.$assign = !!event;
+        this.instance.$checked = checked;
+        const computed = this.compute();
         if (computed) {
             owner.setAttributeNode(this.node);
         } else {
@@ -355,41 +345,22 @@ const parseable = function(value) {
 const input = function(binder, event1) {
     const { owner  } = binder;
     const { type  } = owner;
+    binder.instance.$event = event1;
+    binder.instance.$assign = true;
     if (type === 'select-one') {
         const [option] = owner.selectedOptions;
-        const value = option ? '$value' in option ? option.$value : option.value : undefined;
-        owner.$value = binder.compute({
-            event: event1,
-            $event: event1,
-            $value: value,
-            $assignment: true
-        });
+        binder.instance.$value = option ? '$value' in option ? option.$value : option.value : undefined;
+        owner.$value = binder.compute();
     } else if (type === 'select-multiple') {
-        const value = Array.prototype.map.call(owner.selectedOptions, (o)=>'$value' in o ? o.$value : o.value);
-        owner.$value = binder.compute({
-            event: event1,
-            $event: event1,
-            $value: value,
-            $assignment: true
-        });
+        binder.instance.$value = Array.prototype.map.call(owner.selectedOptions, (o)=>'$value' in o ? o.$value : o.value);
+        owner.$value = binder.compute();
     } else if (type === 'number' || type === 'range' || __default1.includes(type)) {
-        const value = '$value' in owner && typeof owner.$value === 'number' ? owner.valueAsNumber : owner.value;
-        owner.$value = binder.compute({
-            event: event1,
-            $event: event1,
-            $value: value,
-            $assignment: true
-        });
+        binder.instance.$value = '$value' in owner && typeof owner.$value === 'number' ? owner.valueAsNumber : owner.value;
+        owner.$value = binder.compute();
     } else {
-        const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
-        const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
-        owner.$value = binder.compute({
-            event: event1,
-            $event: event1,
-            $value: value,
-            $checked: checked,
-            $assignment: true
-        });
+        binder.instance.$value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
+        binder.instance.$checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
+        owner.$value = binder.compute();
     }
 };
 class Value extends Binder {
@@ -400,13 +371,11 @@ class Value extends Binder {
             meta.setup = true;
             this.owner?.addEventListener('input', (event2)=>input(this, event2));
         }
-        const computed = this.compute({
-            event: undefined,
-            $event: undefined,
-            $value: undefined,
-            $checked: undefined,
-            $assignment: false
-        });
+        this.instance.$assign = false;
+        this.instance.$event = undefined;
+        this.instance.$value = undefined;
+        this.instance.$checked = undefined;
+        const computed = this.compute();
         let display;
         if (type === 'select-one') {
             const owner = this.owner;
@@ -448,34 +417,6 @@ class Value extends Binder {
     }
 }
 const whitespace = /\s+/;
-const eachHas = function(variable, indexName, keyName, target, key) {
-    return key === variable || key === `$$${variable}` || key === indexName || key === keyName || key === '$index' || key === '$item' || key === '$key' || Reflect.has(target, key);
-};
-const eachSet = function(reference, variable, indexName, keyName, keyValue, target, key, value) {
-    if (key === variable || key === '$item') {
-        return Reflect.set(Reflect.get(target, reference), keyValue, value);
-    } else if (key === indexName || key === keyName) {
-        return true;
-    }
-    return Reflect.set(target, key, value);
-};
-const eachGet = function(reference, variable, indexName, indexValue, keyName, keyValue, target, key) {
-    if (key === `$$${variable}`) {
-        return [
-            reference,
-            keyValue
-        ];
-    } else if (key === variable || key === '$item') {
-        return Reflect.get(Reflect.get(target, reference), keyValue);
-    } else if (key === indexName || key === '$index') {
-        return indexValue;
-    } else if (key === keyName || key === '$key') {
-        console.log(key, keyValue);
-        return keyValue;
-    } else {
-        return Reflect.get(target, key);
-    }
-};
 class Each extends Binder {
     reset() {
         const owner = this.node.ownerElement;
@@ -504,7 +445,7 @@ class Each extends Binder {
             this.meta.templateElement = document.createElement('template');
             let node = owner.firstChild;
             while(node){
-                if (node.nodeType === 3 && whitespace.test(node.nodeValue)) {
+                if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue)) {
                     owner.removeChild(node);
                 } else {
                     this.meta.templateLength++;
@@ -536,17 +477,27 @@ class Each extends Binder {
             while(this.meta.currentLength < this.meta.targetLength){
                 const keyValue = this.meta.keys[this.meta.currentLength] ?? this.meta.currentLength;
                 const indexValue = this.meta.currentLength++;
-                const context = new Proxy(this.context, {
-                    has: eachHas.bind(null, this.meta.variable, this.meta.indexName, this.meta.keyName),
-                    set: eachSet.bind(null, this.meta.reference, this.meta.variable, this.meta.indexName, this.meta.keyName, keyValue),
-                    get: eachGet.bind(null, this.meta.reference, this.meta.variable, this.meta.indexName, indexValue, this.meta.keyName, keyValue)
-                });
                 const clone = this.meta.templateElement.content.cloneNode(true);
+                const rewrites = [
+                    ...this.rewrites,
+                    [
+                        this.meta.variable,
+                        `${this.meta.reference}.${keyValue}`
+                    ]
+                ];
+                const instance = {
+                    ...this.instance,
+                    [this.meta.keyName]: keyValue,
+                    [this.meta.indexName]: indexValue,
+                    get [this.meta.variable] () {
+                        return data[keyValue];
+                    }
+                };
                 let node = clone.firstChild, child;
                 while(node){
                     child = node;
                     node = node.nextSibling;
-                    this.register(child, context);
+                    this.register(child, this.context, instance, rewrites);
                 }
                 this.meta.queueElement.content.appendChild(clone);
             }
@@ -644,11 +595,10 @@ const submit = async function(event3, binder) {
             }
         }
     }
-    await binder.compute({
-        event: event3,
-        $form: form,
-        $event: event3
-    });
+    binder.instance.event = event3;
+    binder.instance.$event = event3;
+    binder.instance.$form = form;
+    await binder.compute();
     if (target.hasAttribute('reset')) {
         for (const element of elements){
             const { type , name  } = element;
@@ -677,10 +627,9 @@ const reset = async function(event4, binder) {
         else element.value = '';
         element.dispatchEvent(new Event('input'));
     }
-    await binder.compute({
-        event: event4,
-        $event: event4
-    });
+    binder.instance.event = event4;
+    binder.instance.$event = event4;
+    await binder.compute();
     return false;
 };
 class On extends Binder {
@@ -696,10 +645,9 @@ class On extends Binder {
             } else if (name === 'submit') {
                 return submit(event5, this);
             } else {
-                return this.compute({
-                    event: event5,
-                    $event: event5
-                });
+                this.instance.event = event5;
+                this.instance.$event = event5;
+                return this.compute();
             }
         };
         this.owner?.addEventListener(name, this.meta.method);
@@ -715,9 +663,6 @@ class On extends Binder {
 function dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
-const TEXT = Node.TEXT_NODE;
-const ELEMENT = Node.ELEMENT_NODE;
-const FRAGMENT = Node.DOCUMENT_FRAGMENT_NODE;
 if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
     (function attachShadowRoots(root) {
         const templates = root.querySelectorAll('template[shadowroot]');
@@ -743,14 +688,14 @@ class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
     static observedProperties = [];
-    #mutator;
     #data = {};
     #setup = false;
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
-    binders = new Map();
     #syntaxMatch = new RegExp('{{.*?}}');
+    #binders = new Map();
+    #mutator = new MutationObserver(this.#mutation.bind(this));
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
     #connectedEvent = new Event('connected');
@@ -764,7 +709,6 @@ class XElement extends HTMLElement {
         if (!this.shadowRoot) this.attachShadow({
             mode: 'open'
         });
-        this.#mutator = new MutationObserver(this.#mutation.bind(this));
         this.#mutator.observe(this, {
             childList: true
         });
@@ -789,9 +733,10 @@ class XElement extends HTMLElement {
             });
         }
         this.#data = new Proxy(data, {
-            get: dataGet.bind(null, dataEvent.bind(null, this.binders), ''),
-            set: dataSet.bind(null, dataEvent.bind(null, this.binders), ''),
-            deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.binders), '')
+            has: dataHas.bind(null),
+            get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
+            set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
+            deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
         });
         let shadowNode = this.shadowRoot?.firstChild;
         while(shadowNode){
@@ -818,49 +763,50 @@ class XElement extends HTMLElement {
         }
     }
      #remove(node3) {
-        const binders = this.binders.get(node3);
+        const binders = this.#binders.get(node3);
         if (!binders) return;
         for (const binder of binders){
             for (const reference of binder.references){
-                this.binders.get(reference)?.delete(binder);
-                if (!this.binders.get(reference)?.size) this.binders.delete(reference);
+                this.#binders.get(reference)?.delete(binder);
+                if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
             }
         }
-        this.binders.delete(node3);
+        this.#binders.delete(node3);
     }
-     #add(node2, context1) {
-        if (this.binders.has(node2)) return console.warn(node2);
+     #add(node2, context1, instance1, rewrites1) {
         let binder;
-        if (node2.nodeName === '#text') binder = new Text(node2, this, context1);
-        else if (node2.nodeName === 'html') binder = new Html(node2, this, context1);
-        else if (node2.nodeName === 'each') binder = new Each(node2, this, context1);
-        else if (node2.nodeName === 'value') binder = new Value(node2, this, context1);
-        else if (node2.nodeName === 'inherit') binder = new inherit(node2, this, context1);
-        else if (node2.nodeName === 'checked') binder = new Checked(node2, this, context1);
-        else if (node2.nodeName.startsWith('on')) binder = new On(node2, this, context1);
-        else binder = new Standard(node2, this, context1);
-        for(let i = 0; i < binder.references.length; i++){
-            if (this.binders.has(binder.references[i])) {
-                this.binders.get(binder.references[i]).add(binder);
-            } else {
-                this.binders.set(binder.references[i], new Set([
+        if (node2.nodeName === '#text') binder = new Text(node2, this, context1, instance1, rewrites1);
+        else if (node2.nodeName === 'html') binder = new Html(node2, this, context1, instance1, rewrites1);
+        else if (node2.nodeName === 'each') binder = new Each(node2, this, context1, instance1, rewrites1);
+        else if (node2.nodeName === 'value') binder = new Value(node2, this, context1, instance1, rewrites1);
+        else if (node2.nodeName === 'inherit') binder = new inherit(node2, this, context1, instance1, rewrites1);
+        else if (node2.nodeName === 'checked') binder = new Checked(node2, this, context1, instance1, rewrites1);
+        else if (node2.nodeName.startsWith('on')) binder = new On(node2, this, context1, instance1, rewrites1);
+        else binder = new Standard(node2, this, context1, instance1, rewrites1);
+        for (let reference of binder.references){
+            if (rewrites1) {
+                for (const [name, value] of rewrites1){
+                    if (reference === name) reference = value;
+                    else if (reference.startsWith(name + '.')) reference = value + reference.slice(name.length);
+                }
+            }
+            if (!this.#binders.get(reference)?.add(binder)?.size) {
+                this.#binders.set(reference, new Set([
                     binder
                 ]));
             }
         }
-        if (this.binders.has(binder.owner || binder.node)) {
-            this.binders.get(binder.owner || binder.node).add(binder);
-        } else {
-            this.binders.set(binder.owner || binder.node, new Set([
+        if (!this.#binders.get(binder.owner ?? binder.node)?.add(binder)?.size) {
+            this.#binders.set(binder.owner ?? binder.node, new Set([
                 binder
             ]));
         }
         binder.render();
     }
     release(node) {
-        if (node.nodeType === TEXT) {
+        if (node.nodeType === Node.TEXT_NODE) {
             this.#remove(node);
-        } else if (node.nodeType === ELEMENT) {
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
             this.#remove(node);
             const attributes = node.attributes;
             for (const attribute of attributes){
@@ -873,15 +819,15 @@ class XElement extends HTMLElement {
             }
         }
     }
-    register(node, context) {
-        if (node.nodeType === FRAGMENT) {
+    register(node, context, instance, rewrites) {
+        if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
             let child = node.firstChild, register;
             while(child){
                 register = child;
                 child = node.nextSibling;
-                this.register(register, context);
+                this.register(register, context, instance, rewrites);
             }
-        } else if (node.nodeType === TEXT) {
+        } else if (node.nodeType === node.TEXT_NODE) {
             const start = node.nodeValue?.indexOf(this.#syntaxStart) ?? -1;
             if (start === -1) return;
             if (start !== 0) node = node.splitText(start);
@@ -889,32 +835,31 @@ class XElement extends HTMLElement {
             if (end === -1) return;
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
                 const split = node.splitText(end + this.#syntaxLength);
-                this.#add(node, context);
-                this.register(split, context);
+                this.#add(node, context, instance, rewrites);
+                this.register(split, context, instance, rewrites);
             } else {
-                this.#add(node, context);
+                this.#add(node, context, instance, rewrites);
             }
-        } else if (node.nodeType === ELEMENT) {
+        } else if (node.nodeType === node.ELEMENT_NODE) {
             const inherit1 = node.attributes.getNamedItem('inherit');
-            if (inherit1) this.#add(inherit1, context);
+            if (inherit1) this.#add(inherit1, context, instance, rewrites);
             const each = node.attributes.getNamedItem('each');
-            if (each) this.#add(each, context);
+            if (each) this.#add(each, context, instance, rewrites);
             if (!each && !inherit1) {
                 let child = node.firstChild, register;
                 while(child){
                     register = child;
                     child = child.nextSibling;
-                    this.register(register, context);
+                    this.register(register, context, instance, rewrites);
                 }
             }
-            let attribute;
-            for (attribute of node.attributes){
+            for (const attribute of node.attributes){
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
-                    this.#add(attribute, context);
+                    this.#add(attribute, context, instance, rewrites);
                 }
             }
         } else {
-            console.warn('not valid node type');
+            console.warn('node type not valid');
         }
     }
     adoptedCallback() {

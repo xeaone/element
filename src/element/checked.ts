@@ -1,6 +1,5 @@
 import Binder from './binder.ts';
 
-
 export default class Checked extends Binder {
 
     static xRadioInputHandlerEvent = new CustomEvent('xRadioInputHandler');
@@ -43,7 +42,11 @@ export default class Checked extends Binder {
     #handler (event?: Event) {
         const owner = this.owner as HTMLInputElement;
         const checked = owner.checked;
-        const computed = this.compute({ $event: event, $checked: checked, $assignment: !!event });
+        this.instance.event = event;
+        this.instance.$event = event;
+        this.instance.$assign = !!event;
+        this.instance.$checked = checked;
+        const computed = this.compute();
 
         if (computed) {
             owner.setAttributeNode(this.node as Attr);

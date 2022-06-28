@@ -8,36 +8,27 @@ const parseable = function (value: any) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
 };
 
-// const stampFromView = function (data: number) {
-//     const date = new Date(data);
-//     return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
-//         date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
-// };
-
-// const stampToView = function (data: number) {
-//     const date = new Date(data);
-//     return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),
-//         date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds())).getTime();
-// };
-
 const input = function (binder: any, event: Event) {
     const { owner } = binder;
     const { type } = owner;
 
+    binder.instance.$event = event;
+    binder.instance.$assign = true;
+
     if (type === 'select-one') {
         const [ option ] = owner.selectedOptions;
-        const value = option ? '$value' in option ? option.$value : option.value : undefined;
-        owner.$value = binder.compute({ event, $event: event, $value: value, $assignment: true });
+        binder.instance.$value = option ? '$value' in option ? option.$value : option.value : undefined;
+        owner.$value = binder.compute();
     } else if (type === 'select-multiple') {
-        const value = Array.prototype.map.call(owner.selectedOptions, o => '$value' in o ? o.$value : o.value);
-        owner.$value = binder.compute({ event, $event: event, $value: value, $assignment: true });
+        binder.instance.$value = Array.prototype.map.call(owner.selectedOptions, o => '$value' in o ? o.$value : o.value);
+        owner.$value = binder.compute();
     } else if (type === 'number' || type === 'range' || date.includes(type)) {
-        const value = '$value' in owner && typeof owner.$value === 'number' ? owner.valueAsNumber : owner.value;
-        owner.$value = binder.compute({ event, $event: event, $value: value, $assignment: true });
+        binder.instance.$value = '$value' in owner && typeof owner.$value === 'number' ? owner.valueAsNumber : owner.value;
+        owner.$value = binder.compute();
     } else {
-        const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
-        const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
-        owner.$value = binder.compute({ event, $event: event, $value: value, $checked: checked, $assignment: true });
+        binder.instance.$value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
+        binder.instance.$checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
+        owner.$value = binder.compute();
     }
 
 };
@@ -53,7 +44,11 @@ export default class Value extends Binder {
             this.owner?.addEventListener('input', event => input(this, event));
         }
 
-        const computed = this.compute({ event: undefined, $event: undefined, $value: undefined, $checked: undefined, $assignment: false });
+        this.instance.$assign = false;
+        this.instance.$event = undefined;
+        this.instance.$value = undefined;
+        this.instance.$checked = undefined;
+        const computed = this.compute();
 
         let display;
         if (type === 'select-one') {

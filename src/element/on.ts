@@ -66,7 +66,10 @@ const submit = async function (event: Event, binder: Binder) {
 
     }
 
-    await binder.compute({ event, $form: form, $event: event });
+    binder.instance.event = event;
+    binder.instance.$event = event;
+    binder.instance.$form = form;
+    await binder.compute();
 
     if (target.hasAttribute('reset')) {
         for (const element of elements) {
@@ -101,7 +104,9 @@ const reset = async function (event: Event, binder: Binder) {
         element.dispatchEvent(new Event('input'));
     }
 
-    await binder.compute({ event, $event: event });
+    binder.instance.event = event;
+    binder.instance.$event = event;
+    await binder.compute();
 
     return false;
 };
@@ -122,7 +127,9 @@ export default class On extends Binder {
             } else if (name === 'submit') {
                 return submit(event, this);
             } else {
-                return this.compute({ event, $event: event });
+                this.instance.event = event;
+                this.instance.$event = event;
+                return this.compute();
             }
         };
 

@@ -1,13 +1,18 @@
 import tick from './tick.ts';
 
-// type DataEvent<T> = T extends (arg: infer T) => any ? T : never;
-type DataKeys = string | number | symbol;
+type DataKeys = string | symbol;
 type DataHandlers = 'render' | 'reset';
 
-export const dataGet = function (event: any, reference: string, target: any, key: DataKeys): any {
-    if (typeof key === 'symbol') return target[ key ];
+export const dataHas = function (target: any, key: DataKeys) {
+    if (typeof key === 'string' && key.startsWith('$')) return false;
+    return Reflect.has(target, key);
+};
 
-    const value = Reflect.get(target, key);
+export const dataGet = function (event: any, reference: string, target: any, key: DataKeys, receiver: any): any {
+    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+    if (!reference && key.startsWith('$')) return undefined;
+
+    const value = Reflect.get(target, key, receiver);
 
     if (value && typeof value === 'object') {
         reference = reference ? `${reference}.${key}` : `${key}`;
@@ -22,33 +27,31 @@ export const dataGet = function (event: any, reference: string, target: any, key
 };
 
 export const dataDelete = function (event: any, reference: string, target: any, key: DataKeys) {
-    if (typeof key === 'symbol') return true;
+    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
+    if (!reference && key.startsWith('$')) return true;
 
-    if (target instanceof Array) {
-        target.splice((key as number), 1);
-    } else {
-        Reflect.deleteProperty(target, key);
-    }
+    Reflect.deleteProperty(target, key);
 
     tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'reset'));
 
     return true;
 };
 
-export const dataSet = function (event: any, reference: string, target: any, key: DataKeys, to: any) {
-    if (typeof key === 'symbol') return true;
+export const dataSet = function (event: any, reference: string, target: any, key: DataKeys, to: any, receiver: any) {
+    if (typeof key === 'symbol') return Reflect.set(target, key, receiver);
+    if (!reference && key.startsWith('$')) return true;
 
-    const from = Reflect.get(target, key);
+    const from = Reflect.get(target, key, receiver);
 
     if (key === 'length') {
         tick(event.bind(null, reference, 'render'));
         tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
-        return true;
+        return Reflect.set(target, key, to, receiver);
     } else if (from === to || isNaN(from) && to === isNaN(to)) {
-        return true;
+        return Reflect.set(target, key, to, receiver);
     }
 
-    Reflect.set(target, key, to);
+    Reflect.set(target, key, to, receiver);
     tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, 'render'));
 
     return true;
