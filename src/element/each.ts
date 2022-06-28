@@ -55,7 +55,7 @@ export default class Each extends Binder {
             this.meta.targetLength = this.meta.keys.length;
         }
 
-        console.time('each');
+        // console.time('each');
         if (this.meta.currentLength > this.meta.targetLength) {
             while (this.meta.currentLength > this.meta.targetLength) {
                 let count = this.meta.templateLength;
@@ -106,7 +106,7 @@ export default class Each extends Binder {
                 this.meta.queueElement.content.appendChild(clone);
             }
         }
-        console.timeEnd('each');
+        // console.timeEnd('each');
 
         if (this.meta.currentLength === this.meta.targetLength) {
             owner.appendChild(this.meta.queueElement.content);

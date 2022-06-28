@@ -251,9 +251,6 @@ export default class XElement extends HTMLElement {
                 }
             }
 
-        } else {
-            console.warn('node type not valid');
-
         }
     }
 

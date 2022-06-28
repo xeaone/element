@@ -460,7 +460,6 @@ class Each extends Binder {
             this.meta.keys = Object.keys(data || {});
             this.meta.targetLength = this.meta.keys.length;
         }
-        console.time('each');
         if (this.meta.currentLength > this.meta.targetLength) {
             while(this.meta.currentLength > this.meta.targetLength){
                 let count = this.meta.templateLength;
@@ -502,7 +501,6 @@ class Each extends Binder {
                 this.meta.queueElement.content.appendChild(clone);
             }
         }
-        console.timeEnd('each');
         if (this.meta.currentLength === this.meta.targetLength) {
             owner.appendChild(this.meta.queueElement.content);
         }
@@ -858,8 +856,6 @@ class XElement extends HTMLElement {
                     this.#add(attribute, context, instance, rewrites);
                 }
             }
-        } else {
-            console.warn('node type not valid');
         }
     }
     adoptedCallback() {
