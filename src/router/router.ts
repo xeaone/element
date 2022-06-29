@@ -143,7 +143,8 @@ export default class XRouter extends HTMLElement {
             search: parser.search,
             protocol: parser.protocol,
             hostname: parser.hostname,
-            pathname: parser.pathname
+            // pathname: parser.pathname
+            pathname: `${parser.origin}${parser.pathname.replace(/\/$/, '')}`.replace(document.baseURI.replace(/\/$/, ''), '') || '/'
         };
     }
 
