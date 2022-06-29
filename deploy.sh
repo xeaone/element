@@ -7,6 +7,9 @@ if [ "$VERSION" = "" ]; then
     exit
 fi
 
+rm -r docs/*
+cp -r web/. docs/.
+
 deno bundle src/router/router.ts pro/x-router.js
 deno bundle src/element/element.ts pro/x-element.js
 

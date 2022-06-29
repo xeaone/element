@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.0.11
+// Version: 7.2.0
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com
@@ -163,7 +163,7 @@ class Binder {
         if (compute) {
             this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
         } else {
-            let reference = '';
+            let reference1 = '';
             let assignment = '';
             this.code = this.value;
             const isValue = this.name === 'value';
@@ -175,7 +175,7 @@ class Binder {
                 if (bracketRight) return convert ? `) + '` : ')';
                 if (assignee) {
                     if (isValue || isChecked) {
-                        reference = r;
+                        reference1 = r;
                         assignment = assigneeLeft + assigneeRight;
                     }
                     return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
@@ -184,7 +184,7 @@ class Binder {
                 return '';
             }) ?? '';
             this.code = convert ? `'${this.code}'` : this.code;
-            this.code = (reference && isValue ? `$value = $assign ? $value : ${reference};\n` : '') + (reference && isChecked ? `$checked = $assign ? $checked : ${reference};\n` : '') + `return ${assignment ? `$assign ? ${this.code} : ${assignment}` : `${this.code}`};`;
+            this.code = (reference1 && isValue ? `$value = $assign ? $value : ${reference1};\n` : '') + (reference1 && isChecked ? `$checked = $assign ? $checked : ${reference1};\n` : '') + `return ${assignment ? `$assign ? ${this.code} : ${assignment}` : `${this.code}`};`;
             this.code = `
             try {
                 with ($context) {
@@ -196,9 +196,9 @@ class Binder {
                 console.error(error);
             }
             `;
-            const compute = new Function('$context', '$instance', this.code);
-            this.constructor.computeCache.set(this.value, compute);
-            this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
+            const compute1 = new Function('$context', '$instance', this.code);
+            this.constructor.computeCache.set(this.value, compute1);
+            this.compute = compute1.bind(this.owner ?? this.node, this.context, this.instance);
         }
     }
 }
@@ -261,9 +261,9 @@ class Standard extends Binder {
             if (data) this.owner?.setAttributeNode(node);
             else this.owner?.removeAttribute(this.name);
         } else {
-            const data = format(this.compute());
-            this.owner[this.name] = data;
-            this.owner?.setAttribute(this.name, data);
+            const data1 = format(this.compute());
+            this.owner[this.name] = data1;
+            this.owner?.setAttribute(this.name, data1);
         }
     }
     reset() {
@@ -351,10 +351,10 @@ const defaultInputEvent = new Event('input');
 const parseable = function(value) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
 };
-const input = function(binder, event1) {
+const input = function(binder, event) {
     const { owner  } = binder;
     const { type  } = owner;
-    binder.instance.$event = event1;
+    binder.instance.$event = event;
     binder.instance.$assign = true;
     if (type === 'select-one') {
         const [option] = owner.selectedOptions;
@@ -378,7 +378,7 @@ class Value extends Binder {
         const { type  } = this.owner;
         if (!meta.setup) {
             meta.setup = true;
-            this.owner?.addEventListener('input', (event2)=>input(this, event2));
+            this.owner?.addEventListener('input', (event)=>input(this, event));
         }
         this.instance.$assign = false;
         this.instance.$event = undefined;
@@ -397,19 +397,19 @@ class Value extends Binder {
             display = format(computed);
             owner.value = display;
         } else if (type === 'select-multiple') {
-            const owner = this.owner;
-            Array.prototype.forEach.call(owner.options, (o)=>o.selected = computed?.includes('$value' in o ? o.$value : o.value));
+            const owner1 = this.owner;
+            Array.prototype.forEach.call(owner1.options, (o)=>o.selected = computed?.includes('$value' in o ? o.$value : o.value));
             display = format(computed);
         } else if (type === 'number' || type === 'range' || __default1.includes(type)) {
-            const owner = this.owner;
-            if (typeof computed === 'string') owner.value = computed;
-            else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
-            else owner.value = '';
-            display = owner.value;
+            const owner2 = this.owner;
+            if (typeof computed === 'string') owner2.value = computed;
+            else if (typeof computed === 'number' && !isNaN(computed)) owner2.valueAsNumber = computed;
+            else owner2.value = '';
+            display = owner2.value;
         } else {
-            const owner = this.owner;
+            const owner3 = this.owner;
             display = format(computed);
-            owner.value = display;
+            owner3.value = display;
         }
         this.owner.$value = computed;
         this.owner?.setAttribute('value', display);
@@ -471,12 +471,12 @@ class Each extends Binder {
         }
         if (this.meta.currentLength > this.meta.targetLength) {
             while(this.meta.currentLength > this.meta.targetLength){
-                let count = this.meta.templateLength, node;
+                let count = this.meta.templateLength, node1;
                 while(count--){
-                    node = owner.lastChild;
-                    if (node) {
-                        owner.removeChild(node);
-                        this.release(node);
+                    node1 = owner.lastChild;
+                    if (node1) {
+                        owner.removeChild(node1);
+                        this.release(node1);
                     }
                 }
                 this.meta.currentLength--;
@@ -501,10 +501,10 @@ class Each extends Binder {
                         return data[keyValue];
                     }
                 };
-                let node = clone.firstChild, child;
-                while(node){
-                    child = node;
-                    node = node.nextSibling;
+                let node2 = clone.firstChild, child;
+                while(node2){
+                    child = node2;
+                    node2 = node2.nextSibling;
                     this.register(child, this.context, instance, rewrites);
                 }
                 this.meta.queueElement.content.appendChild(clone);
@@ -565,10 +565,10 @@ const Value1 = function(element) {
     if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
     return element.value;
 };
-const submit = async function(event3, binder) {
-    event3.preventDefault();
+const submit = async function(event, binder) {
+    event.preventDefault();
     const form = {};
-    const target = event3.target?.form || event3.target;
+    const target = event.target?.form || event.target;
     const elements = target?.querySelectorAll('[name]');
     for (const element of elements){
         const { type , name , checked  } = element;
@@ -582,8 +582,8 @@ const submit = async function(event3, binder) {
                 value.push(Value1(option));
             }
         } else if (type === 'select-one') {
-            const [option] = element.selectedOptions;
-            value = Value1(option);
+            const [option1] = element.selectedOptions;
+            value = Value1(option1);
         } else {
             value = Value1(element);
         }
@@ -602,27 +602,27 @@ const submit = async function(event3, binder) {
             }
         }
     }
-    binder.instance.event = event3;
-    binder.instance.$event = event3;
+    binder.instance.event = event;
+    binder.instance.$event = event;
     binder.instance.$form = form;
     await binder.compute();
     if (target.hasAttribute('reset')) {
-        for (const element of elements){
-            const { type , name  } = element;
-            if (!name) continue;
-            else if (type === 'submit' || type === 'button') continue;
-            else if (type === 'select-one') element.selectedIndex = 0;
-            else if (type === 'select-multiple') element.selectedIndex = -1;
-            else if (type === 'radio' || type === 'checkbox') element.checked = false;
-            else element.value = '';
-            element.dispatchEvent(new Event('input'));
+        for (const element1 of elements){
+            const { type: type1 , name: name1  } = element1;
+            if (!name1) continue;
+            else if (type1 === 'submit' || type1 === 'button') continue;
+            else if (type1 === 'select-one') element1.selectedIndex = 0;
+            else if (type1 === 'select-multiple') element1.selectedIndex = -1;
+            else if (type1 === 'radio' || type1 === 'checkbox') element1.checked = false;
+            else element1.value = '';
+            element1.dispatchEvent(new Event('input'));
         }
     }
     return false;
 };
-const reset = async function(event4, binder) {
-    event4.preventDefault();
-    const target = event4.target?.form || event4.target;
+const reset = async function(event, binder) {
+    event.preventDefault();
+    const target = event.target?.form || event.target;
     const elements = target?.querySelectorAll('[name]');
     for (const element of elements){
         const { type , name  } = element;
@@ -634,8 +634,8 @@ const reset = async function(event4, binder) {
         else element.value = '';
         element.dispatchEvent(new Event('input'));
     }
-    binder.instance.event = event4;
-    binder.instance.$event = event4;
+    binder.instance.event = event;
+    binder.instance.$event = event;
     await binder.compute();
     return false;
 };
@@ -646,14 +646,14 @@ class On extends Binder {
         if (this.meta.method) {
             this.owner?.removeEventListener(name, this.meta.method);
         }
-        this.meta.method = (event5)=>{
+        this.meta.method = (event)=>{
             if (name === 'reset') {
-                return reset(event5, this);
+                return reset(event, this);
             } else if (name === 'submit') {
-                return submit(event5, this);
+                return submit(event, this);
             } else {
-                this.instance.event = event5;
-                this.instance.$event = event5;
+                this.instance.event = event;
+                this.instance.$event = event;
                 return this.compute();
             }
         };
@@ -753,9 +753,9 @@ class XElement extends HTMLElement {
         }
         let innerNode = this.firstChild;
         while(innerNode){
-            const node = innerNode;
-            innerNode = node.nextSibling;
-            this.register(node, this.#data);
+            const node1 = innerNode;
+            innerNode = node1.nextSibling;
+            this.register(node1, this.#data);
         }
     }
      #mutation(mutations) {
@@ -769,8 +769,8 @@ class XElement extends HTMLElement {
             }
         }
     }
-     #remove(node3) {
-        const binders = this.#binders.get(node3);
+     #remove(node2) {
+        const binders = this.#binders.get(node2);
         if (!binders) return;
         for (const binder of binders){
             for (const reference of binder.references){
@@ -778,37 +778,37 @@ class XElement extends HTMLElement {
                 if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
             }
         }
-        this.#binders.delete(node3);
+        this.#binders.delete(node2);
     }
-     #add(node2, context1, instance1, rewrites1) {
-        let binder;
-        if (node2.nodeName === '#text') binder = new Text(node2, this, context1, instance1, rewrites1);
-        else if (node2.nodeName === 'html') binder = new Html(node2, this, context1, instance1, rewrites1);
-        else if (node2.nodeName === 'each') binder = new Each(node2, this, context1, instance1, rewrites1);
-        else if (node2.nodeName === 'value') binder = new Value(node2, this, context1, instance1, rewrites1);
-        else if (node2.nodeName === 'inherit') binder = new inherit(node2, this, context1, instance1, rewrites1);
-        else if (node2.nodeName === 'checked') binder = new Checked(node2, this, context1, instance1, rewrites1);
-        else if (node2.nodeName.startsWith('on')) binder = new On(node2, this, context1, instance1, rewrites1);
-        else binder = new Standard(node2, this, context1, instance1, rewrites1);
-        for (let reference of binder.references){
-            if (rewrites1) {
-                for (const [name, value] of rewrites1){
-                    if (reference === name) reference = value;
-                    else if (reference.startsWith(name + '.')) reference = value + reference.slice(name.length);
+     #add(node3, context, instance, rewrites) {
+        let binder1;
+        if (node3.nodeName === '#text') binder1 = new Text(node3, this, context, instance, rewrites);
+        else if (node3.nodeName === 'html') binder1 = new Html(node3, this, context, instance, rewrites);
+        else if (node3.nodeName === 'each') binder1 = new Each(node3, this, context, instance, rewrites);
+        else if (node3.nodeName === 'value') binder1 = new Value(node3, this, context, instance, rewrites);
+        else if (node3.nodeName === 'inherit') binder1 = new inherit(node3, this, context, instance, rewrites);
+        else if (node3.nodeName === 'checked') binder1 = new Checked(node3, this, context, instance, rewrites);
+        else if (node3.nodeName.startsWith('on')) binder1 = new On(node3, this, context, instance, rewrites);
+        else binder1 = new Standard(node3, this, context, instance, rewrites);
+        for (let reference1 of binder1.references){
+            if (rewrites) {
+                for (const [name, value] of rewrites){
+                    if (reference1 === name) reference1 = value;
+                    else if (reference1.startsWith(name + '.')) reference1 = value + reference1.slice(name.length);
                 }
             }
-            if (!this.#binders.get(reference)?.add(binder)?.size) {
-                this.#binders.set(reference, new Set([
-                    binder
+            if (!this.#binders.get(reference1)?.add(binder1)?.size) {
+                this.#binders.set(reference1, new Set([
+                    binder1
                 ]));
             }
         }
-        if (!this.#binders.get(binder.owner ?? binder.node)?.add(binder)?.size) {
-            this.#binders.set(binder.owner ?? binder.node, new Set([
-                binder
+        if (!this.#binders.get(binder1.owner ?? binder1.node)?.add(binder1)?.size) {
+            this.#binders.set(binder1.owner ?? binder1.node, new Set([
+                binder1
             ]));
         }
-        binder.render();
+        binder1.render();
     }
     release(node) {
         if (node.nodeType === Node.TEXT_NODE) {
@@ -848,16 +848,16 @@ class XElement extends HTMLElement {
                 this.#add(node, context, instance, rewrites);
             }
         } else if (node.nodeType === node.ELEMENT_NODE) {
-            const inherit1 = node.attributes.getNamedItem('inherit');
-            if (inherit1) this.#add(inherit1, context, instance, rewrites);
+            const inherit = node.attributes.getNamedItem('inherit');
+            if (inherit) this.#add(inherit, context, instance, rewrites);
             const each = node.attributes.getNamedItem('each');
             if (each) this.#add(each, context, instance, rewrites);
-            if (!each && !inherit1) {
-                let child = node.firstChild, register;
-                while(child){
-                    register = child;
-                    child = child.nextSibling;
-                    this.register(register, context, instance, rewrites);
+            if (!each && !inherit) {
+                let child1 = node.firstChild, register1;
+                while(child1){
+                    register1 = child1;
+                    child1 = child1.nextSibling;
+                    this.register(register1, context, instance, rewrites);
                 }
             }
             for (const attribute of node.attributes){

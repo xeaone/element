@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <base href="/">
-    <script>document.querySelector('base').href = window.location.hostname === 'xeaone.github.io' ? '/element/' : '/';</script>
+    <script>document.querySelector('base').href = window.location.pathname.startsWith('/element') ? '/element/' : '/';</script>
     <meta charset="UTF-8">
     <meta name="theme-color" content="#2299ff">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">

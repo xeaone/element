@@ -112,7 +112,7 @@ class XRouter extends HTMLElement {
             search: parser.search,
             protocol: parser.protocol,
             hostname: parser.hostname,
-            pathname: parser.pathname
+            pathname: `${parser.origin}${parser.pathname.replace(/\/$/, '')}`.replace(document.baseURI.replace(/\/$/, ''), '') || '/'
         };
     }
     async #go(path, options) {
@@ -178,19 +178,19 @@ class XRouter extends HTMLElement {
         if (this.#onAfter) await this.#onAfter(location, element);
     }
     async #state(event) {
-        const { href , pathname  } = this.#location(event?.state?.href || window.location.href);
-        if (!href.startsWith(window.location.origin)) return;
+        const { href: href1 , pathname  } = this.#location(event?.state?.href || window.location.href);
+        if (!href1.startsWith(window.location.origin)) return;
         if (this.#paths.length && !this.#paths.includes(pathname)) return;
-        await this.replace(href);
+        await this.replace(href1);
         globalThis.scroll(event?.state?.top || 0, 0);
     }
-    async #click(event1, element) {
+    async #click(event1, element1) {
         if (event1.defaultPrevented || event1.button !== 0 || event1.altKey || event1.ctrlKey || event1.metaKey || event1.shiftKey) return;
-        if (element.hasAttribute('download') || element.hasAttribute('external') || element.hasAttribute('target') || element.href.startsWith('tel:') || element.href.startsWith('ftp:') || element.href.startsWith('file:)') || element.href.startsWith('mailto:') || !element.href.startsWith(window.location.origin)) return;
-        if (this.#paths.length && !this.#paths.includes(element.pathname)) return;
+        if (element1.hasAttribute('download') || element1.hasAttribute('external') || element1.hasAttribute('target') || element1.href.startsWith('tel:') || element1.href.startsWith('ftp:') || element1.href.startsWith('file:)') || element1.href.startsWith('mailto:') || !element1.href.startsWith(window.location.origin)) return;
+        if (this.#paths.length && !this.#paths.includes(element1.pathname)) return;
         event1.preventDefault();
-        if (element.href === window.location.href) return;
-        await this.assign(element.href);
+        if (element1.href === window.location.href) return;
+        await this.assign(element1.href);
         globalThis.scroll(0, 0);
     }
     async connectedCallback() {
