@@ -46,7 +46,7 @@ MyElement.define();
 
 ---
 ## Learn
-[https://xeaone.github.io/xelement/](https://xeaone.github.io/xelement/)
+[https://xeaone.github.io/element/](https://xeaone.github.io/element/)
 
 
 ---
