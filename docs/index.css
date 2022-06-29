@@ -81,6 +81,11 @@ h4 {
 	font-size: 1.5rem;
 }
 pre {
+    display: flex;
+    /* white-space: normal; */
+    flex-direction: column;
+
+    tab-size: 4;
     padding: 1rem;
     margin: 0.1rem;
 	overflow-x: auto;
@@ -88,17 +93,20 @@ pre {
 	font-family: monospace;
 	background-color: var(--layer1);
 }
-label {
-	display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* pre > * {
+    padding: 1rem;
+} */
 section {
     padding: 1rem;
     display: flex;
 	margin: 1rem auto;
 	max-width: 1000px;
     flex-direction: column;
+}
+label {
+	display: flex;
+    align-items: center;
+    justify-content: center;
 }
 button, input[type="submit"], input[type="button"] {
     border: none;
@@ -124,21 +132,35 @@ select, input:not([type="button"],[type="submit"]) {
     padding: 0.5rem;
     color: var(--font);
     background: var(--layer1);
+    border-radius: 3px;
+    border: 1px solid var(--layer2);
     border-bottom: 1px solid var(--accent);
 }
-x-route {
+[id$="-demo"]{
+    white-space: normal;
+}
+[slot="body"] {
+/* x-route { */
     width: 100%;
     display: block;
     padding: 0 5vw;
 	margin: 5vh auto;
 	max-width: 1200px;
 }
-x-route:defined {
-    opacity: 1;
+x-router {
+    width: 100%;
+    display: block;
     transition: opacity 300ms ease-in-out;
 }
-x-route:not(:defined) {
+:defined {
+    opacity: 1;
+    box-sizing: border-box;
+    transition: opacity 300ms ease-in-out;
+}
+:not(:defined) {
     opacity: 0;
+    box-sizing: border-box;
+    transition: opacity 300ms ease-in-out;
 }
 .title {
 	display: block;

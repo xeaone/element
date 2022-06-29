@@ -1,4 +1,4 @@
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/xeaone/xelement.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/xelement/alerts/)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/xeaone/element.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/element/alerts/)
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/xeaone/element.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/element/context:javascript)
 
 # X-Element
@@ -51,11 +51,11 @@ MyElement.define();
 
 ---
 ## Use
-[https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-router.js](https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-router.js)
+[https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-router.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-router.js)
 
-[https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-element.js)
+[https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js)
 
-Originally called Oxe and still available on the [oxe branch](https://github.com/xeaone/xelement/tree/oxe)
+Originally called Oxe and still available on the [oxe branch](https://github.com/xeaone/element/tree/oxe)
 
 
 ---

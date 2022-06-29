@@ -13,9 +13,11 @@ link.href = '/theme.css';
 document.head.append(link);
 
 export default function (data, type) {
-    if (data) {
+    if (typeof data === 'string') {
         return hljs.highlight(data, { language: type ?? 'html' }).value;
+    } else if (data instanceof HTMLElement) {
+        return hljs.highlightElement(data);
     } else {
-        requestAnimationFrame(() => hljs.highlightAll());
+        return hljs.highlightAll();
     }
 }
