@@ -1,5 +1,5 @@
 ### 7.0.0
-- major changes api docs needs updates
+- major changes basically a complete rewrite
 
 ### 6.0.0
 - major changes api docs needs updates

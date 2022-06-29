@@ -17,15 +17,15 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/xeaone/oxe.git"
+        "url": "git+https://github.com/xeaone/xelement.git"
     },
     "author": "Alexander Elias",
     "email": "alex.steven.elis@gmail.com",
     "license": "MPL-2.0",
     "bugs": {
-        "url": "https://github.com/xeaone/oxe/issues"
+        "url": "https://github.com/xeaone/xelement/issues"
     },
-    "homepage": "https://github.com/xeaone/oxe#readme",
+    "homepage": "https://github.com/xeaone/xelement#readme",
     "keywords": [
         "web",
         "component",
@@ -44,7 +44,7 @@
         "front-end",
         "x-tag",
         "polymer",
-        "oxe",
+        "xelement",
         "element",
         "xelement"
     ],

@@ -1,6 +1,6 @@
 {
-    "name": "oxe",
-    "displayName": "oxe language syntax",
+    "name": "xelement",
+    "displayName": "xelement language syntax",
     "description": "",
     "version": "1.0.0",
     "publisher": "vokeio",
@@ -28,8 +28,8 @@
                     "source.ts",
                     "text.html"
                 ],
-                "scopeName": "inline.oxe-js-injection",
-                "path": "./syntaxes/oxe-js-injection.json",
+                "scopeName": "inline.xelement-js-injection",
+                "path": "./syntaxes/xelement-js-injection.json",
                 "embeddedLanguages": {
                     "meta.embedded.block.javascript": "javascript"
                 }

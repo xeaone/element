@@ -1,16 +1,69 @@
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/xeaone/oxe.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/oxe/alerts/)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/xeaone/xelement.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/xelement/alerts/)
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/xeaone/element.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/element/context:javascript)
 
-# XElement
+# X-Element
 
-[https://cdn.jsdelivr.net/gh/xeaone/oxe/pro/x-router.js](https://cdn.jsdelivr.net/gh/xeaone/oxe/pro/x-router.js)
-
-[https://cdn.jsdelivr.net/gh/xeaone/oxe/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/oxe/pro/x-element.js)
+### X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.
 
 
+---
+## Features
+
+- &#128118; Simple to learning if you know custom elements you know X-Element.
+
+- &#128230; Shareable A single class to build a single component or an entire app.
+
+- &#9889; Fast Tiny footprint ~15KB (minified and compressed).
+
+- &#127959; Framework Agnostic Use X-Element with any framework - React, Vue, Angular...
+
+
+---
+## Example
+```js
+import XElement from '/x-element.js';
+
+MyElement extends XElement {
+
+    static observedProperties = ['greeting','greet']
+
+    greeting: '',
+    greet () { this.greeting = 'Hello World'; }
+
+    constructor () {
+        super();
+        this.greeting = 'Hello World';
+        this.shadowRoot.innerHTML = `
+            <h1>{{title}}</h1>
+            <button onclick="{{greet()}}">Greet</button>;
+        `;
+    }
+
+}
+
+MyElement.define();
+```
+
+---
+## Learn
+[https://xeaone.github.io/xelement/](https://xeaone.github.io/xelement/)
+
+
+---
+## Use
+[https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-router.js](https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-router.js)
+
+[https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/xelement/pro/x-element.js)
+
+Originally called Oxe and still available on the [oxe branch](https://github.com/xeaone/xelement/tree/oxe)
+
+
+---
 ## Author
 [xeaone](https://github.com/xeaone)
 
+
+---
 ## License
 [Why You Should Choose MPL-2.0](http://veldstra.org/2016/12/09/you-should-choose-mpl2-for-your-opensource-project.html)
 This project is licensed under the MPL-2.0 License
