@@ -25,6 +25,15 @@ type Option = {
     onBefore?: OnBefore;
 };
 
+const Listener = (target: Element, name: string) => {
+    return new Promise((resolve) => {
+        target.addEventListener(name, function handle () {
+            target.removeEventListener(name, handle);
+            resolve(null);
+        });
+    });
+};
+
 export default class XRouter extends HTMLElement {
 
     static define (name?: string, constructor?: typeof XRouter) {
@@ -149,6 +158,8 @@ export default class XRouter extends HTMLElement {
     }
 
     async #go (path: string, options: { mode: 'push' | 'replace'; }) {
+        this.setAttribute('status', 'rendering');
+
         const mode = options?.mode || 'push';
         const location = this.#location(path);
 
@@ -159,7 +170,8 @@ export default class XRouter extends HTMLElement {
                 document.createElement(this.#names.get(location.pathname) as string);
         } else {
             const file = location.pathname.endsWith('/') ? `${location.pathname}root` : location.pathname;
-            const base = document.baseURI;
+            const name = 'x-router' + file.replace(/\/+/g, '-');
+            const base = window.document.baseURI;
             const load = `${base}/${this.#folder}/${file}.js`.replace(/\/+/g, '/');
 
             let component;
@@ -173,7 +185,6 @@ export default class XRouter extends HTMLElement {
                 }
             }
 
-            const name = 'x-router' + file.replace(/\/+/g, '-');
             customElements.define(name, component);
             element = document.createElement(name);
             this.#names.set(location.pathname, name);
@@ -184,7 +195,7 @@ export default class XRouter extends HTMLElement {
 
         globalThis.history.replaceState({
             href: window.location.href,
-            top: document.body.scrollTop || 0
+            top: window.document.body.scrollTop || 0
         }, '', window.location.href);
 
         if (mode === 'push') globalThis.history.pushState({ top: 0, href: location.href }, '', location.href);
@@ -197,11 +208,12 @@ export default class XRouter extends HTMLElement {
         if (element.keywords && keywords) keywords.setAttribute('content', element.keywords);
         if (element.description && description) description.setAttribute('content', element.description);
 
-        const nodes = this.childNodes as NodeListOf<any>;
+        const nodes = this.childNodes as NodeListOf<Element>;
         for (const node of nodes) {
-            if (node?.attributes?.slot?.value === 'body') {
+            const slot = node?.attributes?.getNamedItem('slot')?.value;
+            if (slot === 'body') {
                 while (node.firstChild) node.removeChild(node.firstChild);
-            } else if (node?.attributes?.slot?.value === 'head' || node?.attributes?.slot?.value === 'foot') {
+            } else if (slot === 'head' || slot === 'foot') {
                 continue;
             } else {
                 this.removeChild(node);
@@ -215,7 +227,11 @@ export default class XRouter extends HTMLElement {
             this.appendChild(element);
         }
 
+        if (element.isPrepared === false) await Listener(element, 'prepared');
+
+        this.setAttribute('status', 'rendered');
         if (this.#onAfter) await this.#onAfter(location, element);
+
     }
 
     async #state (event: PopStateEvent) {
@@ -258,25 +274,28 @@ export default class XRouter extends HTMLElement {
     async connectedCallback () {
         await this.replace(window.location.href);
 
-        this.#target.querySelectorAll('a').forEach((node) => node.addEventListener('click', this.#clickInstance, true));
+        this.#target.querySelectorAll('a').forEach(node => node.addEventListener('click', this.#clickInstance, true));
 
-        this.#observer = new MutationObserver((mutations) => mutations.forEach((mutation) => {
+        this.#observer = new MutationObserver(mutations => mutations.forEach(mutation => {
+
             const added = mutation.addedNodes as NodeListOf<HTMLElement>;
             for (const node of added) {
                 if (node.nodeName === 'A') node.addEventListener('click', this.#clickInstance, true);
                 if (node.hasChildNodes() || node?.shadowRoot?.hasChildNodes()) {
-                    node.querySelectorAll('a').forEach((n) => n.addEventListener('click', this.#clickInstance, true));
-                    node?.shadowRoot?.querySelectorAll('a').forEach((n) => n.addEventListener('click', this.#clickInstance, true));
+                    node.querySelectorAll('a').forEach(n => n.addEventListener('click', this.#clickInstance, true));
+                    node?.shadowRoot?.querySelectorAll('a').forEach(n => n.addEventListener('click', this.#clickInstance, true));
                 }
             }
+
             const removed = mutation.removedNodes as NodeListOf<HTMLElement>;
             for (const node of removed) {
                 if (node.nodeName === 'A') node.removeEventListener('click', this.#clickInstance, true);
                 if (node.hasChildNodes() || node?.shadowRoot?.hasChildNodes()) {
-                    node.querySelectorAll('a').forEach((n) => n.removeEventListener('click', this.#clickInstance, true));
-                    node?.shadowRoot?.querySelectorAll('a').forEach((n) => n.removeEventListener('click', this.#clickInstance, true));
+                    node.querySelectorAll('a').forEach(n => n.removeEventListener('click', this.#clickInstance, true));
+                    node?.shadowRoot?.querySelectorAll('a').forEach(n => n.removeEventListener('click', this.#clickInstance, true));
                 }
             }
+
         }));
 
         this.#observer.observe(this.#target, { childList: true, subtree: true });
