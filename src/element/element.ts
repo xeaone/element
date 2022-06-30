@@ -42,18 +42,25 @@ export default class XElement extends HTMLElement {
     }
 
     static observedProperties: Array<string> = [];
+    get isPrepared () { return this.#prepared; }
 
     #data = {};
-    #setup = false;
+
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
     #syntaxMatch = new RegExp('{{.*?}}');
+
+    #prepared = false;
+    #preparing = false;
+
     #binders: Map<string | Node | Element | undefined, Set<Binder>> = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
 
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
+    #preparedEvent = new Event('prepared');
+    #preparingEvent = new Event('preparing');
     #connectedEvent = new Event('connected');
     #connectingEvent = new Event('connecting');
     #attributedEvent = new Event('attributed');
@@ -68,11 +75,13 @@ export default class XElement extends HTMLElement {
         this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
     }
 
-    setup () {
-        if (this.#setup) return;
-        else this.#setup = true;
+    prepare () {
+        if (this.#prepared || this.#preparing) return;
 
-        const data: Record<string, unknown> = {};
+        this.#preparing = true;
+        this.dispatchEvent(this.#preparingEvent);
+
+        const data: Record<string, any> = {};
         const properties = (this.constructor as any).observedProperties;
 
         for (const property of properties) {
@@ -113,10 +122,12 @@ export default class XElement extends HTMLElement {
             this.register(node, this.#data);
         }
 
+        this.#prepared = true;
+        this.dispatchEvent(this.#preparedEvent);
     }
 
     #mutation (mutations: Array<MutationRecord>) {
-        if (!this.#setup) return this.setup();
+        if (!this.#prepared) return this.prepare();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
                 this.register(node, this.#data);
