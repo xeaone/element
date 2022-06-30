@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.2.0
+// Version: 7.2.1
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com
@@ -14,6 +14,14 @@
 function dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
+const Listener = (target, name)=>{
+    return new Promise((resolve)=>{
+        target.addEventListener(name, function handle() {
+            target.removeEventListener(name, handle);
+            resolve(null);
+        });
+    });
+};
 class XRouter extends HTMLElement {
     static define(name, constructor) {
         constructor = constructor ?? this;
@@ -125,6 +133,7 @@ class XRouter extends HTMLElement {
         };
     }
     async #go(path, options) {
+        this.setAttribute('status', 'rendering');
         const mode = options?.mode || 'push';
         const location = this.#location(path);
         let element;
@@ -132,7 +141,8 @@ class XRouter extends HTMLElement {
             element = this.#cache ? this.#elements.get(location.pathname) : document.createElement(this.#names.get(location.pathname));
         } else {
             const file = location.pathname.endsWith('/') ? `${location.pathname}root` : location.pathname;
-            const base = document.baseURI;
+            const name = 'x-router' + file.replace(/\/+/g, '-');
+            const base = window.document.baseURI;
             const load = `${base}/${this.#folder}/${file}.js`.replace(/\/+/g, '/');
             let component;
             try {
@@ -144,7 +154,6 @@ class XRouter extends HTMLElement {
                     throw error;
                 }
             }
-            const name = 'x-router' + file.replace(/\/+/g, '-');
             customElements.define(name, component);
             element = document.createElement(name);
             this.#names.set(location.pathname, name);
@@ -153,7 +162,7 @@ class XRouter extends HTMLElement {
         if (this.#onBefore) await this.#onBefore(location, element);
         globalThis.history.replaceState({
             href: window.location.href,
-            top: document.body.scrollTop || 0
+            top: window.document.body.scrollTop || 0
         }, '', window.location.href);
         if (mode === 'push') globalThis.history.pushState({
             top: 0,
@@ -170,9 +179,10 @@ class XRouter extends HTMLElement {
         if (element.description && description) description.setAttribute('content', element.description);
         const nodes = this.childNodes;
         for (const node of nodes){
-            if (node?.attributes?.slot?.value === 'body') {
+            const slot = node?.attributes?.getNamedItem('slot')?.value;
+            if (slot === 'body') {
                 while(node.firstChild)node.removeChild(node.firstChild);
-            } else if (node?.attributes?.slot?.value === 'head' || node?.attributes?.slot?.value === 'foot') {
+            } else if (slot === 'head' || slot === 'foot') {
                 continue;
             } else {
                 this.removeChild(node);
@@ -184,6 +194,8 @@ class XRouter extends HTMLElement {
         } else {
             this.appendChild(element);
         }
+        if (element.isPrepared === false) await Listener(element, 'prepared');
+        this.setAttribute('status', 'rendered');
         if (this.#onAfter) await this.#onAfter(location, element);
     }
     async #state(event) {

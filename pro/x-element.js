@@ -1,5 +1,5 @@
 // Name: X Element
-// Version: 7.2.0
+// Version: 7.2.1
 // License: MPL-2.0
 // Author: Alexander Elias
 // Email: alex.steven.elias@gmail.com
@@ -695,16 +695,22 @@ class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
     static observedProperties = [];
+    get isPrepared() {
+        return this.#prepared;
+    }
     #data = {};
-    #setup = false;
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
     #syntaxMatch = new RegExp('{{.*?}}');
+    #prepared = false;
+    #preparing = false;
     #binders = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
+    #preparedEvent = new Event('prepared');
+    #preparingEvent = new Event('preparing');
     #connectedEvent = new Event('connected');
     #connectingEvent = new Event('connecting');
     #attributedEvent = new Event('attributed');
@@ -723,9 +729,10 @@ class XElement extends HTMLElement {
             childList: true
         });
     }
-    setup() {
-        if (this.#setup) return;
-        else this.#setup = true;
+    prepare() {
+        if (this.#prepared || this.#preparing) return;
+        this.#preparing = true;
+        this.dispatchEvent(this.#preparingEvent);
         const data = {};
         const properties = this.constructor.observedProperties;
         for (const property of properties){
@@ -757,9 +764,11 @@ class XElement extends HTMLElement {
             innerNode = node1.nextSibling;
             this.register(node1, this.#data);
         }
+        this.#prepared = true;
+        this.dispatchEvent(this.#preparedEvent);
     }
      #mutation(mutations) {
-        if (!this.#setup) return this.setup();
+        if (!this.#prepared) return this.prepare();
         for (const mutation of mutations){
             for (const node of mutation.addedNodes){
                 this.register(node, this.#data);
