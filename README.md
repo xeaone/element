@@ -9,7 +9,7 @@
 ---
 ## Features
 
-- &#128118; Simple to learning if you know custom elements you know X-Element.
+- &#128118; Simple to learn if you know custom elements you know X-Element.
 
 - &#128230; Shareable A single class to build a single component or an entire app.
 
