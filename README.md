@@ -1,5 +1,5 @@
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/xeaone/element.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/element/alerts/)
-[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/xeaone/element.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xeaone/element/context:javascript)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/xeaone/element.svg?logo=lgtm&logoWidth=20)](https://lgtm.com/projects/g/xeaone/element/alerts/)
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/xeaone/element.svg?logo=lgtm&logoWidth=20)](https://lgtm.com/projects/g/xeaone/element/context:javascript)
 
 # X-Element
 
