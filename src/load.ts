@@ -171,7 +171,7 @@ const transform = function (code: string, url: string) {
         code = code.replace(
             templateMatch,
             templateMatch
-                .replace(/'/g, '\\' + '\'')
+                .replace(/'/g, "\\'")
                 .replace(/^([^\\])?`/, '$1\'')
                 .replace(/([^\\])?`$/, '$1\'')
                 .replace(/\${(.*)?}/g, '\'+$1+\'')
