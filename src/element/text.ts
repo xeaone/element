@@ -1,5 +1,5 @@
-import format from './format.ts';
-import Binder from './binder.ts';
+import format from './format';
+import Binder from './binder';
 
 
 export default class Text extends Binder {

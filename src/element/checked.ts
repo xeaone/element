@@ -1,4 +1,4 @@
-import Binder from './binder.ts';
+import Binder from './binder';
 
 export default class Checked extends Binder {
 

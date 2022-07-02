@@ -1,6 +1,6 @@
-import Binder from './binder.ts';
-import format from './format.ts';
-import date from './date.ts';
+import Binder from './binder';
+import format from './format';
+import date from './date';
 
 const defaultInputEvent = new Event('input');
 

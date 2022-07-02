@@ -1,4 +1,4 @@
-import Binder from './binder.ts';
+import Binder from './binder';
 
 interface Target extends HTMLElement {
     form: HTMLFormElement;

@@ -1,60 +1,39 @@
 {
-    "name": "xelement",
-    "version": "7.0.0",
-    "type": "module",
-    "description": "A mighty tiny web components framework/library",
-    "browser": "./pro/x-element.js",
-    "module": "./pro/x-element.js",
-    "exports": {
-        ".": { "import": "./pro/x-element.js" },
-        "./router": { "import": "./pro/x-router.js" }
-    },
-    "scripts": {
-        "pro": "npx rollup -c rollup.pro.js",
-        "w": "node scripts/watch.js",
-        "docs": "rm -r docs/* && muleify -p web docs",
-        "build": "npx rollup -c rollup.dev.js && npx rollup -c rollup.pro.js && rm -r docs/* && muleify -p web docs"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/xeaone/element.git"
-    },
-    "author": "Alexander Elias",
-    "email": "alex.steven.elis@gmail.com",
-    "license": "MPL-2.0",
-    "bugs": {
-        "url": "https://github.com/xeaone/element/issues"
-    },
-    "homepage": "https://github.com/xeaone/element#readme",
-    "keywords": [
-        "web",
-        "component",
-        "components",
-        "web-components",
-        "js",
-        "html",
-        "css",
-        "framework",
-        "data-binding",
-        "data",
-        "binding",
-        "routing",
-        "router",
-        "http",
-        "front-end",
-        "x-tag",
-        "polymer",
-        "element",
-        "xelement"
-    ],
-    "directories": {
-        "docs": "docs",
-        "pro": "pro",
-        "src": "src"
-    },
-    "devDependencies": {
-        "@rollup/plugin-typescript": "^8.3.0",
-        "rollup": "^2.60.2",
-        "typescript": "^4.5.2"
-    }
+	"name": "@xeaone/element",
+	"type": "module",
+	"description": "X-Element an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards",
+	"browser": "./pro/x-element.js",
+	"module": "./pro/x-element.js",
+	"exports": {
+		".": {
+			"import": "./pro/x-element.js"
+		},
+		"./router": {
+			"import": "./pro/x-router.js"
+		}
+	},
+	"scripts": {},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xeaone/element.git"
+	},
+	"author": "Alexander Elias",
+	"email": "alex.steven.elis@gmail.com",
+	"license": "MPL-2.0",
+	"bugs": {
+		"url": "https://github.com/xeaone/element/issues"
+	},
+	"homepage": "https://github.com/xeaone/element#readme",
+	"keywords": [],
+	"directories": {
+		"docs": "docs",
+		"pro": "pro",
+		"src": "src"
+	},
+	"devDependencies": {
+		"@rollup/plugin-typescript": "^8.3.0",
+		"rollup": "^2.75.7",
+		"tslib": "^2.4.0"
+	},
+	"version": "7.2.2"
 }

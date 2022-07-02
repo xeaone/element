@@ -1,6 +1,6 @@
-import Binder from './binder.ts';
-import format from './format.ts';
-import booleans from './boolean.ts';
+import Binder from './binder';
+import format from './format';
+import booleans from './boolean';
 
 export default class Standard extends Binder {
 

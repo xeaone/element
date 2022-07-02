@@ -1,4 +1,4 @@
-import dash from './dash.ts';
+import dash from './dash';
 
 type OnAfter = (location: Location, element: Element) => Promise<void>;
 type OnBefore = (location: Location, element: Element) => Promise<void>;
@@ -27,7 +27,7 @@ type Option = {
 
 const Listener = (target: Element, name: string) => {
     return new Promise((resolve) => {
-        target.addEventListener(name, function handle () {
+        target.addEventListener(name, function handle() {
             target.removeEventListener(name, handle);
             resolve(null);
         });
@@ -36,13 +36,13 @@ const Listener = (target: Element, name: string) => {
 
 export default class XRouter extends HTMLElement {
 
-    static define (name?: string, constructor?: typeof XRouter) {
+    static define(name?: string, constructor?: typeof XRouter) {
         constructor = constructor ?? this;
         name = name ?? dash(this.name);
         customElements.define(name, constructor);
     }
 
-    static defined (name: string) {
+    static defined(name: string) {
         name = name ?? dash(this.name);
         return customElements.whenDefined(name);
     }
@@ -59,7 +59,7 @@ export default class XRouter extends HTMLElement {
     #clickInstance: (event: MouseEvent) => void;
     #stateInstance: (event: PopStateEvent) => void;
 
-    constructor (option: Option) {
+    constructor(option: Option) {
         super();
 
         this.#target = option?.target ?? this;
@@ -87,61 +87,61 @@ export default class XRouter extends HTMLElement {
         `;
     }
 
-    back () {
+    back() {
         window.history.back();
     }
 
-    forward () {
+    forward() {
         window.history.forward();
     }
 
-    reload () {
+    reload() {
         window.location.reload();
     }
 
-    redirect (href: string) {
+    redirect(href: string) {
         window.location.href = href;
     }
 
-    onAfter (onAfter: OnAfter) {
+    onAfter(onAfter: OnAfter) {
         this.#onAfter = onAfter;
         return this;
     }
 
-    onBefore (onBefore: OnBefore) {
+    onBefore(onBefore: OnBefore) {
         this.#onBefore = onBefore;
         return this;
     }
 
-    cache (cache: boolean) {
+    cache(cache: boolean) {
         this.#cache = cache;
         return this;
     }
 
-    path (...path: Array<string>) {
+    path(...path: Array<string>) {
         this.#paths.push(...path);
         return this;
     }
 
-    paths (paths: Array<string>) {
+    paths(paths: Array<string>) {
         this.#paths = paths;
         return this;
     }
 
-    target (target: Element) {
+    target(target: Element) {
         this.#target = target;
         return this;
     }
 
-    assign (data: string) {
+    assign(data: string) {
         return this.#go(data, { mode: 'push' });
     }
 
-    replace (data: string) {
+    replace(data: string) {
         return this.#go(data, { mode: 'replace' });
     }
 
-    #location (href: string = window.location.href) {
+    #location(href: string = window.location.href) {
         const parser = document.createElement('a');
         parser.href = href;
         return {
@@ -157,7 +157,7 @@ export default class XRouter extends HTMLElement {
         };
     }
 
-    async #go (path: string, options: { mode: 'push' | 'replace'; }) {
+    async #go(path: string, options: { mode: 'push' | 'replace'; }) {
         this.setAttribute('status', 'rendering');
 
         const mode = options?.mode || 'push';
@@ -234,7 +234,7 @@ export default class XRouter extends HTMLElement {
 
     }
 
-    async #state (event: PopStateEvent) {
+    async #state(event: PopStateEvent) {
         const { href, pathname } = this.#location(event?.state?.href || window.location.href);
 
         if (!href.startsWith(window.location.origin)) return;
@@ -244,7 +244,7 @@ export default class XRouter extends HTMLElement {
         globalThis.scroll(event?.state?.top || 0, 0);
     }
 
-    async #click (event: MouseEvent, element: HTMLAnchorElement) {
+    async #click(event: MouseEvent, element: HTMLAnchorElement) {
 
         if (event.defaultPrevented ||
             event.button !== 0 ||
@@ -271,7 +271,7 @@ export default class XRouter extends HTMLElement {
         globalThis.scroll(0, 0);
     }
 
-    async connectedCallback () {
+    async connectedCallback() {
         await this.replace(window.location.href);
 
         this.#target.querySelectorAll('a').forEach(node => node.addEventListener('click', this.#clickInstance, true));

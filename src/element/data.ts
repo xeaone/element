@@ -1,4 +1,4 @@
-import tick from './tick.ts';
+import tick from './tick';
 
 type DataKeys = string | symbol;
 type DataHandlers = 'render' | 'reset';

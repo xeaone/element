@@ -1,4 +1,4 @@
-import XElement from './element.ts';
+import XElement from './element';
 
 type Compute = (context: Record<string, unknown>, instance: Record<string, unknown>) => unknown;
 
