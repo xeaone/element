@@ -8,7 +8,7 @@ VERSION=$VERSION node deploy.js
 rm -r docs/*
 cp -r web/. docs/.
 
-npm publish
+npm publish --access public
 
 git add .
 git commit -m $VERSION
