@@ -11,12 +11,10 @@ import HtmlBinder from './html';
 import TextBinder from './text';
 import OnBinder from './on';
 
-import tick from './tick';
-
 import dash from './dash';
 
 if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
-    (function attachShadowRoots(root: Document | ShadowRoot) {
+    (function attachShadowRoots (root: Document | ShadowRoot) {
         const templates: NodeListOf<HTMLTemplateElement> = root.querySelectorAll('template[shadowroot]');
         for (const template of templates) {
             const mode = (template.getAttribute('shadowroot') || 'closed') as ShadowRootMode;
@@ -30,19 +28,19 @@ if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
 
 export default class XElement extends HTMLElement {
 
-    static define(name?: string, constructor?: typeof XElement) {
+    static define (name?: string, constructor?: typeof XElement) {
         constructor = constructor ?? this;
         name = name ?? dash(this.name);
         customElements.define(name, constructor);
     }
 
-    static defined(name: string) {
+    static defined (name: string) {
         name = name ?? dash(this.name);
         return customElements.whenDefined(name);
     }
 
     static observedProperties: Array<string> = [];
-    get isPrepared() { return this.#prepared; }
+    get isPrepared () { return this.#prepared; }
 
     #data = {};
 
@@ -68,14 +66,14 @@ export default class XElement extends HTMLElement {
     #disconnectedEvent = new Event('disconnected');
     #disconnectingEvent = new Event('disconnecting');
 
-    constructor() {
+    constructor () {
         super();
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
         this.#mutator.observe(this, { childList: true });
         this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
     }
 
-    prepare() {
+    prepare () {
         if (this.#prepared || this.#preparing) return;
 
         this.#preparing = true;
@@ -95,8 +93,8 @@ export default class XElement extends HTMLElement {
 
             Object.defineProperty(data, property, descriptor);
             Object.defineProperty(this, property, {
-                get: () => (this as any).#data[property],
-                set: (value) => (this as any).#data[property] = value
+                get: () => (this as any).#data[ property ],
+                set: (value) => (this as any).#data[ property ] = value
             });
 
         }
@@ -126,7 +124,7 @@ export default class XElement extends HTMLElement {
         this.dispatchEvent(this.#preparedEvent);
     }
 
-    #mutation(mutations: Array<MutationRecord>) {
+    #mutation (mutations: Array<MutationRecord>) {
         if (!this.#prepared) return this.prepare();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
@@ -138,7 +136,7 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    #remove(node: Node) {
+    #remove (node: Node) {
         const binders = this.#binders.get(node);
         if (!binders) return;
 
@@ -152,7 +150,7 @@ export default class XElement extends HTMLElement {
         this.#binders.delete(node);
     }
 
-    #add(node: Node, context: Record<string, unknown>, instance?: Record<string, unknown>, rewrites?: Array<Array<string>>) {
+    #add (node: Node, context: Record<string, unknown>, instance?: Record<string, unknown>, rewrites?: Array<Array<string>>) {
 
         let binder;
         if (node.nodeName === '#text') binder = new TextBinder(node, this, context, instance, rewrites);
@@ -167,26 +165,26 @@ export default class XElement extends HTMLElement {
         for (let reference of binder.references) {
 
             if (rewrites) {
-                for (const [name, value] of rewrites) {
+                for (const [ name, value ] of rewrites) {
                     if (reference === name) reference = value;
                     else if (reference.startsWith(name + '.')) reference = value + reference.slice(name.length);
                 }
             }
 
             if (!this.#binders.get(reference)?.add(binder)?.size) {
-                this.#binders.set(reference, new Set([binder]));
+                this.#binders.set(reference, new Set([ binder ]));
             }
 
         }
 
         if (!this.#binders.get(binder.owner ?? binder.node)?.add(binder)?.size) {
-            this.#binders.set(binder.owner ?? binder.node, new Set([binder]));
+            this.#binders.set(binder.owner ?? binder.node, new Set([ binder ]));
         }
 
         binder.render();
     }
 
-    release(node: Node) {
+    release (node: Node) {
 
         if (node.nodeType === Node.TEXT_NODE) {
             this.#remove(node);
@@ -207,7 +205,7 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    register(node: Node, context: Record<string, unknown>, instance?: Record<string, unknown>, rewrites?: Array<Array<string>>) {
+    register (node: Node, context: Record<string, unknown>, instance?: Record<string, unknown>, rewrites?: Array<Array<string>>) {
         if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
             let child = node.firstChild, register;
             while (child) {
@@ -265,25 +263,25 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    adoptedCallback() {
+    adoptedCallback () {
         this.dispatchEvent(this.#adoptingEvent);
         (this as any).adopted?.();
         this.dispatchEvent(this.#adoptedEvent);
     }
 
-    connectedCallback() {
+    connectedCallback () {
         this.dispatchEvent(this.#connectingEvent);
         (this as any).connected?.();
         this.dispatchEvent(this.#connectedEvent);
     }
 
-    disconnectedCallback() {
+    disconnectedCallback () {
         this.dispatchEvent(this.#disconnectingEvent);
         (this as any).disconnected?.();
         this.dispatchEvent(this.#disconnectedEvent);
     }
 
-    attributeChangedCallback(name: string, from: string, to: string) {
+    attributeChangedCallback (name: string, from: string, to: string) {
         this.dispatchEvent(this.#attributingEvent);
         (this as any).attributed?.(name, from, to);
         this.dispatchEvent(this.#attributedEvent);
