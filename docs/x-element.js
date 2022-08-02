@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.2.2
+Version: 7.2.3
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -904,7 +904,8 @@ class XElement extends HTMLElement {
                     this.register(register, context, instance, rewrites);
                 }
             }
-            for (const attribute of node.attributes) {
+            const attributes = [...node.attributes];
+            for (const attribute of attributes) {
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, context, instance, rewrites);
                 }

@@ -226,37 +226,31 @@ export default class XElement extends HTMLElement {
                 const split = (node as Text).splitText(end + this.#syntaxLength);
                 this.#add(node, context, instance, rewrites);
                 this.register(split, context, instance, rewrites);
-                // tick(this.#add.bind(this, node, context));
-                // tick(this.register.bind(this, split, context));
             } else {
                 this.#add(node, context, instance, rewrites);
-                // tick(this.#add.bind(this, node, context));
             }
 
         } else if (node.nodeType === node.ELEMENT_NODE) {
 
             const inherit = (node as Element).attributes.getNamedItem('inherit');
-            // if (inherit) tick(this.#add.bind(this, inherit, context));
             if (inherit) this.#add(inherit, context, instance, rewrites);
 
             const each = (node as Element).attributes.getNamedItem('each');
             if (each) this.#add(each, context, instance, rewrites);
-            // if (each) tick(this.#add.bind(this, each, context));
 
             if (!each && !inherit) {
                 let child = node.firstChild, register;
                 while (child) {
                     register = child;
                     child = child.nextSibling;
-                    // tick(this.register.bind(this, register, context));
                     this.register(register, context, instance, rewrites);
                 }
             }
 
-            for (const attribute of (node as Element).attributes) {
+            const attributes = [ ...(node as Element).attributes ];
+            for (const attribute of attributes) {
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, context, instance, rewrites);
-                    // tick(this.#add.bind(this, attribute, context));
                 }
             }
 

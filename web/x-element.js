@@ -1,3 +1,13 @@
+/************************************************************************
+Name: XElement
+Version: 7.2.3
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
 const promise = Promise.resolve();
 function tick(method) {
     return promise.then(method);
@@ -817,7 +827,6 @@ class XElement extends HTMLElement {
             binder = new On(node, this, context, instance, rewrites);
         else
             binder = new Standard(node, this, context, instance, rewrites);
-        console.log(binder.references);
         for (let reference of binder.references) {
             if (rewrites) {
                 for (const [name, value] of rewrites) {
@@ -895,7 +904,8 @@ class XElement extends HTMLElement {
                     this.register(register, context, instance, rewrites);
                 }
             }
-            for (const attribute of node.attributes) {
+            const attributes = [...node.attributes];
+            for (const attribute of attributes) {
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, context, instance, rewrites);
                 }
