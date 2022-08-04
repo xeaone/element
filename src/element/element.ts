@@ -26,6 +26,12 @@ if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
     })(document);
 }
 
+let Base: string = '';
+let Target: string = 'main';
+let Navigating: boolean = false;
+let Instances: Map<string, any> = new Map();
+let Navigators: Map<string, any> = new Map();
+
 export default class XElement extends HTMLElement {
 
     static define (name?: string, constructor?: typeof XElement) {
@@ -37,6 +43,65 @@ export default class XElement extends HTMLElement {
     static defined (name: string) {
         name = name ?? dash(this.name);
         return customElements.whenDefined(name);
+    }
+
+    static get base () { return Base; };
+    static set base (base: string) { Base = base; };
+
+    static get target () { return Target; };
+    static set target (target: string) { Target = target; };
+
+    static get instances () { return Instances; };
+    static get navigating () { return Navigating; };
+    static get navigators () { return Navigators; };
+
+    static async navigate (event?: any) {
+        if (event && (!event?.canTransition || !event?.canIntercept)) return;
+        const url = event?.destination?.url ?? location.href;
+        const { pathname } = new URL(url);
+
+        const transition = (async () => {
+            const target = document.querySelector(Target);
+            if (!target) throw new Error('XElement - navigator target not found');
+
+            let instance = Instances.get(pathname);
+            if (instance === target.lastElementChild) return;
+            if (instance) return target.replaceChildren(instance);
+
+            const file = pathname.endsWith('/') ? `${pathname}root` : pathname;
+            const name = 'x-navigator' + file.replace(/\/+/g, '-');
+            const all = `${window.document.baseURI}/${Base}/all.js`.replace(/\/+/g, '/');
+            const load = `${window.document.baseURI}/${Base}/${file}.js`.replace(/\/+/g, '/');
+
+            const navigator = Navigators.get(pathname) ??
+                Navigators.get('*') ??
+                (await import(load).catch(() => null))?.default ??
+                (await import(all).catch(() => null))?.default;
+
+            // console.log(all, load, pathname);
+
+            if (!navigator) throw new Error('XElement - navigator component not found');
+
+            instance = document.createElement(name);
+            Instances.set(pathname, instance);
+            customElements.define(name, navigator);
+            target.replaceChildren(instance);
+            Navigating = false;
+        })();
+
+        await event?.transitionWhile?.(transition);
+    };
+    static navigator (path?: string) {
+        if (Navigators.has(path as string)) return;
+        if (path) Navigators.set(path, this);
+
+        if (Navigating) return;
+        else Navigating = true;
+
+        if (document.readyState !== 'loading') this.navigate();
+        else window.addEventListener('DOMContentLoaded', () => this.navigate());
+
+        (window as any).navigation.addEventListener('navigate', this.navigate);
     }
 
     static observedProperties: Array<string> = [];
