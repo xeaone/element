@@ -1,7 +1,4 @@
 import { dataDelete, dataEvent, dataGet, dataSet, dataHas } from './data';
-
-import Binder from './binder';
-
 import StandardBinder from './standard';
 import CheckedBinder from './checked';
 import InheritBinder from './inherit';
@@ -9,9 +6,9 @@ import ValueBinder from './value';
 import EachBinder from './each';
 import HtmlBinder from './html';
 import TextBinder from './text';
+import Binder from './binder';
 import OnBinder from './on';
-
-import dash from './dash';
+import Dash from './dash';
 
 if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
     (function attachShadowRoots (root: Document | ShadowRoot) {
@@ -26,99 +23,82 @@ if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
     })(document);
 }
 
-let Base: string = '';
+let Cache: boolean = true;
 let Target: string = 'main';
-let Navigating: boolean = false;
-let Instances: Map<string, any> = new Map();
-let Navigators: Map<string, any> = new Map();
+const Instances: Map<string, any> = new Map();
+const Navigators: Map<string, any> = new Map();
+const Navigate = async (event?: any) => {
+    if (event && (!event?.canTransition || !event?.canIntercept)) return;
+
+    const url = event?.destination?.url ?? location.href;
+    const { pathname } = new URL(url);
+    const transition = async () => {
+        const target = document.querySelector(Target);
+        if (!target) throw new Error('XElement - navigator target not found');
+
+        let instance = Instances.get(pathname);
+        if (instance === target.lastElementChild) return;
+        if (Cache && instance) return target.replaceChildren(instance);
+
+        const navigator = Navigators.get(pathname) ?? Navigators.get('/*');
+        if (!navigator) return;
+
+        const name = Dash(navigator.name);
+        instance = document.createElement(name);
+        Instances.set(pathname, instance);
+        target.replaceChildren(instance);
+    };
+
+    return event ? event?.transitionWhile?.(transition()) : transition();
+};
 
 export default class XElement extends HTMLElement {
 
     static define (name?: string, constructor?: typeof XElement) {
         constructor = constructor ?? this;
-        name = name ?? dash(this.name);
+        name = name ?? Dash(this.name);
         customElements.define(name, constructor);
     }
 
     static defined (name: string) {
-        name = name ?? dash(this.name);
+        name = name ?? Dash(this.name);
         return customElements.whenDefined(name);
     }
 
-    static get base () { return Base; };
-    static set base (base: string) { Base = base; };
-
+    static get cache () { return Cache; };
     static get target () { return Target; };
+    static get instances () { return Instances; };
+    static get navigators () { return Navigators; };
+    static set cache (cache: boolean) { Cache = cache; };
     static set target (target: string) { Target = target; };
 
-    static get instances () { return Instances; };
-    static get navigating () { return Navigating; };
-    static get navigators () { return Navigators; };
+    static navigator (path: string, name?: string, constructor?: any) {
+        if (!path) throw new Error('XElement - navigator path required');
 
-    static async navigate (event?: any) {
-        if (event && (!event?.canTransition || !event?.canIntercept)) return;
-        const url = event?.destination?.url ?? location.href;
-        const { pathname } = new URL(url);
+        constructor = constructor ?? this;
+        name = name ?? Dash(constructor.name);
+        this.navigators.set(path, constructor);
 
-        const transition = (async () => {
-            const target = document.querySelector(Target);
-            if (!target) throw new Error('XElement - navigator target not found');
+        if (!customElements.get(name)) customElements.define(name, constructor);
+        if (document.readyState !== 'loading') Navigate();
+        else window.addEventListener('DOMContentLoaded', Navigate);
 
-            let instance = Instances.get(pathname);
-            if (instance === target.lastElementChild) return;
-            if (instance) return target.replaceChildren(instance);
-
-            const file = pathname.endsWith('/') ? `${pathname}root` : pathname;
-            const name = 'x-navigator' + file.replace(/\/+/g, '-');
-            const all = `${window.document.baseURI}/${Base}/all.js`.replace(/\/+/g, '/');
-            const load = `${window.document.baseURI}/${Base}/${file}.js`.replace(/\/+/g, '/');
-
-            const navigator = Navigators.get(pathname) ??
-                Navigators.get('*') ??
-                (await import(load).catch(() => null))?.default ??
-                (await import(all).catch(() => null))?.default;
-
-            // console.log(all, load, pathname);
-
-            if (!navigator) throw new Error('XElement - navigator component not found');
-
-            instance = document.createElement(name);
-            Instances.set(pathname, instance);
-            customElements.define(name, navigator);
-            target.replaceChildren(instance);
-            Navigating = false;
-        })();
-
-        await event?.transitionWhile?.(transition);
-    };
-    static navigator (path?: string) {
-        if (Navigators.has(path as string)) return;
-        if (path) Navigators.set(path, this);
-
-        if (Navigating) return;
-        else Navigating = true;
-
-        if (document.readyState !== 'loading') this.navigate();
-        else window.addEventListener('DOMContentLoaded', () => this.navigate());
-
-        (window as any).navigation.addEventListener('navigate', this.navigate);
+        (window as any).navigation.addEventListener('navigate', Navigate);
     }
 
     static observedProperties: Array<string> = [];
+
     get isPrepared () { return this.#prepared; }
 
     #data = {};
-
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
-    #syntaxMatch = new RegExp('{{.*?}}');
-
     #prepared = false;
     #preparing = false;
-
-    #binders: Map<string | Node | Element | undefined, Set<Binder>> = new Map();
+    #syntaxMatch = new RegExp('{{.*?}}');
     #mutator = new MutationObserver(this.#mutation.bind(this));
+    #binders: Map<string | Node | Element | undefined, Set<Binder>> = new Map();
 
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
@@ -136,9 +116,11 @@ export default class XElement extends HTMLElement {
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
         this.#mutator.observe(this, { childList: true });
         this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
+        // if (!this.#prepared) this.prepare();
     }
 
     prepare () {
+        // console.log('prepare');
         if (this.#prepared || this.#preparing) return;
 
         this.#preparing = true;
@@ -156,11 +138,10 @@ export default class XElement extends HTMLElement {
             if ('get' in descriptor) descriptor.get = descriptor.get?.bind(this);
             if (typeof descriptor.value === 'function') descriptor.value = descriptor.value?.bind?.(this);
 
+            const get = () => (this as any).#data[ property ];
+            const set = (value: any) => (this as any).#data[ property ] = value;
             Object.defineProperty(data, property, descriptor);
-            Object.defineProperty(this, property, {
-                get: () => (this as any).#data[ property ],
-                set: (value) => (this as any).#data[ property ] = value
-            });
+            Object.defineProperty(this, property, { get, set, enumerable: true, configurable: true });
 
         }
 
@@ -190,6 +171,7 @@ export default class XElement extends HTMLElement {
     }
 
     #mutation (mutations: Array<MutationRecord>) {
+        // console.log('mutation');
         if (!this.#prepared) return this.prepare();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
