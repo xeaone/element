@@ -31,8 +31,9 @@
 		"src": "src"
 	},
 	"devDependencies": {
-		"@rollup/plugin-typescript": "^8.3.0",
-		"rollup": "^2.75.7",
+		"@rollup/plugin-typescript": "^8.3.4",
+		"@virtualstate/navigation": "^1.0.1-alpha.109",
+		"rollup": "^2.77.2",
 		"tslib": "^2.4.0"
 	},
 	"version": "7.2.3"
