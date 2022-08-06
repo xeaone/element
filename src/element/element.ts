@@ -10,49 +10,34 @@ import Binder from './binder';
 import OnBinder from './on';
 import Dash from './dash';
 
-if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
-    (function attachShadowRoots (root: Document | ShadowRoot) {
-        const templates: NodeListOf<HTMLTemplateElement> = root.querySelectorAll('template[shadowroot]');
-        for (const template of templates) {
-            const mode = (template.getAttribute('shadowroot') || 'closed') as ShadowRootMode;
-            const shadowRoot = (template.parentNode as HTMLElement).attachShadow({ mode });
-            shadowRoot.appendChild(template.content);
-            template.remove();
-            attachShadowRoots(shadowRoot);
-        }
-    })(document);
-}
+const navigators = new Map();
 
-let Cache: boolean = true;
-let Target: string = 'main';
-const Instances: Map<string, any> = new Map();
-const Navigators: Map<string, any> = new Map();
-const Navigate = async (event?: any) => {
+const transition = async (pathname: string) => {
+    const options = navigators.get(pathname) ?? navigators.get('/*');
+    if (!options) return;
+
+    const target = document.querySelector(options.target);
+    if (!target) throw new Error('XElement - navigator target not found');
+
+    if (options.instance === target.lastElementChild) return;
+    if (options.cache && options.instance) return target.replaceChildren(options.instance);
+
+    options.instance = document.createElement(options.name);
+    target.replaceChildren(options.instance);
+};
+
+const navigate = async function (event?: any) {
     if (event && (!event?.canTransition || !event?.canIntercept)) return;
 
     const url = event?.destination?.url ?? location.href;
     const { pathname } = new URL(url);
-    const transition = async () => {
-        const target = document.querySelector(Target);
-        if (!target) throw new Error('XElement - navigator target not found');
 
-        let instance = Instances.get(pathname);
-        if (instance === target.lastElementChild) return;
-        if (Cache && instance) return target.replaceChildren(instance);
-
-        const navigator = Navigators.get(pathname) ?? Navigators.get('/*');
-        if (!navigator) return;
-
-        const name = Dash(navigator.name);
-        instance = document.createElement(name);
-        Instances.set(pathname, instance);
-        target.replaceChildren(instance);
-    };
-
-    return event ? event?.transitionWhile?.(transition()) : transition();
+    return event ? event?.transitionWhile?.(transition(pathname)) : transition(pathname);
 };
 
 export default class XElement extends HTMLElement {
+
+    static observedProperties?: Array<string>;
 
     static define (name?: string, constructor?: typeof XElement) {
         constructor = constructor ?? this;
@@ -65,28 +50,23 @@ export default class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
-    static get cache () { return Cache; };
-    static get target () { return Target; };
-    static get instances () { return Instances; };
-    static get navigators () { return Navigators; };
-    static set cache (cache: boolean) { Cache = cache; };
-    static set target (target: string) { Target = target; };
-
-    static navigator (path: string, name?: string, constructor?: any) {
+    static navigator (path: string, options: any) {
         if (!path) throw new Error('XElement - navigator path required');
 
-        constructor = constructor ?? this;
-        name = name ?? Dash(constructor.name);
-        this.navigators.set(path, constructor);
+        options = options ?? {};
+        options.cache = options.cache ?? true;
+        options.target = options.target ?? 'main';
+        options.construct = options.construct ?? this;
+        options.name = options.name ?? Dash(options.construct.name);
+        console.log(options.construct);
+        navigators.set(path, options);
 
-        if (!customElements.get(name)) customElements.define(name, constructor);
-        if (document.readyState !== 'loading') Navigate();
-        else window.addEventListener('DOMContentLoaded', Navigate);
+        if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
+        if (document.readyState !== 'loading') navigate();
+        else window.addEventListener('DOMContentLoaded', navigate);
 
-        (window as any).navigation.addEventListener('navigate', Navigate);
+        (window as any).navigation.addEventListener('navigate', navigate);
     }
-
-    static observedProperties: Array<string> = [];
 
     get isPrepared () { return this.#prepared; }
 
@@ -116,23 +96,30 @@ export default class XElement extends HTMLElement {
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
         this.#mutator.observe(this, { childList: true });
         this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
-        // if (!this.#prepared) this.prepare();
     }
 
     prepare () {
-        // console.log('prepare');
         if (this.#prepared || this.#preparing) return;
 
         this.#preparing = true;
         this.dispatchEvent(this.#preparingEvent);
 
         const data: Record<string, any> = {};
+        const prototype = Object.getPrototypeOf(this);
         const properties = (this.constructor as any).observedProperties;
+        const descriptors: any = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
 
-        for (const property of properties) {
+        for (const property in descriptors) {
+            if (properties && !properties?.includes(property) ||
+                'attributeChangedCallback' === property ||
+                'disconnectedCallback' === property ||
+                'connectedCallback' === property ||
+                'adoptedCallback' === property ||
+                'constructor' === property) continue;
 
-            const descriptor = Object.getOwnPropertyDescriptor(this, property) ??
-                Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property) ?? {};
+            const descriptor = descriptors[ property ];
+            const { enumerable, configurable } = descriptor;
+            if (!configurable) continue;
 
             if ('set' in descriptor) descriptor.set = descriptor.set?.bind(this);
             if ('get' in descriptor) descriptor.get = descriptor.get?.bind(this);
@@ -140,9 +127,9 @@ export default class XElement extends HTMLElement {
 
             const get = () => (this as any).#data[ property ];
             const set = (value: any) => (this as any).#data[ property ] = value;
-            Object.defineProperty(data, property, descriptor);
-            Object.defineProperty(this, property, { get, set, enumerable: true, configurable: true });
 
+            Object.defineProperty(data, property, descriptor);
+            Object.defineProperty(this, property, { get, set, enumerable, configurable: false });
         }
 
         this.#data = new Proxy(data, {
@@ -171,7 +158,6 @@ export default class XElement extends HTMLElement {
     }
 
     #mutation (mutations: Array<MutationRecord>) {
-        // console.log('mutation');
         if (!this.#prepared) return this.prepare();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
@@ -197,7 +183,7 @@ export default class XElement extends HTMLElement {
         this.#binders.delete(node);
     }
 
-    #add (node: Node, context: Record<string, unknown>, instance?: Record<string, unknown>, rewrites?: Array<Array<string>>) {
+    #add (node: Node, context: Record<string, any>, instance?: Record<string, any>, rewrites?: Array<Array<string>>) {
 
         let binder;
         if (node.nodeName === '#text') binder = new TextBinder(node, this, context, instance, rewrites);
@@ -252,7 +238,7 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    register (node: Node, context: Record<string, unknown>, instance?: Record<string, unknown>, rewrites?: Array<Array<string>>) {
+    register (node: Node, context: Record<string, any>, instance?: Record<string, any>, rewrites?: Array<Array<string>>) {
         if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
             let child = node.firstChild, register;
             while (child) {
