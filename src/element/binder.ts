@@ -1,6 +1,6 @@
 import XElement from './element';
 
-type Compute = (context: Record<string, unknown>, instance: Record<string, unknown>) => unknown;
+type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
 
 // const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
@@ -56,8 +56,8 @@ export default class Binder {
     value: string;
 
     rewrites: Array<Array<string>>;
-    context: Record<string, unknown>;
-    instance: Record<string, unknown>;
+    context: Record<string, any>;
+    instance: Record<string, any>;
 
     code?: string;
     owner?: Element;
@@ -72,7 +72,7 @@ export default class Binder {
     register: XElement[ 'register' ];
     release: XElement[ 'release' ];
 
-    constructor (node: Node, container: XElement, context: Record<string, unknown>, instance?: Record<string, unknown>, rewrites?: Array<Array<string>>) {
+    constructor (node: Node, container: XElement, context: Record<string, any>, instance?: Record<string, any>, rewrites?: Array<Array<string>>) {
 
         this.meta = {};
         this.node = node;

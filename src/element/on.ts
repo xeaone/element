@@ -8,7 +8,7 @@ interface Child extends HTMLElement {
     type: string;
     name: string;
     value: string;
-    $value: unknown;
+    $value: any;
     checked: boolean;
     valueAsNumber: number;
     selectedIndex: number;
