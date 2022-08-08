@@ -52,6 +52,8 @@ MyElement.define();
 
 [https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js)
 
+[https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)
+
 Originally called Oxe and still available on the [oxe branch](https://github.com/xeaone/element/tree/oxe)
 
 

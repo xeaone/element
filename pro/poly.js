@@ -13,5 +13,5 @@ if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
 }
 
 if ('navigation' in window === false) {
-    window.navigation = new (await import('https://esm.sh/v90/@virtualstate/navigation@1.0.1-alpha.109/es2022/navigation.bundle.js')).Navigation();
+    window.navigation = new (await import("https://cdn.skypack.dev/@virtualstate/navigation")).default;
 }

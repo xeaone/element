@@ -5,12 +5,9 @@
 	"browser": "./pro/x-element.js",
 	"module": "./pro/x-element.js",
 	"exports": {
-		".": {
-			"import": "./pro/x-element.js"
-		},
-		"./router": {
-			"import": "./pro/x-router.js"
-		}
+		".": "./pro/x-element.js",
+		"./poly": "./pro/poly.js",
+		"./router": "./pro/x-router.js"
 	},
 	"scripts": {},
 	"repository": {
@@ -32,7 +29,6 @@
 	},
 	"devDependencies": {
 		"@rollup/plugin-typescript": "^8.3.4",
-		"@virtualstate/navigation": "^1.0.1-alpha.109",
 		"rollup": "^2.77.2",
 		"tslib": "^2.4.0"
 	},
