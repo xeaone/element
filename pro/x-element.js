@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.2.6
+Version: 7.2.7
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com

@@ -6,7 +6,7 @@
 	"module": "./pro/x-element.js",
 	"exports": {
 		".": "./pro/x-element.js",
-		"./poly": "./pro/poly.js",
+		"./poly": "./pro/x-poly.js",
 		"./router": "./pro/x-router.js"
 	},
 	"scripts": {},
@@ -32,5 +32,5 @@
 		"rollup": "^2.77.2",
 		"tslib": "^2.4.0"
 	},
-	"version": "7.2.6"
+	"version": "7.2.7"
 }
