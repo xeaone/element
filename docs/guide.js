@@ -4,21 +4,6 @@ import Color from './modules/color.js';
 
 export default class XGuide extends XElement {
 
-    static observedProperties = [
-        'highlight',
-
-        'title', 'text',
-        'checked',
-        'radioOne', 'radioTwo',
-        'color', 'colorChange',
-        'active', 'lightblue', 'classToggle',
-        'value',
-        'fruit', 'fruits', 'plant', 'cars',
-
-        'form', 'agree', 'disabled', 'lastName', 'firstName', 'favoriteNumber', 'submit'
-    ];
-
-
     title = 'Guide';
     text = 'Hello World';
 
@@ -67,7 +52,7 @@ export default class XGuide extends XElement {
     connectedCallback () {
         if (this.innerHTML) return;
         this.innerHTML = this.#html;
-        document.body.style.opacity = 1;
+        // document.body.style.opacity = 1;
     }
 
     #html = /*html*/`

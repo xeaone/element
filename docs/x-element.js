@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.2.3
+Version: 7.2.4
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -691,19 +691,43 @@ function dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
-if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
-    (function attachShadowRoots(root) {
-        const templates = root.querySelectorAll('template[shadowroot]');
-        for (const template of templates) {
-            const mode = (template.getAttribute('shadowroot') || 'closed');
-            const shadowRoot = template.parentNode.attachShadow({ mode });
-            shadowRoot.appendChild(template.content);
-            template.remove();
-            attachShadowRoots(shadowRoot);
-        }
-    })(document);
-}
+const navigators = new Map();
+const transition = async (options) => {
+    if (options.cache && options.instance)
+        return options.target.replaceChildren(options.instance);
+    if (options.navigating)
+        return;
+    else
+        options.navigating = true;
+    options.construct = options.construct ?? (await import(options.file)).default;
+    if (!(options.construct?.prototype instanceof XElement))
+        throw new Error('XElement - navigation construct not valid');
+    options.name = options.name ?? dash(options.construct.name);
+    if (!/\w+-\w+/.test(options.name))
+        throw new Error('XElement - navigation name not valid');
+    if (!customElements.get(options.name))
+        customElements.define(options.name, options.construct);
+    options.instance = document.createElement(options.name);
+    options.target.replaceChildren(options.instance);
+    options.navigating = false;
+};
+const navigate = (event) => {
+    if (event && (!event?.canTransition || !event?.canIntercept))
+        return;
+    const url = event?.destination?.url ?? location.href;
+    const { pathname } = new URL(url);
+    const options = navigators.get(pathname) ?? navigators.get('/*');
+    if (!options)
+        throw new Error('XElement - navigation options not found');
+    options.target = options.target ?? document.querySelector(options.query);
+    if (!options.target)
+        throw new Error('XElement - navigation target not found');
+    if (options.instance === options.target.lastElementChild)
+        return event?.preventDefault();
+    return event ? event?.transitionWhile?.(transition(options)) : transition(options);
+};
 class XElement extends HTMLElement {
+    static observedProperties;
     static define(name, constructor) {
         constructor = constructor ?? this;
         name = name ?? dash(this.name);
@@ -713,17 +737,29 @@ class XElement extends HTMLElement {
         name = name ?? dash(this.name);
         return customElements.whenDefined(name);
     }
-    static observedProperties = [];
+    static navigation(path, file, options) {
+        if (!path)
+            throw new Error('XElement - navigation path required');
+        if (!file)
+            throw new Error('XElement - navigation file required');
+        options = options ?? {};
+        options.path = path;
+        options.file = file;
+        options.cache = options.cache ?? true;
+        options.query = options.query ?? 'main';
+        navigators.set(path, options);
+        window.navigation.addEventListener('navigate', navigate);
+    }
     get isPrepared() { return this.#prepared; }
     #data = {};
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
-    #syntaxMatch = new RegExp('{{.*?}}');
     #prepared = false;
     #preparing = false;
-    #binders = new Map();
+    #syntaxMatch = new RegExp('{{.*?}}');
     #mutator = new MutationObserver(this.#mutation.bind(this));
+    #binders = new Map();
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
     #preparedEvent = new Event('prepared');
@@ -747,21 +783,31 @@ class XElement extends HTMLElement {
         this.#preparing = true;
         this.dispatchEvent(this.#preparingEvent);
         const data = {};
+        const prototype = Object.getPrototypeOf(this);
         const properties = this.constructor.observedProperties;
-        for (const property of properties) {
-            const descriptor = Object.getOwnPropertyDescriptor(this, property) ??
-                Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), property) ?? {};
+        const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
+        for (const property in descriptors) {
+            if (properties && !properties?.includes(property) ||
+                'attributeChangedCallback' === property ||
+                'disconnectedCallback' === property ||
+                'connectedCallback' === property ||
+                'adoptedCallback' === property ||
+                'constructor' === property)
+                continue;
+            const descriptor = descriptors[property];
+            const { enumerable, configurable } = descriptor;
+            if (!configurable)
+                continue;
             if ('set' in descriptor)
                 descriptor.set = descriptor.set?.bind(this);
             if ('get' in descriptor)
                 descriptor.get = descriptor.get?.bind(this);
             if (typeof descriptor.value === 'function')
                 descriptor.value = descriptor.value?.bind?.(this);
+            const get = () => this.#data[property];
+            const set = (value) => this.#data[property] = value;
             Object.defineProperty(data, property, descriptor);
-            Object.defineProperty(this, property, {
-                get: () => this.#data[property],
-                set: (value) => this.#data[property] = value
-            });
+            Object.defineProperty(this, property, { get, set, enumerable, configurable: false });
         }
         this.#data = new Proxy(data, {
             has: dataHas.bind(null),

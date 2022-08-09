@@ -27,10 +27,8 @@ import XElement from '/x-element.js';
 
 MyElement extends XElement {
 
-    static observedProperties = ['greeting','greet']
-
     greeting: '',
-    greet () { this.greeting = 'Hello World'; }
+    greet () { this.greeting = 'Greeting'; }
 
     constructor () {
         super();

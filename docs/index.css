@@ -25,6 +25,12 @@
 
     --shade0: rgba(255, 255, 255, 0.1);
 }
+/* :defined {
+    opacity: 1;
+}
+:not(:defined) {
+    opacity: 0;
+} */
 html, body {
     margin: 0;
     padding: 0;
@@ -38,13 +44,13 @@ body > * {
 }
 body {
 	flex: 1;
-    opacity: 0;
+    /* opacity: 0; */
 	width: 100vw;
 	display: flex;
 	min-height: 100vh;
 	overflow-x: hidden;
     flex-direction: column;
-    transition: opacity ease-in 150ms;
+    /* transition: opacity ease-in 150ms; */
 	background-color: var(--layer0);
 }
 a {
@@ -139,28 +145,16 @@ select, input:not([type="button"],[type="submit"]) {
 [id$="-demo"]{
     white-space: normal;
 }
-[slot="body"] {
-/* x-route { */
+main {
+    width: 100%;
+    display: block;
+}
+main > * {
     width: 100%;
     display: block;
     padding: 0 5vw;
 	margin: 5vh auto;
 	max-width: 1200px;
-}
-x-router {
-    width: 100%;
-    display: block;
-    transition: opacity 300ms ease-in-out;
-}
-:defined {
-    opacity: 1;
-    box-sizing: border-box;
-    transition: opacity 300ms ease-in-out;
-}
-:not(:defined) {
-    opacity: 0;
-    box-sizing: border-box;
-    transition: opacity 300ms ease-in-out;
 }
 .title {
 	display: block;

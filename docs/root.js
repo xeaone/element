@@ -3,19 +3,13 @@ import Highlight from './highlight.js';
 
 export default class XRoot extends XElement {
 
-    static observedProperties = [
-        'example',
-    ];
-
     example = `
         import XElement from '/x-element.js';
 
         MyElement extends XElement {
 
-            static observedProperties = ['greeting','greet']
-
             greeting: '',
-            greet () { this.greeting = 'Hola Mundo'; }
+            greet () { this.greeting = 'Greeting'; }
 
             constructor () {
                 super();
@@ -61,18 +55,22 @@ export default class XRoot extends XElement {
         </section>
     `;
 
-    constructor () {
-        super();
-        this.shadowRoot.innerHTML = '<slot></slot>';
-    }
+    // constructor () {
+    //     super();
+    //     this.shadowRoot.innerHTML = '<slot></slot>';
+    // }
 
     connectedCallback () {
+        console.log('root connected');
         if (this.innerHTML) return;
+        this.shadowRoot.innerHTML = '<slot></slot>';
         this.innerHTML = this.#html;
         requestAnimationFrame(() => {
             Highlight();
-            document.body.style.opacity = 1;
+            // document.body.style.opacity = 1;
         });
     }
 
 }
+
+// XRoot.define();

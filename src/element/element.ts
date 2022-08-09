@@ -12,27 +12,39 @@ import Dash from './dash';
 
 const navigators = new Map();
 
-const transition = async (pathname: string) => {
-    const options = navigators.get(pathname) ?? navigators.get('/*');
-    if (!options) return;
+const transition = async (options: any) => {
+    if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
 
-    const target = document.querySelector(options.target);
-    if (!target) throw new Error('XElement - navigator target not found');
+    if (options.navigating) return;
+    else options.navigating = true;
 
-    if (options.instance === target.lastElementChild) return;
-    if (options.cache && options.instance) return target.replaceChildren(options.instance);
+    options.construct = options.construct ?? (await import(options.file)).default;
+    if (!(options.construct?.prototype instanceof XElement)) throw new Error('XElement - navigation construct not valid');
+
+    options.name = options.name ?? Dash(options.construct.name);
+    if (!/\w+-\w+/.test(options.name)) throw new Error('XElement - navigation name not valid');
+
+    if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
 
     options.instance = document.createElement(options.name);
-    target.replaceChildren(options.instance);
+    options.target.replaceChildren(options.instance);
+    options.navigating = false;
 };
 
-const navigate = async function (event?: any) {
+const navigate = (event?: any) => {
     if (event && (!event?.canTransition || !event?.canIntercept)) return;
-
     const url = event?.destination?.url ?? location.href;
     const { pathname } = new URL(url);
 
-    return event ? event?.transitionWhile?.(transition(pathname)) : transition(pathname);
+    const options = navigators.get(pathname) ?? navigators.get('/*');
+    if (!options) throw new Error('XElement - navigation options not found');
+
+    options.target = options.target ?? document.querySelector(options.query);
+    if (!options.target) throw new Error('XElement - navigation target not found');
+
+    if (options.instance === options.target.lastElementChild) return event?.preventDefault();
+
+    return event ? event?.transitionWhile?.(transition(options)) : transition(options);
 };
 
 export default class XElement extends HTMLElement {
@@ -50,21 +62,15 @@ export default class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
-    static navigator (path: string, options: any) {
-        if (!path) throw new Error('XElement - navigator path required');
-
+    static navigation (path: string, file: string, options: any) {
+        if (!path) throw new Error('XElement - navigation path required');
+        if (!file) throw new Error('XElement - navigation file required');
         options = options ?? {};
+        options.path = path;
+        options.file = file;
         options.cache = options.cache ?? true;
-        options.target = options.target ?? 'main';
-        options.construct = options.construct ?? this;
-        options.name = options.name ?? Dash(options.construct.name);
-        console.log(options.construct);
+        options.query = options.query ?? 'main';
         navigators.set(path, options);
-
-        if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
-        if (document.readyState !== 'loading') navigate();
-        else window.addEventListener('DOMContentLoaded', navigate);
-
         (window as any).navigation.addEventListener('navigate', navigate);
     }
 

@@ -11,15 +11,15 @@ await (await rollup.rollup({
     indent: '\t',
 });
 
-await (await rollup.rollup({
-    input: './src/router/router.ts',
-    plugins: [ typescript({ tsconfig: './tsconfig.json' }) ]
-})).write({
-    name: 'XRouter',
-    file: './web/x-router.js',
-    format: 'esm',
-    indent: '\t',
-});
+// await (await rollup.rollup({
+//     input: './src/router/router.ts',
+//     plugins: [ typescript({ tsconfig: './tsconfig.json' }) ]
+// })).write({
+//     name: 'XRouter',
+//     file: './web/x-router.js',
+//     format: 'esm',
+//     indent: '\t',
+// });
 
 const watcher = rollup.watch([
     {
@@ -31,17 +31,17 @@ const watcher = rollup.watch([
             indent: '\t',
         },
         plugins: [ typescript({ tsconfig: './tsconfig.json' }) ]
-    },
-    {
-        input: 'src/router/router.ts',
-        output: {
-            name: 'XRouter',
-            file: './web/x-router.js',
-            format: 'esm',
-            indent: '\t',
-        },
-        plugins: [ typescript({ tsconfig: './tsconfig.json' }) ]
     }
+    // {
+    //     input: 'src/router/router.ts',
+    //     output: {
+    //         name: 'XRouter',
+    //         file: './web/x-router.js',
+    //         format: 'esm',
+    //         indent: '\t',
+    //     },
+    //     plugins: [ typescript({ tsconfig: './tsconfig.json' }) ]
+    // }
 ]);
 
 watcher.on('event', ({ result }) => {

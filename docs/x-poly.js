@@ -13,5 +13,7 @@ if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
 }
 
 if ('navigation' in window === false) {
-    window.navigation = new (await import("https://cdn.skypack.dev/@virtualstate/navigation")).default;
+    // requires the following import map
+    //<script type="importmap">{"imports":{"abort-controller":"https://cdn.skypack.dev/abort-controller","uuid":"https://cdn.skypack.dev/uuid"}}</script>
+    window.navigation = new (await import('https://cdn.skypack.dev/@virtualstate/navigation')).Navigation;
 }
