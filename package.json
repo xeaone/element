@@ -2,12 +2,10 @@
 	"name": "@xeaone/element",
 	"type": "module",
 	"description": "X-Element an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards",
-	"browser": "./pro/x-element.js",
-	"module": "./pro/x-element.js",
+	"browser": "./pro/index.js",
+	"module": "./pro/index.js",
 	"exports": {
-		".": "./pro/x-element.js",
-		"./poly": "./pro/x-poly.js",
-		"./router": "./pro/x-router.js"
+		"default": "./pro/index.js"
 	},
 	"scripts": {},
 	"repository": {
@@ -32,5 +30,5 @@
 		"rollup": "^2.77.2",
 		"tslib": "^2.4.0"
 	},
-	"version": "7.2.7"
+	"version": "7.2.8"
 }

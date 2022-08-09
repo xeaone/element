@@ -1,5 +1,7 @@
-import './x-poly.js';
+import XPoly from './x-poly.js';
 import XElement from './x-element.js';
+
+await XPoly();
 
 // navigation.addEventListener('navigate', (event) => {
 //     const { pathname } = new URL(event.destination.url);
