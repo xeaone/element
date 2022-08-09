@@ -12,7 +12,6 @@ file.path('./web');
 
 cors.get('/*', '*');
 
-// cors.get('/x-element.js', '*');
 // router.get('/*', context => file.handle(context));
 
 router.get('/element/*', context => {

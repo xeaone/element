@@ -9,6 +9,7 @@ import TextBinder from './text';
 import Binder from './binder';
 import OnBinder from './on';
 import Dash from './dash';
+import Poly from './poly';
 
 const navigators = new Map();
 
@@ -17,6 +18,7 @@ const transition = async (options: any) => {
 
     if (options.navigating) return;
     else options.navigating = true;
+
     options.construct = options.construct ?? (await import(options.file)).default;
     if (!(options.construct?.prototype instanceof XElement)) throw new Error('XElement - navigation construct not valid');
 
@@ -55,6 +57,7 @@ const navigate = (event?: any) => {
 
 export default class XElement extends HTMLElement {
 
+    static poly = Poly;
     static observedProperties?: Array<string>;
 
     static define (name?: string, constructor?: typeof XElement) {

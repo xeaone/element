@@ -7,9 +7,8 @@ clean() {
     exit
 }
 
-# deno bundle --no-clear-screen --watch src/router/router.ts web/x-router.js & \
-# deno bundle --no-clear-screen --watch src/element/element.ts web/x-element.js & \
-# deno run --watch --allow-net --allow-read ./server.ts
+rm web/404.html
+cp web/index.html web/404.html
 
 node watch.js & \
 deno run --watch --allow-net --allow-read ./server.ts

@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.3.5
+Version: 7.3.6
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -691,6 +691,24 @@ function dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
+async function Poly() {
+    if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
+        (function attachShadowRoots(root) {
+            const templates = root.querySelectorAll('template[shadowroot]');
+            for (const template of templates) {
+                const mode = (template.getAttribute('shadowroot') || 'closed');
+                const shadowRoot = template.parentNode.attachShadow({ mode });
+                shadowRoot.appendChild(template.content);
+                template.remove();
+                attachShadowRoots(shadowRoot);
+            }
+        })(document);
+    }
+    if ('navigation' in window === false) {
+        window.navigation = new (await import('https://cdn.skypack.dev/@virtualstate/navigation')).Navigation;
+    }
+}
+
 const navigators = new Map();
 const transition = async (options) => {
     if (options.cache && options.instance)
@@ -732,6 +750,7 @@ const navigate = (event) => {
     return event ? event?.transitionWhile(transition(options)) : transition(options);
 };
 class XElement extends HTMLElement {
+    static poly = Poly;
     static observedProperties;
     static define(name, constructor) {
         constructor = constructor ?? this;
