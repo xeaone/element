@@ -13,12 +13,12 @@ file.path('./web');
 cors.get('/x-router.js', '*');
 cors.get('/x-element.js', '*');
 
-router.get('/*', context => file.handle(context));
+// router.get('/*', context => file.handle(context));
 
-// router.get('/element/*', context => {
-//     context.url.pathname = context.url.pathname.startsWith('/element') ? context.url.pathname.slice('/element'.length) : context.url.pathname || '/';
-//     return file.handle(context);
-// });
+router.get('/element/*', context => {
+    context.url.pathname = context.url.pathname.startsWith('/element') ? context.url.pathname.slice('/element'.length) : context.url.pathname || '/';
+    return file.handle(context);
+});
 
 handler.add(normalize);
 handler.add(cors);

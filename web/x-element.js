@@ -1,13 +1,3 @@
-/************************************************************************
-Name: XElement
-Version: 7.2.4
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
 const promise = Promise.resolve();
 function tick(method) {
     return promise.then(method);
@@ -712,10 +702,11 @@ const transition = async (options) => {
     options.navigating = false;
 };
 const navigate = (event) => {
-    if (event && (!event?.canTransition || !event?.canIntercept))
+    if (event && (!event.canTransition || !event.canIntercept))
         return;
-    const url = event?.destination?.url ?? location.href;
-    const { pathname } = new URL(url);
+    const url = event.destination.url;
+    const base = document.querySelector('base')?.href.replace(/\/+$/, '') ?? location.origin;
+    const pathname = url.replace(base, '');
     const options = navigators.get(pathname) ?? navigators.get('/*');
     if (!options)
         throw new Error('XElement - navigation options not found');
@@ -723,8 +714,8 @@ const navigate = (event) => {
     if (!options.target)
         throw new Error('XElement - navigation target not found');
     if (options.instance === options.target.lastElementChild)
-        return event?.preventDefault();
-    return event ? event?.transitionWhile?.(transition(options)) : transition(options);
+        return event.preventDefault();
+    return event.transitionWhile(transition(options));
 };
 class XElement extends HTMLElement {
     static observedProperties;
