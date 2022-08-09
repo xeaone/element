@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.2.4
+Version: 7.2.5
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -712,10 +712,11 @@ const transition = async (options) => {
     options.navigating = false;
 };
 const navigate = (event) => {
-    if (event && (!event?.canTransition || !event?.canIntercept))
+    if (event && (!event.canTransition || !event.canIntercept))
         return;
-    const url = event?.destination?.url ?? location.href;
-    const { pathname } = new URL(url);
+    const url = event.destination.url;
+    const base = document.querySelector('base')?.href.replace(/\/+$/, '') ?? location.origin;
+    const pathname = url.replace(base, '');
     const options = navigators.get(pathname) ?? navigators.get('/*');
     if (!options)
         throw new Error('XElement - navigation options not found');
@@ -723,8 +724,8 @@ const navigate = (event) => {
     if (!options.target)
         throw new Error('XElement - navigation target not found');
     if (options.instance === options.target.lastElementChild)
-        return event?.preventDefault();
-    return event ? event?.transitionWhile?.(transition(options)) : transition(options);
+        return event.preventDefault();
+    return event.transitionWhile(transition(options));
 };
 class XElement extends HTMLElement {
     static observedProperties;
