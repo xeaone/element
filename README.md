@@ -46,9 +46,11 @@ MyElement.define();
 
 
 ## Use
-[https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-router.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-router.js)
+[https://esm.sh/@xeaone/element](https://esm.sh/@xeaone/element)
 
-[https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js)
+[https://cdn.jsdelivr.net/gh/xeaone/element/pro/index.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/index.js)
+
+[https://cdn.jsdelivr.net/npm/@xeaone/element/pro/index.js/+esm](https://cdn.jsdelivr.net/npm/@xeaone/element/pro/index.js/+esm)
 
 [https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)
 

@@ -10,9 +10,9 @@ const normalize = new Normalize();
 file.spa(true);
 file.path('./web');
 
-cors.get('/x-router.js', '*');
-cors.get('/x-element.js', '*');
+cors.get('/*', '*');
 
+// cors.get('/x-element.js', '*');
 // router.get('/*', context => file.handle(context));
 
 router.get('/element/*', context => {

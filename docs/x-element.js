@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.3.4
+Version: 7.3.5
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -703,8 +703,8 @@ const transition = async (options) => {
     if (!(options.construct?.prototype instanceof XElement))
         throw new Error('XElement - navigation construct not valid');
     options.name = options.name ?? dash(options.construct.name);
-    if (!/\w+-\w+/.test(options.name))
-        throw new Error('XElement - navigation name not valid');
+    if (!/^\w+-\w+/.test(options.name))
+        options.name = `x-${options.name}`;
     if (!customElements.get(options.name))
         customElements.define(options.name, options.construct);
     options.instance = document.createElement(options.name);
@@ -715,8 +715,12 @@ const navigate = (event) => {
     if (event && (!event?.canTransition || !event?.canIntercept))
         return;
     const destination = new URL(event?.destination.url ?? location.href);
-    const base = document.querySelector('base')?.href.replace(/\/+$/, '') ?? location.origin;
-    const pathname = destination.href.replace(base, '');
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    destination.hash = '';
+    destination.search = '';
+    const pathname = destination.href.replace(base.href, '/');
     const options = navigators.get(pathname) ?? navigators.get('/*');
     if (!options)
         return;
@@ -743,11 +747,14 @@ class XElement extends HTMLElement {
             throw new Error('XElement - navigation path required');
         if (!file)
             throw new Error('XElement - navigation file required');
+        const base = new URL(document.querySelector('base')?.href ?? location.origin);
+        base.hash = '';
+        base.search = '';
         options = options ?? {};
         options.path = path;
-        options.file = file;
         options.cache = options.cache ?? true;
         options.query = options.query ?? 'main';
+        options.file = new URL(file, base.href).href;
         navigators.set(path, options);
         navigate();
         window.navigation.addEventListener('navigate', navigate);
