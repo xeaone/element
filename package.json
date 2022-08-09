@@ -5,7 +5,10 @@
 	"main": "./pro/index.js",
 	"module": "./pro/index.js",
 	"exports": {
-		"import": "./pro/index.js"
+		".": "./pro/index.js",
+		"./x-poly.js": "./pro/x-poly.js",
+		"./x-router.js": "./pro/x-router.js",
+		"./x-element.js": "./pro/x-element.js"
 	},
 	"scripts": {},
 	"repository": {
@@ -30,5 +33,5 @@
 		"rollup": "^2.77.2",
 		"tslib": "^2.4.0"
 	},
-	"version": "7.3.0"
+	"version": "7.3.1"
 }
