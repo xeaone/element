@@ -31,22 +31,21 @@ const transition = async (options: any) => {
     options.navigating = false;
 };
 
-const navigate = (event: any) => {
-    if (event && (!event.canTransition || !event.canIntercept)) return;
-    const url = event.destination.url;
+const navigate = (event?: any) => {
+    if (event && (!event?.canTransition || !event?.canIntercept)) return;
+    const destination = new URL(event?.destination.url ?? location.href);
     const base = document.querySelector('base')?.href.replace(/\/+$/, '') ?? location.origin;
-    const pathname = url.replace(base, '');
-    // const { pathname } = new URL(url);
-
+    const pathname = destination.href.replace(base, '');
     const options = navigators.get(pathname) ?? navigators.get('/*');
-    if (!options) throw new Error('XElement - navigation options not found');
+
+    if (!options) return;
 
     options.target = options.target ?? document.querySelector(options.query);
     if (!options.target) throw new Error('XElement - navigation target not found');
 
-    if (options.instance === options.target.lastElementChild) return event.preventDefault();
+    if (options.instance === options.target.lastElementChild) return event?.preventDefault();
 
-    return event.transitionWhile(transition(options));
+    return event ? event?.transitionWhile(transition(options)) : transition(options);
 };
 
 export default class XElement extends HTMLElement {
@@ -73,6 +72,7 @@ export default class XElement extends HTMLElement {
         options.cache = options.cache ?? true;
         options.query = options.query ?? 'main';
         navigators.set(path, options);
+        navigate();
         (window as any).navigation.addEventListener('navigate', navigate);
     }
 

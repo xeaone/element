@@ -18,4 +18,4 @@ XElement.navigation('/*', './all.js');
 
 navigation.addEventListener('navigate', () => console.log('nav after'));
 
-navigation.navigate(location.href, { history: 'replace' });
+// navigation.navigate(location.href, { history: 'replace' });

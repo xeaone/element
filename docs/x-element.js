@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.2.5
+Version: 7.2.6
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -712,20 +712,20 @@ const transition = async (options) => {
     options.navigating = false;
 };
 const navigate = (event) => {
-    if (event && (!event.canTransition || !event.canIntercept))
+    if (event && (!event?.canTransition || !event?.canIntercept))
         return;
-    const url = event.destination.url;
+    const destination = new URL(event?.destination.url ?? location.href);
     const base = document.querySelector('base')?.href.replace(/\/+$/, '') ?? location.origin;
-    const pathname = url.replace(base, '');
+    const pathname = destination.href.replace(base, '');
     const options = navigators.get(pathname) ?? navigators.get('/*');
     if (!options)
-        throw new Error('XElement - navigation options not found');
+        return;
     options.target = options.target ?? document.querySelector(options.query);
     if (!options.target)
         throw new Error('XElement - navigation target not found');
     if (options.instance === options.target.lastElementChild)
-        return event.preventDefault();
-    return event.transitionWhile(transition(options));
+        return event?.preventDefault();
+    return event ? event?.transitionWhile(transition(options)) : transition(options);
 };
 class XElement extends HTMLElement {
     static observedProperties;
@@ -749,6 +749,7 @@ class XElement extends HTMLElement {
         options.cache = options.cache ?? true;
         options.query = options.query ?? 'main';
         navigators.set(path, options);
+        navigate();
         window.navigation.addEventListener('navigate', navigate);
     }
     get isPrepared() { return this.#prepared; }
