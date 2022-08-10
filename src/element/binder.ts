@@ -69,8 +69,8 @@ export default class Binder {
     compute: () => any;
 
     meta: Record<string, any>;
-    register: XElement[ 'register' ];
     release: XElement[ 'release' ];
+    register: XElement[ 'register' ];
 
     constructor (node: Node, container: XElement, context: Record<string, any>, instance?: Record<string, any>, rewrites?: Array<Array<string>>) {
 
@@ -81,35 +81,62 @@ export default class Binder {
         this.value = node.nodeValue ?? '';
         this.rewrites = rewrites ? [ ...rewrites ] : [];
         this.instance = instance ? { ...instance } : {};
-        // this.instance = instance ? Object.create(instance) : {};
         this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
 
         this.owner = (node as Attr).ownerElement ?? undefined;
-        this.register = this.container.register.bind(this.container);
         this.release = this.container.release.bind(this.container);
+        this.register = this.container.register.bind(this.container);
         this.type = this.name.startsWith('on') ? 'on' : (this.constructor as any).handlers.includes(this.name) ? this.name : 'standard';
 
         this.node.nodeValue = '';
 
+        if (!(this.constructor as any).referenceCache.has(this.value)) {
+            (this.constructor as any).referenceCache.set(this.value, new Set());
+        }
+
         const referenceCache = (this.constructor as any).referenceCache.get(this.value);
-        if (referenceCache) {
-            this.references = referenceCache;
+
+        if (referenceCache.size) {
+            if (rewrites) {
+                for (const reference of referenceCache) {
+                    for (const [ name, value ] of rewrites) {
+                        if (reference === name) {
+                            this.references.add(value);
+                        } else if (reference.startsWith(name + '.')) {
+                            this.references.add(value + reference.slice(name.length));
+                        } else {
+                            this.references.add(reference);
+                        }
+                    }
+                }
+            } else {
+                this.references = referenceCache;
+            }
         } else {
             const data = this.value;
 
-            // const data = this.value.replace(referenceNormalize, '.$2');
-
-            const references: Set<string> = new Set();
             let match = referenceMatch.exec(data);
             while (match) {
                 const reference = match[ 5 ];
-                if (reference) references.add(reference);
-                match = referenceMatch.exec(data);
-            }
+                if (reference) {
+                    referenceCache.add(reference);
 
-            if (references.size) {
-                (this.constructor as any).referenceCache.set(this.value, references);
-                this.references = new Set(references);
+                    if (rewrites) {
+                        for (const [ name, value ] of rewrites) {
+                            if (reference === name) {
+                                this.references.add(value);
+                            } else if (reference.startsWith(name + '.')) {
+                                this.references.add(value + reference.slice(name.length));
+                            } else {
+                                this.references.add(reference);
+                            }
+                        }
+                    } else {
+                        this.references.add(reference);
+                    }
+
+                }
+                match = referenceMatch.exec(data);
             }
 
         }

@@ -80,4 +80,4 @@ await Promise.all([
     // })
 ]);
 
-writeFileSync('./web/x-poly.js', readFileSync('./pro/x-poly.js'));
+// writeFileSync('./web/x-poly.js', readFileSync('./pro/x-poly.js'));

@@ -72,7 +72,7 @@ export default class Each extends Binder {
             }
         } else if (this.meta.currentLength < this.meta.targetLength) {
             while (this.meta.currentLength < this.meta.targetLength) {
-                const clone = this.meta.templateElement.content.cloneNode(true);
+                // const clone = this.meta.templateElement.content.cloneNode(true);
                 const keyValue = this.meta.keys[ this.meta.currentLength ] ?? this.meta.currentLength;
                 const indexValue = this.meta.currentLength++;
 
@@ -81,28 +81,32 @@ export default class Each extends Binder {
                     [ this.meta.variable, `${this.meta.reference}.${keyValue}` ]
                 ];
 
-                const instance = {
+                const instance: any = {
                     ...this.instance,
-                    [ this.meta.keyName ]: keyValue,
-                    [ this.meta.indexName ]: indexValue,
-                    get [ this.meta.variable ] () {
-                        return data[ keyValue ];
-                    }
+                    get [ this.meta.variable ] () { return data[ keyValue ]; }
                 };
-                // const instance = Object.create(this.instance, {
-                //     [ this.meta.keyName ]: { value: keyValue },
-                //     [ this.meta.indexName ]: { value: indexValue },
-                //     [ this.meta.variable ]: { get () { return data[ keyValue ]; } },
-                // });
 
-                let node = clone.firstChild, child;
+                if (this.meta.keyName) instance[ this.meta.keyName ] = keyValue;
+                if (this.meta.indexName) instance[ this.meta.indexName ] = indexValue;
+
+                let node = this.meta.templateElement.content.firstChild;
                 while (node) {
-                    child = node;
+                    this.register(
+                        this.meta.queueElement.content.appendChild(node.cloneNode(true)),
+                        this.context,
+                        instance,
+                        rewrites
+                    );
                     node = node.nextSibling;
-                    this.register(child, this.context, instance, rewrites);
                 }
 
-                this.meta.queueElement.content.appendChild(clone);
+                // let node = clone.firstChild;
+                // while (node) {
+                //     this.register(node, this.context, instance, rewrites);
+                //     node = node.nextSibling;
+                // }
+
+                // this.meta.queueElement.content.appendChild(clone);
             }
         }
         // console.timeEnd('each');

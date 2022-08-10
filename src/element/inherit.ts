@@ -1,6 +1,6 @@
 import Binder from './binder';
 
-export default class inherit extends Binder {
+export default class Inherit extends Binder {
 
     render () {
         const owner = this.owner as any;

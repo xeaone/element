@@ -1,4 +1,8 @@
 import { dataDelete, dataEvent, dataGet, dataSet, dataHas } from './data';
+import Navigation from './navigation';
+import Dash from './dash';
+import Poly from './poly';
+
 import StandardBinder from './standard';
 import CheckedBinder from './checked';
 import InheritBinder from './inherit';
@@ -8,56 +12,11 @@ import HtmlBinder from './html';
 import TextBinder from './text';
 import Binder from './binder';
 import OnBinder from './on';
-import Dash from './dash';
-import Poly from './poly';
-
-const navigators = new Map();
-
-const transition = async (options: any) => {
-    if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
-
-    if (options.navigating) return;
-    else options.navigating = true;
-
-    options.construct = options.construct ?? (await import(options.file)).default;
-    if (!(options.construct?.prototype instanceof XElement)) throw new Error('XElement - navigation construct not valid');
-
-    options.name = options.name ?? Dash(options.construct.name);
-
-    if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
-    if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
-
-    options.instance = document.createElement(options.name);
-    options.target.replaceChildren(options.instance);
-    options.navigating = false;
-};
-
-const navigate = (event?: any) => {
-    if (event && (!event?.canTransition || !event?.canIntercept)) return;
-    const destination = new URL(event?.destination.url ?? location.href);
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-
-    base.hash = '';
-    base.search = '';
-    destination.hash = '';
-    destination.search = '';
-
-    const pathname = destination.href.replace(base.href, '/');
-    const options = navigators.get(pathname) ?? navigators.get('/*');
-
-    if (!options) return;
-
-    options.target = options.target ?? document.querySelector(options.query);
-    if (!options.target) throw new Error('XElement - navigation target not found');
-
-    if (options.instance === options.target.lastElementChild) return event?.preventDefault();
-
-    return event ? event?.transitionWhile(transition(options)) : transition(options);
-};
 
 export default class XElement extends HTMLElement {
 
     static poly = Poly;
+    static navigation = Navigation;
     static observedProperties?: Array<string>;
 
     static define (name?: string, constructor?: typeof XElement) {
@@ -71,22 +30,6 @@ export default class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
-    static navigation (path: string, file: string, options: any) {
-        if (!path) throw new Error('XElement - navigation path required');
-        if (!file) throw new Error('XElement - navigation file required');
-        const base = new URL(document.querySelector('base')?.href ?? location.origin);
-        base.hash = '';
-        base.search = '';
-        options = options ?? {};
-        options.path = path;
-        options.cache = options.cache ?? true;
-        options.query = options.query ?? 'main';
-        options.file = new URL(file, base.href).href;
-        navigators.set(path, options);
-        navigate();
-        (window as any).navigation.addEventListener('navigate', navigate);
-    }
-
     get isPrepared () { return this.#prepared; }
 
     #data = {};
@@ -97,7 +40,7 @@ export default class XElement extends HTMLElement {
     #preparing = false;
     #syntaxMatch = new RegExp('{{.*?}}');
     #mutator = new MutationObserver(this.#mutation.bind(this));
-    #binders: Map<string | Node | Element | undefined, Set<Binder>> = new Map();
+    #binders: Map<string | Node, Set<Binder>> = new Map();
 
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
@@ -194,8 +137,10 @@ export default class XElement extends HTMLElement {
 
         for (const binder of binders) {
             for (const reference of binder.references) {
-                this.#binders.get(reference)?.delete(binder);
-                if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
+                if (this.#binders.has(reference)) {
+                    this.#binders.get(reference)?.delete(binder);
+                    if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
+                }
             }
         }
 
@@ -215,21 +160,16 @@ export default class XElement extends HTMLElement {
         else binder = new StandardBinder(node, this, context, instance, rewrites);
 
         for (let reference of binder.references) {
-
-            if (rewrites) {
-                for (const [ name, value ] of rewrites) {
-                    if (reference === name) reference = value;
-                    else if (reference.startsWith(name + '.')) reference = value + reference.slice(name.length);
-                }
-            }
-
-            if (!this.#binders.get(reference)?.add(binder)?.size) {
+            if (this.#binders.has(reference)) {
+                this.#binders.get(reference)?.add(binder);
+            } else {
                 this.#binders.set(reference, new Set([ binder ]));
             }
-
         }
 
-        if (!this.#binders.get(binder.owner ?? binder.node)?.add(binder)?.size) {
+        if (this.#binders.has(binder.owner ?? binder.node)) {
+            this.#binders.get(binder.owner ?? binder.node)?.add(binder);
+        } else {
             this.#binders.set(binder.owner ?? binder.node, new Set([ binder ]));
         }
 
@@ -275,9 +215,12 @@ export default class XElement extends HTMLElement {
             if (end === -1) return;
 
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
-                const split = (node as Text).splitText(end + this.#syntaxLength);
+                this.register(
+                    (node as Text).splitText(end + this.#syntaxLength),
+                    context,
+                    instance,
+                    rewrites);
                 this.#add(node, context, instance, rewrites);
-                this.register(split, context, instance, rewrites);
             } else {
                 this.#add(node, context, instance, rewrites);
             }

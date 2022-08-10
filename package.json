@@ -10,7 +10,9 @@
 		"./x-router.js": "./pro/x-router.js",
 		"./x-element.js": "./pro/x-element.js"
 	},
-	"scripts": {},
+	"scripts": {
+		"tdeploy": "deno run -A deploy.ts"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/xeaone/element.git"
@@ -34,5 +36,5 @@
 		"rollup": "^2.77.2",
 		"tslib": "^2.4.0"
 	},
-	"version": "7.3.6"
+	"version": "7.3.7"
 }

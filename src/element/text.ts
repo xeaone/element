@@ -1,7 +1,6 @@
 import format from './format';
 import Binder from './binder';
 
-
 export default class Text extends Binder {
 
     render () {

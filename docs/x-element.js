@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.3.6
+Version: 7.3.7
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -73,6 +73,86 @@ const dataEvent = function (data, reference, type) {
     }
 };
 
+function dash(data) {
+    return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
+const navigators = new Map();
+const transition = async (options) => {
+    if (options.cache && options.instance)
+        return options.target.replaceChildren(options.instance);
+    if (options.navigating)
+        return;
+    else
+        options.navigating = true;
+    options.construct = options.construct ?? (await import(options.file)).default;
+    if (!options.construct?.prototype)
+        throw new Error('XElement - navigation construct not valid');
+    options.name = options.name ?? dash(options.construct.name);
+    if (!/^\w+-\w+/.test(options.name))
+        options.name = `x-${options.name}`;
+    if (!customElements.get(options.name))
+        customElements.define(options.name, options.construct);
+    options.instance = document.createElement(options.name);
+    options.target.replaceChildren(options.instance);
+    options.navigating = false;
+};
+const navigate = (event) => {
+    if (event && (!event?.canTransition || !event?.canIntercept))
+        return;
+    const destination = new URL(event?.destination.url ?? location.href);
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    destination.hash = '';
+    destination.search = '';
+    const pathname = destination.href.replace(base.href, '/');
+    const options = navigators.get(pathname) ?? navigators.get('/*');
+    if (!options)
+        return;
+    options.target = options.target ?? document.querySelector(options.query);
+    if (!options.target)
+        throw new Error('XElement - navigation target not found');
+    if (options.instance === options.target.lastElementChild)
+        return event?.preventDefault();
+    return event ? event?.intercept({ handler: () => transition(options) }) : transition(options);
+};
+function navigation(path, file, options) {
+    if (!path)
+        throw new Error('XElement - navigation path required');
+    if (!file)
+        throw new Error('XElement - navigation file required');
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    options = options ?? {};
+    options.path = path;
+    options.cache = options.cache ?? true;
+    options.query = options.query ?? 'main';
+    options.file = new URL(file, base.href).href;
+    navigators.set(path, options);
+    navigate();
+    window.navigation.addEventListener('navigate', navigate);
+}
+
+async function Poly() {
+    if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
+        (function attachShadowRoots(root) {
+            const templates = root.querySelectorAll('template[shadowroot]');
+            for (const template of templates) {
+                const mode = (template.getAttribute('shadowroot') || 'closed');
+                const shadowRoot = template.parentNode.attachShadow({ mode });
+                shadowRoot.appendChild(template.content);
+                template.remove();
+                attachShadowRoots(shadowRoot);
+            }
+        })(document);
+    }
+    if ('navigation' in window === false) {
+        window.navigation = new (await import('https://cdn.skypack.dev/@virtualstate/navigation')).Navigation;
+    }
+}
+
 const referenceMatch = new RegExp([
     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
     '((?:^|}}).*?{{)',
@@ -129,8 +209,8 @@ class Binder {
     references = new Set();
     compute;
     meta;
-    register;
     release;
+    register;
     constructor(node, container, context, instance, rewrites) {
         this.meta = {};
         this.node = node;
@@ -141,27 +221,59 @@ class Binder {
         this.instance = instance ? { ...instance } : {};
         this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
         this.owner = node.ownerElement ?? undefined;
-        this.register = this.container.register.bind(this.container);
         this.release = this.container.release.bind(this.container);
+        this.register = this.container.register.bind(this.container);
         this.type = this.name.startsWith('on') ? 'on' : this.constructor.handlers.includes(this.name) ? this.name : 'standard';
         this.node.nodeValue = '';
+        if (!this.constructor.referenceCache.has(this.value)) {
+            this.constructor.referenceCache.set(this.value, new Set());
+        }
         const referenceCache = this.constructor.referenceCache.get(this.value);
-        if (referenceCache) {
-            this.references = referenceCache;
+        if (referenceCache.size) {
+            if (rewrites) {
+                for (const reference of referenceCache) {
+                    for (const [name, value] of rewrites) {
+                        if (reference === name) {
+                            this.references.add(value);
+                        }
+                        else if (reference.startsWith(name + '.')) {
+                            this.references.add(value + reference.slice(name.length));
+                        }
+                        else {
+                            this.references.add(reference);
+                        }
+                    }
+                }
+            }
+            else {
+                this.references = referenceCache;
+            }
         }
         else {
             const data = this.value;
-            const references = new Set();
             let match = referenceMatch.exec(data);
             while (match) {
                 const reference = match[5];
-                if (reference)
-                    references.add(reference);
+                if (reference) {
+                    referenceCache.add(reference);
+                    if (rewrites) {
+                        for (const [name, value] of rewrites) {
+                            if (reference === name) {
+                                this.references.add(value);
+                            }
+                            else if (reference.startsWith(name + '.')) {
+                                this.references.add(value + reference.slice(name.length));
+                            }
+                            else {
+                                this.references.add(reference);
+                            }
+                        }
+                    }
+                    else {
+                        this.references.add(reference);
+                    }
+                }
                 match = referenceMatch.exec(data);
-            }
-            if (references.size) {
-                this.constructor.referenceCache.set(this.value, references);
-                this.references = new Set(references);
             }
         }
         const compute = this.constructor.computeCache.get(this.value);
@@ -303,7 +415,7 @@ class Checked extends Binder {
     }
 }
 
-class inherit extends Binder {
+class Inherit extends Binder {
     render() {
         const owner = this.owner;
         const node = this.node;
@@ -479,7 +591,6 @@ class Each extends Binder {
         }
         else if (this.meta.currentLength < this.meta.targetLength) {
             while (this.meta.currentLength < this.meta.targetLength) {
-                const clone = this.meta.templateElement.content.cloneNode(true);
                 const keyValue = this.meta.keys[this.meta.currentLength] ?? this.meta.currentLength;
                 const indexValue = this.meta.currentLength++;
                 const rewrites = [
@@ -488,19 +599,17 @@ class Each extends Binder {
                 ];
                 const instance = {
                     ...this.instance,
-                    [this.meta.keyName]: keyValue,
-                    [this.meta.indexName]: indexValue,
-                    get [this.meta.variable]() {
-                        return data[keyValue];
-                    }
+                    get [this.meta.variable]() { return data[keyValue]; }
                 };
-                let node = clone.firstChild, child;
+                if (this.meta.keyName)
+                    instance[this.meta.keyName] = keyValue;
+                if (this.meta.indexName)
+                    instance[this.meta.indexName] = indexValue;
+                let node = this.meta.templateElement.content.firstChild;
                 while (node) {
-                    child = node;
+                    this.register(this.meta.queueElement.content.appendChild(node.cloneNode(true)), this.context, instance, rewrites);
                     node = node.nextSibling;
-                    this.register(child, this.context, instance, rewrites);
                 }
-                this.meta.queueElement.content.appendChild(clone);
             }
         }
         if (this.meta.currentLength === this.meta.targetLength) {
@@ -687,70 +796,9 @@ class On extends Binder {
     }
 }
 
-function dash(data) {
-    return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
-}
-
-async function Poly() {
-    if ('shadowRoot' in HTMLTemplateElement.prototype === false) {
-        (function attachShadowRoots(root) {
-            const templates = root.querySelectorAll('template[shadowroot]');
-            for (const template of templates) {
-                const mode = (template.getAttribute('shadowroot') || 'closed');
-                const shadowRoot = template.parentNode.attachShadow({ mode });
-                shadowRoot.appendChild(template.content);
-                template.remove();
-                attachShadowRoots(shadowRoot);
-            }
-        })(document);
-    }
-    if ('navigation' in window === false) {
-        window.navigation = new (await import('https://cdn.skypack.dev/@virtualstate/navigation')).Navigation;
-    }
-}
-
-const navigators = new Map();
-const transition = async (options) => {
-    if (options.cache && options.instance)
-        return options.target.replaceChildren(options.instance);
-    if (options.navigating)
-        return;
-    else
-        options.navigating = true;
-    options.construct = options.construct ?? (await import(options.file)).default;
-    if (!(options.construct?.prototype instanceof XElement))
-        throw new Error('XElement - navigation construct not valid');
-    options.name = options.name ?? dash(options.construct.name);
-    if (!/^\w+-\w+/.test(options.name))
-        options.name = `x-${options.name}`;
-    if (!customElements.get(options.name))
-        customElements.define(options.name, options.construct);
-    options.instance = document.createElement(options.name);
-    options.target.replaceChildren(options.instance);
-    options.navigating = false;
-};
-const navigate = (event) => {
-    if (event && (!event?.canTransition || !event?.canIntercept))
-        return;
-    const destination = new URL(event?.destination.url ?? location.href);
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    destination.hash = '';
-    destination.search = '';
-    const pathname = destination.href.replace(base.href, '/');
-    const options = navigators.get(pathname) ?? navigators.get('/*');
-    if (!options)
-        return;
-    options.target = options.target ?? document.querySelector(options.query);
-    if (!options.target)
-        throw new Error('XElement - navigation target not found');
-    if (options.instance === options.target.lastElementChild)
-        return event?.preventDefault();
-    return event ? event?.transitionWhile(transition(options)) : transition(options);
-};
 class XElement extends HTMLElement {
     static poly = Poly;
+    static navigation = navigation;
     static observedProperties;
     static define(name, constructor) {
         constructor = constructor ?? this;
@@ -760,23 +808,6 @@ class XElement extends HTMLElement {
     static defined(name) {
         name = name ?? dash(this.name);
         return customElements.whenDefined(name);
-    }
-    static navigation(path, file, options) {
-        if (!path)
-            throw new Error('XElement - navigation path required');
-        if (!file)
-            throw new Error('XElement - navigation file required');
-        const base = new URL(document.querySelector('base')?.href ?? location.origin);
-        base.hash = '';
-        base.search = '';
-        options = options ?? {};
-        options.path = path;
-        options.cache = options.cache ?? true;
-        options.query = options.query ?? 'main';
-        options.file = new URL(file, base.href).href;
-        navigators.set(path, options);
-        navigate();
-        window.navigation.addEventListener('navigate', navigate);
     }
     get isPrepared() { return this.#prepared; }
     #data = {};
@@ -876,9 +907,11 @@ class XElement extends HTMLElement {
             return;
         for (const binder of binders) {
             for (const reference of binder.references) {
-                this.#binders.get(reference)?.delete(binder);
-                if (!this.#binders.get(reference)?.size)
-                    this.#binders.delete(reference);
+                if (this.#binders.has(reference)) {
+                    this.#binders.get(reference)?.delete(binder);
+                    if (!this.#binders.get(reference)?.size)
+                        this.#binders.delete(reference);
+                }
             }
         }
         this.#binders.delete(node);
@@ -894,7 +927,7 @@ class XElement extends HTMLElement {
         else if (node.nodeName === 'value')
             binder = new Value$1(node, this, context, instance, rewrites);
         else if (node.nodeName === 'inherit')
-            binder = new inherit(node, this, context, instance, rewrites);
+            binder = new Inherit(node, this, context, instance, rewrites);
         else if (node.nodeName === 'checked')
             binder = new Checked(node, this, context, instance, rewrites);
         else if (node.nodeName.startsWith('on'))
@@ -902,19 +935,17 @@ class XElement extends HTMLElement {
         else
             binder = new Standard(node, this, context, instance, rewrites);
         for (let reference of binder.references) {
-            if (rewrites) {
-                for (const [name, value] of rewrites) {
-                    if (reference === name)
-                        reference = value;
-                    else if (reference.startsWith(name + '.'))
-                        reference = value + reference.slice(name.length);
-                }
+            if (this.#binders.has(reference)) {
+                this.#binders.get(reference)?.add(binder);
             }
-            if (!this.#binders.get(reference)?.add(binder)?.size) {
+            else {
                 this.#binders.set(reference, new Set([binder]));
             }
         }
-        if (!this.#binders.get(binder.owner ?? binder.node)?.add(binder)?.size) {
+        if (this.#binders.has(binder.owner ?? binder.node)) {
+            this.#binders.get(binder.owner ?? binder.node)?.add(binder);
+        }
+        else {
             this.#binders.set(binder.owner ?? binder.node, new Set([binder]));
         }
         binder.render();
@@ -955,9 +986,8 @@ class XElement extends HTMLElement {
             if (end === -1)
                 return;
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
-                const split = node.splitText(end + this.#syntaxLength);
+                this.register(node.splitText(end + this.#syntaxLength), context, instance, rewrites);
                 this.#add(node, context, instance, rewrites);
-                this.register(split, context, instance, rewrites);
             }
             else {
                 this.#add(node, context, instance, rewrites);

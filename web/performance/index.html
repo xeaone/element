@@ -1,15 +1,7 @@
 <base href="/">
-<script>document.querySelector('base').href = location.hostname === 'xeaone.github.io' ? '/element/performance/' : '/performance/';</script>
+<!-- <script>document.querySelector('base').href = location.hostname === 'xeaone.github.io' ? '/element/performance/' : '/performance/';</script> -->
+<script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/';</script>
 <link rel="stylesheet" href="./index.css">
-
-<!--
-<x-child>
-    <template shadowroot="open">
-        <div>{{shadow}}</div>
-        <slot></slot>
-    </template>
-</x-child>
--->
 
 <o-loop>
     <template shadowroot="open">
@@ -39,56 +31,12 @@
 <script type="module">
     import XElement from '../x-element.js';
 
-    // class XChild extends XElement {
-
-    //     static observedProperties = ['self','shadow'];
-
-    //     self='self';
-    //     shadow='shadow';
-
-    //     constructor () {
-    //         super();
-    //         this.setup();
-
-    //         const template = document.createElement('template');
-
-    //         template.innerHTML ='<div>{{self}}</div>';
-    //         this.appendChild(template.content);
-
-    //         template.innerHTML ='<div>{{shadow}}</div>';
-    //         this.shadowRoot.appendChild(template.content);
-    //     }
-
-    // }
-
-    // XChild.define();
-
     class OLoop extends XElement {
 
-        static observedProperties = [
-            'clear',
-            'overwrite',
-            'push',
-            'raw',
-            'one',
-            'count',
-            'message',
-            'items',
-            'getter'
-        ];
-
-        nope='nope';
-
-        get getter () {
-            console.log(this);
-            return 'getter';
-        }
-
-        #private = 'private';
         items = [];
         message = '';
         count = 100000;
-        one = { two: 'three' };
+
         raw() {
             console.time('raw');
             const template = document.createElement('template');
@@ -104,15 +52,14 @@
             const raw = document.querySelector('o-loop').shadowRoot.getElementById('raw');
             raw.appendChild(template.content);
             console.timeEnd('raw');
-        };
+        }
         push() {
-            console.log(this.#private);
             console.time('push');
             for (var i = 0; i < this.count; i++) {
                 this.items.push({ number: i });
             }
             console.timeEnd('push');
-        };
+        }
         overwrite() {
             console.time('overwrite');
             var items = [];
@@ -121,44 +68,14 @@
             }
             this.items = items;
             console.timeEnd('overwrite');
-        };
+        }
         clear() {
             this.items = [];
-        };
-
-        // html = /*html*/ `
-        //     <link rel="stylesheet" href="./index.css">
-
-        //     <div class="wrap">
-        //         <div class="loader">Loader</div>
-        //     </div>
-
-		// 	<h3><span>{{count}}</span> bound elements</h3>
-		// 	<input value="{{count = $value}}" type="number">
-
-		// 	<br>
-		// 	<button onclick="{{push()}}">push</button>
-		// 	<button onclick="{{overwrite()}}">overwrite</button>
-		// 	<button onclick="{{raw()}}">raw</button>
-		// 	<button onclick="{{clear()}}">clear</button>
-
-		// 	<div id="raw"></div>
-
-		// 	<div each="{{[items,'item']}}">
-        //         <div class="box">{{item.number}}</div>
-        //     </div>
-		// `;
-
+        }
         constructor () {
             super();
             this.prepare();
-            // this.shadowRoot.innerHTML = this.html;
         }
-
-        // connectedCallback(){
-        //     this.innerHTML = this.html;
-        // }
-
     }
 
     OLoop.define();
