@@ -1,4 +1,17 @@
-import { File, Cors, Server, Router, Handler, Normalize } from '../server/mod.ts';
+import { File, Cors, Server, Router, Handler, Normalize } from 'https://deno.land/x/xserver@0.2.1/mod.ts';
+import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
+
+await build({
+    watch: true,
+    bundle: true,
+    format: 'esm',
+    target: 'es2020',
+    treeShaking: true,
+    platform: 'browser',
+    outfile: './web/x-element.js',
+    tsconfig: './tsconfig.json',
+    entryPoints: [ 'src/element/element.ts' ],
+});
 
 const port = 8000;
 const file = new File();
@@ -23,6 +36,10 @@ handler.add(normalize);
 handler.add(cors);
 handler.add(router);
 
-Server(request => handler.handle(request), { port });
+const server = Server(request => handler.handle(request), { port });
 
 console.log(`listening on port: ${port}`);
+
+await server;
+
+stop();

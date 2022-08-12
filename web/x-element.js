@@ -1,13 +1,3 @@
-/************************************************************************
-Name: XElement
-Version: 7.3.10
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => {

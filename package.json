@@ -11,10 +11,10 @@
         "./x-element.js": "./pro/x-element.js"
     },
     "scripts": {
+        "watch": "deno run -A watch.ts",
         "major": "deno run -A deploy.ts major",
         "minor": "deno run -A deploy.ts minor",
-        "patch": "deno run -A deploy.ts patch",
-        "td": "sh deploy.sh"
+        "patch": "deno run -A deploy.ts patch"
     },
     "repository": {
         "type": "git",
@@ -32,12 +32,6 @@
         "docs": "docs",
         "pro": "pro",
         "src": "src"
-    },
-    "devDependencies": {
-        "@rollup/plugin-typescript": "^8.3.4",
-        "@skypack/package-check": "^0.2.2",
-        "rollup": "^2.77.2",
-        "tslib": "^2.4.0"
     },
     "version": "7.3.10"
 }
