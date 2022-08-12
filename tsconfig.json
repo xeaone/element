@@ -6,7 +6,7 @@
 
     "module": "ESNext",
     "target": "ESNext",
-    "lib": [  "ESNext", "DOM", "DOM.Iterable" ],
+    "lib": [  "ESNext", "DOM", "DOM.Iterable" ]
 
   },
   "include": [ "./src/element/*", "./src/router/*" ],

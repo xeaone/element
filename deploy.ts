@@ -1,11 +1,18 @@
-import { inc } from 'https://deno.land/std@0.151.0/semver/mod.ts';
-import { build, stop } from 'https://deno.land/x/esbuild@v0.14.54/mod.js';
+import { inc, ReleaseType } from 'https://deno.land/std@0.151.0/semver/mod.ts';
+import { copy, emptyDir } from 'https://deno.land/std@0.152.0/fs/mod.ts';
+import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
 
-const { readTextFile, writeTextFile } = Deno;
+const { run, readTextFile, writeTextFile, args } = Deno;
+const [ release ] = args;
+
+const f = await run({ cmd: [ 'git', 'fetch' ] }).status();
+if (!f.success) throw new Error('git auth');
+
+const n = await run({ cmd: [ 'npm', 'whoami' ] }).status();
+if (!n.success) throw new Error('npm auth');
 
 const pkg = JSON.parse(await readTextFile('./package.json'));
-pkg.version = inc(pkg.version, 'patch');
-await writeTextFile('./package.json', JSON.stringify(pkg, null, '\t'));
+pkg.version = inc(pkg.version, release as ReleaseType);
 
 const { license, author, email, version } = pkg;
 
@@ -20,43 +27,44 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/`;
 
-const result = await build({
-    minify: true,
-    bundle: true,
-    format: 'esm',
-    target: 'es2020',
-    treeShaking: true,
-    platform: 'browser',
-    banner: { js: banner },
-    outfile: './pro/out.js',
-    tsconfig: './tsconfig.json',
-    entryPoints: [ 'src/element/element.ts' ],
-});
+await Promise.all([
+    build({
+        // minify: true,
+        bundle: true,
+        format: 'esm',
+        target: 'es2020',
+        treeShaking: true,
+        platform: 'browser',
+        banner: { js: banner },
+        outfile: './pro/x-element.js',
+        tsconfig: './tsconfig.json',
+        entryPoints: [ 'src/element/element.ts' ],
+    }),
+    build({
+        // minify: true,
+        bundle: true,
+        format: 'esm',
+        target: 'es2020',
+        treeShaking: true,
+        platform: 'browser',
+        banner: { js: banner },
+        outfile: './web/x-element.js',
+        tsconfig: './tsconfig.json',
+        entryPoints: [ 'src/element/element.ts' ],
+    })
+]).then(console.log);
 
-// const file = await Deno.readTextFile('./src/element/element.ts');
-// const result = await transform(file, {
-//     // entryPoints: [ 'src/element/element.ts' ],
-//     loader: 'ts',
-//     format: 'esm',
-//     // bundle: true,
-//     target: 'esnext',
-//     platform: 'browser',
-//     // banner: { js: banner },
-//     // outfile: './pro/out.js',
-//     tsconfigRaw: JSON.stringify({
-//         "compilerOptions": {
-//             "strict": true,
-//             "removeComments": true,
-//             "module": "ESNext",
-//             "target": "ESNext",
-//             "lib": [ "ESNext", "DOM", "DOM.Iterable" ],
-//         }
-//     })
-// });
-// Deno.writeTextFile('./pro/out.js', result.code);
+await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
 
-console.log(result);
+await copy('./web/index.html', './web/404.html', { overwrite: true });
+await emptyDir('./docs/');
+await copy('./web', './docs', { overwrite: true });
 
-await writeTextFile('./web/x-poly.js', await readTextFile('./pro/x-poly.js'));
+await run({ cmd: [ 'git', 'commit', '-a', '-m', version ] });
+await run({ cmd: [ 'git', 'push' ] });
+await run({ cmd: [ 'git', 'tag', version ] });
+await run({ cmd: [ 'git', 'push', '--tag' ] });
+
+await run({ cmd: [ 'npm', 'publish', '--access', 'public' ] });
 
 stop();
