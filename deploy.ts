@@ -12,59 +12,59 @@ const n = await run({ cmd: [ 'npm', 'whoami' ] }).status();
 if (!n.success) throw new Error('npm auth');
 
 const pkg = JSON.parse(await readTextFile('./package.json'));
-pkg.version = inc(pkg.version, release as ReleaseType);
+// pkg.version = inc(pkg.version, release as ReleaseType);
 
 const { license, author, email, version } = pkg;
 
-const banner = `/************************************************************************
-Name: XElement
-Version: ${version}
-License: ${license}
-Author: ${author}
-Email: ${email}
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/`;
+// const banner = `/************************************************************************
+// Name: XElement
+// Version: ${version}
+// License: ${license}
+// Author: ${author}
+// Email: ${email}
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// ************************************************************************/`;
 
-await Promise.all([
-    build({
-        // minify: true,
-        bundle: true,
-        format: 'esm',
-        target: 'es2020',
-        treeShaking: true,
-        platform: 'browser',
-        banner: { js: banner },
-        outfile: './pro/x-element.js',
-        tsconfig: './tsconfig.json',
-        entryPoints: [ 'src/element/element.ts' ],
-    }),
-    build({
-        // minify: true,
-        bundle: true,
-        format: 'esm',
-        target: 'es2020',
-        treeShaking: true,
-        platform: 'browser',
-        banner: { js: banner },
-        outfile: './web/x-element.js',
-        tsconfig: './tsconfig.json',
-        entryPoints: [ 'src/element/element.ts' ],
-    })
-]).then(console.log);
+// await Promise.all([
+//     build({
+//         // minify: true,
+//         bundle: true,
+//         format: 'esm',
+//         target: 'es2020',
+//         treeShaking: true,
+//         platform: 'browser',
+//         banner: { js: banner },
+//         outfile: './pro/x-element.js',
+//         tsconfig: './tsconfig.json',
+//         entryPoints: [ 'src/element/element.ts' ],
+//     }),
+//     build({
+//         // minify: true,
+//         bundle: true,
+//         format: 'esm',
+//         target: 'es2020',
+//         treeShaking: true,
+//         platform: 'browser',
+//         banner: { js: banner },
+//         outfile: './web/x-element.js',
+//         tsconfig: './tsconfig.json',
+//         entryPoints: [ 'src/element/element.ts' ],
+//     })
+// ]).then(console.log);
 
-await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
+// await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
 
-await copy('./web/index.html', './web/404.html', { overwrite: true });
-await emptyDir('./docs/');
-await copy('./web', './docs', { overwrite: true });
+// await copy('./web/index.html', './web/404.html', { overwrite: true });
+// await emptyDir('./docs/');
+// await copy('./web', './docs', { overwrite: true });
 
-await run({ cmd: [ 'git', 'commit', '-a', '-m', version ] });
-await run({ cmd: [ 'git', 'push' ] });
-await run({ cmd: [ 'git', 'tag', version ] });
-await run({ cmd: [ 'git', 'push', '--tag' ] });
+await run({ cmd: [ 'git', 'commit', '-a', '-m', version ] }).status();
+await run({ cmd: [ 'git', 'push' ] }).status();
+await run({ cmd: [ 'git', 'tag', version ] }).status();
+await run({ cmd: [ 'git', 'push', '--tag' ] }).status();
 
-await run({ cmd: [ 'npm', 'publish', '--access', 'public' ] });
+await run({ cmd: [ 'npm', 'publish', '--access', 'public' ] }).status();
 
 stop();
