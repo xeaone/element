@@ -81,20 +81,29 @@ export default class Each extends Binder {
                     [ this.meta.variable, `${this.meta.reference}.${keyValue}` ]
                 ];
 
-                const instance: any = {
-                    ...this.instance,
-                    get [ this.meta.variable ] () { return data[ keyValue ]; }
-                };
-
-                if (this.meta.keyName) instance[ this.meta.keyName ] = keyValue;
-                if (this.meta.indexName) instance[ this.meta.indexName ] = indexValue;
+                const context = new Proxy(this.context, {
+                    has: (target, key) =>
+                        key === this.meta.variable ||
+                        key === this.meta.keyName ||
+                        key === this.meta.indexName ||
+                        Reflect.has(target, key),
+                    get: (target, key, receiver) =>
+                        key === this.meta.keyName ? keyValue :
+                            key === this.meta.indexName ? indexValue :
+                                key === this.meta.variable ? Reflect.get(this.meta.data, keyValue) :
+                                    Reflect.get(target, key, receiver),
+                    set: (target, key, value, receiver) =>
+                        key === this.meta.keyName ? true :
+                            key === this.meta.indexName ? true :
+                                key === this.meta.variable ? Reflect.set(this.meta.data, keyValue, value) :
+                                    Reflect.set(target, key, value, receiver)
+                });
 
                 let node = this.meta.templateElement.content.firstChild;
                 while (node) {
                     this.register(
                         this.meta.queueElement.content.appendChild(node.cloneNode(true)),
-                        this.context,
-                        instance,
+                        context,
                         rewrites
                     );
                     node = node.nextSibling;
@@ -102,7 +111,7 @@ export default class Each extends Binder {
 
                 // let node = clone.firstChild;
                 // while (node) {
-                //     this.register(node, this.context, instance, rewrites);
+                //     this.register(node, this.context, rewrites);
                 //     node = node.nextSibling;
                 // }
 

@@ -55,9 +55,8 @@ export default class Binder {
     name: string;
     value: string;
 
-    rewrites: Array<Array<string>>;
     context: Record<string, any>;
-    instance: Record<string, any>;
+    rewrites: Array<Array<string>>;
 
     code?: string;
     owner?: Element;
@@ -68,19 +67,19 @@ export default class Binder {
 
     compute: () => any;
 
-    meta: Record<string, any>;
+    meta: Record<string, any> = {};
+    instance: Record<string, any> = {};
+
     release: XElement[ 'release' ];
     register: XElement[ 'register' ];
 
-    constructor (node: Node, container: XElement, context: Record<string, any>, instance?: Record<string, any>, rewrites?: Array<Array<string>>) {
+    constructor (node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
 
-        this.meta = {};
         this.node = node;
         this.context = context;
         this.container = container;
         this.value = node.nodeValue ?? '';
         this.rewrites = rewrites ? [ ...rewrites ] : [];
-        this.instance = instance ? { ...instance } : {};
         this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
 
         this.owner = (node as Attr).ownerElement ?? undefined;

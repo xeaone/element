@@ -32,15 +32,23 @@ export default class XElement extends HTMLElement {
 
     get isPrepared () { return this.#prepared; }
 
-    #data = {};
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
     #syntaxLength = 2;
     #prepared = false;
     #preparing = false;
     #syntaxMatch = new RegExp('{{.*?}}');
-    #mutator = new MutationObserver(this.#mutation.bind(this));
     #binders: Map<string | Node, Set<Binder>> = new Map();
+    #mutator = new MutationObserver(this.#mutation.bind(this));
+
+    // #data = {};
+    // #context = new Proxy(this.#data, {
+    #context = new Proxy({}, {
+        has: dataHas.bind(null),
+        get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
+        set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
+        deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
+    });
 
     #adoptedEvent = new Event('adopted');
     #adoptingEvent = new Event('adopting');
@@ -66,53 +74,51 @@ export default class XElement extends HTMLElement {
         this.#preparing = true;
         this.dispatchEvent(this.#preparingEvent);
 
-        const data: Record<string, any> = {};
         const prototype = Object.getPrototypeOf(this);
         const properties = (this.constructor as any).observedProperties;
         const descriptors: any = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
 
         for (const property in descriptors) {
+
             if (properties && !properties?.includes(property) ||
                 'attributeChangedCallback' === property ||
                 'disconnectedCallback' === property ||
                 'connectedCallback' === property ||
                 'adoptedCallback' === property ||
-                'constructor' === property) continue;
+                'constructor' === property
+            ) continue;
 
             const descriptor = descriptors[ property ];
-            const { enumerable, configurable } = descriptor;
-            if (!configurable) continue;
 
-            if ('set' in descriptor) descriptor.set = descriptor.set?.bind(this);
-            if ('get' in descriptor) descriptor.get = descriptor.get?.bind(this);
-            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value?.bind?.(this);
+            if (!descriptor.configurable) continue;
+            if (descriptor.set) descriptor.set = descriptor.set?.bind(this);
+            if (descriptor.get) descriptor.get = descriptor.get?.bind(this);
+            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
 
-            const get = () => (this as any).#data[ property ];
-            const set = (value: any) => (this as any).#data[ property ] = value;
+            // Object.defineProperty(this.#data, property, descriptor);
+            Object.defineProperty(this.#context, property, descriptor);
 
-            Object.defineProperty(data, property, descriptor);
-            Object.defineProperty(this, property, { get, set, enumerable, configurable: false });
+            Object.defineProperty(this, property, {
+                enumerable: descriptor.enumerable,
+                configurable: descriptor.configureable,
+                get: () => this.#context[ property ],
+                set: (value) => this.#context[ property ] = value
+            });
+
         }
-
-        this.#data = new Proxy(data, {
-            has: dataHas.bind(null),
-            get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ''),
-            set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ''),
-            deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), '')
-        });
 
         let shadowNode = this.shadowRoot?.firstChild;
         while (shadowNode) {
             const node = shadowNode;
             shadowNode = node.nextSibling;
-            this.register(node, this.#data);
+            this.register(node, this.#context);
         }
 
         let innerNode = this.firstChild;
         while (innerNode) {
             const node = innerNode;
             innerNode = node.nextSibling;
-            this.register(node, this.#data);
+            this.register(node, this.#context);
         }
 
         this.#prepared = true;
@@ -123,7 +129,7 @@ export default class XElement extends HTMLElement {
         if (!this.#prepared) return this.prepare();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
-                this.register(node, this.#data);
+                this.register(node, this.#context);
             }
             for (const node of mutation.removedNodes) {
                 this.release(node);
@@ -147,17 +153,17 @@ export default class XElement extends HTMLElement {
         this.#binders.delete(node);
     }
 
-    #add (node: Node, context: Record<string, any>, instance?: Record<string, any>, rewrites?: Array<Array<string>>) {
+    #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
 
         let binder;
-        if (node.nodeName === '#text') binder = new TextBinder(node, this, context, instance, rewrites);
-        else if (node.nodeName === 'html') binder = new HtmlBinder(node, this, context, instance, rewrites);
-        else if (node.nodeName === 'each') binder = new EachBinder(node, this, context, instance, rewrites);
-        else if (node.nodeName === 'value') binder = new ValueBinder(node, this, context, instance, rewrites);
-        else if (node.nodeName === 'inherit') binder = new InheritBinder(node, this, context, instance, rewrites);
-        else if (node.nodeName === 'checked') binder = new CheckedBinder(node, this, context, instance, rewrites);
-        else if (node.nodeName.startsWith('on')) binder = new OnBinder(node, this, context, instance, rewrites);
-        else binder = new StandardBinder(node, this, context, instance, rewrites);
+        if (node.nodeName === '#text') binder = new TextBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'html') binder = new HtmlBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'each') binder = new EachBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'value') binder = new ValueBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'inherit') binder = new InheritBinder(node, this, context, rewrites);
+        else if (node.nodeName === 'checked') binder = new CheckedBinder(node, this, context, rewrites);
+        else if (node.nodeName.startsWith('on')) binder = new OnBinder(node, this, context, rewrites);
+        else binder = new StandardBinder(node, this, context, rewrites);
 
         for (let reference of binder.references) {
             if (this.#binders.has(reference)) {
@@ -197,13 +203,13 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    register (node: Node, context: Record<string, any>, instance?: Record<string, any>, rewrites?: Array<Array<string>>) {
+    register (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
         if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
             let child = node.firstChild, register;
             while (child) {
                 register = child;
                 child = node.nextSibling;
-                this.register(register, context, instance, rewrites);
+                this.register(register, context, rewrites);
             }
         } else if (node.nodeType === node.TEXT_NODE) {
 
@@ -216,36 +222,33 @@ export default class XElement extends HTMLElement {
 
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
                 this.register(
-                    (node as Text).splitText(end + this.#syntaxLength),
-                    context,
-                    instance,
-                    rewrites);
-                this.#add(node, context, instance, rewrites);
+                    (node as Text).splitText(end + this.#syntaxLength), context, rewrites);
+                this.#add(node, context, rewrites);
             } else {
-                this.#add(node, context, instance, rewrites);
+                this.#add(node, context, rewrites);
             }
 
         } else if (node.nodeType === node.ELEMENT_NODE) {
 
             const inherit = (node as Element).attributes.getNamedItem('inherit');
-            if (inherit) this.#add(inherit, context, instance, rewrites);
+            if (inherit) this.#add(inherit, context, rewrites);
 
             const each = (node as Element).attributes.getNamedItem('each');
-            if (each) this.#add(each, context, instance, rewrites);
+            if (each) this.#add(each, context, rewrites);
 
             if (!each && !inherit) {
                 let child = node.firstChild, register;
                 while (child) {
                     register = child;
                     child = child.nextSibling;
-                    this.register(register, context, instance, rewrites);
+                    this.register(register, context, rewrites);
                 }
             }
 
             const attributes = [ ...(node as Element).attributes ];
             for (const attribute of attributes) {
                 if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.#syntaxMatch.test(attribute.value)) {
-                    this.#add(attribute, context, instance, rewrites);
+                    this.#add(attribute, context, rewrites);
                 }
             }
 

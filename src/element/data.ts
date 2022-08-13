@@ -4,13 +4,13 @@ type DataKeys = string | symbol;
 type DataHandlers = 'render' | 'reset';
 
 export const dataHas = function (target: any, key: DataKeys) {
-    if (typeof key === 'string' && key.startsWith('$')) return false;
+    // if (typeof key === 'string' && key.startsWith('$')) return false;
     return Reflect.has(target, key);
 };
 
 export const dataGet = function (event: any, reference: string, target: any, key: DataKeys, receiver: any): any {
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-    if (!reference && key.startsWith('$')) return undefined;
+    // if (!reference && key.startsWith('$')) return undefined;
 
     const value = Reflect.get(target, key, receiver);
 
@@ -28,7 +28,7 @@ export const dataGet = function (event: any, reference: string, target: any, key
 
 export const dataDelete = function (event: any, reference: string, target: any, key: DataKeys) {
     if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
-    if (!reference && key.startsWith('$')) return true;
+    // if (!reference && key.startsWith('$')) return true;
 
     Reflect.deleteProperty(target, key);
 
@@ -39,7 +39,7 @@ export const dataDelete = function (event: any, reference: string, target: any, 
 
 export const dataSet = function (event: any, reference: string, target: any, key: DataKeys, to: any, receiver: any) {
     if (typeof key === 'symbol') return Reflect.set(target, key, receiver);
-    if (!reference && key.startsWith('$')) return true;
+    // if (!reference && key.startsWith('$')) return true;
 
     const from = Reflect.get(target, key, receiver);
 

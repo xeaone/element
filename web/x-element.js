@@ -1,3 +1,13 @@
+/************************************************************************
+Name: XElement
+Version: 7.3.11
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => {
@@ -35,15 +45,11 @@ function tick(method) {
 
 // src/element/data.ts
 var dataHas = function(target, key) {
-  if (typeof key === "string" && key.startsWith("$"))
-    return false;
   return Reflect.has(target, key);
 };
 var dataGet = function(event, reference, target, key, receiver) {
   if (typeof key === "symbol")
     return Reflect.get(target, key, receiver);
-  if (!reference && key.startsWith("$"))
-    return void 0;
   const value = Reflect.get(target, key, receiver);
   if (value && typeof value === "object") {
     reference = reference ? `${reference}.${key}` : `${key}`;
@@ -58,8 +64,6 @@ var dataGet = function(event, reference, target, key, receiver) {
 var dataDelete = function(event, reference, target, key) {
   if (typeof key === "symbol")
     return Reflect.deleteProperty(target, key);
-  if (!reference && key.startsWith("$"))
-    return true;
   Reflect.deleteProperty(target, key);
   tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, "reset"));
   return true;
@@ -67,8 +71,6 @@ var dataDelete = function(event, reference, target, key) {
 var dataSet = function(event, reference, target, key, to, receiver) {
   if (typeof key === "symbol")
     return Reflect.set(target, key, receiver);
-  if (!reference && key.startsWith("$"))
-    return true;
   const from = Reflect.get(target, key, receiver);
   if (key === "length") {
     tick(event.bind(null, reference, "render"));
@@ -208,29 +210,27 @@ var stringPattern = /(".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)/;
 var assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
 var codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, "g");
 var Binder = class {
-  constructor(node, container, context, instance, rewrites) {
+  constructor(node, container, context, rewrites) {
     __publicField(this, "type");
     __publicField(this, "name");
     __publicField(this, "value");
-    __publicField(this, "rewrites");
     __publicField(this, "context");
-    __publicField(this, "instance");
+    __publicField(this, "rewrites");
     __publicField(this, "code");
     __publicField(this, "owner");
     __publicField(this, "node");
     __publicField(this, "container");
     __publicField(this, "references", /* @__PURE__ */ new Set());
     __publicField(this, "compute");
-    __publicField(this, "meta");
+    __publicField(this, "meta", {});
+    __publicField(this, "instance", {});
     __publicField(this, "release");
     __publicField(this, "register");
-    this.meta = {};
     this.node = node;
     this.context = context;
     this.container = container;
     this.value = node.nodeValue ?? "";
     this.rewrites = rewrites ? [...rewrites] : [];
-    this.instance = instance ? { ...instance } : {};
     this.name = node.nodeName.startsWith("#") ? node.nodeName.slice(1) : node.nodeName;
     this.owner = node.ownerElement ?? void 0;
     this.release = this.container.release.bind(this.container);
@@ -653,22 +653,16 @@ var Each = class extends Binder {
           ...this.rewrites,
           [this.meta.variable, `${this.meta.reference}.${keyValue}`]
         ];
-        const instance = {
-          ...this.instance,
-          get [this.meta.variable]() {
-            return data[keyValue];
-          }
-        };
-        if (this.meta.keyName)
-          instance[this.meta.keyName] = keyValue;
-        if (this.meta.indexName)
-          instance[this.meta.indexName] = indexValue;
+        const context = new Proxy(this.context, {
+          has: (target, key2) => key2 === this.meta.variable || key2 === this.meta.keyName || key2 === this.meta.indexName || Reflect.has(target, key2),
+          get: (target, key2, receiver) => key2 === this.meta.keyName ? keyValue : key2 === this.meta.indexName ? indexValue : key2 === this.meta.variable ? Reflect.get(this.meta.data, keyValue) : Reflect.get(target, key2, receiver),
+          set: (target, key2, value, receiver) => key2 === this.meta.keyName ? true : key2 === this.meta.indexName ? true : key2 === this.meta.variable ? Reflect.set(this.meta.data, keyValue, value) : Reflect.set(target, key2, value, receiver)
+        });
         let node = this.meta.templateElement.content.firstChild;
         while (node) {
           this.register(
             this.meta.queueElement.content.appendChild(node.cloneNode(true)),
-            this.context,
-            instance,
+            context,
             rewrites
           );
           node = node.nextSibling;
@@ -858,22 +852,27 @@ var On = class extends Binder {
 };
 
 // src/element/element.ts
-var _data, _syntaxEnd, _syntaxStart, _syntaxLength, _prepared, _preparing, _syntaxMatch, _mutator, _binders, _adoptedEvent, _adoptingEvent, _preparedEvent, _preparingEvent, _connectedEvent, _connectingEvent, _attributedEvent, _attributingEvent, _disconnectedEvent, _disconnectingEvent, _mutation, mutation_fn, _remove, remove_fn, _add, add_fn;
+var _syntaxEnd, _syntaxStart, _syntaxLength, _prepared, _preparing, _syntaxMatch, _binders, _mutator, _context, _adoptedEvent, _adoptingEvent, _preparedEvent, _preparingEvent, _connectedEvent, _connectingEvent, _attributedEvent, _attributingEvent, _disconnectedEvent, _disconnectingEvent, _mutation, mutation_fn, _remove, remove_fn, _add, add_fn;
 var XElement = class extends HTMLElement {
   constructor() {
     super();
     __privateAdd(this, _mutation);
     __privateAdd(this, _remove);
     __privateAdd(this, _add);
-    __privateAdd(this, _data, {});
     __privateAdd(this, _syntaxEnd, "}}");
     __privateAdd(this, _syntaxStart, "{{");
     __privateAdd(this, _syntaxLength, 2);
     __privateAdd(this, _prepared, false);
     __privateAdd(this, _preparing, false);
     __privateAdd(this, _syntaxMatch, new RegExp("{{.*?}}"));
-    __privateAdd(this, _mutator, new MutationObserver(__privateMethod(this, _mutation, mutation_fn).bind(this)));
     __privateAdd(this, _binders, /* @__PURE__ */ new Map());
+    __privateAdd(this, _mutator, new MutationObserver(__privateMethod(this, _mutation, mutation_fn).bind(this)));
+    __privateAdd(this, _context, new Proxy({}, {
+      has: dataHas.bind(null),
+      get: dataGet.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), ""),
+      set: dataSet.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), ""),
+      deleteProperty: dataDelete.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), "")
+    }));
     __privateAdd(this, _adoptedEvent, new Event("adopted"));
     __privateAdd(this, _adoptingEvent, new Event("adopting"));
     __privateAdd(this, _preparedEvent, new Event("prepared"));
@@ -906,7 +905,6 @@ var XElement = class extends HTMLElement {
       return;
     __privateSet(this, _preparing, true);
     this.dispatchEvent(__privateGet(this, _preparingEvent));
-    const data = {};
     const prototype = Object.getPrototypeOf(this);
     const properties = this.constructor.observedProperties;
     const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
@@ -914,37 +912,33 @@ var XElement = class extends HTMLElement {
       if (properties && !properties?.includes(property) || "attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property)
         continue;
       const descriptor = descriptors[property];
-      const { enumerable, configurable } = descriptor;
-      if (!configurable)
+      if (!descriptor.configurable)
         continue;
-      if ("set" in descriptor)
+      if (descriptor.set)
         descriptor.set = descriptor.set?.bind(this);
-      if ("get" in descriptor)
+      if (descriptor.get)
         descriptor.get = descriptor.get?.bind(this);
       if (typeof descriptor.value === "function")
-        descriptor.value = descriptor.value?.bind?.(this);
-      const get = () => __privateGet(this, _data)[property];
-      const set = (value) => __privateGet(this, _data)[property] = value;
-      Object.defineProperty(data, property, descriptor);
-      Object.defineProperty(this, property, { get, set, enumerable, configurable: false });
+        descriptor.value = descriptor.value.bind(this);
+      Object.defineProperty(__privateGet(this, _context), property, descriptor);
+      Object.defineProperty(this, property, {
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configureable,
+        get: () => __privateGet(this, _context)[property],
+        set: (value) => __privateGet(this, _context)[property] = value
+      });
     }
-    __privateSet(this, _data, new Proxy(data, {
-      has: dataHas.bind(null),
-      get: dataGet.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), ""),
-      set: dataSet.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), ""),
-      deleteProperty: dataDelete.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), "")
-    }));
     let shadowNode = this.shadowRoot?.firstChild;
     while (shadowNode) {
       const node = shadowNode;
       shadowNode = node.nextSibling;
-      this.register(node, __privateGet(this, _data));
+      this.register(node, __privateGet(this, _context));
     }
     let innerNode = this.firstChild;
     while (innerNode) {
       const node = innerNode;
       innerNode = node.nextSibling;
-      this.register(node, __privateGet(this, _data));
+      this.register(node, __privateGet(this, _context));
     }
     __privateSet(this, _prepared, true);
     this.dispatchEvent(__privateGet(this, _preparedEvent));
@@ -965,13 +959,13 @@ var XElement = class extends HTMLElement {
       }
     }
   }
-  register(node, context, instance, rewrites) {
+  register(node, context, rewrites) {
     if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
       let child = node.firstChild, register;
       while (child) {
         register = child;
         child = node.nextSibling;
-        this.register(register, context, instance, rewrites);
+        this.register(register, context, rewrites);
       }
     } else if (node.nodeType === node.TEXT_NODE) {
       const start = node.nodeValue?.indexOf(__privateGet(this, _syntaxStart)) ?? -1;
@@ -986,32 +980,31 @@ var XElement = class extends HTMLElement {
         this.register(
           node.splitText(end + __privateGet(this, _syntaxLength)),
           context,
-          instance,
           rewrites
         );
-        __privateMethod(this, _add, add_fn).call(this, node, context, instance, rewrites);
+        __privateMethod(this, _add, add_fn).call(this, node, context, rewrites);
       } else {
-        __privateMethod(this, _add, add_fn).call(this, node, context, instance, rewrites);
+        __privateMethod(this, _add, add_fn).call(this, node, context, rewrites);
       }
     } else if (node.nodeType === node.ELEMENT_NODE) {
       const inherit = node.attributes.getNamedItem("inherit");
       if (inherit)
-        __privateMethod(this, _add, add_fn).call(this, inherit, context, instance, rewrites);
+        __privateMethod(this, _add, add_fn).call(this, inherit, context, rewrites);
       const each = node.attributes.getNamedItem("each");
       if (each)
-        __privateMethod(this, _add, add_fn).call(this, each, context, instance, rewrites);
+        __privateMethod(this, _add, add_fn).call(this, each, context, rewrites);
       if (!each && !inherit) {
         let child = node.firstChild, register;
         while (child) {
           register = child;
           child = child.nextSibling;
-          this.register(register, context, instance, rewrites);
+          this.register(register, context, rewrites);
         }
       }
       const attributes = [...node.attributes];
       for (const attribute of attributes) {
         if (attribute.name !== "each" && attribute.name !== "inherit" && __privateGet(this, _syntaxMatch).test(attribute.value)) {
-          __privateMethod(this, _add, add_fn).call(this, attribute, context, instance, rewrites);
+          __privateMethod(this, _add, add_fn).call(this, attribute, context, rewrites);
         }
       }
     }
@@ -1037,15 +1030,15 @@ var XElement = class extends HTMLElement {
     this.dispatchEvent(__privateGet(this, _attributedEvent));
   }
 };
-_data = new WeakMap();
 _syntaxEnd = new WeakMap();
 _syntaxStart = new WeakMap();
 _syntaxLength = new WeakMap();
 _prepared = new WeakMap();
 _preparing = new WeakMap();
 _syntaxMatch = new WeakMap();
-_mutator = new WeakMap();
 _binders = new WeakMap();
+_mutator = new WeakMap();
+_context = new WeakMap();
 _adoptedEvent = new WeakMap();
 _adoptingEvent = new WeakMap();
 _preparedEvent = new WeakMap();
@@ -1062,7 +1055,7 @@ mutation_fn = function(mutations) {
     return this.prepare();
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
-      this.register(node, __privateGet(this, _data));
+      this.register(node, __privateGet(this, _context));
     }
     for (const node of mutation.removedNodes) {
       this.release(node);
@@ -1086,24 +1079,24 @@ remove_fn = function(node) {
   __privateGet(this, _binders).delete(node);
 };
 _add = new WeakSet();
-add_fn = function(node, context, instance, rewrites) {
+add_fn = function(node, context, rewrites) {
   let binder;
   if (node.nodeName === "#text")
-    binder = new Text(node, this, context, instance, rewrites);
+    binder = new Text(node, this, context, rewrites);
   else if (node.nodeName === "html")
-    binder = new Html(node, this, context, instance, rewrites);
+    binder = new Html(node, this, context, rewrites);
   else if (node.nodeName === "each")
-    binder = new Each(node, this, context, instance, rewrites);
+    binder = new Each(node, this, context, rewrites);
   else if (node.nodeName === "value")
-    binder = new Value(node, this, context, instance, rewrites);
+    binder = new Value(node, this, context, rewrites);
   else if (node.nodeName === "inherit")
-    binder = new Inherit(node, this, context, instance, rewrites);
+    binder = new Inherit(node, this, context, rewrites);
   else if (node.nodeName === "checked")
-    binder = new Checked(node, this, context, instance, rewrites);
+    binder = new Checked(node, this, context, rewrites);
   else if (node.nodeName.startsWith("on"))
-    binder = new On(node, this, context, instance, rewrites);
+    binder = new On(node, this, context, rewrites);
   else
-    binder = new Standard(node, this, context, instance, rewrites);
+    binder = new Standard(node, this, context, rewrites);
   for (let reference of binder.references) {
     if (__privateGet(this, _binders).has(reference)) {
       __privateGet(this, _binders).get(reference)?.add(binder);
