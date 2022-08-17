@@ -8,8 +8,8 @@ const referenceMatch = new RegExp([
     '((?:^|}}).*?{{)',
     '(}}.*?(?:{{|$))',
     `(
-        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|event|
-        this|window|document|console|location|
+        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        event|this|window|document|console|location|navigation|
         globalThis|Infinity|NaN|undefined|
         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
@@ -22,7 +22,7 @@ const referenceMatch = new RegExp([
         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
         Reflect|Proxy|
-        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
         (?:(?:[.][a-zA-Z0-9$_.? ]*)?\\b)
     )`,
@@ -152,7 +152,7 @@ export default class Binder {
             const isChecked = this.name === 'checked';
             const convert = this.code.split(splitPattern).filter((part: string) => part).length > 1;
 
-            this.code = this.code.replace(codePattern, (_match, str: string, assignee: string, assigneeLeft: string, r: string, assigneeMiddle: string, assigneeRight: string, bracketLeft: string, bracketRight: string) => {
+            this.code = this.code.replace(codePattern, (_, str: string, assignee: string, assigneeLeft: string, r: string, assigneeMiddle: string, assigneeRight: string, bracketLeft: string, bracketRight: string) => {
                 if (str) return str;
                 if (bracketLeft) return convert ? `' + (` : '(';
                 if (bracketRight) return convert ? `) + '` : ')';
@@ -172,9 +172,7 @@ export default class Binder {
             this.code =
                 (reference && isValue ? `$value = $assign ? $value : ${reference};\n` : '') +
                 (reference && isChecked ? `$checked = $assign ? $checked : ${reference};\n` : '') +
-                // `return ${this.code};`;
                 `return ${assignment ? `$assign ? ${this.code} : ${assignment}` : `${this.code}`};`;
-
 
             this.code = `
             try {
