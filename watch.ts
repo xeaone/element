@@ -1,3 +1,5 @@
+#! /usr/bin/env -S deno run -A
+
 import { File, Cors, Server, Router, Handler, Normalize } from 'https://deno.land/x/xserver@0.2.1/mod.ts';
 import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
 

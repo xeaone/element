@@ -12,9 +12,8 @@
     },
     "scripts": {
         "watch": "deno run -A watch.ts",
-        "major": "deno run -A deploy.ts major",
-        "minor": "deno run -A deploy.ts minor",
-        "patch": "deno run -A deploy.ts patch"
+        "deploy": "deno run -A deploy.ts",
+        "test": "deno test --allow-all --coverage=cov/"
     },
     "repository": {
         "type": "git",

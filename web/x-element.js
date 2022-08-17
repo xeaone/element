@@ -1,13 +1,3 @@
-/************************************************************************
-Name: XElement
-Version: 7.3.11
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => {
@@ -138,8 +128,8 @@ var navigate = (event) => {
   if (!options.target)
     throw new Error("XElement - navigation target not found");
   if (options.instance === options.target.lastElementChild)
-    return event?.preventDefault();
-  return event ? event?.intercept({ handler: () => transition(options) }) : transition(options);
+    return event?.intercept?.();
+  return event ? event?.intercept?.({ handler: () => transition(options) }) : transition(options);
 };
 function navigation(path, file, options) {
   if (!path)
@@ -909,7 +899,7 @@ var XElement = class extends HTMLElement {
     const properties = this.constructor.observedProperties;
     const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
     for (const property in descriptors) {
-      if (properties && !properties?.includes(property) || "attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property)
+      if (properties && !properties?.includes(property) || "attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "prepare" === property || "register" === property || "release" === property)
         continue;
       const descriptor = descriptors[property];
       if (!descriptor.configurable)
@@ -1080,20 +1070,21 @@ remove_fn = function(node) {
 };
 _add = new WeakSet();
 add_fn = function(node, context, rewrites) {
+  const name = node.nodeType === Node.ATTRIBUTE_NODE ? node.name : node.nodeName;
   let binder;
-  if (node.nodeName === "#text")
+  if (name === "#text")
     binder = new Text(node, this, context, rewrites);
-  else if (node.nodeName === "html")
+  else if (name === "html")
     binder = new Html(node, this, context, rewrites);
-  else if (node.nodeName === "each")
+  else if (name === "each")
     binder = new Each(node, this, context, rewrites);
-  else if (node.nodeName === "value")
+  else if (name === "value")
     binder = new Value(node, this, context, rewrites);
-  else if (node.nodeName === "inherit")
+  else if (name === "inherit")
     binder = new Inherit(node, this, context, rewrites);
-  else if (node.nodeName === "checked")
+  else if (name === "checked")
     binder = new Checked(node, this, context, rewrites);
-  else if (node.nodeName.startsWith("on"))
+  else if (name.startsWith("on"))
     binder = new On(node, this, context, rewrites);
   else
     binder = new Standard(node, this, context, rewrites);

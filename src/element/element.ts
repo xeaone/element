@@ -85,7 +85,10 @@ export default class XElement extends HTMLElement {
                 'disconnectedCallback' === property ||
                 'connectedCallback' === property ||
                 'adoptedCallback' === property ||
-                'constructor' === property
+                'constructor' === property ||
+                'prepare' === property ||
+                'register' === property ||
+                'release' === property
             ) continue;
 
             const descriptor = descriptors[ property ];
@@ -154,16 +157,18 @@ export default class XElement extends HTMLElement {
     }
 
     #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+        const name = node.nodeType === Node.ATTRIBUTE_NODE ? (node as Attr).name : node.nodeName;
 
         let binder;
-        if (node.nodeName === '#text') binder = new TextBinder(node, this, context, rewrites);
-        else if (node.nodeName === 'html') binder = new HtmlBinder(node, this, context, rewrites);
-        else if (node.nodeName === 'each') binder = new EachBinder(node, this, context, rewrites);
-        else if (node.nodeName === 'value') binder = new ValueBinder(node, this, context, rewrites);
-        else if (node.nodeName === 'inherit') binder = new InheritBinder(node, this, context, rewrites);
-        else if (node.nodeName === 'checked') binder = new CheckedBinder(node, this, context, rewrites);
-        else if (node.nodeName.startsWith('on')) binder = new OnBinder(node, this, context, rewrites);
+        if (name === '#text') binder = new TextBinder(node, this, context, rewrites);
+        else if (name === 'html') binder = new HtmlBinder(node, this, context, rewrites);
+        else if (name === 'each') binder = new EachBinder(node, this, context, rewrites);
+        else if (name === 'value') binder = new ValueBinder(node, this, context, rewrites);
+        else if (name === 'inherit') binder = new InheritBinder(node, this, context, rewrites);
+        else if (name === 'checked') binder = new CheckedBinder(node, this, context, rewrites);
+        else if (name.startsWith('on')) binder = new OnBinder(node, this, context, rewrites);
         else binder = new StandardBinder(node, this, context, rewrites);
+
 
         for (let reference of binder.references) {
             if (this.#binders.has(reference)) {

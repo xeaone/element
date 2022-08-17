@@ -39,9 +39,9 @@ const navigate = (event?: any) => {
     options.target = options.target ?? document.querySelector(options.query);
     if (!options.target) throw new Error('XElement - navigation target not found');
 
-    if (options.instance === options.target.lastElementChild) return event?.preventDefault();
+    if (options.instance === options.target.lastElementChild) return event?.intercept?.();
 
-    return event ? event?.intercept({ handler: () => transition(options) }) : transition(options);
+    return event ? event?.intercept?.({ handler: () => transition(options) }) : transition(options);
 };
 
 export default function navigation (path: string, file: string, options: any) {

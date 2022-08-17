@@ -1,3 +1,5 @@
+#! /usr/bin/env -S deno run -A
+
 import { inc, ReleaseType } from 'https://deno.land/std@0.151.0/semver/mod.ts';
 import { copy, emptyDir } from 'https://deno.land/std@0.152.0/fs/mod.ts';
 import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
