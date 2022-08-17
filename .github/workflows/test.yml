@@ -19,7 +19,7 @@ jobs:
 
       # Scan the code for syntax errors and style issues. If
       # you want to use a custom linter configuration you can add a configuration file with --config <myconfig>
-      - run: deno lint
+      # - run: deno lint
 
       # Run all test files in the repository and collect code coverage. The example
       # runs with all permissions, but it is recommended to run with the minimal permissions your program needs (for example --allow-read).
