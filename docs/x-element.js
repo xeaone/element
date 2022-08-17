@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 7.3.11
+Version: 7.3.12
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -138,8 +138,8 @@ var navigate = (event) => {
   if (!options.target)
     throw new Error("XElement - navigation target not found");
   if (options.instance === options.target.lastElementChild)
-    return event?.preventDefault();
-  return event ? event?.intercept({ handler: () => transition(options) }) : transition(options);
+    return event?.intercept?.();
+  return event ? event?.intercept?.({ handler: () => transition(options) }) : transition(options);
 };
 function navigation(path, file, options) {
   if (!path)
@@ -184,8 +184,8 @@ var referenceMatch = new RegExp([
   "((?:^|}}).*?{{)",
   "(}}.*?(?:{{|$))",
   `(
-        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|event|
-        this|window|document|console|location|
+        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        event|this|window|document|console|location|navigation|
         globalThis|Infinity|NaN|undefined|
         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
@@ -198,7 +198,7 @@ var referenceMatch = new RegExp([
         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
         Reflect|Proxy|
-        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
         (?:(?:[.][a-zA-Z0-9$_.? ]*)?\\b)
     )`,
@@ -291,7 +291,7 @@ var Binder = class {
       const isValue = this.name === "value";
       const isChecked = this.name === "checked";
       const convert = this.code.split(splitPattern).filter((part) => part).length > 1;
-      this.code = this.code.replace(codePattern, (_match, str, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight) => {
+      this.code = this.code.replace(codePattern, (_, str, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight) => {
         if (str)
           return str;
         if (bracketLeft)
@@ -909,7 +909,7 @@ var XElement = class extends HTMLElement {
     const properties = this.constructor.observedProperties;
     const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
     for (const property in descriptors) {
-      if (properties && !properties?.includes(property) || "attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property)
+      if (properties && !properties?.includes(property) || "attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "prepare" === property || "register" === property || "release" === property)
         continue;
       const descriptor = descriptors[property];
       if (!descriptor.configurable)
@@ -1080,20 +1080,21 @@ remove_fn = function(node) {
 };
 _add = new WeakSet();
 add_fn = function(node, context, rewrites) {
+  const name = node.nodeType === Node.ATTRIBUTE_NODE ? node.name : node.nodeName;
   let binder;
-  if (node.nodeName === "#text")
+  if (name === "#text")
     binder = new Text(node, this, context, rewrites);
-  else if (node.nodeName === "html")
+  else if (name === "html")
     binder = new Html(node, this, context, rewrites);
-  else if (node.nodeName === "each")
+  else if (name === "each")
     binder = new Each(node, this, context, rewrites);
-  else if (node.nodeName === "value")
+  else if (name === "value")
     binder = new Value(node, this, context, rewrites);
-  else if (node.nodeName === "inherit")
+  else if (name === "inherit")
     binder = new Inherit(node, this, context, rewrites);
-  else if (node.nodeName === "checked")
+  else if (name === "checked")
     binder = new Checked(node, this, context, rewrites);
-  else if (node.nodeName.startsWith("on"))
+  else if (name.startsWith("on"))
     binder = new On(node, this, context, rewrites);
   else
     binder = new Standard(node, this, context, rewrites);

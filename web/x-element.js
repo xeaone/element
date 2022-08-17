@@ -1,3 +1,13 @@
+/************************************************************************
+Name: XElement
+Version: 7.3.12
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => {
@@ -174,8 +184,8 @@ var referenceMatch = new RegExp([
   "((?:^|}}).*?{{)",
   "(}}.*?(?:{{|$))",
   `(
-        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|event|
-        this|window|document|console|location|
+        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        event|this|window|document|console|location|navigation|
         globalThis|Infinity|NaN|undefined|
         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
@@ -188,7 +198,7 @@ var referenceMatch = new RegExp([
         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
         Reflect|Proxy|
-        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
         (?:(?:[.][a-zA-Z0-9$_.? ]*)?\\b)
     )`,
@@ -281,7 +291,7 @@ var Binder = class {
       const isValue = this.name === "value";
       const isChecked = this.name === "checked";
       const convert = this.code.split(splitPattern).filter((part) => part).length > 1;
-      this.code = this.code.replace(codePattern, (_match, str, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight) => {
+      this.code = this.code.replace(codePattern, (_, str, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight) => {
         if (str)
           return str;
         if (bracketLeft)
