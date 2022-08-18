@@ -11,6 +11,7 @@
         "./x-element.js": "./pro/x-element.js"
     },
     "scripts": {
+        "docs": "deno run -A docs.ts",
         "watch": "deno run -A watch.ts",
         "deploy": "deno run -A deploy.ts",
         "test": "deno test --allow-all --coverage=cov/"

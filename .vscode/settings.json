@@ -1,4 +1,10 @@
 {
-    "deno.enable": true,
-    "deno.enablePaths": [ "./server.ts", "./deploy.ts", "./watch.ts", "./test.ts" ]
+  "deno.enable": true,
+  "deno.enablePaths": [
+    "./server.ts",
+    "./deploy.ts",
+    "./watch.ts",
+    "./test.ts",
+    "./docs.ts"
+  ]
 }
