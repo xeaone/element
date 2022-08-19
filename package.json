@@ -11,6 +11,7 @@
         "./x-element.js": "./pro/x-element.js"
     },
     "scripts": {
+        "p": "deno run -A src/element/parse.ts",
         "docs": "deno run -A docs.ts",
         "watch": "deno run -A watch.ts",
         "deploy": "deno run -A deploy.ts",

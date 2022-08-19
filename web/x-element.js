@@ -1,13 +1,3 @@
-/************************************************************************
-Name: XElement
-Version: 7.3.12
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => {
@@ -178,6 +168,331 @@ async function Poly() {
   }
 }
 
+// src/element/parse.ts
+var stringChar = [
+  "`",
+  '"',
+  "'"
+];
+var referenceEnd = [
+  ",",
+  "?",
+  ":",
+  "!",
+  "|",
+  ";",
+  "@",
+  "#",
+  "&",
+  "^",
+  "%",
+  "*",
+  "+",
+  "=",
+  "-",
+  "~",
+  "<",
+  ">",
+  "(",
+  ")",
+  "{",
+  "}",
+  "[",
+  "]"
+];
+var referenceStart = [
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g",
+  "h",
+  "i",
+  "j",
+  "k",
+  "l",
+  "m",
+  "n",
+  "o",
+  "p",
+  "q",
+  "r",
+  "s",
+  "t",
+  "u",
+  "v",
+  "w",
+  "x",
+  "y",
+  "z",
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "V",
+  "W",
+  "X",
+  "Y",
+  "Z",
+  "$",
+  "_"
+];
+var referenceInner = [
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g",
+  "h",
+  "i",
+  "j",
+  "k",
+  "l",
+  "m",
+  "n",
+  "o",
+  "p",
+  "q",
+  "r",
+  "s",
+  "t",
+  "u",
+  "v",
+  "w",
+  "x",
+  "y",
+  "z",
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "V",
+  "W",
+  "X",
+  "Y",
+  "Z",
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "$",
+  "_",
+  "."
+];
+var referenceIgnore = [
+  "$context",
+  "$instance",
+  "$assign",
+  "$event",
+  "$value",
+  "$checked",
+  "$form",
+  "$e",
+  "$v",
+  "$c",
+  "$f",
+  "this",
+  "arguments",
+  "true",
+  "false",
+  "null",
+  "of",
+  "in",
+  "do",
+  "if",
+  "for",
+  "new",
+  "try",
+  "case",
+  "else",
+  "with",
+  "while",
+  "await",
+  "break",
+  "catch",
+  "class",
+  "super",
+  "throw",
+  "yield",
+  "delete",
+  "export",
+  "import",
+  "return",
+  "switch",
+  "default",
+  "extends",
+  "finally",
+  "continue",
+  "debugger",
+  "function",
+  "typeof",
+  "instanceof",
+  "void",
+  "window",
+  "undefined",
+  "NaN",
+  "globalThis",
+  "self",
+  "document",
+  "console",
+  "location",
+  "history",
+  "navigation",
+  "localStorage",
+  "sessionStorage",
+  "Infinity",
+  "Math",
+  "Map",
+  "Set",
+  "Array",
+  "Object",
+  "String",
+  "RegExp",
+  "isFinite",
+  "isNaN",
+  "parseFloat",
+  "parseInt",
+  "btoa",
+  "atob",
+  "decodeURI",
+  "decodeURIComponent",
+  "encodeURI",
+  "encodeURIComponent"
+];
+function parse(data) {
+  let code = "";
+  let objectMode = 0;
+  let assignmentLeft = "";
+  let assignmentRight = "";
+  let assignmentMode = false;
+  let string = "";
+  let stringMode = false;
+  let reference = "";
+  let referenceMode = false;
+  const references = [];
+  for (let index = 0; index < data.length; index++) {
+    const char = data[index];
+    const next1 = data[index + 1];
+    const next2 = data[index + 2];
+    const next3 = data[index + 3];
+    const last1 = data[index - 1];
+    if (!stringMode && !objectMode && char == "{" && next1 == "{") {
+      index++;
+      continue;
+    }
+    if (!stringMode && !objectMode && char == "}" && next1 == "}") {
+      if (!assignmentRight)
+        assignmentLeft = "";
+      if (referenceMode) {
+        references.push(reference);
+        referenceMode = false;
+        reference = "";
+      }
+      index++;
+      continue;
+    }
+    code += char;
+    if (!stringMode && objectMode && char == ":") {
+      reference = "";
+      referenceMode = false;
+    }
+    if (!stringMode && char == "{") {
+      objectMode++;
+    }
+    if (!stringMode && char == "}") {
+      objectMode--;
+    }
+    if (assignmentMode) {
+      assignmentRight += char;
+    }
+    if (!assignmentMode && !stringMode && char == "=" && last1 != "=" && next1 != "=" && next1 != ">" || char == "+" && next1 == "=" || char == "-" && next1 == "=" || char == "*" && next1 == "=" || char == "/" && next1 == "=" || char == "%" && next1 == "=" || char == "&" && next1 == "=" || char == "^" && next1 == "=" || char == "|" && next1 == "=" || char == "*" && next1 == "*" && next2 == "=" || char == "<" && next1 == "<" && next2 == "=" || char == ">" && next1 == ">" && next2 == "=" || char == "&" && next1 == "&" && next2 == "=" || char == "|" && next1 == "|" && next2 == "=" || char == "?" && next1 == "?" && next2 == "=" || char == ">" && next1 == ">" && next2 == ">" && next3 == "=") {
+      assignmentMode = true;
+      assignmentRight += char;
+    }
+    if (!assignmentMode && !assignmentRight && !stringMode) {
+      assignmentLeft += char;
+    }
+    if (stringMode && string == char && last1 != "\\") {
+      stringMode = false;
+      string = "";
+      continue;
+    }
+    if (stringMode) {
+      continue;
+    }
+    if (stringChar.includes(char)) {
+      stringMode = true;
+      string = char;
+      continue;
+    }
+    if (referenceMode && char == " ")
+      continue;
+    if (referenceMode && char == "?" && next1 == ".")
+      continue;
+    if (referenceMode && referenceInner.includes(char)) {
+      reference += char;
+      continue;
+    }
+    if (referenceMode && referenceEnd.includes(char)) {
+      if (!referenceIgnore.includes(reference.split(".")[0]))
+        references.push(reference);
+      referenceMode = false;
+      reference = "";
+      continue;
+    }
+    if (referenceStart.includes(char)) {
+      referenceMode = true;
+      reference += char;
+      continue;
+    }
+  }
+  return { references, assignmentLeft, assignmentRight, code };
+}
+
 // src/element/binder.ts
 var referenceMatch = new RegExp([
   "(\".*?[^\\\\]*\"|'.*?[^\\\\]*'|`.*?[^\\\\]*`)",
@@ -240,6 +555,7 @@ var Binder = class {
     if (!this.constructor.referenceCache.has(this.value)) {
       this.constructor.referenceCache.set(this.value, /* @__PURE__ */ new Set());
     }
+    console.log(parse(this.value));
     const referenceCache = this.constructor.referenceCache.get(this.value);
     if (referenceCache.size) {
       if (rewrites) {

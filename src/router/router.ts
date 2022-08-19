@@ -79,12 +79,7 @@ export default class XRouter extends HTMLElement {
         this.#stateInstance = function (event) { instance.#state(event); };
         this.#clickInstance = function (event) { instance.#click(event, this as any); };
 
-        this.attachShadow({ mode: 'open' }).innerHTML = `
-            <slot name="head"></slot>
-            <slot name="body"></slot>
-            <slot></slot>
-            <slot name="foot"></slot>
-        `;
+        this.attachShadow({ mode: 'open' }).innerHTML = `<slot></slot>`;
     }
 
     back() {
@@ -208,24 +203,8 @@ export default class XRouter extends HTMLElement {
         if (element.keywords && keywords) keywords.setAttribute('content', element.keywords);
         if (element.description && description) description.setAttribute('content', element.description);
 
-        const nodes = this.childNodes as NodeListOf<Element>;
-        for (const node of nodes) {
-            const slot = node?.attributes?.getNamedItem('slot')?.value;
-            if (slot === 'body') {
-                while (node.firstChild) node.removeChild(node.firstChild);
-            } else if (slot === 'head' || slot === 'foot') {
-                continue;
-            } else {
-                this.removeChild(node);
-            }
-        }
-
-        const body = this.querySelector('[slot="body"]');
-        if (body) {
-            body.appendChild(element);
-        } else {
-            this.appendChild(element);
-        }
+        while (this.lastChild) this.removeChild(this.lastChild);
+        this.appendChild(element);
 
         if (element.isPrepared === false) await Listener(element, 'prepared');
 

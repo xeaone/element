@@ -1,0 +1,14 @@
+{
+    "fmt": {
+        "files": {
+            "include": ["./server.ts", "./deploy.ts", "./watch.ts", "./test.ts", "./docs.ts"]
+        },
+        "options": {
+            "useTabs": false,
+            "lineWidth": 200,
+            "indentWidth": 4,
+            "singleQuote": true,
+            "proseWrap": "preserve"
+        }
+    }
+}

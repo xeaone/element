@@ -1,4 +1,5 @@
 import XElement from './element';
+import Parse from './parse'
 
 type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
 
@@ -92,6 +93,8 @@ export default class Binder {
         if (!(this.constructor as any).referenceCache.has(this.value)) {
             (this.constructor as any).referenceCache.set(this.value, new Set());
         }
+
+        console.log(Parse(this.value));
 
         const referenceCache = (this.constructor as any).referenceCache.get(this.value);
 
