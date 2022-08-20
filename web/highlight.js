@@ -1,6 +1,6 @@
-import hljs from 'https://unpkg.com/@highlightjs/cdn-assets@11.4.0/es/highlight.min.js';
-import js from 'https://unpkg.com/@highlightjs/cdn-assets@11.4.0/es/languages/javascript.min.js';
-import xml from 'https://unpkg.com/@highlightjs/cdn-assets@11.4.0/es/languages/xml.min.js';
+import hljs from './highlight/core.min.js';
+import xml from './highlight/languages/xml.min.js';
+import js from './highlight/languages/javascript.min.js';
 
 hljs.registerLanguage('js', js);
 hljs.registerLanguage('xml', xml);
@@ -8,8 +8,7 @@ hljs.registerLanguage('xml', xml);
 const link = document.createElement('link');
 link.rel = 'stylesheet';
 link.href = './theme.css';
-// link.href = '//unpkg.com/@highlightjs/cdn-assets@11.4.0/styles/base16/material-vivid.min.css';
-// link.href = '//unpkg.com/@highlightjs/cdn-assets@11.4.0/styles/base16/tomorrow-night.min.css';
+
 document.head.append(link);
 
 export default function (data, type) {

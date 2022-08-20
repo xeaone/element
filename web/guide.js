@@ -97,7 +97,8 @@ export default class XGuide extends XElement {
         <pre>
             <code html="{{highlight('#style-demo')}}"></code>
             <div id="style-demo">
-                <span style="color: {{color}}">Look at my style</span>
+                <span style="{{'color:'+color}}">Look at my style</span>
+                <!-- <span style="color: {{color}}">Look at my style</span> -->
                 <button onclick="{{colorChange()}}">Change Color</button>
             </div>
         </pre>
@@ -108,7 +109,8 @@ export default class XGuide extends XElement {
         <pre>
             <code html="{{highlight('#class-demo')}}"></code>
             <div id="class-demo">
-                <span class="default {{active ? 'class-color' : ''}}">Look at my class</span>
+                <span class="{{active ? 'default class-color' : 'default'}}">Look at my class</span>
+                <!-- <span class="default {{active ? 'class-color' : ''}}">Look at my class</span> -->
                 <button onclick="{{classToggle()}}">Toggle Active</button>
             </div>
         </pre>

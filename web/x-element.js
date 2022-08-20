@@ -169,160 +169,35 @@ async function Poly() {
 }
 
 // src/element/parse.ts
-var stringChar = [
-  "`",
-  '"',
-  "'"
-];
-var referenceEnd = [
-  ",",
-  "?",
-  ":",
-  "!",
-  "|",
-  ";",
-  "@",
-  "#",
-  "&",
-  "^",
-  "%",
-  "*",
-  "+",
-  "=",
-  "-",
-  "~",
-  "<",
-  ">",
-  "(",
-  ")",
-  "{",
-  "}",
-  "[",
-  "]"
-];
-var referenceStart = [
-  "a",
-  "b",
-  "c",
-  "d",
-  "e",
-  "f",
-  "g",
-  "h",
-  "i",
-  "j",
-  "k",
-  "l",
-  "m",
-  "n",
-  "o",
-  "p",
-  "q",
-  "r",
-  "s",
-  "t",
-  "u",
-  "v",
-  "w",
-  "x",
-  "y",
-  "z",
-  "A",
-  "B",
-  "C",
-  "D",
-  "E",
-  "F",
-  "G",
-  "H",
-  "I",
-  "J",
-  "K",
-  "L",
-  "M",
-  "N",
-  "O",
-  "P",
-  "Q",
-  "R",
-  "S",
-  "T",
-  "U",
-  "V",
-  "W",
-  "X",
-  "Y",
-  "Z",
-  "$",
-  "_"
-];
-var referenceInner = [
-  "a",
-  "b",
-  "c",
-  "d",
-  "e",
-  "f",
-  "g",
-  "h",
-  "i",
-  "j",
-  "k",
-  "l",
-  "m",
-  "n",
-  "o",
-  "p",
-  "q",
-  "r",
-  "s",
-  "t",
-  "u",
-  "v",
-  "w",
-  "x",
-  "y",
-  "z",
-  "A",
-  "B",
-  "C",
-  "D",
-  "E",
-  "F",
-  "G",
-  "H",
-  "I",
-  "J",
-  "K",
-  "L",
-  "M",
-  "N",
-  "O",
-  "P",
-  "Q",
-  "R",
-  "S",
-  "T",
-  "U",
-  "V",
-  "W",
-  "X",
-  "Y",
-  "Z",
-  "0",
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "$",
-  "_",
-  "."
-];
+var aLower = "a".charCodeAt(0) - 1;
+var zLower = "z".charCodeAt(0) + 1;
+var aUpper = "A".charCodeAt(0) - 1;
+var zUpper = "Z".charCodeAt(0) + 1;
+var zero = "0".charCodeAt(0) - 1;
+var nine = "9".charCodeAt(0) + 1;
+var space = " ".charCodeAt(0);
+var money = "$".charCodeAt(0);
+var period = ".".charCodeAt(0);
+var question = "?".charCodeAt(0);
+var underscore = "_".charCodeAt(0);
+var and = "&".charCodeAt(0);
+var plus = "+".charCodeAt(0);
+var star = "*".charCodeAt(0);
+var pipe = "|".charCodeAt(0);
+var less = "<".charCodeAt(0);
+var equal = "=".charCodeAt(0);
+var minus = "-".charCodeAt(0);
+var great = ">".charCodeAt(0);
+var carrot = "^".charCodeAt(0);
+var percent = "%".charCodeAt(0);
+var colon = ":".charCodeAt(0);
+var openCurley = "{".charCodeAt(0);
+var closeCurley = "}".charCodeAt(0);
+var tick2 = "`".charCodeAt(0);
+var back = "\\".charCodeAt(0);
+var double = '"'.charCodeAt(0);
+var single = "'".charCodeAt(0);
+var forward = "/".charCodeAt(0);
 var referenceIgnore = [
   "$context",
   "$instance",
@@ -406,125 +281,113 @@ var referenceIgnore = [
 function parse(data) {
   let code = "";
   let objectMode = 0;
+  let assignmentMid = "";
   let assignmentLeft = "";
   let assignmentRight = "";
-  let assignmentMode = false;
-  let string = "";
+  let assignmentMode = 0;
+  let string = NaN;
   let stringMode = false;
   let reference = "";
   let referenceMode = false;
   const references = [];
-  for (let index = 0; index < data.length; index++) {
+  const length = data.length;
+  for (let index = 0; index < length; index++) {
     const char = data[index];
-    const next1 = data[index + 1];
-    const next2 = data[index + 2];
-    const next3 = data[index + 3];
-    const last1 = data[index - 1];
-    if (!stringMode && !objectMode && char == "{" && next1 == "{") {
+    const c = data.charCodeAt(index);
+    const l = data.charCodeAt(index - 1);
+    const n = data.charCodeAt(index + 1);
+    const nn = data.charCodeAt(index + 2);
+    const nnn = data.charCodeAt(index + 3);
+    if (!stringMode && !objectMode && c == openCurley && n == openCurley) {
+      code += "(";
       index++;
       continue;
     }
-    if (!stringMode && !objectMode && char == "}" && next1 == "}") {
+    if (!stringMode && !objectMode && c == closeCurley && n == closeCurley) {
       if (!assignmentRight)
         assignmentLeft = "";
       if (referenceMode) {
-        references.push(reference);
+        if (!referenceIgnore.includes(reference.split(".")[0]))
+          references.push(reference);
         referenceMode = false;
         reference = "";
       }
+      code += ")";
       index++;
-      continue;
+      break;
     }
     code += char;
-    if (!stringMode && objectMode && char == ":") {
+    if (!stringMode && objectMode && c == colon) {
       reference = "";
       referenceMode = false;
     }
-    if (!stringMode && char == "{") {
+    if (!stringMode && c == openCurley) {
       objectMode++;
     }
-    if (!stringMode && char == "}") {
+    if (!stringMode && c == closeCurley) {
       objectMode--;
     }
     if (assignmentMode) {
       assignmentRight += char;
     }
-    if (!assignmentMode && !stringMode && char == "=" && last1 != "=" && next1 != "=" && next1 != ">" || char == "+" && next1 == "=" || char == "-" && next1 == "=" || char == "*" && next1 == "=" || char == "/" && next1 == "=" || char == "%" && next1 == "=" || char == "&" && next1 == "=" || char == "^" && next1 == "=" || char == "|" && next1 == "=" || char == "*" && next1 == "*" && next2 == "=" || char == "<" && next1 == "<" && next2 == "=" || char == ">" && next1 == ">" && next2 == "=" || char == "&" && next1 == "&" && next2 == "=" || char == "|" && next1 == "|" && next2 == "=" || char == "?" && next1 == "?" && next2 == "=" || char == ">" && next1 == ">" && next2 == ">" && next3 == "=") {
-      assignmentMode = true;
-      assignmentRight += char;
+    if (!stringMode && !assignmentMode && c == equal && l != equal && n != equal && n != great) {
+      assignmentMode = 1;
+      assignmentMid += char;
     }
-    if (!assignmentMode && !assignmentRight && !stringMode) {
+    if (!stringMode && !assignmentMode && c == and && n == equal || c == pipe && n == equal || c == star && n == equal || c == plus && n == equal || c == minus && n == equal || c == carrot && n == equal || c == percent && n == equal || c == forward && n == equal) {
+      assignmentMode = 2;
+      assignmentMid += String.fromCharCode(c, n);
+    }
+    if (!stringMode && !assignmentMode && c == and && n == and && nn == equal || c == pipe && n == pipe && nn == equal || c == star && n == star && nn == equal || c == less && n == less && nn == equal || c == great && n == great && nn == equal || c == question && n == question && nn == equal) {
+      assignmentMode = 3;
+      assignmentMid += String.fromCharCode(c, n, nn);
+    }
+    if (!stringMode && !assignmentMode && c == great && n == great && nn == great && nnn == equal) {
+      assignmentMode = 4;
+      assignmentMid += String.fromCharCode(c, n, nn, nnn);
+    }
+    if (!stringMode && !assignmentMode && !assignmentMid) {
       assignmentLeft += char;
     }
-    if (stringMode && string == char && last1 != "\\") {
+    if (stringMode && c == string && l != back) {
       stringMode = false;
-      string = "";
+      string = NaN;
       continue;
     }
     if (stringMode) {
       continue;
     }
-    if (stringChar.includes(char)) {
+    if (c == tick2 || c == single || c == double) {
       stringMode = true;
-      string = char;
+      string = c;
       continue;
     }
-    if (referenceMode && char == " ")
+    if (referenceMode && c == space)
       continue;
-    if (referenceMode && char == "?" && next1 == ".")
+    if (referenceMode && c == question && n == period)
       continue;
-    if (referenceMode && referenceInner.includes(char)) {
+    if (referenceMode && c > aLower && c < zLower || c > aUpper && c < zUpper || c > zero && c < nine || c == money || c == underscore || c == period) {
       reference += char;
       continue;
     }
-    if (referenceMode && referenceEnd.includes(char)) {
+    if (referenceMode && !(c > aLower && c < zLower || c > aUpper && c < zUpper || c > zero && c < nine || c == money || c == underscore || c == period)) {
       if (!referenceIgnore.includes(reference.split(".")[0]))
         references.push(reference);
       referenceMode = false;
       reference = "";
       continue;
     }
-    if (referenceStart.includes(char)) {
+    if (c > aLower && c < zLower || c > aUpper && c < zUpper || c == money || c == underscore) {
       referenceMode = true;
       reference += char;
       continue;
     }
   }
-  return { references, assignmentLeft, assignmentRight, code };
+  return { code, references, assignmentLeft, assignmentMid, assignmentRight };
 }
 
 // src/element/binder.ts
-var referenceMatch = new RegExp([
-  "(\".*?[^\\\\]*\"|'.*?[^\\\\]*'|`.*?[^\\\\]*`)",
-  "((?:^|}}).*?{{)",
-  "(}}.*?(?:{{|$))",
-  `(
-        (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-        event|this|window|document|console|location|navigation|
-        globalThis|Infinity|NaN|undefined|
-        isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-        Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-        Object|Function|Boolean|Symbole|Array|
-        Number|Math|Date|BigInt|
-        String|RegExp|
-        Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-        Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-        Map|Set|WeakMap|WeakSet|
-        ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-        Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-        Reflect|Proxy|
-        true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-        (?:(?:[.][a-zA-Z0-9$_.? ]*)?\\b)
-    )`,
-  "(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)"
-].join("|").replace(/\s|\t|\n/g, ""), "g");
-var splitPattern = /\s*{{\s*|\s*}}\s*/;
-var bracketPattern = /({{)|(}})/;
-var stringPattern = /(".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)/;
-var assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
-var codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, "g");
-var Binder = class {
+var _Binder = class {
   constructor(node, container, context, rewrites) {
     __publicField(this, "type");
     __publicField(this, "name");
@@ -535,7 +398,7 @@ var Binder = class {
     __publicField(this, "owner");
     __publicField(this, "node");
     __publicField(this, "container");
-    __publicField(this, "references", /* @__PURE__ */ new Set());
+    __publicField(this, "references");
     __publicField(this, "compute");
     __publicField(this, "meta", {});
     __publicField(this, "instance", {});
@@ -552,14 +415,12 @@ var Binder = class {
     this.register = this.container.register.bind(this.container);
     this.type = this.name.startsWith("on") ? "on" : this.constructor.handlers.includes(this.name) ? this.name : "standard";
     this.node.nodeValue = "";
-    if (!this.constructor.referenceCache.has(this.value)) {
-      this.constructor.referenceCache.set(this.value, /* @__PURE__ */ new Set());
-    }
-    console.log(parse(this.value));
-    const referenceCache = this.constructor.referenceCache.get(this.value);
-    if (referenceCache.size) {
+    const cache = _Binder.cache.get(this.value);
+    if (cache) {
+      const { references, compute } = cache;
       if (rewrites) {
-        for (const reference of referenceCache) {
+        this.references = /* @__PURE__ */ new Set();
+        for (const reference of references) {
           for (const [name, value] of rewrites) {
             if (reference === name) {
               this.references.add(value);
@@ -571,63 +432,17 @@ var Binder = class {
           }
         }
       } else {
-        this.references = referenceCache;
+        this.references = new Set(references);
       }
-    } else {
-      const data = this.value;
-      let match = referenceMatch.exec(data);
-      while (match) {
-        const reference = match[5];
-        if (reference) {
-          referenceCache.add(reference);
-          if (rewrites) {
-            for (const [name, value] of rewrites) {
-              if (reference === name) {
-                this.references.add(value);
-              } else if (reference.startsWith(name + ".")) {
-                this.references.add(value + reference.slice(name.length));
-              } else {
-                this.references.add(reference);
-              }
-            }
-          } else {
-            this.references.add(reference);
-          }
-        }
-        match = referenceMatch.exec(data);
-      }
-    }
-    const compute = this.constructor.computeCache.get(this.value);
-    if (compute) {
       this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
     } else {
-      let reference = "";
-      let assignment = "";
-      this.code = this.value;
+      const { references, code, assignmentLeft, assignmentMid, assignmentRight } = parse(this.value);
       const isValue = this.name === "value";
       const isChecked = this.name === "checked";
-      const convert = this.code.split(splitPattern).filter((part) => part).length > 1;
-      this.code = this.code.replace(codePattern, (_, str, assignee, assigneeLeft, r, assigneeMiddle, assigneeRight, bracketLeft, bracketRight) => {
-        if (str)
-          return str;
-        if (bracketLeft)
-          return convert ? `' + (` : "(";
-        if (bracketRight)
-          return convert ? `) + '` : ")";
-        if (assignee) {
-          if (isValue || isChecked) {
-            reference = r;
-            assignment = assigneeLeft + assigneeRight;
-          }
-          return (convert ? `' + (` : "(") + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ")");
-        }
-        console.warn("possible compute issue");
-        return "";
-      }) ?? "";
-      this.code = convert ? `'${this.code}'` : this.code;
-      this.code = (reference && isValue ? `$value = $assign ? $value : ${reference};
-` : "") + (reference && isChecked ? `$checked = $assign ? $checked : ${reference};
-` : "") + `return ${assignment ? `$assign ? ${this.code} : ${assignment}` : `${this.code}`};`;
+      const assignment = assignmentLeft && assignmentMid && assignmentRight;
+      this.code = (assignment && isValue ? `$value = $assign ? $value : ${assignmentLeft};
+` : "") + (assignment && isChecked ? `$checked = $assign ? $checked : ${assignmentLeft};
+` : "") + `return ${assignment ? `$assign ? ${code} : ${assignmentRight}` : code};`;
       this.code = `
             try {
                 with ($context) {
@@ -639,12 +454,29 @@ var Binder = class {
                 console.error(error);
             }
             `;
-      const compute2 = new Function("$context", "$instance", this.code);
-      this.constructor.computeCache.set(this.value, compute2);
-      this.compute = compute2.bind(this.owner ?? this.node, this.context, this.instance);
+      const compute = new Function("$context", "$instance", this.code);
+      if (rewrites) {
+        this.references = /* @__PURE__ */ new Set();
+        for (const reference of references) {
+          for (const [name, value] of rewrites) {
+            if (reference === name) {
+              this.references.add(value);
+            } else if (reference.startsWith(name + ".")) {
+              this.references.add(value + reference.slice(name.length));
+            } else {
+              this.references.add(reference);
+            }
+          }
+        }
+      } else {
+        this.references = new Set(references);
+      }
+      this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
+      _Binder.cache.set(this.value, { references, compute });
     }
   }
 };
+var Binder = _Binder;
 __publicField(Binder, "handlers", [
   "on",
   "text",
@@ -655,6 +487,7 @@ __publicField(Binder, "handlers", [
   "inherit",
   "standard"
 ]);
+__publicField(Binder, "cache", /* @__PURE__ */ new Map());
 __publicField(Binder, "referenceCache", /* @__PURE__ */ new Map());
 __publicField(Binder, "computeCache", /* @__PURE__ */ new Map());
 
