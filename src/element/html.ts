@@ -1,26 +1,25 @@
-import Binder from './binder';
 
-export default class Html extends Binder {
+export default {
 
-    render () {
+    render (binder: any) {
 
-        if (!this.meta.setup) {
-            this.meta.setup = true;
-            this.node.nodeValue = '';
+        if (!binder.meta.setup) {
+            binder.meta.setup = true;
+            binder.node.nodeValue = '';
         }
 
-        let data = this.compute();
+        let data = binder.compute();
 
         if (typeof data !== 'string') {
             data = '';
             console.warn('html binder requires a string');
         }
 
-        let removeChild = this.owner?.lastChild;
+        let removeChild = binder.owner?.lastChild;
         while (removeChild) {
-            this.owner?.removeChild(removeChild);
-            this.release(removeChild);
-            removeChild = this.owner?.lastChild;
+            binder.owner?.removeChild(removeChild);
+            binder.release(removeChild);
+            removeChild = binder.owner?.lastChild;
         }
 
         const template = document.createElement('template');
@@ -28,20 +27,21 @@ export default class Html extends Binder {
 
         let addChild = template.content.firstChild;
         while (addChild) {
-            this.register(addChild, this.context);
+            binder.container.register(addChild, binder.context);
+            // binder.register(addChild, binder.context);
             addChild = addChild.nextSibling;
         }
 
-        this.owner?.appendChild(template.content);
-    }
+        binder.owner?.appendChild(template.content);
+    },
 
-    reset () {
-        let node = this.owner?.lastChild;
+    reset (binder: any) {
+        let node = binder.owner?.lastChild;
         while (node) {
-            this.release(node);
-            this.owner?.removeChild(node);
-            node = this.owner?.lastChild;
+            binder.release(node);
+            binder.owner?.removeChild(node);
+            node = binder.owner?.lastChild;
         }
     }
 
-}
+};

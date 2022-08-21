@@ -62,7 +62,8 @@ export const dataEvent = function (data: any, reference: string, type: DataHandl
         if (typeof key === 'string' && (key === reference || key.startsWith(`${reference}.`))) {
             if (binders) {
                 for (const binder of binders) {
-                    binder[ type ]();
+                    // binder[ type ](binder);
+                    tick(() => binder[ type ](binder));
                 }
             }
         }

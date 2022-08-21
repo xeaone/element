@@ -1,39 +1,10 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-var __accessCheck = (obj, member, msg) => {
-  if (!member.has(obj))
-    throw TypeError("Cannot " + msg);
-};
-var __privateGet = (obj, member, getter) => {
-  __accessCheck(obj, member, "read from private field");
-  return getter ? getter.call(obj) : member.get(obj);
-};
-var __privateAdd = (obj, member, value) => {
-  if (member.has(obj))
-    throw TypeError("Cannot add the same private member more than once");
-  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-};
-var __privateSet = (obj, member, value, setter) => {
-  __accessCheck(obj, member, "write to private field");
-  setter ? setter.call(obj, value) : member.set(obj, value);
-  return value;
-};
-var __privateMethod = (obj, member, method) => {
-  __accessCheck(obj, member, "access private method");
-  return method;
-};
-
-// src/element/tick.ts
+// tmp/element/tick.js
 var promise = Promise.resolve();
 function tick(method) {
   return promise.then(method);
 }
 
-// src/element/data.ts
+// tmp/element/data.js
 var dataHas = function(target, key) {
   return Reflect.has(target, key);
 };
@@ -78,19 +49,19 @@ var dataEvent = function(data, reference, type) {
     if (typeof key === "string" && (key === reference || key.startsWith(`${reference}.`))) {
       if (binders) {
         for (const binder of binders) {
-          binder[type]();
+          tick(() => binder[type](binder));
         }
       }
     }
   }
 };
 
-// src/element/dash.ts
+// tmp/element/dash.js
 function dash(data) {
   return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
-// src/element/navigation.ts
+// tmp/element/navigation.js
 var navigators = /* @__PURE__ */ new Map();
 var transition = async (options) => {
   if (options.cache && options.instance)
@@ -149,7 +120,7 @@ function navigation(path, file, options) {
   window.navigation.addEventListener("navigate", navigate);
 }
 
-// src/element/poly.ts
+// tmp/element/poly.js
 async function Poly() {
   if ("shadowRoot" in HTMLTemplateElement.prototype === false) {
     (function attachShadowRoots(root) {
@@ -168,335 +139,12 @@ async function Poly() {
   }
 }
 
-// src/element/parse.ts
-var aLower = "a".charCodeAt(0) - 1;
-var zLower = "z".charCodeAt(0) + 1;
-var aUpper = "A".charCodeAt(0) - 1;
-var zUpper = "Z".charCodeAt(0) + 1;
-var zero = "0".charCodeAt(0) - 1;
-var nine = "9".charCodeAt(0) + 1;
-var space = " ".charCodeAt(0);
-var money = "$".charCodeAt(0);
-var period = ".".charCodeAt(0);
-var question = "?".charCodeAt(0);
-var underscore = "_".charCodeAt(0);
-var and = "&".charCodeAt(0);
-var plus = "+".charCodeAt(0);
-var star = "*".charCodeAt(0);
-var pipe = "|".charCodeAt(0);
-var less = "<".charCodeAt(0);
-var equal = "=".charCodeAt(0);
-var minus = "-".charCodeAt(0);
-var great = ">".charCodeAt(0);
-var carrot = "^".charCodeAt(0);
-var percent = "%".charCodeAt(0);
-var colon = ":".charCodeAt(0);
-var openCurley = "{".charCodeAt(0);
-var closeCurley = "}".charCodeAt(0);
-var tick2 = "`".charCodeAt(0);
-var back = "\\".charCodeAt(0);
-var double = '"'.charCodeAt(0);
-var single = "'".charCodeAt(0);
-var forward = "/".charCodeAt(0);
-var referenceIgnore = [
-  "$context",
-  "$instance",
-  "$assign",
-  "$event",
-  "$value",
-  "$checked",
-  "$form",
-  "$e",
-  "$v",
-  "$c",
-  "$f",
-  "this",
-  "arguments",
-  "true",
-  "false",
-  "null",
-  "of",
-  "in",
-  "do",
-  "if",
-  "for",
-  "new",
-  "try",
-  "case",
-  "else",
-  "with",
-  "while",
-  "await",
-  "break",
-  "catch",
-  "class",
-  "super",
-  "throw",
-  "yield",
-  "delete",
-  "export",
-  "import",
-  "return",
-  "switch",
-  "default",
-  "extends",
-  "finally",
-  "continue",
-  "debugger",
-  "function",
-  "typeof",
-  "instanceof",
-  "void",
-  "window",
-  "undefined",
-  "NaN",
-  "globalThis",
-  "self",
-  "document",
-  "console",
-  "location",
-  "history",
-  "navigation",
-  "localStorage",
-  "sessionStorage",
-  "Infinity",
-  "Math",
-  "Map",
-  "Set",
-  "Array",
-  "Object",
-  "String",
-  "RegExp",
-  "isFinite",
-  "isNaN",
-  "parseFloat",
-  "parseInt",
-  "btoa",
-  "atob",
-  "decodeURI",
-  "decodeURIComponent",
-  "encodeURI",
-  "encodeURIComponent"
-];
-function parse(data) {
-  let code = "";
-  let objectMode = 0;
-  let assignmentMid = "";
-  let assignmentLeft = "";
-  let assignmentRight = "";
-  let assignmentMode = 0;
-  let string = NaN;
-  let stringMode = false;
-  let reference = "";
-  let referenceMode = false;
-  const references = [];
-  const length = data.length;
-  for (let index = 0; index < length; index++) {
-    const char = data[index];
-    const c = data.charCodeAt(index);
-    const l = data.charCodeAt(index - 1);
-    const n = data.charCodeAt(index + 1);
-    const nn = data.charCodeAt(index + 2);
-    const nnn = data.charCodeAt(index + 3);
-    if (!stringMode && !objectMode && c == openCurley && n == openCurley) {
-      code += "(";
-      index++;
-      continue;
-    }
-    if (!stringMode && !objectMode && c == closeCurley && n == closeCurley) {
-      if (!assignmentRight)
-        assignmentLeft = "";
-      if (referenceMode) {
-        if (!referenceIgnore.includes(reference.split(".")[0]))
-          references.push(reference);
-        referenceMode = false;
-        reference = "";
-      }
-      code += ")";
-      index++;
-      break;
-    }
-    code += char;
-    if (!stringMode && objectMode && c == colon) {
-      reference = "";
-      referenceMode = false;
-    }
-    if (!stringMode && c == openCurley) {
-      objectMode++;
-    }
-    if (!stringMode && c == closeCurley) {
-      objectMode--;
-    }
-    if (assignmentMode) {
-      assignmentRight += char;
-    }
-    if (!stringMode && !assignmentMode && c == equal && l != equal && n != equal && n != great) {
-      assignmentMode = 1;
-      assignmentMid += char;
-    }
-    if (!stringMode && !assignmentMode && c == and && n == equal || c == pipe && n == equal || c == star && n == equal || c == plus && n == equal || c == minus && n == equal || c == carrot && n == equal || c == percent && n == equal || c == forward && n == equal) {
-      assignmentMode = 2;
-      assignmentMid += String.fromCharCode(c, n);
-    }
-    if (!stringMode && !assignmentMode && c == and && n == and && nn == equal || c == pipe && n == pipe && nn == equal || c == star && n == star && nn == equal || c == less && n == less && nn == equal || c == great && n == great && nn == equal || c == question && n == question && nn == equal) {
-      assignmentMode = 3;
-      assignmentMid += String.fromCharCode(c, n, nn);
-    }
-    if (!stringMode && !assignmentMode && c == great && n == great && nn == great && nnn == equal) {
-      assignmentMode = 4;
-      assignmentMid += String.fromCharCode(c, n, nn, nnn);
-    }
-    if (!stringMode && !assignmentMode && !assignmentMid) {
-      assignmentLeft += char;
-    }
-    if (stringMode && c == string && l != back) {
-      stringMode = false;
-      string = NaN;
-      continue;
-    }
-    if (stringMode) {
-      continue;
-    }
-    if (c == tick2 || c == single || c == double) {
-      stringMode = true;
-      string = c;
-      continue;
-    }
-    if (referenceMode && c == space)
-      continue;
-    if (referenceMode && c == question && n == period)
-      continue;
-    if (referenceMode && c > aLower && c < zLower || c > aUpper && c < zUpper || c > zero && c < nine || c == money || c == underscore || c == period) {
-      reference += char;
-      continue;
-    }
-    if (referenceMode && !(c > aLower && c < zLower || c > aUpper && c < zUpper || c > zero && c < nine || c == money || c == underscore || c == period)) {
-      if (!referenceIgnore.includes(reference.split(".")[0]))
-        references.push(reference);
-      referenceMode = false;
-      reference = "";
-      continue;
-    }
-    if (c > aLower && c < zLower || c > aUpper && c < zUpper || c == money || c == underscore) {
-      referenceMode = true;
-      reference += char;
-      continue;
-    }
-  }
-  return { code, references, assignmentLeft, assignmentMid, assignmentRight };
-}
-
-// src/element/binder.ts
-var _Binder = class {
-  constructor(node, container, context, rewrites) {
-    __publicField(this, "type");
-    __publicField(this, "name");
-    __publicField(this, "value");
-    __publicField(this, "context");
-    __publicField(this, "rewrites");
-    __publicField(this, "code");
-    __publicField(this, "owner");
-    __publicField(this, "node");
-    __publicField(this, "container");
-    __publicField(this, "references");
-    __publicField(this, "compute");
-    __publicField(this, "meta", {});
-    __publicField(this, "instance", {});
-    __publicField(this, "release");
-    __publicField(this, "register");
-    this.node = node;
-    this.context = context;
-    this.container = container;
-    this.value = node.nodeValue ?? "";
-    this.rewrites = rewrites ? [...rewrites] : [];
-    this.name = node.nodeName.startsWith("#") ? node.nodeName.slice(1) : node.nodeName;
-    this.owner = node.ownerElement ?? void 0;
-    this.release = this.container.release.bind(this.container);
-    this.register = this.container.register.bind(this.container);
-    this.type = this.name.startsWith("on") ? "on" : this.constructor.handlers.includes(this.name) ? this.name : "standard";
-    this.node.nodeValue = "";
-    const cache = _Binder.cache.get(this.value);
-    if (cache) {
-      const { references, compute } = cache;
-      if (rewrites) {
-        this.references = /* @__PURE__ */ new Set();
-        for (const reference of references) {
-          for (const [name, value] of rewrites) {
-            if (reference === name) {
-              this.references.add(value);
-            } else if (reference.startsWith(name + ".")) {
-              this.references.add(value + reference.slice(name.length));
-            } else {
-              this.references.add(reference);
-            }
-          }
-        }
-      } else {
-        this.references = new Set(references);
-      }
-      this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
-    } else {
-      const { references, code, assignmentLeft, assignmentMid, assignmentRight } = parse(this.value);
-      const isValue = this.name === "value";
-      const isChecked = this.name === "checked";
-      const assignment = assignmentLeft && assignmentMid && assignmentRight;
-      this.code = (assignment && isValue ? `$value = $assign ? $value : ${assignmentLeft};
-` : "") + (assignment && isChecked ? `$checked = $assign ? $checked : ${assignmentLeft};
-` : "") + `return ${assignment ? `$assign ? ${code} : ${assignmentRight}` : code};`;
-      this.code = `
-            try {
-                with ($context) {
-                    with ($instance) {
-                        ${this.code}
-                    }
-                }
-            } catch (error){
-                console.error(error);
-            }
-            `;
-      const compute = new Function("$context", "$instance", this.code);
-      if (rewrites) {
-        this.references = /* @__PURE__ */ new Set();
-        for (const reference of references) {
-          for (const [name, value] of rewrites) {
-            if (reference === name) {
-              this.references.add(value);
-            } else if (reference.startsWith(name + ".")) {
-              this.references.add(value + reference.slice(name.length));
-            } else {
-              this.references.add(reference);
-            }
-          }
-        }
-      } else {
-        this.references = new Set(references);
-      }
-      this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
-      _Binder.cache.set(this.value, { references, compute });
-    }
-  }
-};
-var Binder = _Binder;
-__publicField(Binder, "handlers", [
-  "on",
-  "text",
-  "html",
-  "each",
-  "value",
-  "checked",
-  "inherit",
-  "standard"
-]);
-__publicField(Binder, "cache", /* @__PURE__ */ new Map());
-__publicField(Binder, "referenceCache", /* @__PURE__ */ new Map());
-__publicField(Binder, "computeCache", /* @__PURE__ */ new Map());
-
-// src/element/format.ts
+// tmp/element/format.js
 function format(data) {
   return data === void 0 ? "" : typeof data === "object" ? JSON.stringify(data) : data;
 }
 
-// src/element/boolean.ts
+// tmp/element/boolean.js
 var boolean_default = [
   "allowfullscreen",
   "async",
@@ -544,104 +192,97 @@ var boolean_default = [
   "visible"
 ];
 
-// src/element/standard.ts
-var Standard = class extends Binder {
-  render() {
-    const boolean = boolean_default.includes(this.name);
-    const node = this.node;
+// tmp/element/standard.js
+var standard_default = {
+  render(binder) {
+    const boolean = boolean_default.includes(binder.name);
+    const node = binder.node;
     node.value = "";
     if (boolean) {
-      const data = this.compute() ? true : false;
+      const data = binder.compute() ? true : false;
       if (data)
-        this.owner?.setAttributeNode(node);
+        binder.owner?.setAttributeNode(node);
       else
-        this.owner?.removeAttribute(this.name);
+        binder.owner?.removeAttribute(binder.name);
     } else {
-      const data = format(this.compute());
-      this.owner[this.name] = data;
-      this.owner?.setAttribute(this.name, data);
+      const data = format(binder.compute());
+      binder.owner[binder.name] = data;
+      binder.owner?.setAttribute(binder.name, data);
     }
-  }
-  reset() {
-    const boolean = boolean_default.includes(this.name);
+  },
+  reset(binder) {
+    const boolean = boolean_default.includes(binder.name);
     if (boolean) {
-      this.owner?.removeAttribute(this.name);
+      binder.owner?.removeAttribute(binder.name);
     } else {
-      this.owner[this.name] = void 0;
-      this.owner?.setAttribute(this.name, "");
+      binder.owner[binder.name] = void 0;
+      binder.owner?.setAttribute(binder.name, "");
     }
   }
 };
 
-// src/element/checked.ts
-var _handler, handler_fn;
-var _Checked = class extends Binder {
-  constructor() {
-    super(...arguments);
-    __privateAdd(this, _handler);
-  }
-  render() {
-    if (!this.meta.setup) {
-      this.meta.setup = true;
-      this.node.nodeValue = "";
-      if (this.owner.type === "radio") {
-        this.owner?.addEventListener("xRadioInputHandler", (event) => __privateMethod(this, _handler, handler_fn).call(this, event));
-        this.owner?.addEventListener("input", (event) => {
-          const parent = this.owner.form || this.owner?.getRootNode();
-          const radios = parent.querySelectorAll(`[type="radio"][name="${this.owner.name}"]`);
-          __privateMethod(this, _handler, handler_fn).call(this, event);
-          for (const radio of radios) {
-            if (radio === event.target)
-              continue;
-            radio.checked = false;
-            radio.dispatchEvent(_Checked.xRadioInputHandlerEvent);
-          }
-        });
-      } else {
-        this.owner?.addEventListener("input", (event) => __privateMethod(this, _handler, handler_fn).call(this, event));
-      }
-    }
-    __privateMethod(this, _handler, handler_fn).call(this);
-  }
-  reset() {
-    this.owner?.removeAttribute("checked");
-  }
-};
-var Checked = _Checked;
-_handler = new WeakSet();
-handler_fn = function(event) {
-  const owner = this.owner;
+// tmp/element/checked.js
+var xRadioInputHandlerEvent = new CustomEvent("xRadioInputHandler");
+var handler = function(event, binder) {
+  const owner = binder.owner;
   const checked = owner.checked;
-  this.instance.event = event;
-  this.instance.$event = event;
-  this.instance.$assign = !!event;
-  this.instance.$checked = checked;
-  const computed = this.compute();
+  binder.instance.event = event;
+  binder.instance.$event = event;
+  binder.instance.$assign = !!event;
+  binder.instance.$checked = checked;
+  const computed = binder.compute();
   if (computed) {
-    owner.setAttributeNode(this.node);
+    owner.setAttributeNode(binder.node);
   } else {
     owner.removeAttribute("checked");
   }
 };
-__publicField(Checked, "xRadioInputHandlerEvent", new CustomEvent("xRadioInputHandler"));
+var checked_default = {
+  render(binder) {
+    if (!binder.meta.setup) {
+      binder.meta.setup = true;
+      binder.node.nodeValue = "";
+      if (binder.owner.type === "radio") {
+        binder.owner?.addEventListener("xRadioInputHandler", (event) => handler(event, binder));
+        binder.owner?.addEventListener("input", (event) => {
+          const parent = binder.owner.form || binder.owner?.getRootNode();
+          const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
+          handler(event, binder);
+          for (const radio of radios) {
+            if (radio === event.target)
+              continue;
+            radio.checked = false;
+            radio.dispatchEvent(xRadioInputHandlerEvent);
+          }
+        });
+      } else {
+        binder.owner?.addEventListener("input", (event) => handler(event, binder));
+      }
+    }
+    handler(void 0, binder);
+  },
+  reset(binder) {
+    binder.owner?.removeAttribute("checked");
+  }
+};
 
-// src/element/inherit.ts
-var Inherit = class extends Binder {
-  render() {
-    const owner = this.owner;
-    const node = this.node;
-    if (!this.meta.setup) {
-      this.meta.setup = true;
+// tmp/element/inherit.js
+var inherit_default = {
+  render(binder) {
+    const owner = binder.owner;
+    const node = binder.node;
+    if (!binder.meta.setup) {
+      binder.meta.setup = true;
       node.value = "";
     }
     if (!owner.inherited) {
       return console.warn(`inherited not implemented ${owner.localName}`);
     }
-    const inherited = this.compute();
+    const inherited = binder.compute();
     owner.inherited?.(inherited);
-  }
-  reset() {
-    const owner = this.owner;
+  },
+  reset(binder) {
+    const owner = binder.owner;
     if (!owner.inherited) {
       return console.warn(`inherited not implemented ${owner.localName}`);
     }
@@ -649,10 +290,10 @@ var Inherit = class extends Binder {
   }
 };
 
-// src/element/date.ts
+// tmp/element/date.js
 var date_default = ["date", "datetime-local", "month", "time", "week"];
 
-// src/element/value.ts
+// tmp/element/value.js
 var defaultInputEvent = new Event("input");
 var parseable = function(value) {
   return !isNaN(value) && value !== void 0 && typeof value !== "string";
@@ -678,22 +319,22 @@ var input = function(binder, event) {
     owner.$value = binder.compute();
   }
 };
-var Value = class extends Binder {
-  render() {
-    const { meta } = this;
-    const { type } = this.owner;
+var value_default = {
+  render(binder) {
+    const { meta } = binder;
+    const { type } = binder.owner;
     if (!meta.setup) {
       meta.setup = true;
-      this.owner?.addEventListener("input", (event) => input(this, event));
+      binder.owner?.addEventListener("input", (event) => input(binder, event));
     }
-    this.instance.$assign = false;
-    this.instance.$event = void 0;
-    this.instance.$value = void 0;
-    this.instance.$checked = void 0;
-    const computed = this.compute();
+    binder.instance.$assign = false;
+    binder.instance.$event = void 0;
+    binder.instance.$value = void 0;
+    binder.instance.$checked = void 0;
+    const computed = binder.compute();
     let display;
     if (type === "select-one") {
-      const owner = this.owner;
+      const owner = binder.owner;
       owner.value = "";
       Array.prototype.find.call(owner.options, (o) => "$value" in o ? o.$value : o.value === computed);
       if (computed === void 0 && owner.options.length && !owner.selectedOptions.length) {
@@ -703,11 +344,11 @@ var Value = class extends Binder {
       display = format(computed);
       owner.value = display;
     } else if (type === "select-multiple") {
-      const owner = this.owner;
+      const owner = binder.owner;
       Array.prototype.forEach.call(owner.options, (o) => o.selected = computed?.includes("$value" in o ? o.$value : o.value));
       display = format(computed);
     } else if (type === "number" || type === "range" || date_default.includes(type)) {
-      const owner = this.owner;
+      const owner = binder.owner;
       if (typeof computed === "string")
         owner.value = computed;
       else if (typeof computed === "number" && !isNaN(computed))
@@ -716,164 +357,160 @@ var Value = class extends Binder {
         owner.value = "";
       display = owner.value;
     } else {
-      const owner = this.owner;
+      const owner = binder.owner;
       display = format(computed);
       owner.value = display;
     }
-    this.owner.$value = computed;
-    this.owner?.setAttribute("value", display);
-  }
-  reset() {
-    const { type } = this.owner;
+    binder.owner.$value = computed;
+    binder.owner?.setAttribute("value", display);
+  },
+  reset(binder) {
+    const { type } = binder.owner;
     if (type === "select-one" || type === "select-multiple") {
-      const owner = this.owner;
+      const owner = binder.owner;
       Array.prototype.forEach.call(owner.options, (option) => option.selected = false);
     }
-    this.owner.value = "";
-    this.owner.$value = void 0;
-    this.owner?.setAttribute("value", "");
+    binder.owner.value = "";
+    binder.owner.$value = void 0;
+    binder.owner?.setAttribute("value", "");
   }
 };
 
-// src/element/each.ts
-var whitespace = /\s+/;
-var Each = class extends Binder {
-  reset() {
-    const owner = this.node.ownerElement;
-    this.meta.targetLength = 0;
-    this.meta.currentLength = 0;
-    while (owner && owner.lastChild)
-      this.release(owner.removeChild(owner.lastChild));
-    while (this.meta.queueElement.content.lastChild)
-      this.meta.queueElement.content.removeChild(this.meta.queueElement.content.lastChild);
-  }
-  render() {
-    const [data, variable, key, index] = this.compute();
-    const [reference] = this.references;
-    const owner = this.node.ownerElement;
-    this.meta.data = data;
-    this.meta.keyName = key;
-    this.meta.indexName = index;
-    this.meta.variable = variable;
-    this.meta.reference = reference;
-    if (!this.meta.setup) {
-      this.node.nodeValue = "";
-      this.meta.keys = [];
-      this.meta.setup = true;
-      this.meta.targetLength = 0;
-      this.meta.currentLength = 0;
-      this.meta.templateLength = 0;
-      this.meta.queueElement = document.createElement("template");
-      this.meta.templateElement = document.createElement("template");
-      let node = owner.firstChild;
-      while (node) {
-        if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue)) {
-          owner.removeChild(node);
-        } else {
-          this.meta.templateLength++;
-          this.meta.templateElement.content.appendChild(node);
-        }
-        node = owner.firstChild;
-      }
-    }
-    if (data?.constructor === Array) {
-      this.meta.targetLength = data.length;
-    } else {
-      this.meta.keys = Object.keys(data || {});
-      this.meta.targetLength = this.meta.keys.length;
-    }
-    if (this.meta.currentLength > this.meta.targetLength) {
-      while (this.meta.currentLength > this.meta.targetLength) {
-        let count = this.meta.templateLength, node;
-        while (count--) {
-          node = owner.lastChild;
-          if (node) {
-            owner.removeChild(node);
-            this.release(node);
-          }
-        }
-        this.meta.currentLength--;
-      }
-    } else if (this.meta.currentLength < this.meta.targetLength) {
-      while (this.meta.currentLength < this.meta.targetLength) {
-        const keyValue = this.meta.keys[this.meta.currentLength] ?? this.meta.currentLength;
-        const indexValue = this.meta.currentLength++;
-        const rewrites = [
-          ...this.rewrites,
-          [this.meta.variable, `${this.meta.reference}.${keyValue}`]
-        ];
-        const context = new Proxy(this.context, {
-          has: (target, key2) => key2 === this.meta.variable || key2 === this.meta.keyName || key2 === this.meta.indexName || Reflect.has(target, key2),
-          get: (target, key2, receiver) => key2 === this.meta.keyName ? keyValue : key2 === this.meta.indexName ? indexValue : key2 === this.meta.variable ? Reflect.get(this.meta.data, keyValue) : Reflect.get(target, key2, receiver),
-          set: (target, key2, value, receiver) => key2 === this.meta.keyName ? true : key2 === this.meta.indexName ? true : key2 === this.meta.variable ? Reflect.set(this.meta.data, keyValue, value) : Reflect.set(target, key2, value, receiver)
-        });
-        let node = this.meta.templateElement.content.firstChild;
-        while (node) {
-          this.register(
-            this.meta.queueElement.content.appendChild(node.cloneNode(true)),
-            context,
-            rewrites
-          );
-          node = node.nextSibling;
-        }
-      }
-    }
-    if (this.meta.currentLength === this.meta.targetLength) {
-      owner.appendChild(this.meta.queueElement.content);
-    }
+// tmp/element/text.js
+var text_default = {
+  render(binder) {
+    const data = binder.compute();
+    binder.node.nodeValue = format(data);
+  },
+  reset(binder) {
+    binder.node.nodeValue = "";
   }
 };
 
-// src/element/html.ts
-var Html = class extends Binder {
-  render() {
-    if (!this.meta.setup) {
-      this.meta.setup = true;
-      this.node.nodeValue = "";
+// tmp/element/html.js
+var html_default = {
+  render(binder) {
+    if (!binder.meta.setup) {
+      binder.meta.setup = true;
+      binder.node.nodeValue = "";
     }
-    let data = this.compute();
+    let data = binder.compute();
     if (typeof data !== "string") {
       data = "";
       console.warn("html binder requires a string");
     }
-    let removeChild = this.owner?.lastChild;
+    let removeChild = binder.owner?.lastChild;
     while (removeChild) {
-      this.owner?.removeChild(removeChild);
-      this.release(removeChild);
-      removeChild = this.owner?.lastChild;
+      binder.owner?.removeChild(removeChild);
+      binder.release(removeChild);
+      removeChild = binder.owner?.lastChild;
     }
     const template = document.createElement("template");
     template.innerHTML = data;
     let addChild = template.content.firstChild;
     while (addChild) {
-      this.register(addChild, this.context);
+      binder.container.register(addChild, binder.context);
       addChild = addChild.nextSibling;
     }
-    this.owner?.appendChild(template.content);
-  }
-  reset() {
-    let node = this.owner?.lastChild;
+    binder.owner?.appendChild(template.content);
+  },
+  reset(binder) {
+    let node = binder.owner?.lastChild;
     while (node) {
-      this.release(node);
-      this.owner?.removeChild(node);
-      node = this.owner?.lastChild;
+      binder.release(node);
+      binder.owner?.removeChild(node);
+      node = binder.owner?.lastChild;
     }
   }
 };
 
-// src/element/text.ts
-var Text = class extends Binder {
-  render() {
-    const data = this.compute();
-    this.node.nodeValue = format(data);
-  }
-  reset() {
-    this.node.nodeValue = "";
+// tmp/element/each.js
+var whitespace = /\s+/;
+var each_default = {
+  reset(binder) {
+    const owner = binder.node.ownerElement;
+    binder.meta.targetLength = 0;
+    binder.meta.currentLength = 0;
+    while (owner && owner.lastChild)
+      binder.release(owner.removeChild(owner.lastChild));
+    while (binder.meta.queueElement.content.lastChild)
+      binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
+  },
+  render(binder) {
+    const [data, variable, key, index] = binder.compute();
+    const [reference] = binder.references;
+    const owner = binder.node.ownerElement;
+    binder.meta.data = data;
+    binder.meta.keyName = key;
+    binder.meta.indexName = index;
+    binder.meta.variable = variable;
+    binder.meta.reference = reference;
+    if (!binder.meta.setup) {
+      binder.node.nodeValue = "";
+      binder.meta.keys = [];
+      binder.meta.setup = true;
+      binder.meta.targetLength = 0;
+      binder.meta.currentLength = 0;
+      binder.meta.templateLength = 0;
+      binder.meta.queueElement = document.createElement("template");
+      binder.meta.templateElement = document.createElement("template");
+      let node = owner.firstChild;
+      while (node) {
+        if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue)) {
+          owner.removeChild(node);
+        } else {
+          binder.meta.templateLength++;
+          binder.meta.templateElement.content.appendChild(node);
+        }
+        node = owner.firstChild;
+      }
+    }
+    if (data?.constructor === Array) {
+      binder.meta.targetLength = data.length;
+    } else {
+      binder.meta.keys = Object.keys(data || {});
+      binder.meta.targetLength = binder.meta.keys.length;
+    }
+    if (binder.meta.currentLength > binder.meta.targetLength) {
+      while (binder.meta.currentLength > binder.meta.targetLength) {
+        let count = binder.meta.templateLength, node;
+        while (count--) {
+          node = owner.lastChild;
+          if (node) {
+            owner.removeChild(node);
+            binder.container.release(node);
+          }
+        }
+        binder.meta.currentLength--;
+      }
+    } else if (binder.meta.currentLength < binder.meta.targetLength) {
+      while (binder.meta.currentLength < binder.meta.targetLength) {
+        const keyValue = binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength;
+        const indexValue = binder.meta.currentLength++;
+        const rewrites = [
+          ...binder.rewrites,
+          [binder.meta.variable, `${binder.meta.reference}.${keyValue}`]
+        ];
+        const context = new Proxy(binder.context, {
+          has: (target, key2) => key2 === binder.meta.variable || key2 === binder.meta.keyName || key2 === binder.meta.indexName || Reflect.has(target, key2),
+          get: (target, key2, receiver) => key2 === binder.meta.keyName ? keyValue : key2 === binder.meta.indexName ? indexValue : key2 === binder.meta.variable ? Reflect.get(binder.meta.data, keyValue) : Reflect.get(target, key2, receiver),
+          set: (target, key2, value, receiver) => key2 === binder.meta.keyName ? true : key2 === binder.meta.indexName ? true : key2 === binder.meta.variable ? Reflect.set(binder.meta.data, keyValue, value) : Reflect.set(target, key2, value, receiver)
+        });
+        let node = binder.meta.templateElement.content.firstChild;
+        while (node) {
+          binder.container.register(binder.meta.queueElement.content.appendChild(node.cloneNode(true)), context, rewrites);
+          node = node.nextSibling;
+        }
+      }
+    }
+    if (binder.meta.currentLength === binder.meta.targetLength) {
+      owner.appendChild(binder.meta.queueElement.content);
+    }
   }
 };
 
-// src/element/on.ts
-var Value2 = function(element) {
+// tmp/element/on.js
+var Value = function(element) {
   if (!element)
     return void 0;
   if ("$value" in element)
@@ -899,13 +536,13 @@ var submit = async function(event, binder) {
     if (type === "select-multiple") {
       value = [];
       for (const option of element.selectedOptions) {
-        value.push(Value2(option));
+        value.push(Value(option));
       }
     } else if (type === "select-one") {
       const [option] = element.selectedOptions;
-      value = Value2(option);
+      value = Value(option);
     } else {
-      value = Value2(element);
+      value = Value(element);
     }
     let data = form;
     const parts = name.split(/\s*\.\s*/);
@@ -971,71 +608,160 @@ var reset = async function(event, binder) {
   await binder.compute();
   return false;
 };
-var On = class extends Binder {
-  render() {
-    this.owner[this.name] = void 0;
-    const name = this.name.slice(2);
-    if (this.meta.method) {
-      this.owner?.removeEventListener(name, this.meta.method);
+var on_default = {
+  render(binder) {
+    binder.owner[binder.name] = void 0;
+    const name = binder.name.slice(2);
+    if (binder.meta.method) {
+      binder.owner?.removeEventListener(name, binder.meta.method);
     }
-    this.meta.method = (event) => {
+    binder.meta.method = (event) => {
       if (name === "reset") {
-        return reset(event, this);
+        return reset(event, binder);
       } else if (name === "submit") {
-        return submit(event, this);
+        return submit(event, binder);
       } else {
-        this.instance.event = event;
-        this.instance.$event = event;
-        return this.compute();
+        binder.instance.event = event;
+        binder.instance.$event = event;
+        return binder.compute();
       }
     };
-    this.owner?.addEventListener(name, this.meta.method);
-  }
-  reset() {
-    this.owner[this.name] = null;
-    const name = this.name.slice(2);
-    if (this.meta.method) {
-      this.owner?.removeEventListener(name, this.meta.method);
+    binder.owner?.addEventListener(name, binder.meta.method);
+  },
+  reset(binder) {
+    binder.owner[binder.name] = null;
+    const name = binder.name.slice(2);
+    if (binder.meta.method) {
+      binder.owner?.removeEventListener(name, binder.meta.method);
     }
   }
 };
 
-// src/element/element.ts
-var _syntaxEnd, _syntaxStart, _syntaxLength, _prepared, _preparing, _syntaxMatch, _binders, _mutator, _context, _adoptedEvent, _adoptingEvent, _preparedEvent, _preparingEvent, _connectedEvent, _connectingEvent, _attributedEvent, _attributingEvent, _disconnectedEvent, _disconnectingEvent, _mutation, mutation_fn, _remove, remove_fn, _add, add_fn;
+// tmp/element/binder.js
+var referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
+var stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
+var assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
+var ignorePattern = new RegExp(`
+(\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+event|this|window|document|console|location|navigation|
+globalThis|Infinity|NaN|undefined|
+isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+Object|Function|Boolean|Symbole|Array|
+Number|Math|Date|BigInt|
+String|RegExp|
+Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+Map|Set|WeakMap|WeakSet|
+ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+Reflect|Proxy|
+true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
+(([.][a-zA-Z0-9$_.? ]*)?\\b)
+`.replace(/\t|\n/g, ""), "g");
+var Cache = /* @__PURE__ */ new Map();
+function Binder(node, container, context, rewrites) {
+  const value = node.nodeValue ?? "";
+  const name = node.nodeType === Node.ATTRIBUTE_NODE ? node.name : node.nodeType === Node.TEXT_NODE ? "text" : node.nodeName;
+  node.nodeValue = "";
+  let handler2;
+  if (name === "text")
+    handler2 = text_default;
+  else if (name === "html")
+    handler2 = html_default;
+  else if (name === "each")
+    handler2 = each_default;
+  else if (name === "value")
+    handler2 = value_default;
+  else if (name === "inherit")
+    handler2 = inherit_default;
+  else if (name === "checked")
+    handler2 = checked_default;
+  else if (name.startsWith("on"))
+    handler2 = on_default;
+  else
+    handler2 = standard_default;
+  const binder = {
+    node,
+    name,
+    value,
+    context,
+    container,
+    meta: {},
+    instance: {},
+    references: /* @__PURE__ */ new Set(),
+    reset: handler2.reset,
+    render: handler2.render,
+    rewrites: rewrites ? [...rewrites] : [],
+    owner: node.ownerElement ?? void 0
+  };
+  binder.cache = Cache.get(binder.value);
+  if (!binder.cache) {
+    const code = ("'" + value.replace(/\s*{{/g, "'+(").replace(/}}\s*/g, ")+'") + "'").replace(/^''\+|\+''$/g, "");
+    const clean = code.replace(stringPattern, "");
+    const assignment = clean.match(assignmentPattern);
+    const references = clean.replace(ignorePattern, "").match(referencePattern) ?? [];
+    const isValue = name === "value";
+    const isChecked = name === "checked";
+    const compute = new Function("$context", "$instance", `
+        try {
+            with ($context) {
+                with ($instance) {
+                    ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[1]};` : ""}
+                    ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[1]};` : ""}
+                    return ${assignment ? `$assign ? ${code} : ${assignment?.[3]}` : code};
+                }
+            }
+        } catch (error){
+            console.error(error);
+        }
+        `);
+    binder.cache = { compute, references };
+    Cache.set(value, binder.cache);
+  }
+  binder.compute = binder.cache.compute.bind(binder.owner ?? binder.node, binder.context, binder.instance);
+  return binder;
+}
+
+// tmp/element/element.js
 var XElement = class extends HTMLElement {
   constructor() {
     super();
-    __privateAdd(this, _mutation);
-    __privateAdd(this, _remove);
-    __privateAdd(this, _add);
-    __privateAdd(this, _syntaxEnd, "}}");
-    __privateAdd(this, _syntaxStart, "{{");
-    __privateAdd(this, _syntaxLength, 2);
-    __privateAdd(this, _prepared, false);
-    __privateAdd(this, _preparing, false);
-    __privateAdd(this, _syntaxMatch, new RegExp("{{.*?}}"));
-    __privateAdd(this, _binders, /* @__PURE__ */ new Map());
-    __privateAdd(this, _mutator, new MutationObserver(__privateMethod(this, _mutation, mutation_fn).bind(this)));
-    __privateAdd(this, _context, new Proxy({}, {
+    this.#syntaxEnd = "}}";
+    this.#syntaxStart = "{{";
+    this.#syntaxLength = 2;
+    this.#prepared = false;
+    this.#preparing = false;
+    this.#syntaxMatch = new RegExp("{{.*?}}");
+    this.#binders = /* @__PURE__ */ new Map();
+    this.#mutator = new MutationObserver(this.#mutation.bind(this));
+    this.#context = new Proxy({}, {
       has: dataHas.bind(null),
-      get: dataGet.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), ""),
-      set: dataSet.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), ""),
-      deleteProperty: dataDelete.bind(null, dataEvent.bind(null, __privateGet(this, _binders)), "")
-    }));
-    __privateAdd(this, _adoptedEvent, new Event("adopted"));
-    __privateAdd(this, _adoptingEvent, new Event("adopting"));
-    __privateAdd(this, _preparedEvent, new Event("prepared"));
-    __privateAdd(this, _preparingEvent, new Event("preparing"));
-    __privateAdd(this, _connectedEvent, new Event("connected"));
-    __privateAdd(this, _connectingEvent, new Event("connecting"));
-    __privateAdd(this, _attributedEvent, new Event("attributed"));
-    __privateAdd(this, _attributingEvent, new Event("attributing"));
-    __privateAdd(this, _disconnectedEvent, new Event("disconnected"));
-    __privateAdd(this, _disconnectingEvent, new Event("disconnecting"));
+      get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ""),
+      set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ""),
+      deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), "")
+    });
+    this.#adoptedEvent = new Event("adopted");
+    this.#adoptingEvent = new Event("adopting");
+    this.#preparedEvent = new Event("prepared");
+    this.#preparingEvent = new Event("preparing");
+    this.#connectedEvent = new Event("connected");
+    this.#connectingEvent = new Event("connecting");
+    this.#attributedEvent = new Event("attributed");
+    this.#attributingEvent = new Event("attributing");
+    this.#disconnectedEvent = new Event("disconnected");
+    this.#disconnectingEvent = new Event("disconnecting");
     if (!this.shadowRoot)
       this.attachShadow({ mode: "open" });
-    __privateGet(this, _mutator).observe(this, { childList: true });
-    __privateGet(this, _mutator).observe(this.shadowRoot, { childList: true });
+    this.#mutator.observe(this, { childList: true });
+    this.#mutator.observe(this.shadowRoot, { childList: true });
+  }
+  static {
+    this.poly = Poly;
+  }
+  static {
+    this.navigation = navigation;
   }
   static define(name, constructor) {
     constructor = constructor ?? this;
@@ -1047,13 +773,33 @@ var XElement = class extends HTMLElement {
     return customElements.whenDefined(name);
   }
   get isPrepared() {
-    return __privateGet(this, _prepared);
+    return this.#prepared;
   }
+  #syntaxEnd;
+  #syntaxStart;
+  #syntaxLength;
+  #prepared;
+  #preparing;
+  #syntaxMatch;
+  #binders;
+  #mutator;
+  #context;
+  #adoptedEvent;
+  #adoptingEvent;
+  #preparedEvent;
+  #preparingEvent;
+  #connectedEvent;
+  #connectingEvent;
+  #attributedEvent;
+  #attributingEvent;
+  #disconnectedEvent;
+  #disconnectingEvent;
   prepare() {
-    if (__privateGet(this, _prepared) || __privateGet(this, _preparing))
+    console.log("prepare");
+    if (this.#prepared || this.#preparing)
       return;
-    __privateSet(this, _preparing, true);
-    this.dispatchEvent(__privateGet(this, _preparingEvent));
+    this.#preparing = true;
+    this.dispatchEvent(this.#preparingEvent);
     const prototype = Object.getPrototypeOf(this);
     const properties = this.constructor.observedProperties;
     const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
@@ -1069,37 +815,94 @@ var XElement = class extends HTMLElement {
         descriptor.get = descriptor.get?.bind(this);
       if (typeof descriptor.value === "function")
         descriptor.value = descriptor.value.bind(this);
-      Object.defineProperty(__privateGet(this, _context), property, descriptor);
+      Object.defineProperty(this.#context, property, descriptor);
       Object.defineProperty(this, property, {
         enumerable: descriptor.enumerable,
         configurable: descriptor.configureable,
-        get: () => __privateGet(this, _context)[property],
-        set: (value) => __privateGet(this, _context)[property] = value
+        get: () => this.#context[property],
+        set: (value) => this.#context[property] = value
       });
     }
     let shadowNode = this.shadowRoot?.firstChild;
     while (shadowNode) {
       const node = shadowNode;
       shadowNode = node.nextSibling;
-      this.register(node, __privateGet(this, _context));
+      this.register(node, this.#context);
     }
     let innerNode = this.firstChild;
     while (innerNode) {
       const node = innerNode;
       innerNode = node.nextSibling;
-      this.register(node, __privateGet(this, _context));
+      this.register(node, this.#context);
     }
-    __privateSet(this, _prepared, true);
-    this.dispatchEvent(__privateGet(this, _preparedEvent));
+    this.#prepared = true;
+    this.dispatchEvent(this.#preparedEvent);
+  }
+  #mutation(mutations) {
+    if (!this.#prepared)
+      return this.prepare();
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        this.register(node, this.#context);
+      }
+      for (const node of mutation.removedNodes) {
+        this.release(node);
+      }
+    }
+  }
+  #remove(node) {
+    const binders = this.#binders.get(node);
+    if (!binders)
+      return;
+    for (const binder of binders) {
+      for (const reference of binder.references) {
+        if (this.#binders.has(reference)) {
+          this.#binders.get(reference)?.delete(binder);
+          if (!this.#binders.get(reference)?.size)
+            this.#binders.delete(reference);
+        }
+      }
+    }
+    this.#binders.delete(node);
+  }
+  #add(node, context, rewrites) {
+    const binder = Binder(node, this, context, rewrites);
+    for (const reference of binder.cache.references) {
+      if (rewrites) {
+        let rewrite = reference;
+        for (const [name, value] of rewrites) {
+          rewrite = rewrite === name ? value : rewrite.startsWith(name + ".") ? value + rewrite.slice(name.length) : rewrite;
+        }
+        binder.references.add(rewrite);
+        if (this.#binders.has(rewrite)) {
+          this.#binders.get(rewrite)?.add(binder);
+        } else {
+          this.#binders.set(rewrite, /* @__PURE__ */ new Set([binder]));
+        }
+      } else {
+        binder.references.add(reference);
+        if (this.#binders.has(reference)) {
+          this.#binders.get(reference)?.add(binder);
+        } else {
+          this.#binders.set(reference, /* @__PURE__ */ new Set([binder]));
+        }
+      }
+    }
+    if (this.#binders.has(binder.owner ?? binder.node)) {
+      this.#binders.get(binder.owner ?? binder.node)?.add(binder);
+    } else {
+      this.#binders.set(binder.owner ?? binder.node, /* @__PURE__ */ new Set([binder]));
+    }
+    binder.render(binder);
   }
   release(node) {
     if (node.nodeType === Node.TEXT_NODE) {
-      __privateMethod(this, _remove, remove_fn).call(this, node);
+      this.#remove(node);
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      __privateMethod(this, _remove, remove_fn).call(this, node);
+      this.#remove(node);
       const attributes = node.attributes;
       for (const attribute of attributes) {
-        __privateMethod(this, _remove, remove_fn).call(this, attribute);
+        this.#remove(attribute);
       }
       let child = node.firstChild;
       while (child) {
@@ -1117,31 +920,27 @@ var XElement = class extends HTMLElement {
         this.register(register, context, rewrites);
       }
     } else if (node.nodeType === node.TEXT_NODE) {
-      const start = node.nodeValue?.indexOf(__privateGet(this, _syntaxStart)) ?? -1;
+      const start = node.nodeValue?.indexOf(this.#syntaxStart) ?? -1;
       if (start === -1)
         return;
       if (start !== 0)
         node = node.splitText(start);
-      const end = node.nodeValue?.indexOf(__privateGet(this, _syntaxEnd)) ?? -1;
+      const end = node.nodeValue?.indexOf(this.#syntaxEnd) ?? -1;
       if (end === -1)
         return;
-      if (end + __privateGet(this, _syntaxLength) !== node.nodeValue?.length) {
-        this.register(
-          node.splitText(end + __privateGet(this, _syntaxLength)),
-          context,
-          rewrites
-        );
-        __privateMethod(this, _add, add_fn).call(this, node, context, rewrites);
+      if (end + this.#syntaxLength !== node.nodeValue?.length) {
+        this.register(node.splitText(end + this.#syntaxLength), context, rewrites);
+        this.#add(node, context, rewrites);
       } else {
-        __privateMethod(this, _add, add_fn).call(this, node, context, rewrites);
+        this.#add(node, context, rewrites);
       }
     } else if (node.nodeType === node.ELEMENT_NODE) {
       const inherit = node.attributes.getNamedItem("inherit");
       if (inherit)
-        __privateMethod(this, _add, add_fn).call(this, inherit, context, rewrites);
+        this.#add(inherit, context, rewrites);
       const each = node.attributes.getNamedItem("each");
       if (each)
-        __privateMethod(this, _add, add_fn).call(this, each, context, rewrites);
+        this.#add(each, context, rewrites);
       if (!each && !inherit) {
         let child = node.firstChild, register;
         while (child) {
@@ -1152,118 +951,33 @@ var XElement = class extends HTMLElement {
       }
       const attributes = [...node.attributes];
       for (const attribute of attributes) {
-        if (attribute.name !== "each" && attribute.name !== "inherit" && __privateGet(this, _syntaxMatch).test(attribute.value)) {
-          __privateMethod(this, _add, add_fn).call(this, attribute, context, rewrites);
+        if (attribute.name !== "each" && attribute.name !== "inherit" && this.#syntaxMatch.test(attribute.value)) {
+          this.#add(attribute, context, rewrites);
         }
       }
     }
   }
   adoptedCallback() {
-    this.dispatchEvent(__privateGet(this, _adoptingEvent));
+    this.dispatchEvent(this.#adoptingEvent);
     this.adopted?.();
-    this.dispatchEvent(__privateGet(this, _adoptedEvent));
+    this.dispatchEvent(this.#adoptedEvent);
   }
   connectedCallback() {
-    this.dispatchEvent(__privateGet(this, _connectingEvent));
+    this.dispatchEvent(this.#connectingEvent);
     this.connected?.();
-    this.dispatchEvent(__privateGet(this, _connectedEvent));
+    this.dispatchEvent(this.#connectedEvent);
   }
   disconnectedCallback() {
-    this.dispatchEvent(__privateGet(this, _disconnectingEvent));
+    this.dispatchEvent(this.#disconnectingEvent);
     this.disconnected?.();
-    this.dispatchEvent(__privateGet(this, _disconnectedEvent));
+    this.dispatchEvent(this.#disconnectedEvent);
   }
   attributeChangedCallback(name, from, to) {
-    this.dispatchEvent(__privateGet(this, _attributingEvent));
+    this.dispatchEvent(this.#attributingEvent);
     this.attributed?.(name, from, to);
-    this.dispatchEvent(__privateGet(this, _attributedEvent));
+    this.dispatchEvent(this.#attributedEvent);
   }
 };
-_syntaxEnd = new WeakMap();
-_syntaxStart = new WeakMap();
-_syntaxLength = new WeakMap();
-_prepared = new WeakMap();
-_preparing = new WeakMap();
-_syntaxMatch = new WeakMap();
-_binders = new WeakMap();
-_mutator = new WeakMap();
-_context = new WeakMap();
-_adoptedEvent = new WeakMap();
-_adoptingEvent = new WeakMap();
-_preparedEvent = new WeakMap();
-_preparingEvent = new WeakMap();
-_connectedEvent = new WeakMap();
-_connectingEvent = new WeakMap();
-_attributedEvent = new WeakMap();
-_attributingEvent = new WeakMap();
-_disconnectedEvent = new WeakMap();
-_disconnectingEvent = new WeakMap();
-_mutation = new WeakSet();
-mutation_fn = function(mutations) {
-  if (!__privateGet(this, _prepared))
-    return this.prepare();
-  for (const mutation of mutations) {
-    for (const node of mutation.addedNodes) {
-      this.register(node, __privateGet(this, _context));
-    }
-    for (const node of mutation.removedNodes) {
-      this.release(node);
-    }
-  }
-};
-_remove = new WeakSet();
-remove_fn = function(node) {
-  const binders = __privateGet(this, _binders).get(node);
-  if (!binders)
-    return;
-  for (const binder of binders) {
-    for (const reference of binder.references) {
-      if (__privateGet(this, _binders).has(reference)) {
-        __privateGet(this, _binders).get(reference)?.delete(binder);
-        if (!__privateGet(this, _binders).get(reference)?.size)
-          __privateGet(this, _binders).delete(reference);
-      }
-    }
-  }
-  __privateGet(this, _binders).delete(node);
-};
-_add = new WeakSet();
-add_fn = function(node, context, rewrites) {
-  const name = node.nodeType === Node.ATTRIBUTE_NODE ? node.name : node.nodeName;
-  let binder;
-  if (name === "#text")
-    binder = new Text(node, this, context, rewrites);
-  else if (name === "html")
-    binder = new Html(node, this, context, rewrites);
-  else if (name === "each")
-    binder = new Each(node, this, context, rewrites);
-  else if (name === "value")
-    binder = new Value(node, this, context, rewrites);
-  else if (name === "inherit")
-    binder = new Inherit(node, this, context, rewrites);
-  else if (name === "checked")
-    binder = new Checked(node, this, context, rewrites);
-  else if (name.startsWith("on"))
-    binder = new On(node, this, context, rewrites);
-  else
-    binder = new Standard(node, this, context, rewrites);
-  for (let reference of binder.references) {
-    if (__privateGet(this, _binders).has(reference)) {
-      __privateGet(this, _binders).get(reference)?.add(binder);
-    } else {
-      __privateGet(this, _binders).set(reference, /* @__PURE__ */ new Set([binder]));
-    }
-  }
-  if (__privateGet(this, _binders).has(binder.owner ?? binder.node)) {
-    __privateGet(this, _binders).get(binder.owner ?? binder.node)?.add(binder);
-  } else {
-    __privateGet(this, _binders).set(binder.owner ?? binder.node, /* @__PURE__ */ new Set([binder]));
-  }
-  binder.render();
-};
-__publicField(XElement, "poly", Poly);
-__publicField(XElement, "navigation", navigation);
-__publicField(XElement, "observedProperties");
 export {
   XElement as default
 };

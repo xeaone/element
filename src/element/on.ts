@@ -1,4 +1,3 @@
-import Binder from './binder';
 
 interface Target extends HTMLElement {
     form: HTMLFormElement;
@@ -22,7 +21,7 @@ const Value = function (element: Child) {
     return element.value;
 };
 
-const submit = async function (event: Event, binder: Binder) {
+const submit = async function (event: Event, binder: any) {
     event.preventDefault();
 
     const form: Record<string, any> = {};
@@ -87,7 +86,7 @@ const submit = async function (event: Event, binder: Binder) {
     return false;
 };
 
-const reset = async function (event: Event, binder: Binder) {
+const reset = async function (event: Event, binder: any) {
     event.preventDefault();
 
     const target = (event.target as Target)?.form || event.target as HTMLFormElement;
@@ -111,39 +110,39 @@ const reset = async function (event: Event, binder: Binder) {
     return false;
 };
 
-export default class On extends Binder {
+export default {
 
-    render () {
-        (this.owner as any)[ this.name ] = undefined;
-        const name = this.name.slice(2);
+    render (binder:any) {
+        (binder.owner as any)[ binder.name ] = undefined;
+        const name = binder.name.slice(2);
 
-        if (this.meta.method) {
-            this.owner?.removeEventListener(name, this.meta.method);
+        if (binder.meta.method) {
+            binder.owner?.removeEventListener(name, binder.meta.method);
         }
 
-        this.meta.method = (event: Event) => {
+        binder.meta.method = (event: Event) => {
             if (name === 'reset') {
-                return reset(event, this);
+                return reset(event, binder);
             } else if (name === 'submit') {
-                return submit(event, this);
+                return submit(event, binder);
             } else {
-                this.instance.event = event;
-                this.instance.$event = event;
-                return this.compute();
+                binder.instance.event = event;
+                binder.instance.$event = event;
+                return binder.compute();
             }
         };
 
-        this.owner?.addEventListener(name, this.meta.method);
-    }
+        binder.owner?.addEventListener(name, binder.meta.method);
+    },
 
-    reset () {
-        (this.owner as any)[ this.name ] = null;
-        const name = this.name.slice(2);
+    reset (binder:any) {
+        (binder.owner as any)[ binder.name ] = null;
+        const name = binder.name.slice(2);
 
-        if (this.meta.method) {
-            this.owner?.removeEventListener(name, this.meta.method);
+        if (binder.meta.method) {
+            binder.owner?.removeEventListener(name, binder.meta.method);
         }
 
     }
 
-}
+};

@@ -1,4 +1,3 @@
-import Binder from './binder';
 import format from './format';
 import date from './date';
 
@@ -33,26 +32,26 @@ const input = function (binder: any, event: Event) {
 
 };
 
-export default class Value extends Binder {
+export default {
 
-    render () {
-        const { meta } = this;
-        const { type } = this.owner as HTMLInputElement | HTMLSelectElement;
+    render (binder: any) {
+        const { meta } = binder;
+        const { type } = binder.owner as HTMLInputElement | HTMLSelectElement;
 
         if (!meta.setup) {
             meta.setup = true;
-            this.owner?.addEventListener('input', event => input(this, event));
+            binder.owner?.addEventListener('input', (event: any) => input(binder, event));
         }
 
-        this.instance.$assign = false;
-        this.instance.$event = undefined;
-        this.instance.$value = undefined;
-        this.instance.$checked = undefined;
-        const computed = this.compute();
+        binder.instance.$assign = false;
+        binder.instance.$event = undefined;
+        binder.instance.$value = undefined;
+        binder.instance.$checked = undefined;
+        const computed = binder.compute();
 
         let display;
         if (type === 'select-one') {
-            const owner = this.owner as HTMLSelectElement;
+            const owner = binder.owner as HTMLSelectElement;
             owner.value = '';
 
             Array.prototype.find.call(owner.options, o => '$value' in o ? o.$value : o.value === computed);
@@ -65,37 +64,37 @@ export default class Value extends Binder {
             display = format(computed);
             owner.value = display;
         } else if (type === 'select-multiple') {
-            const owner = this.owner as HTMLSelectElement;
+            const owner = binder.owner as HTMLSelectElement;
             Array.prototype.forEach.call(owner.options, o => o.selected = computed?.includes('$value' in o ? o.$value : o.value));
             display = format(computed);
         } else if (type === 'number' || type === 'range' || date.includes(type)) {
-            const owner = this.owner as HTMLInputElement;
+            const owner = binder.owner as HTMLInputElement;
             if (typeof computed === 'string') owner.value = computed;
             else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
             else owner.value = '';
             display = owner.value;
         } else {
-            const owner = this.owner as HTMLInputElement;
+            const owner = binder.owner as HTMLInputElement;
             display = format(computed);
             owner.value = display;
         }
 
-        (this.owner as any).$value = computed;
-        this.owner?.setAttribute('value', display);
-    }
+        (binder.owner as any).$value = computed;
+        binder.owner?.setAttribute('value', display);
+    },
 
-    reset () {
-        const { type } = this.owner as HTMLInputElement | HTMLSelectElement;
+    reset (binder: any) {
+        const { type } = binder.owner as HTMLInputElement | HTMLSelectElement;
 
         if (type === 'select-one' || type === 'select-multiple') {
-            const owner = this.owner as HTMLSelectElement;
+            const owner = binder.owner as HTMLSelectElement;
             Array.prototype.forEach.call(owner.options, option => option.selected = false);
         }
 
-        (this.owner as any).value = '';
-        (this.owner as any).$value = undefined;
-        this.owner?.setAttribute('value', '');
+        (binder.owner as any).value = '';
+        (binder.owner as any).$value = undefined;
+        binder.owner?.setAttribute('value', '');
     }
 
-}
+};
 

@@ -3,15 +3,7 @@ import Navigation from './navigation';
 import Dash from './dash';
 import Poly from './poly';
 
-import StandardBinder from './standard';
-import CheckedBinder from './checked';
-import InheritBinder from './inherit';
-import ValueBinder from './value';
-import EachBinder from './each';
-import HtmlBinder from './html';
-import TextBinder from './text';
 import Binder from './binder';
-import OnBinder from './on';
 
 export default class XElement extends HTMLElement {
 
@@ -38,7 +30,7 @@ export default class XElement extends HTMLElement {
     #prepared = false;
     #preparing = false;
     #syntaxMatch = new RegExp('{{.*?}}');
-    #binders: Map<string | Node, Set<Binder>> = new Map();
+    #binders: Map<string | Node, Set<any>> = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
 
     // #data = {};
@@ -69,6 +61,7 @@ export default class XElement extends HTMLElement {
     }
 
     prepare () {
+        console.log('prepare');
         if (this.#prepared || this.#preparing) return;
 
         this.#preparing = true;
@@ -129,6 +122,7 @@ export default class XElement extends HTMLElement {
     }
 
     #mutation (mutations: Array<MutationRecord>) {
+        // console.log(mutations);
         if (!this.#prepared) return this.prepare();
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
@@ -157,25 +151,33 @@ export default class XElement extends HTMLElement {
     }
 
     #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-        const name = node.nodeType === Node.ATTRIBUTE_NODE ? (node as Attr).name : node.nodeName;
 
-        let binder;
-        if (name === '#text') binder = new TextBinder(node, this, context, rewrites);
-        else if (name === 'html') binder = new HtmlBinder(node, this, context, rewrites);
-        else if (name === 'each') binder = new EachBinder(node, this, context, rewrites);
-        else if (name === 'value') binder = new ValueBinder(node, this, context, rewrites);
-        else if (name === 'inherit') binder = new InheritBinder(node, this, context, rewrites);
-        else if (name === 'checked') binder = new CheckedBinder(node, this, context, rewrites);
-        else if (name.startsWith('on')) binder = new OnBinder(node, this, context, rewrites);
-        else binder = new StandardBinder(node, this, context, rewrites);
+        const binder = Binder(node, this, context, rewrites);
 
+        for (const reference of binder.cache.references) {
 
-        for (let reference of binder.references) {
-            if (this.#binders.has(reference)) {
-                this.#binders.get(reference)?.add(binder);
+            if (rewrites) {
+                let rewrite = reference;
+                for (const [ name, value ] of rewrites) {
+                    rewrite = rewrite === name ? value :
+                        rewrite.startsWith(name + '.') ? value + rewrite.slice(name.length) : rewrite;
+                }
+                // console.log(rewrite);
+                binder.references.add(rewrite);
+                if (this.#binders.has(rewrite)) {
+                    this.#binders.get(rewrite)?.add(binder);
+                } else {
+                    this.#binders.set(rewrite, new Set([ binder ]));
+                }
             } else {
-                this.#binders.set(reference, new Set([ binder ]));
+                binder.references.add(reference);
+                if (this.#binders.has(reference)) {
+                    this.#binders.get(reference)?.add(binder);
+                } else {
+                    this.#binders.set(reference, new Set([ binder ]));
+                }
             }
+
         }
 
         if (this.#binders.has(binder.owner ?? binder.node)) {
@@ -184,7 +186,7 @@ export default class XElement extends HTMLElement {
             this.#binders.set(binder.owner ?? binder.node, new Set([ binder ]));
         }
 
-        binder.render();
+        binder.render(binder);
     }
 
     release (node: Node) {

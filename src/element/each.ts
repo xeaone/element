@@ -1,47 +1,45 @@
-import Binder from './binder';
-
 const whitespace = /\s+/;
 
-export default class Each extends Binder {
+export default {
 
-    reset () {
-        const owner = (this.node as Attr).ownerElement;
-        this.meta.targetLength = 0;
-        this.meta.currentLength = 0;
-        while (owner && owner.lastChild) this.release(owner.removeChild(owner.lastChild));
-        while (this.meta.queueElement.content.lastChild) this.meta.queueElement.content.removeChild(this.meta.queueElement.content.lastChild);
-    }
+    reset (binder: any) {
+        const owner = (binder.node as Attr).ownerElement;
+        binder.meta.targetLength = 0;
+        binder.meta.currentLength = 0;
+        while (owner && owner.lastChild) binder.release(owner.removeChild(owner.lastChild));
+        while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
+    },
 
-    render () {
-        const [ data, variable, key, index ] = this.compute();
-        const [ reference ] = this.references;
-        const owner = (this.node as Attr).ownerElement as Element;
+    render (binder: any) {
+        const [ data, variable, key, index ] = binder.compute();
+        const [ reference ] = binder.references;
+        const owner = (binder.node as Attr).ownerElement as Element;
 
-        this.meta.data = data;
-        this.meta.keyName = key;
-        this.meta.indexName = index;
+        binder.meta.data = data;
+        binder.meta.keyName = key;
+        binder.meta.indexName = index;
 
-        this.meta.variable = variable;
-        this.meta.reference = reference;
+        binder.meta.variable = variable;
+        binder.meta.reference = reference;
 
-        if (!this.meta.setup) {
-            this.node.nodeValue = '';
+        if (!binder.meta.setup) {
+            binder.node.nodeValue = '';
 
-            this.meta.keys = [];
-            this.meta.setup = true;
-            this.meta.targetLength = 0;
-            this.meta.currentLength = 0;
-            this.meta.templateLength = 0;
-            this.meta.queueElement = document.createElement('template');
-            this.meta.templateElement = document.createElement('template');
+            binder.meta.keys = [];
+            binder.meta.setup = true;
+            binder.meta.targetLength = 0;
+            binder.meta.currentLength = 0;
+            binder.meta.templateLength = 0;
+            binder.meta.queueElement = document.createElement('template');
+            binder.meta.templateElement = document.createElement('template');
 
             let node = owner.firstChild;
             while (node) {
                 if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue as string)) {
                     owner.removeChild(node);
                 } else {
-                    this.meta.templateLength++;
-                    this.meta.templateElement.content.appendChild(node);
+                    binder.meta.templateLength++;
+                    binder.meta.templateElement.content.appendChild(node);
                 }
                 node = owner.firstChild;
             }
@@ -49,60 +47,62 @@ export default class Each extends Binder {
         }
 
         if (data?.constructor === Array) {
-            this.meta.targetLength = data.length;
+            binder.meta.targetLength = data.length;
         } else {
-            this.meta.keys = Object.keys(data || {});
-            this.meta.targetLength = this.meta.keys.length;
+            binder.meta.keys = Object.keys(data || {});
+            binder.meta.targetLength = binder.meta.keys.length;
         }
 
-        // console.time('each');
-        if (this.meta.currentLength > this.meta.targetLength) {
-            while (this.meta.currentLength > this.meta.targetLength) {
-                let count = this.meta.templateLength, node;
+        if (binder.meta.currentLength > binder.meta.targetLength) {
+            while (binder.meta.currentLength > binder.meta.targetLength) {
+                let count = binder.meta.templateLength, node;
 
                 while (count--) {
                     node = owner.lastChild;
                     if (node) {
                         owner.removeChild(node);
-                        this.release(node);
+                        binder.container.release(node);
                     }
                 }
 
-                this.meta.currentLength--;
+                binder.meta.currentLength--;
             }
-        } else if (this.meta.currentLength < this.meta.targetLength) {
-            while (this.meta.currentLength < this.meta.targetLength) {
-                // const clone = this.meta.templateElement.content.cloneNode(true);
-                const keyValue = this.meta.keys[ this.meta.currentLength ] ?? this.meta.currentLength;
-                const indexValue = this.meta.currentLength++;
+        } else if (binder.meta.currentLength < binder.meta.targetLength) {
+
+
+
+            while (binder.meta.currentLength < binder.meta.targetLength) {
+                // const clone = binder.meta.templateElement.content.cloneNode(true);
+                const keyValue = binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength;
+                const indexValue = binder.meta.currentLength++;
 
                 const rewrites = [
-                    ...this.rewrites,
-                    [ this.meta.variable, `${this.meta.reference}.${keyValue}` ]
+                    ...binder.rewrites,
+                    [ binder.meta.variable, `${binder.meta.reference}.${keyValue}` ]
                 ];
 
-                const context = new Proxy(this.context, {
+                const context = new Proxy(binder.context, {
                     has: (target, key) =>
-                        key === this.meta.variable ||
-                        key === this.meta.keyName ||
-                        key === this.meta.indexName ||
+                        key === binder.meta.variable ||
+                        key === binder.meta.keyName ||
+                        key === binder.meta.indexName ||
                         Reflect.has(target, key),
                     get: (target, key, receiver) =>
-                        key === this.meta.keyName ? keyValue :
-                            key === this.meta.indexName ? indexValue :
-                                key === this.meta.variable ? Reflect.get(this.meta.data, keyValue) :
+                        key === binder.meta.keyName ? keyValue :
+                            key === binder.meta.indexName ? indexValue :
+                                key === binder.meta.variable ? Reflect.get(binder.meta.data, keyValue) :
                                     Reflect.get(target, key, receiver),
                     set: (target, key, value, receiver) =>
-                        key === this.meta.keyName ? true :
-                            key === this.meta.indexName ? true :
-                                key === this.meta.variable ? Reflect.set(this.meta.data, keyValue, value) :
+                        key === binder.meta.keyName ? true :
+                            key === binder.meta.indexName ? true :
+                                key === binder.meta.variable ? Reflect.set(binder.meta.data, keyValue, value) :
                                     Reflect.set(target, key, value, receiver)
                 });
 
-                let node = this.meta.templateElement.content.firstChild;
+                let node = binder.meta.templateElement.content.firstChild;
                 while (node) {
-                    this.register(
-                        this.meta.queueElement.content.appendChild(node.cloneNode(true)),
+                    binder.container.register(
+                        binder.meta.queueElement.content.appendChild(node.cloneNode(true)),
                         context,
                         rewrites
                     );
@@ -111,19 +111,19 @@ export default class Each extends Binder {
 
                 // let node = clone.firstChild;
                 // while (node) {
-                //     this.register(node, this.context, rewrites);
+                //     binder.register(node, binder.context, rewrites);
                 //     node = node.nextSibling;
                 // }
 
-                // this.meta.queueElement.content.appendChild(clone);
+                // binder.meta.queueElement.content.appendChild(clone);
             }
         }
         // console.timeEnd('each');
 
-        if (this.meta.currentLength === this.meta.targetLength) {
-            owner.appendChild(this.meta.queueElement.content);
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+            owner.appendChild(binder.meta.queueElement.content);
         }
 
     }
 
-}
+};

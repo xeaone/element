@@ -1,58 +1,57 @@
-import Binder from './binder';
 
-export default class Checked extends Binder {
+const xRadioInputHandlerEvent = new CustomEvent('xRadioInputHandler');
 
-    static xRadioInputHandlerEvent = new CustomEvent('xRadioInputHandler');
+const handler = function (event?: Event, binder?: any) {
+    const owner = binder.owner as HTMLInputElement;
+    const checked = owner.checked;
+    binder.instance.event = event;
+    binder.instance.$event = event;
+    binder.instance.$assign = !!event;
+    binder.instance.$checked = checked;
+    const computed = binder.compute();
 
-    render () {
+    if (computed) {
+        owner.setAttributeNode(binder.node as Attr);
+    } else {
+        owner.removeAttribute('checked');
+    }
+};
 
-        if (!this.meta.setup) {
-            this.meta.setup = true;
-            this.node.nodeValue = '';
+export default {
 
-            if ((this.owner as any).type === 'radio') {
-                this.owner?.addEventListener('xRadioInputHandler', (event) => this.#handler(event));
+    render (binder: any) {
 
-                this.owner?.addEventListener('input', (event) => {
-                    const parent = (this.owner as any).form || this.owner?.getRootNode();
-                    const radios = parent.querySelectorAll(`[type="radio"][name="${(this.owner as any).name}"]`);
+        if (!binder.meta.setup) {
+            binder.meta.setup = true;
+            binder.node.nodeValue = '';
 
-                    this.#handler(event);
+            if ((binder.owner as any).type === 'radio') {
+                binder.owner?.addEventListener('xRadioInputHandler', (event: any) => handler(event, binder));
+
+                binder.owner?.addEventListener('input', (event: any) => {
+                    const parent = (binder.owner as any).form || binder.owner?.getRootNode();
+                    const radios = parent.querySelectorAll(`[type="radio"][name="${(binder.owner as any).name}"]`);
+
+                    handler(event, binder);
 
                     for (const radio of radios) {
                         if (radio === event.target) continue;
                         radio.checked = false;
-                        radio.dispatchEvent(Checked.xRadioInputHandlerEvent);
+                        radio.dispatchEvent(xRadioInputHandlerEvent);
                     }
 
                 });
             } else {
-                this.owner?.addEventListener('input', event => this.#handler(event));
+                binder.owner?.addEventListener('input', (event: any) => handler(event, binder));
             }
 
         }
 
-        this.#handler();
+        handler(undefined, binder);
+    },
+
+    reset (binder: any) {
+        binder.owner?.removeAttribute('checked');
     }
 
-    reset () {
-        this.owner?.removeAttribute('checked');
-    }
-
-    #handler (event?: Event) {
-        const owner = this.owner as HTMLInputElement;
-        const checked = owner.checked;
-        this.instance.event = event;
-        this.instance.$event = event;
-        this.instance.$assign = !!event;
-        this.instance.$checked = checked;
-        const computed = this.compute();
-
-        if (computed) {
-            owner.setAttributeNode(this.node as Attr);
-        } else {
-            owner.removeAttribute('checked');
-        }
-    }
-
-}
+};

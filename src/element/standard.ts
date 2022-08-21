@@ -1,38 +1,37 @@
-import Binder from './binder';
 import format from './format';
 import booleans from './boolean';
 
-export default class Standard extends Binder {
+export default {
 
-    render () {
-        const boolean = booleans.includes(this.name);
-        const node = this.node as Attr;
+    render (binder:any) {
+        const boolean = booleans.includes(binder.name);
+        const node = binder.node as Attr;
 
         node.value = '';
 
         if (boolean) {
-            const data = this.compute() ? true : false;
-            if (data) this.owner?.setAttributeNode(node);
-            else this.owner?.removeAttribute(this.name);
+            const data = binder.compute() ? true : false;
+            if (data) binder.owner?.setAttributeNode(node);
+            else binder.owner?.removeAttribute(binder.name);
         } else {
-            const data = format(this.compute());
-            (this.owner as any)[ this.name ] = data;
-            this.owner?.setAttribute(this.name, data);
+            const data = format(binder.compute());
+            (binder.owner as any)[ binder.name ] = data;
+            binder.owner?.setAttribute(binder.name, data);
         }
 
-    }
+    },
 
-    reset () {
-        const boolean = booleans.includes(this.name);
+    reset (binder:any) {
+        const boolean = booleans.includes(binder.name);
 
         if (boolean) {
-            this.owner?.removeAttribute(this.name);
+            binder.owner?.removeAttribute(binder.name);
         } else {
-            (this.owner as any)[ this.name ] = undefined;
-            this.owner?.setAttribute(this.name, '');
+            (binder.owner as any)[ binder.name ] = undefined;
+            binder.owner?.setAttribute(binder.name, '');
         }
 
     }
 
-}
+};
 

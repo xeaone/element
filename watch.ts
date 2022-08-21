@@ -1,18 +1,21 @@
 #! /usr/bin/env -S deno run -A
 
 import { Cors, File, Handler, Normalize, Router, Server } from 'https://deno.land/x/xserver@0.2.1/mod.ts';
-import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
+import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
+
+Deno.run({ cmd: [ 'tsc', '--watch' ] }).status();
 
 await build({
     watch: true,
     bundle: true,
     format: 'esm',
-    target: 'es2020',
+    target: 'es2022',
     treeShaking: true,
     platform: 'browser',
-    outfile: './web/x-element.js',
-    tsconfig: './tsconfig.json',
-    entryPoints: ['src/element/element.ts'],
+    // tsconfig: 'tsconfig.json',
+    outfile: 'web/x-element.js',
+    // entryPoints: ['src/element/element.ts'],
+    entryPoints: ['tmp/element/element.js'],
 });
 
 const port = 8000;

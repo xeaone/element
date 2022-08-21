@@ -3,12 +3,16 @@
 
     "strict": true,
     "removeComments": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
 
-    "module": "ESNext",
-    "target": "ESNext",
-    "lib": [  "ESNext", "DOM", "DOM.Iterable" ]
+    "module": "es2022",
+    "target": "es2022",
+    "lib": [ "ESNext", "DOM", "DOM.Iterable" ],
+
+    "outDir": "./tmp/element/"
 
   },
-  "include": [ "./src/element/*", "./src/router/*" ],
-  "files": [ "./src/element/element.ts", "./src/router/router.ts" ]
+  "include": [ "./src/element/*" ],
+  "files": [ "./src/element/element.ts" ]
 }

@@ -1,15 +1,14 @@
 import format from './format';
-import Binder from './binder';
 
-export default class Text extends Binder {
+export default {
 
-    render () {
-        const data = this.compute();
-        this.node.nodeValue = format(data);
+    render (binder:any) {
+        const data = binder.compute();
+        binder.node.nodeValue = format(data);
+    },
+
+    reset (binder:any) {
+        binder.node.nodeValue = '';
     }
 
-    reset () {
-        this.node.nodeValue = '';
-    }
-
-}
+};

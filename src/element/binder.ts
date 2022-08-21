@@ -1,272 +1,138 @@
+// import Parse from './parse';
 import XElement from './element';
-import Parse from './parse'
+import Standard from './standard';
+import Checked from './checked';
+import Inherit from './inherit';
+import Value from './value';
+import Text from './text';
+import Html from './html';
+import Each from './each';
+import On from './on';
 
-type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
+// type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
+
+const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
+const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
+const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
+
+const ignorePattern = new RegExp(`
+(\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+event|this|window|document|console|location|navigation|
+globalThis|Infinity|NaN|undefined|
+isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+Object|Function|Boolean|Symbole|Array|
+Number|Math|Date|BigInt|
+String|RegExp|
+Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+Map|Set|WeakMap|WeakSet|
+ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+Reflect|Proxy|
+true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
+(([.][a-zA-Z0-9$_.? ]*)?\\b)
+`.replace(/\t|\n/g, ''), 'g');
 
 // const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
-// const referenceMatch = new RegExp([
-//     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)', // string
-//     '((?:^|}}).*?{{)',
-//     '(}}.*?(?:{{|$))',
-//     `(
-//         (?:\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-//         event|this|window|document|console|location|navigation|
-//         globalThis|Infinity|NaN|undefined|
-//         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-//         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-//         Object|Function|Boolean|Symbole|Array|
-//         Number|Math|Date|BigInt|
-//         String|RegExp|
-//         Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-//         Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-//         Map|Set|WeakMap|WeakSet|
-//         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-//         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-//         Reflect|Proxy|
-//         true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-//         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-//         (?:(?:[.][a-zA-Z0-9$_.? ]*)?\\b)
-//     )`,
-//     '(\\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\\b)' // reference
-// ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
-// const splitPattern = /\s*{{\s*|\s*}}\s*/;
-// const bracketPattern = /({{)|(}})/;
-// const stringPattern = /(".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`)/;
-// const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
-// const codePattern = new RegExp(`${stringPattern.source}|${assignmentPattern.source}|${bracketPattern.source}`, 'g');
+const Cache: Map<string, any> = new Map();
 
-export default class Binder {
+export default function Binder (node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
 
-    static handlers = [
-        'on',
-        'text',
-        'html',
-        'each',
-        'value',
-        'checked',
-        'inherit',
-        'standard'
-    ];
+    const value = node.nodeValue ?? '';
+    const name = node.nodeType === Node.ATTRIBUTE_NODE ? (node as Attr).name :
+        node.nodeType === Node.TEXT_NODE ? 'text' : node.nodeName;
 
-    static cache: Map<string, any> = new Map();
-    static referenceCache: Map<string, Array<string>> = new Map();
-    static computeCache: Map<string, Compute> = new Map();
+    node.nodeValue = '';
 
-    type: string;
-    name: string;
-    value: string;
+    let handler;
+    if (name === 'text') handler = Text;
+    else if (name === 'html') handler = Html;
+    else if (name === 'each') handler = Each;
+    else if (name === 'value') handler = Value;
+    else if (name === 'inherit') handler = Inherit;
+    else if (name === 'checked') handler = Checked;
+    else if (name.startsWith('on')) handler = On;
+    else handler = Standard;
 
-    context: Record<string, any>;
-    rewrites: Array<Array<string>>;
+    const binder: any = {
+        node,
+        name,
+        value,
+        context,
+        container,
+        meta: {},
+        instance: {},
+        references: new Set(),
+        reset: handler.reset,
+        render: handler.render,
+        rewrites: rewrites ? [ ...rewrites ] : [],
+        owner: (node as Attr).ownerElement ?? undefined,
+    };
 
-    code?: string;
-    owner?: Element;
+    // binder.reset = handler.reset.bind(binder, binder);
+    // binder.render = handler.render.bind(binder, binder);
+    binder.cache = Cache.get(binder.value);
 
-    node: Node;
-    container: XElement;
-    references: Set<string>;
-    // references: Set<string> = new Set();
+    if (!binder.cache) {
 
-    compute: () => any;
+        const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
+        const clean = code.replace(stringPattern, '');
+        const assignment = clean.match(assignmentPattern);
+        const references = clean.replace(ignorePattern, '').match(referencePattern) ?? [];
+        // const references = clean.match(referencesPattern) ?? [];
 
-    meta: Record<string, any> = {};
-    instance: Record<string, any> = {};
+        // console.log(
+        //     code,
+        //     clean,
+        //     assignment,
+        //     references
+        // );
 
-    release: XElement[ 'release' ];
-    register: XElement[ 'register' ];
+        // binder.cache = Parse(value);
 
-    constructor (node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+        const isValue = name === 'value';
+        const isChecked = name === 'checked';
+        // const assignment = binder.cache.assignmentLeft && binder.cache.assignmentMid && binder.cache.assignmentRight;
 
-        this.node = node;
-        this.context = context;
-        this.container = container;
-        this.value = node.nodeValue ?? '';
-        this.rewrites = rewrites ? [ ...rewrites ] : [];
-        this.name = node.nodeName.startsWith('#') ? node.nodeName.slice(1) : node.nodeName;
-
-        this.owner = (node as Attr).ownerElement ?? undefined;
-        this.release = this.container.release.bind(this.container);
-        this.register = this.container.register.bind(this.container);
-        this.type = this.name.startsWith('on') ? 'on' : (this.constructor as any).handlers.includes(this.name) ? this.name : 'standard';
-
-        this.node.nodeValue = '';
-
-        // if (!(this.constructor as any).referenceCache.has(this.value)) {
-        //     (this.constructor as any).referenceCache.set(this.value, new Set());
-        // }
-
-        const cache = Binder.cache.get(this.value);
-
-        if (cache) {
-            const { references, compute } = cache;
-            // console.log(cache)
-
-            if (rewrites) {
-                this.references = new Set();
-                for (const reference of references) {
-                    for (const [ name, value ] of rewrites) {
-                        if (reference === name) {
-                            this.references.add(value);
-                        } else if (reference.startsWith(name + '.')) {
-                            this.references.add(value + reference.slice(name.length));
-                        } else {
-                            this.references.add(reference);
-                        }
-                    }
+        const compute = new Function('$context', '$instance', `
+        try {
+            with ($context) {
+                with ($instance) {
+                    ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[ 1 ]};` : ''}
+                    ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[ 1 ]};` : ''}
+                    return ${assignment ? `$assign ? ${code} : ${assignment?.[ 3 ]}` : code};
                 }
-            } else {
-                this.references = new Set(references);
             }
-
-            this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
-        } else {
-            const { references, code, assignmentLeft, assignmentMid, assignmentRight } = Parse(this.value);
-            const isValue = this.name === 'value';
-            const isChecked = this.name === 'checked';
-            const assignment = assignmentLeft && assignmentMid && assignmentRight;
-
-            this.code =
-                (assignment && isValue ? `$value = $assign ? $value : ${assignmentLeft};\n` : '') +
-                (assignment && isChecked ? `$checked = $assign ? $checked : ${assignmentLeft};\n` : '') +
-                `return ${assignment ? `$assign ? ${code} : ${assignmentRight}` : code};`;
-
-            this.code = `
-            try {
-                with ($context) {
-                    with ($instance) {
-                        ${this.code}
-                    }
-                }
-            } catch (error){
-                console.error(error);
-            }
-            `;
-
-            const compute = new Function('$context', '$instance', this.code) as Compute;
-
-            if (rewrites) {
-                this.references = new Set();
-                for (const reference of references) {
-                    for (const [ name, value ] of rewrites) {
-                        if (reference === name) {
-                            this.references.add(value);
-                        } else if (reference.startsWith(name + '.')) {
-                            this.references.add(value + reference.slice(name.length));
-                        } else {
-                            this.references.add(reference);
-                        }
-                    }
-                }
-            } else {
-                this.references = new Set(references);
-            }
-
-            // console.log(this.code, this.references)
-
-            this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
-
-            Binder.cache.set(this.value, { references, compute });
+        } catch (error){
+            console.error(error);
         }
+        `);
 
-        // const referenceCache = (this.constructor as any).referenceCache.get(this.value);
-
-        // if (referenceCache.size) {
-        //     if (rewrites) {
-        //         for (const reference of referenceCache) {
-        //             for (const [ name, value ] of rewrites) {
-        //                 if (reference === name) {
-        //                     this.references.add(value);
-        //                 } else if (reference.startsWith(name + '.')) {
-        //                     this.references.add(value + reference.slice(name.length));
-        //                 } else {
-        //                     this.references.add(reference);
-        //                 }
-        //             }
-        //         }
-        //     } else {
-        //         this.references = referenceCache;
-        //     }
-        // } else {
-        //     const data = this.value;
-
-        //     let match = referenceMatch.exec(data);
-        //     while (match) {
-        //         const reference = match[ 5 ];
-        //         if (reference) {
-        //             referenceCache.add(reference);
-
-        //             if (rewrites) {
-        //                 for (const [ name, value ] of rewrites) {
-        //                     if (reference === name) {
-        //                         this.references.add(value);
-        //                     } else if (reference.startsWith(name + '.')) {
-        //                         this.references.add(value + reference.slice(name.length));
-        //                     } else {
-        //                         this.references.add(reference);
-        //                     }
-        //                 }
-        //             } else {
-        //                 this.references.add(reference);
-        //             }
-
-        //         }
-        //         match = referenceMatch.exec(data);
-        //     }
-
-        // }
-
-        // const compute = (this.constructor as any).computeCache.get(this.value);
-        // if (compute) {
-        //     this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
-        // } else {
-        //     let reference = '';
-        //     let assignment = '';
-        //     this.code = this.value;
-
-        //     const isValue = this.name === 'value';
-        //     const isChecked = this.name === 'checked';
-        //     const convert = this.code.split(splitPattern).filter((part: string) => part).length > 1;
-
-        //     this.code = this.code.replace(codePattern, (_, str: string, assignee: string, assigneeLeft: string, r: string, assigneeMiddle: string, assigneeRight: string, bracketLeft: string, bracketRight: string) => {
-        //         if (str) return str;
-        //         if (bracketLeft) return convert ? `' + (` : '(';
-        //         if (bracketRight) return convert ? `) + '` : ')';
-        //         if (assignee) {
-        //             if (isValue || isChecked) {
-        //                 reference = r;
-        //                 assignment = assigneeLeft + assigneeRight;
-        //             }
-        //             return (convert ? `' + (` : '(') + assigneeLeft + r + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
-        //         }
-        //         console.warn('possible compute issue');
-        //         return '';
-        //     }) ?? '';
-
-        //     this.code = convert ? `'${this.code}'` : this.code;
-
-        //     this.code =
-        //         (reference && isValue ? `$value = $assign ? $value : ${reference};\n` : '') +
-        //         (reference && isChecked ? `$checked = $assign ? $checked : ${reference};\n` : '') +
-        //         `return ${assignment ? `$assign ? ${this.code} : ${assignment}` : `${this.code}`};`;
-
-        //     this.code = `
-        //     try {
-        //         with ($context) {
-        //             with ($instance) {
-        //                 ${this.code}
-        //             }
-        //         }
-        //     } catch (error){
-        //         console.error(error);
-        //     }
-        //     `;
-
-        //     const compute = new Function('$context', '$instance', this.code) as Compute;
-        //     (this.constructor as any).computeCache.set(this.value, compute);
-        //     this.compute = compute.bind(this.owner ?? this.node, this.context, this.instance);
-        // }
-
+        binder.cache = { compute, references };
+        Cache.set(value, binder.cache);
     }
 
+    // if (rewrites) {
+    //     binder.references = new Set();
+    //     for (const reference of references) {
+    //         for (const [ name, value ] of rewrites) {
+    //             if (reference === name) {
+    //                 binder.references.add(value);
+    //             } else if (reference.startsWith(name + '.')) {
+    //                 binder.references.add(value + reference.slice(name.length));
+    //             } else {
+    //                 binder.references.add(reference);
+    //             }
+    //         }
+    //     }
+    // } else {
+    //     binder.references = new Set(references);
+    // }
+
+    binder.compute = binder.cache.compute.bind(binder.owner ?? binder.node, binder.context, binder.instance);
+
+    return binder;
 }
