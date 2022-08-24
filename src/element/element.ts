@@ -55,7 +55,7 @@ export default class XElement extends HTMLElement {
 
     get isPrepared () { return this.#prepared; }
     #renders: Array<any> = [];
-    // #renders: Set<any> = new Set();
+    #resets: Array<any> = [];
 
     #syntaxEnd = '}}';
     #syntaxStart = '{{';
@@ -134,39 +134,33 @@ export default class XElement extends HTMLElement {
 
         }
 
-        // let shadowNode = this.shadowRoot?.firstChild;
-        // while (shadowNode) {
-        //     const node = shadowNode;
-        //     shadowNode = node.nextSibling;
-        //     this.register(node, this.#context);
-        // }
-        // if (this.shadowRoot) this.register(this.shadowRoot, this.#context);
-
-        // let innerNode = this.firstChild;
-        // while (innerNode) {
-        //     const node = innerNode;
-        //     innerNode = node.nextSibling;
-        //     this.register(node, this.#context);
-        // }
-
+        this.register(this.shadowRoot as any, this.#context);
         this.register(this, this.#context);
-        for (const [ key, value ] of this.#binders) {
-            if (typeof key == 'string') value.forEach(binder => binder.render());
-        }
-
-        // while (this.#renders.length) tick(this.#renders?.shift()?.render);
+        this.render();
 
         this.#prepared = true;
         this.dispatchEvent(this.#preparedEvent);
     }
 
+    reset () {
+        return Promise.all(this.#resets.splice(0).map(async binder => binder.reset()));
+    }
+
+    render () {
+        console.log('element render');
+        return Promise.all(this.#renders.splice(0).map(async binder => binder.render()));
+        // while (this.#tasks.length) this.#tasks.shift().render();
+    }
+
     #change (reference: string, type: string) {
         console.log('change', reference);
+        const tasks = type == 'render' ? this.#renders : this.#resets;
 
         const binders = this.#binders.get(reference);
         if (binders) {
             for (const binder of binders) {
-                binder[ type ](binder);
+                console.log(binder.references);
+                tasks.push(binder);
             }
         }
 
@@ -175,13 +169,16 @@ export default class XElement extends HTMLElement {
             if ((key as string)?.startsWith?.(start)) {
                 if (binders) {
                     for (const binder of binders) {
-                        // binder[ type ](binder);
-                        tick(() => binder[ type ](binder));
+                        console.log(binder.references);
+                        tasks.push(binder);
                     }
                 }
             }
         }
 
+        if (type == 'render') this.render();
+        else if (type == 'reset') this.reset();
+        // Promise.all(handlers.map(async (handle: any) => handle()));
     }
 
     #mutation (mutations: Array<MutationRecord>) {
@@ -214,37 +211,16 @@ export default class XElement extends HTMLElement {
     }
 
     #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-
         const binder = Binder(node, this, context, rewrites);
-        // binder.render = () => (this.constructor as any).task(binder.handler.render.bind(binder, binder));
-        // binder.reset = () => (this.constructor as any).task(binder.handler.reset.bind(binder, binder));
 
-        for (const reference of binder.references) {
-            // for (const reference of binder.cache.references) {
-
-            // if (rewrites) {
-            //     let rewrite = reference;
-            //     for (const [ name, value ] of rewrites) {
-            //         rewrite = rewrite === name ? value :
-            //             rewrite.startsWith(name + '.') ? value + rewrite.slice(name.length) : rewrite;
-            //     }
-            //     // console.log(rewrite);
-            //     binder.references.add(rewrite);
-            //     if (this.#binders.has(rewrite)) {
-            //         this.#binders.get(rewrite)?.add(binder);
-            //     } else {
-            //         this.#binders.set(rewrite, new Set([ binder ]));
-            //     }
-            // } else {
-            // binder.references.add(reference);
-            const binders = this.#binders.get(reference);
+        let reference, binders;
+        for (reference of binder.references) {
+            binders = this.#binders.get(reference);
             if (binders) {
                 binders.add(binder);
             } else {
                 this.#binders.set(reference, new Set([ binder ]));
             }
-            // }
-
         }
 
         const nodes = this.#binders.get(binder.owner ?? binder.node);
@@ -254,20 +230,28 @@ export default class XElement extends HTMLElement {
             this.#binders.set(binder.owner ?? binder.node, new Set([ binder ]));
         }
 
-        // return binder.render(binder);
-        // return binder;
-        // this.#renders.push(binder);
+        this.#tasks.push(binder);
+        // this.#tasks.push(binder.render.bind(binder, binder));
+        // this.#tasks.push(binder);
+        // tick(() => binder.render());
     }
 
     release (node: Node) {
-
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (node.nodeType == Node.TEXT_NODE) {
             this.#remove(node);
+        } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
+
+            let child = node.firstChild;
+            while (child) {
+                this.release(child);
+                child = child.nextSibling;
+            }
+
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             this.#remove(node);
 
-            const attributes = (node as Element).attributes;
-            for (const attribute of attributes) {
+            let attribute;
+            for (attribute of (node as Element).attributes) {
                 this.#remove(attribute);
             }
 
@@ -281,7 +265,7 @@ export default class XElement extends HTMLElement {
     }
 
     async register (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-        if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
 
             let child = node.firstChild;
             while (child) {
@@ -289,7 +273,7 @@ export default class XElement extends HTMLElement {
                 child = child.nextSibling;
             }
 
-        } else if (node.nodeType === node.TEXT_NODE) {
+        } else if (node.nodeType == node.TEXT_NODE) {
 
             const start = node.nodeValue?.indexOf(this.#syntaxStart) ?? -1;
             if (start === -1) return;
@@ -299,14 +283,13 @@ export default class XElement extends HTMLElement {
             if (end === -1) return;
 
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
-                this.register(
-                    (node as Text).splitText(end + this.#syntaxLength), context, rewrites);
+                this.register((node as Text).splitText(end + this.#syntaxLength), context, rewrites);
                 this.#add(node, context, rewrites);
             } else {
                 this.#add(node, context, rewrites);
             }
 
-        } else if (node.nodeType === node.ELEMENT_NODE) {
+        } else if (node.nodeType == node.ELEMENT_NODE) {
 
             let attribute;
             for (attribute of (node as Element).attributes) {

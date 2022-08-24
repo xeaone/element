@@ -82,8 +82,6 @@ export default function Binder (node: Node, container: XElement, context: Record
 
     binder.setup?.(binder);
 
-    // binder.reset = handler.reset.bind(binder, binder);
-    // binder.render = handler.render.bind(binder, binder);
     let cache = Cache.get(binder.value);
 
     if (!cache) {

@@ -38,6 +38,7 @@ export default {
     },
 
     async render (binder: any) {
+        console.log('each render');
         binder = binder ?? this;
 
         const [ data, variable, key, index ] = binder.compute();
@@ -72,7 +73,6 @@ export default {
                 binder.meta.currentLength--;
             }
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
-
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const keyValue = binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength;
                 const indexValue = binder.meta.currentLength++;
@@ -112,12 +112,12 @@ export default {
                 const clone = binder.meta.templateElement.content.cloneNode(true);
                 binder.container.register(clone, context, rewrites);
                 binder.meta.queueElement.content.appendChild(clone);
-
             }
         }
         // console.timeEnd('each');
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
+            binder.container.render();
             binder.owner.appendChild(binder.meta.queueElement.content);
         }
 
