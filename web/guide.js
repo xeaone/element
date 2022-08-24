@@ -53,6 +53,13 @@ export default class XGuide extends XElement {
         if (this.innerHTML) return;
         this.innerHTML = this.#html;
         // document.body.style.opacity = 1;
+        // const expression = document.createExpression(".//*[contains(@*,'{{') or contains(text(),'{{')]");
+        // const matches = expression.evaluate(this);
+        // console.log(matches);
+        // let match;
+        // while(match = matches.iterateNext()){
+        //     console.log(match)
+        // }
     }
 
     #html = /*html*/`

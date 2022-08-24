@@ -37,30 +37,37 @@
         message = '';
         count = 100000;
 
-        raw() {
+        raw () {
             console.time('raw');
             const template = document.createElement('template');
+
             let html = '';
-            for (var i = 0; i < this.count; i++) {
-                html += `
-                <div class="box">
-                    <div>${i}</div>
-                </div>
-                `;
+
+            // const bp = document.createElement('div');
+            // const bc = document.createElement('div');
+            // bp.classList.add('box');
+            // bp.appendChild(bc);
+
+            const count = this.count;
+            for (var i = 0; i < count; i++) {
+                // const clone = bp.cloneNode(true);
+                // clone.firstElementChild.textContent = `${i}`;
+                // template.content.appendChild(clone);
+                html += `<div class="box"><div>${i}</div></div>`;
             }
             template.innerHTML = html;
-            const raw = document.querySelector('o-loop').shadowRoot.getElementById('raw');
+            // const raw = this.querySelector('#raw');
             raw.appendChild(template.content);
             console.timeEnd('raw');
         }
-        push() {
+        push () {
             console.time('push');
             for (var i = 0; i < this.count; i++) {
                 this.items.push({ number: i });
             }
             console.timeEnd('push');
         }
-        overwrite() {
+        overwrite () {
             console.time('overwrite');
             var items = [];
             for (var i = 0; i < this.count; i++) {
@@ -69,7 +76,7 @@
             this.items = items;
             console.timeEnd('overwrite');
         }
-        clear() {
+        clear () {
             this.items = [];
         }
         constructor () {

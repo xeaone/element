@@ -35,6 +35,8 @@ const input = function (binder: any, event: Event) {
 export default {
 
     render (binder: any) {
+        binder = binder ?? this;
+
         const { meta } = binder;
         const { type } = binder.owner as HTMLInputElement | HTMLSelectElement;
 
@@ -84,6 +86,8 @@ export default {
     },
 
     reset (binder: any) {
+        binder = binder ?? this;
+
         const { type } = binder.owner as HTMLInputElement | HTMLSelectElement;
 
         if (type === 'select-one' || type === 'select-multiple') {

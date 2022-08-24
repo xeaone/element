@@ -9,6 +9,12 @@ import Html from './html';
 import Each from './each';
 import On from './on';
 
+type Handler = {
+    setup?: (binder?: any) => void;
+    reset: (binder?: any) => void;
+    render: (binder?: any) => void;
+};
+
 // type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
 
 const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
@@ -47,14 +53,14 @@ export default function Binder (node: Node, container: XElement, context: Record
 
     node.nodeValue = '';
 
-    let handler;
-    if (name === 'text') handler = Text;
-    else if (name === 'html') handler = Html;
-    else if (name === 'each') handler = Each;
-    else if (name === 'value') handler = Value;
-    else if (name === 'inherit') handler = Inherit;
-    else if (name === 'checked') handler = Checked;
-    else if (name.startsWith('on')) handler = On;
+    let handler: Handler;
+    if (name === 'text') handler = Text as Handler;
+    else if (name === 'html') handler = Html as Handler;
+    else if (name === 'each') handler = Each as Handler;
+    else if (name === 'value') handler = Value as Handler;
+    else if (name === 'inherit') handler = Inherit as Handler;
+    else if (name === 'checked') handler = Checked as Handler;
+    else if (name.startsWith('on')) handler = On as Handler;
     else handler = Standard;
 
     const binder: any = {
@@ -63,26 +69,28 @@ export default function Binder (node: Node, container: XElement, context: Record
         value,
         context,
         container,
+        handler,
         meta: {},
         instance: {},
         references: new Set(),
+        setup: handler.setup,
         reset: handler.reset,
         render: handler.render,
         rewrites: rewrites ? [ ...rewrites ] : [],
         owner: (node as Attr).ownerElement ?? undefined,
     };
 
+    binder.setup?.(binder);
+
     // binder.reset = handler.reset.bind(binder, binder);
     // binder.render = handler.render.bind(binder, binder);
-    binder.cache = Cache.get(binder.value);
+    let cache = Cache.get(binder.value);
 
-    if (!binder.cache) {
-
+    if (!cache) {
         const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
         const clean = code.replace(stringPattern, '');
         const assignment = clean.match(assignmentPattern);
         const references = clean.replace(ignorePattern, '').match(referencePattern) ?? [];
-        // const references = clean.match(referencesPattern) ?? [];
 
         // console.log(
         //     code,
@@ -111,28 +119,24 @@ export default function Binder (node: Node, container: XElement, context: Record
         }
         `);
 
-        binder.cache = { compute, references };
-        Cache.set(value, binder.cache);
+        cache = { compute, references };
+        Cache.set(value, cache);
     }
 
-    // if (rewrites) {
-    //     binder.references = new Set();
-    //     for (const reference of references) {
-    //         for (const [ name, value ] of rewrites) {
-    //             if (reference === name) {
-    //                 binder.references.add(value);
-    //             } else if (reference.startsWith(name + '.')) {
-    //                 binder.references.add(value + reference.slice(name.length));
-    //             } else {
-    //                 binder.references.add(reference);
-    //             }
-    //         }
-    //     }
-    // } else {
-    //     binder.references = new Set(references);
-    // }
+    for (let reference of cache.references) {
 
-    binder.compute = binder.cache.compute.bind(binder.owner ?? binder.node, binder.context, binder.instance);
+        if (rewrites) {
+            for (const [ name, value ] of rewrites) {
+                reference = reference === name ? value :
+                    reference.startsWith(name + '.') ? value + reference.slice(name.length) :
+                        reference;
+            }
+        }
+
+        binder.references.add(reference);
+    }
+
+    binder.compute = cache.compute.bind(binder.owner ?? binder.node, binder.context, binder.instance);
 
     return binder;
 }

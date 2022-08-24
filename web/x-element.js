@@ -4,56 +4,42 @@ function tick(method) {
   return promise.then(method);
 }
 
-// tmp/element/data.js
-var dataHas = function(target, key) {
-  return Reflect.has(target, key);
-};
-var dataGet = function(event, reference, target, key, receiver) {
+// tmp/element/context.js
+var ContextGet = function(event, reference, target, key, receiver) {
   if (typeof key === "symbol")
     return Reflect.get(target, key, receiver);
   const value = Reflect.get(target, key, receiver);
   if (value && typeof value === "object") {
     reference = reference ? `${reference}.${key}` : `${key}`;
     return new Proxy(value, {
-      get: dataGet.bind(null, event, reference),
-      set: dataSet.bind(null, event, reference),
-      deleteProperty: dataDelete.bind(null, event, reference)
+      get: ContextGet.bind(null, event, reference),
+      set: ContextSet.bind(null, event, reference),
+      deleteProperty: ContextDelete.bind(null, event, reference)
     });
   }
   return value;
 };
-var dataDelete = function(event, reference, target, key) {
+var ContextDelete = function(event, reference, target, key) {
   if (typeof key === "symbol")
     return Reflect.deleteProperty(target, key);
   Reflect.deleteProperty(target, key);
-  tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, "reset"));
+  tick(() => event(reference ? `${reference}.${key}` : `${key}`, "reset"));
   return true;
 };
-var dataSet = function(event, reference, target, key, to, receiver) {
+var ContextSet = function(event, reference, target, key, to, receiver) {
   if (typeof key === "symbol")
     return Reflect.set(target, key, receiver);
   const from = Reflect.get(target, key, receiver);
   if (key === "length") {
-    tick(event.bind(null, reference, "render"));
-    tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, "render"));
+    tick(() => event(reference, "render"));
+    tick(() => event(reference ? `${reference}.${key}` : `${key}`, "render"));
     return Reflect.set(target, key, to, receiver);
   } else if (from === to || isNaN(from) && to === isNaN(to)) {
     return Reflect.set(target, key, to, receiver);
   }
   Reflect.set(target, key, to, receiver);
-  tick(event.bind(null, reference ? `${reference}.${key}` : `${key}`, "render"));
+  tick(() => event(reference ? `${reference}.${key}` : `${key}`, "render"));
   return true;
-};
-var dataEvent = function(data, reference, type) {
-  for (const [key, binders] of data) {
-    if (typeof key === "string" && (key === reference || key.startsWith(`${reference}.`))) {
-      if (binders) {
-        for (const binder of binders) {
-          tick(() => binder[type](binder));
-        }
-      }
-    }
-  }
 };
 
 // tmp/element/dash.js
@@ -321,6 +307,7 @@ var input = function(binder, event) {
 };
 var value_default = {
   render(binder) {
+    binder = binder ?? this;
     const { meta } = binder;
     const { type } = binder.owner;
     if (!meta.setup) {
@@ -365,6 +352,7 @@ var value_default = {
     binder.owner?.setAttribute("value", display);
   },
   reset(binder) {
+    binder = binder ?? this;
     const { type } = binder.owner;
     if (type === "select-one" || type === "select-multiple") {
       const owner = binder.owner;
@@ -379,10 +367,12 @@ var value_default = {
 // tmp/element/text.js
 var text_default = {
   render(binder) {
+    binder = binder ?? this;
     const data = binder.compute();
     binder.node.nodeValue = format(data);
   },
   reset(binder) {
+    binder = binder ?? this;
     binder.node.nodeValue = "";
   }
 };
@@ -427,44 +417,45 @@ var html_default = {
 // tmp/element/each.js
 var whitespace = /\s+/;
 var each_default = {
-  reset(binder) {
-    const owner = binder.node.ownerElement;
+  setup(binder) {
+    binder = binder ?? this;
+    binder.node.nodeValue = "";
+    binder.meta.keys = [];
+    binder.meta.setup = true;
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
-    while (owner && owner.lastChild)
-      binder.release(owner.removeChild(owner.lastChild));
+    binder.meta.templateLength = 0;
+    binder.meta.queueElement = document.createElement("template");
+    binder.meta.templateElement = document.createElement("template");
+    let node = binder.owner.firstChild;
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue)) {
+        binder.owner.removeChild(node);
+      } else {
+        binder.meta.templateLength++;
+        binder.meta.templateElement.content.appendChild(node);
+      }
+      node = binder.owner.firstChild;
+    }
+  },
+  reset(binder) {
+    binder = binder ?? this;
+    binder.meta.targetLength = 0;
+    binder.meta.currentLength = 0;
+    while (binder.owner.lastChild)
+      binder.release(binder.owner.removeChild(binder.owner.lastChild));
     while (binder.meta.queueElement.content.lastChild)
       binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
   },
-  render(binder) {
+  async render(binder) {
+    binder = binder ?? this;
     const [data, variable, key, index] = binder.compute();
     const [reference] = binder.references;
-    const owner = binder.node.ownerElement;
     binder.meta.data = data;
     binder.meta.keyName = key;
     binder.meta.indexName = index;
     binder.meta.variable = variable;
     binder.meta.reference = reference;
-    if (!binder.meta.setup) {
-      binder.node.nodeValue = "";
-      binder.meta.keys = [];
-      binder.meta.setup = true;
-      binder.meta.targetLength = 0;
-      binder.meta.currentLength = 0;
-      binder.meta.templateLength = 0;
-      binder.meta.queueElement = document.createElement("template");
-      binder.meta.templateElement = document.createElement("template");
-      let node = owner.firstChild;
-      while (node) {
-        if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue)) {
-          owner.removeChild(node);
-        } else {
-          binder.meta.templateLength++;
-          binder.meta.templateElement.content.appendChild(node);
-        }
-        node = owner.firstChild;
-      }
-    }
     if (data?.constructor === Array) {
       binder.meta.targetLength = data.length;
     } else {
@@ -475,9 +466,9 @@ var each_default = {
       while (binder.meta.currentLength > binder.meta.targetLength) {
         let count = binder.meta.templateLength, node;
         while (count--) {
-          node = owner.lastChild;
+          node = binder.owner.lastChild;
           if (node) {
-            owner.removeChild(node);
+            binder.owner.removeChild(node);
             binder.container.release(node);
           }
         }
@@ -496,15 +487,13 @@ var each_default = {
           get: (target, key2, receiver) => key2 === binder.meta.keyName ? keyValue : key2 === binder.meta.indexName ? indexValue : key2 === binder.meta.variable ? Reflect.get(binder.meta.data, keyValue) : Reflect.get(target, key2, receiver),
           set: (target, key2, value, receiver) => key2 === binder.meta.keyName ? true : key2 === binder.meta.indexName ? true : key2 === binder.meta.variable ? Reflect.set(binder.meta.data, keyValue, value) : Reflect.set(target, key2, value, receiver)
         });
-        let node = binder.meta.templateElement.content.firstChild;
-        while (node) {
-          binder.container.register(binder.meta.queueElement.content.appendChild(node.cloneNode(true)), context, rewrites);
-          node = node.nextSibling;
-        }
+        const clone = binder.meta.templateElement.content.cloneNode(true);
+        binder.container.register(clone, context, rewrites);
+        binder.meta.queueElement.content.appendChild(clone);
       }
     }
     if (binder.meta.currentLength === binder.meta.targetLength) {
-      owner.appendChild(binder.meta.queueElement.content);
+      binder.owner.appendChild(binder.meta.queueElement.content);
     }
   }
 };
@@ -610,6 +599,7 @@ var reset = async function(event, binder) {
 };
 var on_default = {
   render(binder) {
+    binder = binder ?? this;
     binder.owner[binder.name] = void 0;
     const name = binder.name.slice(2);
     if (binder.meta.method) {
@@ -629,6 +619,7 @@ var on_default = {
     binder.owner?.addEventListener(name, binder.meta.method);
   },
   reset(binder) {
+    binder = binder ?? this;
     binder.owner[binder.name] = null;
     const name = binder.name.slice(2);
     if (binder.meta.method) {
@@ -688,16 +679,19 @@ function Binder(node, container, context, rewrites) {
     value,
     context,
     container,
+    handler: handler2,
     meta: {},
     instance: {},
     references: /* @__PURE__ */ new Set(),
+    setup: handler2.setup,
     reset: handler2.reset,
     render: handler2.render,
     rewrites: rewrites ? [...rewrites] : [],
     owner: node.ownerElement ?? void 0
   };
-  binder.cache = Cache.get(binder.value);
-  if (!binder.cache) {
+  binder.setup?.(binder);
+  let cache = Cache.get(binder.value);
+  if (!cache) {
     const code = ("'" + value.replace(/\s*{{/g, "'+(").replace(/}}\s*/g, ")+'") + "'").replace(/^''\+|\+''$/g, "");
     const clean = code.replace(stringPattern, "");
     const assignment = clean.match(assignmentPattern);
@@ -717,10 +711,18 @@ function Binder(node, container, context, rewrites) {
             console.error(error);
         }
         `);
-    binder.cache = { compute, references };
-    Cache.set(value, binder.cache);
+    cache = { compute, references };
+    Cache.set(value, cache);
   }
-  binder.compute = binder.cache.compute.bind(binder.owner ?? binder.node, binder.context, binder.instance);
+  for (let reference of cache.references) {
+    if (rewrites) {
+      for (const [name2, value2] of rewrites) {
+        reference = reference === name2 ? value2 : reference.startsWith(name2 + ".") ? value2 + reference.slice(name2.length) : reference;
+      }
+    }
+    binder.references.add(reference);
+  }
+  binder.compute = cache.compute.bind(binder.owner ?? binder.node, binder.context, binder.instance);
   return binder;
 }
 
@@ -728,6 +730,7 @@ function Binder(node, container, context, rewrites) {
 var XElement = class extends HTMLElement {
   constructor() {
     super();
+    this.#renders = [];
     this.#syntaxEnd = "}}";
     this.#syntaxStart = "{{";
     this.#syntaxLength = 2;
@@ -737,10 +740,9 @@ var XElement = class extends HTMLElement {
     this.#binders = /* @__PURE__ */ new Map();
     this.#mutator = new MutationObserver(this.#mutation.bind(this));
     this.#context = new Proxy({}, {
-      has: dataHas.bind(null),
-      get: dataGet.bind(null, dataEvent.bind(null, this.#binders), ""),
-      set: dataSet.bind(null, dataEvent.bind(null, this.#binders), ""),
-      deleteProperty: dataDelete.bind(null, dataEvent.bind(null, this.#binders), "")
+      get: ContextGet.bind(null, this.#change.bind(this), ""),
+      set: ContextSet.bind(null, this.#change.bind(this), ""),
+      deleteProperty: ContextDelete.bind(null, this.#change.bind(this), "")
     });
     this.#adoptedEvent = new Event("adopted");
     this.#adoptingEvent = new Event("adopting");
@@ -775,6 +777,7 @@ var XElement = class extends HTMLElement {
   get isPrepared() {
     return this.#prepared;
   }
+  #renders;
   #syntaxEnd;
   #syntaxStart;
   #syntaxLength;
@@ -795,7 +798,6 @@ var XElement = class extends HTMLElement {
   #disconnectedEvent;
   #disconnectingEvent;
   prepare() {
-    console.log("prepare");
     if (this.#prepared || this.#preparing)
       return;
     this.#preparing = true;
@@ -823,32 +825,37 @@ var XElement = class extends HTMLElement {
         set: (value) => this.#context[property] = value
       });
     }
-    let shadowNode = this.shadowRoot?.firstChild;
-    while (shadowNode) {
-      const node = shadowNode;
-      shadowNode = node.nextSibling;
-      this.register(node, this.#context);
-    }
-    let innerNode = this.firstChild;
-    while (innerNode) {
-      const node = innerNode;
-      innerNode = node.nextSibling;
-      this.register(node, this.#context);
+    this.register(this, this.#context);
+    for (const [key, value] of this.#binders) {
+      if (typeof key == "string")
+        value.forEach((binder) => binder.render());
     }
     this.#prepared = true;
     this.dispatchEvent(this.#preparedEvent);
   }
-  #mutation(mutations) {
-    if (!this.#prepared)
-      return this.prepare();
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes) {
-        this.register(node, this.#context);
-      }
-      for (const node of mutation.removedNodes) {
-        this.release(node);
+  #change(reference, type) {
+    console.log("change", reference);
+    const binders = this.#binders.get(reference);
+    if (binders) {
+      for (const binder of binders) {
+        binder[type](binder);
       }
     }
+    const start = `${reference}.`;
+    for (const [key, binders2] of this.#binders) {
+      if (key?.startsWith?.(start)) {
+        if (binders2) {
+          for (const binder of binders2) {
+            tick(() => binder[type](binder));
+          }
+        }
+      }
+    }
+  }
+  #mutation(mutations) {
+    console.log("mutation", mutations);
+    if (!this.#prepared)
+      return this.prepare();
   }
   #remove(node) {
     const binders = this.#binders.get(node);
@@ -867,33 +874,20 @@ var XElement = class extends HTMLElement {
   }
   #add(node, context, rewrites) {
     const binder = Binder(node, this, context, rewrites);
-    for (const reference of binder.cache.references) {
-      if (rewrites) {
-        let rewrite = reference;
-        for (const [name, value] of rewrites) {
-          rewrite = rewrite === name ? value : rewrite.startsWith(name + ".") ? value + rewrite.slice(name.length) : rewrite;
-        }
-        binder.references.add(rewrite);
-        if (this.#binders.has(rewrite)) {
-          this.#binders.get(rewrite)?.add(binder);
-        } else {
-          this.#binders.set(rewrite, /* @__PURE__ */ new Set([binder]));
-        }
+    for (const reference of binder.references) {
+      const binders = this.#binders.get(reference);
+      if (binders) {
+        binders.add(binder);
       } else {
-        binder.references.add(reference);
-        if (this.#binders.has(reference)) {
-          this.#binders.get(reference)?.add(binder);
-        } else {
-          this.#binders.set(reference, /* @__PURE__ */ new Set([binder]));
-        }
+        this.#binders.set(reference, /* @__PURE__ */ new Set([binder]));
       }
     }
-    if (this.#binders.has(binder.owner ?? binder.node)) {
-      this.#binders.get(binder.owner ?? binder.node)?.add(binder);
+    const nodes = this.#binders.get(binder.owner ?? binder.node);
+    if (nodes) {
+      nodes.add(binder);
     } else {
       this.#binders.set(binder.owner ?? binder.node, /* @__PURE__ */ new Set([binder]));
     }
-    binder.render(binder);
   }
   release(node) {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -911,13 +905,12 @@ var XElement = class extends HTMLElement {
       }
     }
   }
-  register(node, context, rewrites) {
+  async register(node, context, rewrites) {
     if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-      let child = node.firstChild, register;
+      let child = node.firstChild;
       while (child) {
-        register = child;
-        child = node.nextSibling;
-        this.register(register, context, rewrites);
+        this.register(child, context, rewrites);
+        child = child.nextSibling;
       }
     } else if (node.nodeType === node.TEXT_NODE) {
       const start = node.nodeValue?.indexOf(this.#syntaxStart) ?? -1;
@@ -935,25 +928,16 @@ var XElement = class extends HTMLElement {
         this.#add(node, context, rewrites);
       }
     } else if (node.nodeType === node.ELEMENT_NODE) {
-      const inherit = node.attributes.getNamedItem("inherit");
-      if (inherit)
-        this.#add(inherit, context, rewrites);
-      const each = node.attributes.getNamedItem("each");
-      if (each)
-        this.#add(each, context, rewrites);
-      if (!each && !inherit) {
-        let child = node.firstChild, register;
-        while (child) {
-          register = child;
-          child = child.nextSibling;
-          this.register(register, context, rewrites);
-        }
-      }
-      const attributes = [...node.attributes];
-      for (const attribute of attributes) {
-        if (attribute.name !== "each" && attribute.name !== "inherit" && this.#syntaxMatch.test(attribute.value)) {
+      let attribute;
+      for (attribute of node.attributes) {
+        if (this.#syntaxMatch.test(attribute.value)) {
           this.#add(attribute, context, rewrites);
         }
+      }
+      let child = node.firstChild;
+      while (child) {
+        this.register(child, context, rewrites);
+        child = child.nextSibling;
       }
     }
   }

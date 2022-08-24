@@ -113,6 +113,8 @@ const reset = async function (event: Event, binder: any) {
 export default {
 
     render (binder:any) {
+        binder = binder ?? this;
+
         (binder.owner as any)[ binder.name ] = undefined;
         const name = binder.name.slice(2);
 
@@ -136,6 +138,8 @@ export default {
     },
 
     reset (binder:any) {
+        binder = binder ?? this;
+
         (binder.owner as any)[ binder.name ] = null;
         const name = binder.name.slice(2);
 
