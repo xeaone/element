@@ -22,7 +22,8 @@ const transition = async (options: any) => {
 };
 
 const navigate = (event?: any) => {
-    if (event && (!event?.canTransition || !event?.canIntercept)) return;
+    console.log(event);
+    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
     const destination = new URL(event?.destination.url ?? location.href);
     const base = new URL(document.querySelector('base')?.href ?? location.origin);
 
@@ -39,9 +40,16 @@ const navigate = (event?: any) => {
     options.target = options.target ?? document.querySelector(options.query);
     if (!options.target) throw new Error('XElement - navigation target not found');
 
-    if (options.instance === options.target.lastElementChild) return event?.intercept?.();
+    if (event?.intercept) {
+        if (options.instance === options.target.lastElementChild) return event.intercept();
+        return event.intercept({ handler: () => transition(options) });
+    } else if (event?.transitionWhile) {
+        if (options.instance === options.target.lastElementChild) return event.transitionWhile((async () => undefined)());
+        return event.transitionWhile(transition(options));
+    } else {
+        transition(options);
+    }
 
-    return event ? event?.intercept?.({ handler: () => transition(options) }) : transition(options);
 };
 
 export default function navigation (path: string, file: string, options: any) {
