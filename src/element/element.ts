@@ -230,7 +230,7 @@ export default class XElement extends HTMLElement {
             this.#binders.set(binder.owner ?? binder.node, new Set([ binder ]));
         }
 
-        this.#tasks.push(binder);
+        this.#renders.push(binder);
         // this.#tasks.push(binder.render.bind(binder, binder));
         // this.#tasks.push(binder);
         // tick(() => binder.render());

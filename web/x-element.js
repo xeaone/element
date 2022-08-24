@@ -732,7 +732,7 @@ function Binder(node, container, context, rewrites) {
 var XElement = class extends HTMLElement {
   constructor() {
     super();
-    this.#tasks = [];
+    this.#renders = [];
     this.#resets = [];
     this.#syntaxEnd = "}}";
     this.#syntaxStart = "{{";
@@ -780,7 +780,7 @@ var XElement = class extends HTMLElement {
   get isPrepared() {
     return this.#prepared;
   }
-  #tasks;
+  #renders;
   #resets;
   #syntaxEnd;
   #syntaxStart;
@@ -840,15 +840,16 @@ var XElement = class extends HTMLElement {
   }
   render() {
     console.log("element render");
-    return Promise.all(this.#tasks.splice(0).map(async (task) => task.render()));
+    return Promise.all(this.#renders.splice(0).map(async (binder) => binder.render()));
   }
   #change(reference, type) {
     console.log("change", reference);
+    const tasks = type == "render" ? this.#renders : this.#resets;
     const binders = this.#binders.get(reference);
     if (binders) {
       for (const binder of binders) {
         console.log(binder.references);
-        this.#tasks.push(binder);
+        tasks.push(binder);
       }
     }
     const start = `${reference}.`;
@@ -857,13 +858,15 @@ var XElement = class extends HTMLElement {
         if (binders2) {
           for (const binder of binders2) {
             console.log(binder.references);
-            this.#tasks.push(binder);
+            tasks.push(binder);
           }
         }
       }
     }
     if (type == "render")
       this.render();
+    else if (type == "reset")
+      this.reset();
   }
   #mutation(mutations) {
     console.log("mutation", mutations);
@@ -902,7 +905,7 @@ var XElement = class extends HTMLElement {
     } else {
       this.#binders.set(binder.owner ?? binder.node, /* @__PURE__ */ new Set([binder]));
     }
-    this.#tasks.push(binder);
+    this.#renders.push(binder);
   }
   release(node) {
     if (node.nodeType == Node.TEXT_NODE) {
