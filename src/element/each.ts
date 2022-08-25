@@ -1,10 +1,8 @@
 const whitespace = /\s+/;
-import tick from "./tick";
 
 export default {
 
     setup (binder: any) {
-        binder = binder ?? this;
 
         binder.node.nodeValue = '';
 
@@ -29,8 +27,7 @@ export default {
 
     },
 
-    reset (binder: any) {
-        binder = binder ?? this;
+    async reset (binder: any) {
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
         while (binder.owner.lastChild) binder.release(binder.owner.removeChild(binder.owner.lastChild));
@@ -38,8 +35,6 @@ export default {
     },
 
     async render (binder: any) {
-        console.log('each render');
-        binder = binder ?? this;
 
         const [ data, variable, key, index ] = binder.compute();
         const [ reference ] = binder.references;
@@ -73,11 +68,12 @@ export default {
                 binder.meta.currentLength--;
             }
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
+            let clone, context, rewrites;
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const keyValue = binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength;
                 const indexValue = binder.meta.currentLength++;
 
-                const rewrites = [
+                rewrites = [
                     ...binder.rewrites,
                     [ binder.meta.variable, `${binder.meta.reference}.${keyValue}` ]
                 ];
@@ -91,7 +87,7 @@ export default {
                 //     }
                 // });
 
-                const context = new Proxy(binder.context, {
+                context = new Proxy(binder.context, {
                     has: (target, key) =>
                         key === binder.meta.variable ||
                         key === binder.meta.keyName ||
@@ -109,7 +105,7 @@ export default {
                                     Reflect.set(target, key, value, receiver)
                 });
 
-                const clone = binder.meta.templateElement.content.cloneNode(true);
+                clone = binder.meta.templateElement.content.cloneNode(true);
                 binder.container.register(clone, context, rewrites);
                 binder.meta.queueElement.content.appendChild(clone);
             }
@@ -117,7 +113,7 @@ export default {
         // console.timeEnd('each');
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            binder.container.render();
+            await binder.container.render();
             binder.owner.appendChild(binder.meta.queueElement.content);
         }
 

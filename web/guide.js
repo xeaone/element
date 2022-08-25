@@ -85,10 +85,11 @@ export default class XGuide extends XElement {
     <section id="checked">
         <h3>Checked Binder</h3>
         <pre>
-            <code html="{{highlight('#checked-demo')}}"></code>
-            <div id="checked-demo">
+            <template id="checked-template">
                 <input type="checkbox" value="{{checked}}" checked="{{checked = $checked}}"> Checkbox {{checked ? 'checked' : ''}}
-            </div>
+            </template>
+            <code html="{{highlight('#checked-template')}}"></code>
+            <div id="checked-demo" html="{{document.querySelector('#checked-template')}}"></div>
         </pre>
         <pre>
             <code html="{{highlight('#radio-demo')}}"></code>

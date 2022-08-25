@@ -3,31 +3,31 @@ import booleans from './boolean';
 
 export default {
 
-    render (binder:any) {
-        const boolean = booleans.includes(binder.name);
-        const node = binder.node as Attr;
+    setup (binder: any) {
+        binder.node.value = '';
+        binder.meta.boolean = booleans.includes(binder.name);
+    },
 
-        node.value = '';
+    render (binder: any) {
 
-        if (boolean) {
+        if (binder.meta.boolean) {
             const data = binder.compute() ? true : false;
-            if (data) binder.owner?.setAttributeNode(node);
-            else binder.owner?.removeAttribute(binder.name);
+            if (data) binder.owner.setAttributeNode(binder.node);
+            else binder.owner.removeAttribute(binder.name);
         } else {
             const data = format(binder.compute());
-            (binder.owner as any)[ binder.name ] = data;
-            binder.owner?.setAttribute(binder.name, data);
+            binder.owner[ binder.name ] = data;
+            binder.owner.setAttribute(binder.name, data);
         }
 
     },
 
-    reset (binder:any) {
-        const boolean = booleans.includes(binder.name);
+    reset (binder: any) {
 
-        if (boolean) {
-            binder.owner?.removeAttribute(binder.name);
+        if (binder.meta.boolean) {
+            binder.owner.removeAttribute(binder.name);
         } else {
-            (binder.owner as any)[ binder.name ] = undefined;
+            binder.owner[ binder.name ] = undefined;
             binder.owner?.setAttribute(binder.name, '');
         }
 

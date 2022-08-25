@@ -69,7 +69,7 @@ var transition = async (options) => {
   options.navigating = false;
 };
 var navigate = (event) => {
-  if (event && (!event?.canTransition || !event?.canIntercept))
+  if (event && ("canTransition" in event && !event.canTransition || "canIntercept" in event && !event.canIntercept))
     return;
   const destination = new URL(event?.destination.url ?? location.href);
   const base = new URL(document.querySelector("base")?.href ?? location.origin);
@@ -84,9 +84,17 @@ var navigate = (event) => {
   options.target = options.target ?? document.querySelector(options.query);
   if (!options.target)
     throw new Error("XElement - navigation target not found");
-  if (options.instance === options.target.lastElementChild)
-    return event?.intercept?.();
-  return event ? event?.intercept?.({ handler: () => transition(options) }) : transition(options);
+  if (event?.intercept) {
+    if (options.instance === options.target.lastElementChild)
+      return event.intercept();
+    return event.intercept({ handler: () => transition(options) });
+  } else if (event?.transitionWhile) {
+    if (options.instance === options.target.lastElementChild)
+      return event.transitionWhile((async () => void 0)());
+    return event.transitionWhile(transition(options));
+  } else {
+    transition(options);
+  }
 };
 function navigation(path, file, options) {
   if (!path)
@@ -104,25 +112,6 @@ function navigation(path, file, options) {
   navigators.set(path, options);
   navigate();
   window.navigation.addEventListener("navigate", navigate);
-}
-
-// tmp/element/poly.js
-async function Poly() {
-  if ("shadowRoot" in HTMLTemplateElement.prototype === false) {
-    (function attachShadowRoots(root) {
-      const templates = root.querySelectorAll("template[shadowroot]");
-      for (const template of templates) {
-        const mode = template.getAttribute("shadowroot") || "closed";
-        const shadowRoot = template.parentNode.attachShadow({ mode });
-        shadowRoot.appendChild(template.content);
-        template.remove();
-        attachShadowRoots(shadowRoot);
-      }
-    })(document);
-  }
-  if ("navigation" in window === false) {
-    window.navigation = new (await import("https://cdn.skypack.dev/@virtualstate/navigation")).Navigation();
-  }
 }
 
 // tmp/element/format.js
@@ -180,26 +169,26 @@ var boolean_default = [
 
 // tmp/element/standard.js
 var standard_default = {
+  setup(binder) {
+    binder.node.value = "";
+    binder.meta.boolean = boolean_default.includes(binder.name);
+  },
   render(binder) {
-    const boolean = boolean_default.includes(binder.name);
-    const node = binder.node;
-    node.value = "";
-    if (boolean) {
+    if (binder.meta.boolean) {
       const data = binder.compute() ? true : false;
       if (data)
-        binder.owner?.setAttributeNode(node);
+        binder.owner.setAttributeNode(binder.node);
       else
-        binder.owner?.removeAttribute(binder.name);
+        binder.owner.removeAttribute(binder.name);
     } else {
       const data = format(binder.compute());
       binder.owner[binder.name] = data;
-      binder.owner?.setAttribute(binder.name, data);
+      binder.owner.setAttribute(binder.name, data);
     }
   },
   reset(binder) {
-    const boolean = boolean_default.includes(binder.name);
-    if (boolean) {
-      binder.owner?.removeAttribute(binder.name);
+    if (binder.meta.boolean) {
+      binder.owner.removeAttribute(binder.name);
     } else {
       binder.owner[binder.name] = void 0;
       binder.owner?.setAttribute(binder.name, "");
@@ -224,27 +213,26 @@ var handler = function(event, binder) {
   }
 };
 var checked_default = {
-  render(binder) {
-    if (!binder.meta.setup) {
-      binder.meta.setup = true;
-      binder.node.nodeValue = "";
-      if (binder.owner.type === "radio") {
-        binder.owner?.addEventListener("xRadioInputHandler", (event) => handler(event, binder));
-        binder.owner?.addEventListener("input", (event) => {
-          const parent = binder.owner.form || binder.owner?.getRootNode();
-          const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
-          handler(event, binder);
-          for (const radio of radios) {
-            if (radio === event.target)
-              continue;
-            radio.checked = false;
-            radio.dispatchEvent(xRadioInputHandlerEvent);
-          }
-        });
-      } else {
-        binder.owner?.addEventListener("input", (event) => handler(event, binder));
-      }
+  setup(binder) {
+    binder.node.nodeValue = "";
+    if (binder.owner.type === "radio") {
+      binder.owner.addEventListener("xRadioInputHandler", (event) => handler(event, binder));
+      binder.owner.addEventListener("input", (event) => {
+        const parent = binder.owner.form || binder.owner.getRootNode();
+        const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
+        handler(event, binder);
+        for (const radio of radios) {
+          if (radio === event.target)
+            continue;
+          radio.checked = false;
+          radio.dispatchEvent(xRadioInputHandlerEvent);
+        }
+      });
+    } else {
+      binder.owner.addEventListener("input", (event) => handler(event, binder));
     }
+  },
+  render(binder) {
     handler(void 0, binder);
   },
   reset(binder) {
@@ -254,25 +242,21 @@ var checked_default = {
 
 // tmp/element/inherit.js
 var inherit_default = {
+  setup(binder) {
+    binder.node.value = "";
+  },
   render(binder) {
-    const owner = binder.owner;
-    const node = binder.node;
-    if (!binder.meta.setup) {
-      binder.meta.setup = true;
-      node.value = "";
-    }
-    if (!owner.inherited) {
-      return console.warn(`inherited not implemented ${owner.localName}`);
+    if (!binder.owner.inherited) {
+      return console.warn(`inherited not implemented ${binder.owner.localName}`);
     }
     const inherited = binder.compute();
-    owner.inherited?.(inherited);
+    binder.owner.inherited?.(inherited);
   },
   reset(binder) {
-    const owner = binder.owner;
-    if (!owner.inherited) {
-      return console.warn(`inherited not implemented ${owner.localName}`);
+    if (!binder.owner.inherited) {
+      return console.warn(`inherited not implemented ${binder.owner.localName}`);
     }
-    owner.inherited?.();
+    binder.owner.inherited?.();
   }
 };
 
@@ -306,21 +290,18 @@ var input = function(binder, event) {
   }
 };
 var value_default = {
+  setup(binder) {
+    binder.meta.type = binder.owner.type;
+    binder.owner.addEventListener("input", (event) => input(binder, event));
+  },
   render(binder) {
-    binder = binder ?? this;
-    const { meta } = binder;
-    const { type } = binder.owner;
-    if (!meta.setup) {
-      meta.setup = true;
-      binder.owner?.addEventListener("input", (event) => input(binder, event));
-    }
     binder.instance.$assign = false;
     binder.instance.$event = void 0;
     binder.instance.$value = void 0;
     binder.instance.$checked = void 0;
     const computed = binder.compute();
     let display;
-    if (type === "select-one") {
+    if (binder.meta.type === "select-one") {
       const owner = binder.owner;
       owner.value = "";
       Array.prototype.find.call(owner.options, (o) => "$value" in o ? o.$value : o.value === computed);
@@ -330,11 +311,11 @@ var value_default = {
       }
       display = format(computed);
       owner.value = display;
-    } else if (type === "select-multiple") {
+    } else if (binder.meta.type === "select-multiple") {
       const owner = binder.owner;
       Array.prototype.forEach.call(owner.options, (o) => o.selected = computed?.includes("$value" in o ? o.$value : o.value));
       display = format(computed);
-    } else if (type === "number" || type === "range" || date_default.includes(type)) {
+    } else if (binder.meta.type === "number" || binder.meta.type === "range" || date_default.includes(binder.meta.type)) {
       const owner = binder.owner;
       if (typeof computed === "string")
         owner.value = computed;
@@ -349,67 +330,68 @@ var value_default = {
       owner.value = display;
     }
     binder.owner.$value = computed;
-    binder.owner?.setAttribute("value", display);
+    binder.owner.setAttribute("value", display);
   },
   reset(binder) {
-    binder = binder ?? this;
-    const { type } = binder.owner;
-    if (type === "select-one" || type === "select-multiple") {
+    if (binder.meta.type === "select-one" || binder.meta.type === "select-multiple") {
       const owner = binder.owner;
       Array.prototype.forEach.call(owner.options, (option) => option.selected = false);
     }
     binder.owner.value = "";
     binder.owner.$value = void 0;
-    binder.owner?.setAttribute("value", "");
+    binder.owner.setAttribute("value", "");
   }
 };
 
 // tmp/element/text.js
 var text_default = {
   async render(binder) {
-    binder = binder ?? this;
     const data = binder.compute();
     binder.node.nodeValue = format(data);
   },
   async reset(binder) {
-    binder = binder ?? this;
     binder.node.nodeValue = "";
   }
 };
 
 // tmp/element/html.js
 var html_default = {
-  render(binder) {
-    if (!binder.meta.setup) {
-      binder.meta.setup = true;
-      binder.node.nodeValue = "";
-    }
+  setup(binder) {
+    binder.node.nodeValue = "";
+  },
+  async render(binder) {
     let data = binder.compute();
-    if (typeof data !== "string") {
-      data = "";
-      console.warn("html binder requires a string");
+    let fragment;
+    if (typeof data == "string") {
+      const template = document.createElement("template");
+      template.innerHTML = data;
+      fragment = template.content;
+    } else if (data instanceof HTMLTemplateElement) {
+      fragment = data.content.cloneNode(true);
+    } else {
+      console.warn("html binder requires a string or template");
+      return;
     }
-    let removeChild = binder.owner?.lastChild;
+    let removeChild = binder.owner.lastChild;
     while (removeChild) {
-      binder.owner?.removeChild(removeChild);
+      binder.owner.removeChild(removeChild);
       binder.release(removeChild);
-      removeChild = binder.owner?.lastChild;
+      removeChild = binder.owner.lastChild;
     }
-    const template = document.createElement("template");
-    template.innerHTML = data;
-    let addChild = template.content.firstChild;
+    let addChild = fragment.firstChild;
     while (addChild) {
       binder.container.register(addChild, binder.context);
       addChild = addChild.nextSibling;
     }
-    binder.owner?.appendChild(template.content);
+    await binder.container.render();
+    binder.owner.appendChild(fragment);
   },
   reset(binder) {
-    let node = binder.owner?.lastChild;
+    let node = binder.owner.lastChild;
     while (node) {
+      binder.owner.removeChild(node);
       binder.release(node);
-      binder.owner?.removeChild(node);
-      node = binder.owner?.lastChild;
+      node = binder.owner.lastChild;
     }
   }
 };
@@ -418,7 +400,6 @@ var html_default = {
 var whitespace = /\s+/;
 var each_default = {
   setup(binder) {
-    binder = binder ?? this;
     binder.node.nodeValue = "";
     binder.meta.keys = [];
     binder.meta.setup = true;
@@ -438,8 +419,7 @@ var each_default = {
       node = binder.owner.firstChild;
     }
   },
-  reset(binder) {
-    binder = binder ?? this;
+  async reset(binder) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
     while (binder.owner.lastChild)
@@ -448,8 +428,6 @@ var each_default = {
       binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
   },
   async render(binder) {
-    console.log("each render");
-    binder = binder ?? this;
     const [data, variable, key, index] = binder.compute();
     const [reference] = binder.references;
     binder.meta.data = data;
@@ -476,25 +454,26 @@ var each_default = {
         binder.meta.currentLength--;
       }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
+      let clone, context, rewrites;
       while (binder.meta.currentLength < binder.meta.targetLength) {
         const keyValue = binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength;
         const indexValue = binder.meta.currentLength++;
-        const rewrites = [
+        rewrites = [
           ...binder.rewrites,
           [binder.meta.variable, `${binder.meta.reference}.${keyValue}`]
         ];
-        const context = new Proxy(binder.context, {
+        context = new Proxy(binder.context, {
           has: (target, key2) => key2 === binder.meta.variable || key2 === binder.meta.keyName || key2 === binder.meta.indexName || Reflect.has(target, key2),
           get: (target, key2, receiver) => key2 === binder.meta.keyName ? keyValue : key2 === binder.meta.indexName ? indexValue : key2 === binder.meta.variable ? Reflect.get(binder.meta.data, keyValue) : Reflect.get(target, key2, receiver),
           set: (target, key2, value, receiver) => key2 === binder.meta.keyName ? true : key2 === binder.meta.indexName ? true : key2 === binder.meta.variable ? Reflect.set(binder.meta.data, keyValue, value) : Reflect.set(target, key2, value, receiver)
         });
-        const clone = binder.meta.templateElement.content.cloneNode(true);
+        clone = binder.meta.templateElement.content.cloneNode(true);
         binder.container.register(clone, context, rewrites);
         binder.meta.queueElement.content.appendChild(clone);
       }
     }
     if (binder.meta.currentLength === binder.meta.targetLength) {
-      binder.container.render();
+      await binder.container.render();
       binder.owner.appendChild(binder.meta.queueElement.content);
     }
   }
@@ -600,17 +579,18 @@ var reset = async function(event, binder) {
   return false;
 };
 var on_default = {
-  render(binder) {
-    binder = binder ?? this;
+  setup(binder) {
     binder.owner[binder.name] = void 0;
-    const name = binder.name.slice(2);
+    binder.meta.name = binder.name.slice(2);
+  },
+  render(binder) {
     if (binder.meta.method) {
-      binder.owner?.removeEventListener(name, binder.meta.method);
+      binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
     }
     binder.meta.method = (event) => {
-      if (name === "reset") {
+      if (binder.meta.name === "reset") {
         return reset(event, binder);
-      } else if (name === "submit") {
+      } else if (binder.meta.name === "submit") {
         return submit(event, binder);
       } else {
         binder.instance.event = event;
@@ -618,14 +598,11 @@ var on_default = {
         return binder.compute();
       }
     };
-    binder.owner?.addEventListener(name, binder.meta.method);
+    binder.owner.addEventListener(binder.meta.name, binder.meta.method);
   },
   reset(binder) {
-    binder = binder ?? this;
-    binder.owner[binder.name] = null;
-    const name = binder.name.slice(2);
     if (binder.meta.method) {
-      binder.owner?.removeEventListener(name, binder.meta.method);
+      binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
     }
   }
 };
@@ -728,12 +705,33 @@ function Binder(node, container, context, rewrites) {
   return binder;
 }
 
+// tmp/element/poly.js
+async function Poly() {
+  if ("shadowRoot" in HTMLTemplateElement.prototype === false) {
+    (function attachShadowRoots(root) {
+      const templates = root.querySelectorAll("template[shadowroot]");
+      for (const template of templates) {
+        const mode = template.getAttribute("shadowroot") || "closed";
+        const shadowRoot = template.parentNode.attachShadow({ mode });
+        shadowRoot.appendChild(template.content);
+        template.remove();
+        attachShadowRoots(shadowRoot);
+      }
+    })(document);
+  }
+  if ("navigation" in window === false) {
+    window.navigation = new (await import("https://cdn.skypack.dev/@virtualstate/navigation")).Navigation();
+  }
+}
+
 // tmp/element/element.js
 var XElement = class extends HTMLElement {
   constructor() {
     super();
     this.#renders = [];
     this.#resets = [];
+    this.#reseting = false;
+    this.#rendering = false;
     this.#syntaxEnd = "}}";
     this.#syntaxStart = "{{";
     this.#syntaxLength = 2;
@@ -782,6 +780,8 @@ var XElement = class extends HTMLElement {
   }
   #renders;
   #resets;
+  #reseting;
+  #rendering;
   #syntaxEnd;
   #syntaxStart;
   #syntaxLength;
@@ -835,29 +835,46 @@ var XElement = class extends HTMLElement {
     this.#prepared = true;
     this.dispatchEvent(this.#preparedEvent);
   }
-  reset() {
-    return Promise.all(this.#resets.splice(0).map(async (binder) => binder.reset()));
+  async reset() {
+    console.log("element reset start");
+    if (this.#reseting)
+      return;
+    else
+      this.#reseting = true;
+    await Promise.all(this.#resets.splice(0).map(async (binder) => binder.reset(binder)));
+    this.#reseting = false;
+    if (this.#resets.length)
+      await this.reset();
+    console.log("element reset end");
   }
-  render() {
-    console.log("element render");
-    return Promise.all(this.#renders.splice(0).map(async (binder) => binder.render()));
+  async render() {
+    console.log("element render start");
+    if (this.#rendering)
+      return;
+    else
+      this.#rendering = true;
+    await Promise.all(this.#renders.splice(0).map(async (binder) => binder.render(binder)));
+    this.#rendering = false;
+    if (this.#renders.length)
+      await this.render();
+    console.log("element render end");
   }
   #change(reference, type) {
-    console.log("change", reference);
     const tasks = type == "render" ? this.#renders : this.#resets;
-    const binders = this.#binders.get(reference);
-    if (binders) {
-      for (const binder of binders) {
-        console.log(binder.references);
-        tasks.push(binder);
-      }
-    }
     const start = `${reference}.`;
-    for (const [key, binders2] of this.#binders) {
-      if (key?.startsWith?.(start)) {
-        if (binders2) {
-          for (const binder of binders2) {
-            console.log(binder.references);
+    let key, binders;
+    for ([key, binders] of this.#binders) {
+      if (key == reference) {
+        if (binders) {
+          let binder;
+          for (binder of binders) {
+            tasks.unshift(binder);
+          }
+        }
+      } else if (key?.startsWith?.(start)) {
+        if (binders) {
+          let binder;
+          for (binder of binders) {
             tasks.push(binder);
           }
         }
@@ -877,8 +894,9 @@ var XElement = class extends HTMLElement {
     const binders = this.#binders.get(node);
     if (!binders)
       return;
-    for (const binder of binders) {
-      for (const reference of binder.references) {
+    let binder, reference;
+    for (binder of binders) {
+      for (reference of binder.references) {
         if (this.#binders.has(reference)) {
           this.#binders.get(reference)?.delete(binder);
           if (!this.#binders.get(reference)?.size)
@@ -947,17 +965,19 @@ var XElement = class extends HTMLElement {
         return;
       if (end + this.#syntaxLength !== node.nodeValue?.length) {
         this.register(node.splitText(end + this.#syntaxLength), context, rewrites);
-        this.#add(node, context, rewrites);
-      } else {
-        this.#add(node, context, rewrites);
       }
+      this.#add(node, context, rewrites);
     } else if (node.nodeType == node.ELEMENT_NODE) {
-      let attribute;
+      let attribute, ignore;
       for (attribute of node.attributes) {
+        if (attribute.name == "x-ignore")
+          ignore = true;
         if (this.#syntaxMatch.test(attribute.value)) {
           this.#add(attribute, context, rewrites);
         }
       }
+      if (ignore)
+        return;
       let child = node.firstChild;
       while (child) {
         this.register(child, context, rewrites);

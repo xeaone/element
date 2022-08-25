@@ -22,7 +22,6 @@ const transition = async (options: any) => {
 };
 
 const navigate = (event?: any) => {
-    console.log(event);
     if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
     const destination = new URL(event?.destination.url ?? location.href);
     const base = new URL(document.querySelector('base')?.href ?? location.origin);

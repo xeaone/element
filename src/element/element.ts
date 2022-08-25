@@ -1,10 +1,8 @@
 import { ContextDelete, ContextGet, ContextSet } from './context';
 import Navigation from './navigation';
+import Binder from './binder';
 import Dash from './dash';
 import Poly from './poly';
-
-import Binder from './binder';
-import tick from './tick';
 
 export default class XElement extends HTMLElement {
 
@@ -56,12 +54,14 @@ export default class XElement extends HTMLElement {
     get isPrepared () { return this.#prepared; }
     #renders: Array<any> = [];
     #resets: Array<any> = [];
+    #reseting: boolean = false;
+    #rendering: boolean = false;
 
-    #syntaxEnd = '}}';
-    #syntaxStart = '{{';
-    #syntaxLength = 2;
-    #prepared = false;
-    #preparing = false;
+    #syntaxEnd: string = '}}';
+    #syntaxStart: string = '{{';
+    #syntaxLength: number = 2;
+    #prepared: boolean = false;
+    #preparing: boolean = false;
     #syntaxMatch = new RegExp('{{.*?}}');
     #binders: Map<string | Node, Set<any>> = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
@@ -142,34 +142,43 @@ export default class XElement extends HTMLElement {
         this.dispatchEvent(this.#preparedEvent);
     }
 
-    reset () {
-        return Promise.all(this.#resets.splice(0).map(async binder => binder.reset()));
+    async reset () {
+        console.log('element reset start');
+        if (this.#reseting) return;
+        else this.#reseting = true;
+        await Promise.all(this.#resets.splice(0).map(async binder => binder.reset(binder)));
+        this.#reseting = false;
+        if (this.#resets.length) await this.reset();
+        console.log('element reset end');
     }
 
-    render () {
-        console.log('element render');
-        return Promise.all(this.#renders.splice(0).map(async binder => binder.render()));
-        // while (this.#tasks.length) this.#tasks.shift().render();
+    async render () {
+        console.log('element render start');
+        if (this.#rendering) return;
+        else this.#rendering = true;
+        await Promise.all(this.#renders.splice(0).map(async binder => binder.render(binder)));
+        this.#rendering = false;
+        if (this.#renders.length) await this.render();
+        console.log('element render end');
     }
 
     #change (reference: string, type: string) {
-        console.log('change', reference);
         const tasks = type == 'render' ? this.#renders : this.#resets;
-
-        const binders = this.#binders.get(reference);
-        if (binders) {
-            for (const binder of binders) {
-                console.log(binder.references);
-                tasks.push(binder);
-            }
-        }
-
         const start = `${reference}.`;
-        for (const [ key, binders ] of this.#binders) {
-            if ((key as string)?.startsWith?.(start)) {
+
+        let key, binders;
+        for ([ key, binders ] of this.#binders) {
+            if ((key as string) == reference) {
                 if (binders) {
-                    for (const binder of binders) {
-                        console.log(binder.references);
+                    let binder;
+                    for (binder of binders) {
+                        tasks.unshift(binder);
+                    }
+                }
+            } else if ((key as string)?.startsWith?.(start)) {
+                if (binders) {
+                    let binder;
+                    for (binder of binders) {
                         tasks.push(binder);
                     }
                 }
@@ -178,7 +187,6 @@ export default class XElement extends HTMLElement {
 
         if (type == 'render') this.render();
         else if (type == 'reset') this.reset();
-        // Promise.all(handlers.map(async (handle: any) => handle()));
     }
 
     #mutation (mutations: Array<MutationRecord>) {
@@ -198,8 +206,9 @@ export default class XElement extends HTMLElement {
         const binders = this.#binders.get(node);
         if (!binders) return;
 
-        for (const binder of binders) {
-            for (const reference of binder.references) {
+        let binder, reference;
+        for (binder of binders) {
+            for (reference of binder.references) {
                 if (this.#binders.has(reference)) {
                     this.#binders.get(reference)?.delete(binder);
                     if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
@@ -231,9 +240,6 @@ export default class XElement extends HTMLElement {
         }
 
         this.#renders.push(binder);
-        // this.#tasks.push(binder.render.bind(binder, binder));
-        // this.#tasks.push(binder);
-        // tick(() => binder.render());
     }
 
     release (node: Node) {
@@ -284,19 +290,21 @@ export default class XElement extends HTMLElement {
 
             if (end + this.#syntaxLength !== node.nodeValue?.length) {
                 this.register((node as Text).splitText(end + this.#syntaxLength), context, rewrites);
-                this.#add(node, context, rewrites);
-            } else {
-                this.#add(node, context, rewrites);
             }
+
+            this.#add(node, context, rewrites);
 
         } else if (node.nodeType == node.ELEMENT_NODE) {
 
-            let attribute;
+            let attribute, ignore;
             for (attribute of (node as Element).attributes) {
+                if (attribute.name == 'x-ignore') ignore = true;
                 if (this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, context, rewrites);
                 }
             }
+
+            if (ignore) return;
 
             let child = node.firstChild;
             while (child) {

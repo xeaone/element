@@ -1,32 +1,26 @@
-import Binder from './binder';
-
 export default {
 
+    setup (binder: any) {
+        binder.node.value = '';
+    },
+
     render (binder: any) {
-        const owner = binder.owner as any;
-        const node = (binder.node as any);
 
-        if (!binder.meta.setup) {
-            binder.meta.setup = true;
-            node.value = '';
-        }
-
-        if (!owner.inherited) {
-            return console.warn(`inherited not implemented ${owner.localName}`);
+        if (!binder.owner.inherited) {
+            return console.warn(`inherited not implemented ${binder.owner.localName}`);
         }
 
         const inherited = binder.compute();
-        owner.inherited?.(inherited);
+        binder.owner.inherited?.(inherited);
     },
 
     reset (binder: any) {
-        const owner = binder.owner as any;
 
-        if (!owner.inherited) {
-            return console.warn(`inherited not implemented ${owner.localName}`);
+        if (!binder.owner.inherited) {
+            return console.warn(`inherited not implemented ${binder.owner.localName}`);
         }
 
-        owner.inherited?.();
+        binder.owner.inherited?.();
     }
 
 };

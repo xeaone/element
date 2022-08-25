@@ -1,6 +1,7 @@
 // import Parse from './parse';
 import XElement from './element';
 import Standard from './standard';
+// import Templatefrom './template';
 import Checked from './checked';
 import Inherit from './inherit';
 import Value from './value';
@@ -60,6 +61,7 @@ export default function Binder (node: Node, container: XElement, context: Record
     else if (name === 'value') handler = Value as Handler;
     else if (name === 'inherit') handler = Inherit as Handler;
     else if (name === 'checked') handler = Checked as Handler;
+    // else if (name === 'template') handler = Template as Handler;
     else if (name.startsWith('on')) handler = On as Handler;
     else handler = Standard;
 

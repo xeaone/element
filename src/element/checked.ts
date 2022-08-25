@@ -19,34 +19,33 @@ const handler = function (event?: Event, binder?: any) {
 
 export default {
 
-    render (binder: any) {
+    setup (binder: any) {
 
-        if (!binder.meta.setup) {
-            binder.meta.setup = true;
-            binder.node.nodeValue = '';
+        binder.node.nodeValue = '';
 
-            if ((binder.owner as any).type === 'radio') {
-                binder.owner?.addEventListener('xRadioInputHandler', (event: any) => handler(event, binder));
+        if (binder.owner.type === 'radio') {
+            binder.owner.addEventListener('xRadioInputHandler', (event: any) => handler(event, binder));
 
-                binder.owner?.addEventListener('input', (event: any) => {
-                    const parent = (binder.owner as any).form || binder.owner?.getRootNode();
-                    const radios = parent.querySelectorAll(`[type="radio"][name="${(binder.owner as any).name}"]`);
+            binder.owner.addEventListener('input', (event: InputEvent) => {
+                const parent = binder.owner.form || binder.owner.getRootNode();
+                const radios = parent.querySelectorAll(`[type="radio"][name="${(binder.owner as any).name}"]`);
 
-                    handler(event, binder);
+                handler(event, binder);
 
-                    for (const radio of radios) {
-                        if (radio === event.target) continue;
-                        radio.checked = false;
-                        radio.dispatchEvent(xRadioInputHandlerEvent);
-                    }
+                for (const radio of radios) {
+                    if (radio === event.target) continue;
+                    radio.checked = false;
+                    radio.dispatchEvent(xRadioInputHandlerEvent);
+                }
 
-                });
-            } else {
-                binder.owner?.addEventListener('input', (event: any) => handler(event, binder));
-            }
-
+            });
+        } else {
+            binder.owner.addEventListener('input', (event: InputEvent) => handler(event, binder));
         }
 
+    },
+
+    render (binder: any) {
         handler(undefined, binder);
     },
 

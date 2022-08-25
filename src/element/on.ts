@@ -112,20 +112,21 @@ const reset = async function (event: Event, binder: any) {
 
 export default {
 
-    render (binder:any) {
-        binder = binder ?? this;
+    setup (binder: any) {
+        binder.owner[ binder.name ] = undefined;
+        binder.meta.name = binder.name.slice(2);
+    },
 
-        (binder.owner as any)[ binder.name ] = undefined;
-        const name = binder.name.slice(2);
+    render (binder: any) {
 
         if (binder.meta.method) {
-            binder.owner?.removeEventListener(name, binder.meta.method);
+            binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
         }
 
         binder.meta.method = (event: Event) => {
-            if (name === 'reset') {
+            if (binder.meta.name === 'reset') {
                 return reset(event, binder);
-            } else if (name === 'submit') {
+            } else if (binder.meta.name === 'submit') {
                 return submit(event, binder);
             } else {
                 binder.instance.event = event;
@@ -134,17 +135,13 @@ export default {
             }
         };
 
-        binder.owner?.addEventListener(name, binder.meta.method);
+        binder.owner.addEventListener(binder.meta.name, binder.meta.method);
     },
 
-    reset (binder:any) {
-        binder = binder ?? this;
-
-        (binder.owner as any)[ binder.name ] = null;
-        const name = binder.name.slice(2);
+    reset (binder: any) {
 
         if (binder.meta.method) {
-            binder.owner?.removeEventListener(name, binder.meta.method);
+            binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
         }
 
     }
