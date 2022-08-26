@@ -295,16 +295,20 @@ export default class XElement extends HTMLElement {
             this.#add(node, context, rewrites);
 
         } else if (node.nodeType == node.ELEMENT_NODE) {
+            let attribute;
 
-            let attribute, ignore;
+            attribute = (node as Element).attributes.getNamedItem('each');
+
+            if (attribute && this.#syntaxMatch.test(attribute.value)) {
+                console.log(attribute, 'this not working');
+                return this.#add(attribute, context, rewrites);
+            }
+
             for (attribute of (node as Element).attributes) {
-                if (attribute.name == 'x-ignore') ignore = true;
                 if (this.#syntaxMatch.test(attribute.value)) {
                     this.#add(attribute, context, rewrites);
                 }
             }
-
-            if (ignore) return;
 
             let child = node.firstChild;
             while (child) {

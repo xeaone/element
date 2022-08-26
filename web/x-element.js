@@ -360,8 +360,8 @@ var html_default = {
     binder.node.nodeValue = "";
   },
   async render(binder) {
-    let data = binder.compute();
-    let fragment;
+    let data = await binder.compute();
+    let fragment, node;
     if (typeof data == "string") {
       const template = document.createElement("template");
       template.innerHTML = data;
@@ -369,30 +369,30 @@ var html_default = {
     } else if (data instanceof HTMLTemplateElement) {
       fragment = data.content.cloneNode(true);
     } else {
-      console.warn("html binder requires a string or template");
-      return;
+      return console.error("html binder requires a string or Template");
     }
-    let removeChild = binder.owner.lastChild;
-    while (removeChild) {
-      binder.owner.removeChild(removeChild);
-      binder.release(removeChild);
-      removeChild = binder.owner.lastChild;
+    node = binder.owner.lastChild;
+    while (node) {
+      binder.owner.removeChild(node);
+      binder.release(node);
+      node = binder.owner.lastChild;
     }
-    let addChild = fragment.firstChild;
-    while (addChild) {
-      binder.container.register(addChild, binder.context);
-      addChild = addChild.nextSibling;
+    node = fragment.firstChild;
+    while (node) {
+      binder.container.register(node, binder.context);
+      node = node.nextSibling;
     }
     await binder.container.render();
     binder.owner.appendChild(fragment);
   },
-  reset(binder) {
+  async reset(binder) {
     let node = binder.owner.lastChild;
     while (node) {
       binder.owner.removeChild(node);
       binder.release(node);
       node = binder.owner.lastChild;
     }
+    await binder.container.render();
   }
 };
 
@@ -475,6 +475,11 @@ var each_default = {
     if (binder.meta.currentLength === binder.meta.targetLength) {
       await binder.container.render();
       binder.owner.appendChild(binder.meta.queueElement.content);
+      if (!binder.meta.rerendered) {
+        binder.meta.rerendered = true;
+        console.log("this not working");
+        binder.container.register(binder.owner, binder.container.context);
+      }
     }
   }
 };
@@ -968,16 +973,17 @@ var XElement = class extends HTMLElement {
       }
       this.#add(node, context, rewrites);
     } else if (node.nodeType == node.ELEMENT_NODE) {
-      let attribute, ignore;
+      let attribute;
+      attribute = node.attributes.getNamedItem("each");
+      if (attribute && this.#syntaxMatch.test(attribute.value)) {
+        console.log(attribute, "this not working");
+        return this.#add(attribute, context, rewrites);
+      }
       for (attribute of node.attributes) {
-        if (attribute.name == "x-ignore")
-          ignore = true;
         if (this.#syntaxMatch.test(attribute.value)) {
           this.#add(attribute, context, rewrites);
         }
       }
-      if (ignore)
-        return;
       let child = node.firstChild;
       while (child) {
         this.register(child, context, rewrites);

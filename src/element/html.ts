@@ -5,12 +5,9 @@ export default {
     },
 
     async render (binder: any) {
-        let data = binder.compute();
+        let data = await binder.compute();
 
-        // if (typeof data !== 'string') {
-        //     data = '';
-        // }
-        let fragment;
+        let fragment, node;
 
         if (typeof data == 'string') {
             const template = document.createElement('template');
@@ -19,34 +16,36 @@ export default {
         } else if (data instanceof HTMLTemplateElement) {
             fragment = data.content.cloneNode(true);
         } else {
-            console.warn('html binder requires a string or template');
-            return;
+            return console.error('html binder requires a string or Template');
         }
 
-        let removeChild = binder.owner.lastChild;
-        while (removeChild) {
-            binder.owner.removeChild(removeChild);
-            binder.release(removeChild);
-            removeChild = binder.owner.lastChild;
+        node = binder.owner.lastChild;
+        while (node) {
+            binder.owner.removeChild(node);
+            binder.release(node);
+            node = binder.owner.lastChild;
         }
 
-        let addChild = fragment.firstChild;
-        while (addChild) {
-            binder.container.register(addChild, binder.context);
-            addChild = addChild.nextSibling;
+        node = fragment.firstChild;
+        while (node) {
+            binder.container.register(node, binder.context);
+            node = node.nextSibling;
         }
 
         await binder.container.render();
         binder.owner.appendChild(fragment);
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
+
         let node = binder.owner.lastChild;
         while (node) {
             binder.owner.removeChild(node);
             binder.release(node);
             node = binder.owner.lastChild;
         }
+
+        await binder.container.render();
     }
 
 };
