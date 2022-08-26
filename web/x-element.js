@@ -477,8 +477,8 @@ var each_default = {
       binder.owner.appendChild(binder.meta.queueElement.content);
       if (!binder.meta.rerendered) {
         binder.meta.rerendered = true;
-        console.log("this not working");
-        binder.container.register(binder.owner, binder.container.context);
+        binder.container.register(binder.owner, binder.context, binder.rewrites);
+        binder.container.render();
       }
     }
   }
@@ -658,20 +658,20 @@ function Binder(node, container, context, rewrites) {
   else
     handler2 = standard_default;
   const binder = {
-    node,
     name,
     value,
+    node,
+    handler: handler2,
     context,
     container,
-    handler: handler2,
-    meta: {},
-    instance: {},
-    references: /* @__PURE__ */ new Set(),
     setup: handler2.setup,
     reset: handler2.reset,
     render: handler2.render,
+    references: /* @__PURE__ */ new Set(),
+    meta: {},
+    instance: {},
     rewrites: rewrites ? [...rewrites] : [],
-    owner: node.ownerElement ?? void 0
+    owner: node.ownerElement ?? node
   };
   binder.setup?.(binder);
   let cache = Cache.get(binder.value);
@@ -976,7 +976,6 @@ var XElement = class extends HTMLElement {
       let attribute;
       attribute = node.attributes.getNamedItem("each");
       if (attribute && this.#syntaxMatch.test(attribute.value)) {
-        console.log(attribute, "this not working");
         return this.#add(attribute, context, rewrites);
       }
       for (attribute of node.attributes) {

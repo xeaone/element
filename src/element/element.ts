@@ -298,9 +298,7 @@ export default class XElement extends HTMLElement {
             let attribute;
 
             attribute = (node as Element).attributes.getNamedItem('each');
-
             if (attribute && this.#syntaxMatch.test(attribute.value)) {
-                console.log(attribute, 'this not working');
                 return this.#add(attribute, context, rewrites);
             }
 

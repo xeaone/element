@@ -64,20 +64,16 @@ export default function Binder (node: Node, container: XElement, context: Record
     else handler = Standard;
 
     const binder: any = {
-        node,
-        name,
-        value,
-        context,
-        container,
-        handler,
-        meta: {},
-        instance: {},
-        references: new Set(),
+        name, value,
+        node, handler,
+        context, container,
         setup: handler.setup,
         reset: handler.reset,
         render: handler.render,
+        references: new Set(),
+        meta: {}, instance: {},
         rewrites: rewrites ? [ ...rewrites ] : [],
-        owner: (node as Attr).ownerElement ?? undefined,
+        owner: (node as Attr).ownerElement ?? node,
     };
 
     binder.setup?.(binder);

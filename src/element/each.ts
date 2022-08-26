@@ -115,11 +115,13 @@ export default {
         if (binder.meta.currentLength === binder.meta.targetLength) {
             await binder.container.render();
             binder.owner.appendChild(binder.meta.queueElement.content);
+
             if (!binder.meta.rerendered) {
                 binder.meta.rerendered = true;
-                console.log('this not working');
-                binder.container.register(binder.owner, binder.container.context);
+                binder.container.register(binder.owner, binder.context, binder.rewrites);
+                binder.container.render();
             }
+
         }
 
     }
