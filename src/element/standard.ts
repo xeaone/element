@@ -1,4 +1,3 @@
-import format from './format';
 import booleans from './boolean';
 
 export default {
@@ -15,7 +14,13 @@ export default {
             if (data) binder.owner.setAttributeNode(binder.node);
             else binder.owner.removeAttribute(binder.name);
         } else {
-            const data = format(binder.compute());
+            let data = binder.compute();
+
+            data =
+                typeof data == 'string' ? data :
+                    typeof data == 'undefined' ? '' :
+                        typeof data == 'object' ? JSON.stringify(data) : data;
+
             binder.owner[ binder.name ] = data;
             binder.owner.setAttribute(binder.name, data);
         }

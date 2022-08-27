@@ -6,8 +6,6 @@ export default {
 
         binder.node.nodeValue = '';
 
-        binder.meta.keys = [];
-        binder.meta.setup = true;
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
         binder.meta.templateLength = 0;
@@ -34,23 +32,23 @@ export default {
         while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
     },
 
-    async render (binder: any) {
-
+    render (binder: any) {
         const [ data, variable, key, index ] = binder.compute();
         const [ reference ] = binder.references;
 
         binder.meta.data = data;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
-
         binder.meta.variable = variable;
         binder.meta.reference = reference;
 
         if (data?.constructor === Array) {
             binder.meta.targetLength = data.length;
-        } else {
+        } else if (data?.constructor === Object) {
             binder.meta.keys = Object.keys(data || {});
             binder.meta.targetLength = binder.meta.keys.length;
+        } else {
+            return console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
         }
 
         if (binder.meta.currentLength > binder.meta.targetLength) {
@@ -70,22 +68,13 @@ export default {
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
             let clone, context, rewrites;
             while (binder.meta.currentLength < binder.meta.targetLength) {
-                const keyValue = binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength;
+                const keyValue = binder.meta.keys?.[ binder.meta.currentLength ] ?? binder.meta.currentLength;
                 const indexValue = binder.meta.currentLength++;
 
                 rewrites = [
                     ...binder.rewrites,
                     [ binder.meta.variable, `${binder.meta.reference}.${keyValue}` ]
                 ];
-
-                // const context = Object.create(binder.context, {
-                //     ...binder.meta.keyName && { [ binder.meta.keyName ]: { value: keyValue } },
-                //     ...binder.meta.indexName && { [ binder.meta.indexName ]: { value: indexValue } },
-                //     [ binder.meta.variable ]: {
-                //         get () { return binder.meta.data[ keyValue ]; },
-                //         set (value) { binder.meta.data[ keyValue ] = value; },
-                //     }
-                // });
 
                 context = new Proxy(binder.context, {
                     has: (target, key) =>
@@ -105,21 +94,23 @@ export default {
                                     Reflect.set(target, key, value, receiver)
                 });
 
-                clone = binder.meta.templateElement.content.cloneNode(true);
-                binder.container.register(clone, context, rewrites);
-                binder.meta.queueElement.content.appendChild(clone);
+                let node = binder.meta.templateElement.content.firstChild;
+                while (node) {
+                    clone = node.cloneNode(true);
+                    binder.container.register(clone, context, rewrites);
+                    binder.meta.queueElement.content.appendChild(clone);
+                    node = node.nextSibling;
+                }
+
             }
         }
-        // console.timeEnd('each');
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            await binder.container.render();
             binder.owner.appendChild(binder.meta.queueElement.content);
 
             if (!binder.meta.rerendered) {
                 binder.meta.rerendered = true;
                 binder.container.register(binder.owner, binder.context, binder.rewrites);
-                binder.container.render();
             }
 
         }

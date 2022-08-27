@@ -6,9 +6,9 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
 
-    "module": "es2022",
-    "target": "es2022",
-    "lib": [ "ESNext", "DOM", "DOM.Iterable" ],
+    "module": "es2020",
+    "target": "es2020",
+    "lib": [ "ES2020", "DOM", "DOM.Iterable" ],
 
     "outDir": "./tmp/element/"
 

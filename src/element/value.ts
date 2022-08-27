@@ -1,4 +1,3 @@
-import format from './format';
 import date from './date';
 
 const defaultInputEvent = new Event('input');
@@ -8,26 +7,24 @@ const parseable = function (value: any) {
 };
 
 const input = function (binder: any, event: Event) {
-    const { owner } = binder;
-    const { type } = owner;
 
     binder.instance.$event = event;
     binder.instance.$assign = true;
 
-    if (type === 'select-one') {
-        const [ option ] = owner.selectedOptions;
+    if (binder.owner.type === 'select-one') {
+        const [ option ] = binder.owner.selectedOptions;
         binder.instance.$value = option ? '$value' in option ? option.$value : option.value : undefined;
-        owner.$value = binder.compute();
-    } else if (type === 'select-multiple') {
-        binder.instance.$value = Array.prototype.map.call(owner.selectedOptions, o => '$value' in o ? o.$value : o.value);
-        owner.$value = binder.compute();
-    } else if (type === 'number' || type === 'range' || date.includes(type)) {
-        binder.instance.$value = '$value' in owner && typeof owner.$value === 'number' ? owner.valueAsNumber : owner.value;
-        owner.$value = binder.compute();
+        binder.owner.$value = binder.compute();
+    } else if (binder.owner.type === 'select-multiple') {
+        binder.instance.$value = Array.prototype.map.call(binder.owner.selectedOptions, o => '$value' in o ? o.$value : o.value);
+        binder.owner.$value = binder.compute();
+    } else if (binder.owner.type === 'number' || binder.owner.type === 'range' || date.includes(binder.owner.type)) {
+        binder.instance.$value = '$value' in binder.owner && typeof binder.owner.$value === 'number' ? binder.owner.valueAsNumber : binder.owner.value;
+        binder.owner.$value = binder.compute();
     } else {
-        binder.instance.$value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
-        binder.instance.$checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
-        owner.$value = binder.compute();
+        binder.instance.$value = '$value' in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.value) : binder.owner.value;
+        binder.instance.$checked = '$value' in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.checked) : binder.owner.checked;
+        binder.owner.$value = binder.compute();
     }
 
 };
@@ -35,6 +32,7 @@ const input = function (binder: any, event: Event) {
 export default {
 
     setup (binder: any) {
+        binder.owner.value = '';
         binder.meta.type = binder.owner.type;
         binder.owner.addEventListener('input', (event: any) => input(binder, event));
     },
@@ -48,33 +46,50 @@ export default {
         const computed = binder.compute();
 
         let display;
+
         if (binder.meta.type === 'select-one') {
-            const owner = binder.owner as HTMLSelectElement;
-            owner.value = '';
 
-            Array.prototype.find.call(owner.options, o => '$value' in o ? o.$value : o.value === computed);
+            Array.prototype.find.call(binder.owner.options, o =>
+                '$value' in o ? o.$value : o.value === computed
+            );
 
-            if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
-                owner.options[ 0 ].selected = true;
-                return owner.dispatchEvent(defaultInputEvent);
+            if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
+                binder.owner.options[ 0 ].selected = true;
+                return binder.owner.dispatchEvent(defaultInputEvent);
             }
 
-            display = format(computed);
-            owner.value = display;
+            display =
+                typeof computed == 'string' ? computed :
+                    typeof computed == 'undefined' ? '' :
+                        typeof computed == 'object' ? JSON.stringify(computed) : computed;
+
+            binder.owner.value = display;
         } else if (binder.meta.type === 'select-multiple') {
-            const owner = binder.owner as HTMLSelectElement;
-            Array.prototype.forEach.call(owner.options, o => o.selected = computed?.includes('$value' in o ? o.$value : o.value));
-            display = format(computed);
+
+            Array.prototype.forEach.call(binder.owner.options, o =>
+                o.selected = computed?.includes('$value' in o ? o.$value : o.value)
+            );
+
+            display =
+                typeof computed == 'string' ? computed :
+                    typeof computed == 'undefined' ? '' :
+                        typeof computed == 'object' ? JSON.stringify(computed) : computed;
+
         } else if (binder.meta.type === 'number' || binder.meta.type === 'range' || date.includes(binder.meta.type)) {
-            const owner = binder.owner as HTMLInputElement;
-            if (typeof computed === 'string') owner.value = computed;
-            else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
-            else owner.value = '';
-            display = owner.value;
+
+            if (typeof computed === 'string') binder.owner.value = computed;
+            else if (typeof computed === 'number' && !isNaN(computed)) binder.owner.valueAsNumber = computed;
+            else binder.owner.value = '';
+
+            display = binder.owner.value;
         } else {
-            const owner = binder.owner as HTMLInputElement;
-            display = format(computed);
-            owner.value = display;
+
+            display =
+                typeof computed == 'string' ? computed :
+                    typeof computed == 'undefined' ? '' :
+                        typeof computed == 'object' ? JSON.stringify(computed) : computed;
+
+            binder.owner.value = display;
         }
 
         binder.owner.$value = computed;
@@ -84,8 +99,9 @@ export default {
     reset (binder: any) {
 
         if (binder.meta.type === 'select-one' || binder.meta.type === 'select-multiple') {
-            const owner = binder.owner as HTMLSelectElement;
-            Array.prototype.forEach.call(owner.options, option => option.selected = false);
+            Array.prototype.forEach.call(binder.owner.options, option =>
+                option.selected = false
+            );
         }
 
         binder.owner.value = '';

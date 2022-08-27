@@ -39,7 +39,7 @@ export default class XGuide extends XElement {
         console.log(this);
     }
 
-    async highlight (query) {
+    highlight (query) {
        return Highlight(this.querySelector(query).innerHTML, 'html')
             .replace(/{{/g, '{&zwnj;{').replace(/}}/g, '}&zwnj;}').replace(/^(\t{4}|\s{16})/mg, '').slice(1);
     }

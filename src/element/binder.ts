@@ -86,15 +86,7 @@ export default function Binder (node: Node, container: XElement, context: Record
         const assignment = clean.match(assignmentPattern);
         const references = clean.replace(ignorePattern, '').match(referencePattern) ?? [];
 
-        // console.log(
-        //     code,
-        //     clean,
-        //     assignment,
-        //     references
-        // );
-
         // binder.cache = Parse(value);
-
         const isValue = name === 'value';
         const isChecked = name === 'checked';
         // const assignment = binder.cache.assignmentLeft && binder.cache.assignmentMid && binder.cache.assignmentRight;

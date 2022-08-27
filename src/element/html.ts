@@ -4,8 +4,8 @@ export default {
         binder.node.nodeValue = '';
     },
 
-    async render (binder: any) {
-        let data = await binder.compute();
+    render (binder: any) {
+        let data = binder.compute();
 
         let fragment, node;
 
@@ -16,13 +16,13 @@ export default {
         } else if (data instanceof HTMLTemplateElement) {
             fragment = data.content.cloneNode(true);
         } else {
-            return console.error('html binder requires a string or Template');
+            return console.error(`XElement - Html Binder ${binder.name} ${binder.value} requires a string or Template`);
         }
 
         node = binder.owner.lastChild;
         while (node) {
             binder.owner.removeChild(node);
-            binder.release(node);
+            binder.container.release(node);
             node = binder.owner.lastChild;
         }
 
@@ -32,20 +32,18 @@ export default {
             node = node.nextSibling;
         }
 
-        await binder.container.render();
         binder.owner.appendChild(fragment);
     },
 
-    async reset (binder: any) {
+    reset (binder: any) {
 
         let node = binder.owner.lastChild;
         while (node) {
             binder.owner.removeChild(node);
-            binder.release(node);
+            binder.container.release(node);
             node = binder.owner.lastChild;
         }
 
-        await binder.container.render();
     }
 
 };
