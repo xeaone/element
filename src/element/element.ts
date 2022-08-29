@@ -160,7 +160,7 @@ export default class XElement extends HTMLElement {
     _add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
         const binder = Binder(node, this, context, rewrites);
 
-        let reference, binders;
+        let binders, reference;
         for (reference of binder.references) {
             binders = this._binders.get(reference);
             if (binders) {
@@ -321,7 +321,7 @@ export default class XElement extends HTMLElement {
         } else if (node.nodeType == node.ELEMENT_NODE) {
             let attribute;
 
-            attribute = (node as Element).attributes.getNamedItem('each');
+            attribute = ((node as Element).attributes as any).each;
             if (attribute && this._syntaxMatch.test(attribute.value)) {
                 return this._add(attribute, context, rewrites);
             }

@@ -826,7 +826,7 @@ var XElement = class extends HTMLElement {
   }
   _add(node, context, rewrites) {
     const binder = Binder(node, this, context, rewrites);
-    let reference, binders;
+    let binders, reference;
     for (reference of binder.references) {
       binders = this._binders.get(reference);
       if (binders) {
@@ -920,7 +920,7 @@ var XElement = class extends HTMLElement {
       this._add(node, context, rewrites);
     } else if (node.nodeType == node.ELEMENT_NODE) {
       let attribute;
-      attribute = node.attributes.getNamedItem("each");
+      attribute = node.attributes.each;
       if (attribute && this._syntaxMatch.test(attribute.value)) {
         return this._add(attribute, context, rewrites);
       }
