@@ -4,8 +4,6 @@ export default {
 
     setup (binder: any) {
 
-        binder.node.nodeValue = '';
-
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
         binder.meta.templateLength = 0;
@@ -32,7 +30,7 @@ export default {
         while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
     },
 
-    render (binder: any) {
+    async render (binder: any) {
         const [ data, variable, key, index ] = binder.compute();
         const [ reference ] = binder.references;
 
@@ -106,6 +104,7 @@ export default {
         }
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
+            await binder.container.update();
             binder.owner.appendChild(binder.meta.queueElement.content);
 
             if (!binder.meta.rerendered) {

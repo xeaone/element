@@ -4,10 +4,6 @@
 <link rel="stylesheet" href="./index.css">
 
 <o-loop>
-    <template shadowroot="open">
-        <slot></slot>
-    </template>
-
     <div class="wrap">
         <div class="loader">Loader</div>
     </div>
@@ -81,7 +77,7 @@
         }
         constructor () {
             super();
-            this.prepare();
+            this.shadowRoot.innerHTML = '<slot></slot>';
         }
     }
 

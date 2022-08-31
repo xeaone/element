@@ -1,9 +1,5 @@
 export default {
 
-    setup (binder: any) {
-        binder.node.nodeValue = '';
-    },
-
     render (binder: any) {
         let data = binder.compute();
 

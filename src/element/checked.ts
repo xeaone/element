@@ -21,8 +21,6 @@ export default {
 
     setup (binder: any) {
 
-        binder.node.nodeValue = '';
-
         if (binder.owner.type === 'radio') {
             binder.owner.addEventListener('xRadioInputHandler', (event: any) => handler(event, binder));
 
