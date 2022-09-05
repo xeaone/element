@@ -23,14 +23,14 @@ export default {
 
     },
 
-    async reset (binder: any) {
+    reset (binder: any) {
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
         while (binder.owner.lastChild) binder.release(binder.owner.removeChild(binder.owner.lastChild));
         while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
     },
 
-    async render (binder: any) {
+    render (binder: any) {
         const [ data, variable, key, index ] = binder.compute();
         const [ reference ] = binder.references;
 
@@ -104,14 +104,7 @@ export default {
         }
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            await binder.container.update();
             binder.owner.appendChild(binder.meta.queueElement.content);
-
-            if (!binder.meta.rerendered) {
-                binder.meta.rerendered = true;
-                binder.container.register(binder.owner, binder.context, binder.rewrites);
-            }
-
         }
 
     }

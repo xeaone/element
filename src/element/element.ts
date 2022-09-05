@@ -37,6 +37,7 @@ export default class XElement extends HTMLElement {
 
     get isPrepared () { return this._prepared; }
 
+    // private _updating: boolean = false;
     private _prepared: boolean = false;
     private _preparing: boolean = false;
     private _updates: Set<any> = new Set();
@@ -46,9 +47,9 @@ export default class XElement extends HTMLElement {
     // _data = {};
     // _context = new Proxy(this._data, {
     private _context = new Proxy({}, {
-        get: ContextGet.bind(null, this._change.bind(this), ''),
-        set: ContextSet.bind(null, this._change.bind(this), ''),
-        deleteProperty: ContextDelete.bind(null, this._change.bind(this), '')
+        get: ContextGet.bind(this, this._change.bind(this), ''),
+        set: ContextSet.bind(this, this._change.bind(this), ''),
+        deleteProperty: ContextDelete.bind(this, this._change.bind(this), '')
     });
 
     constructor () {
@@ -58,41 +59,55 @@ export default class XElement extends HTMLElement {
         this._mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
     }
 
-    _change (reference: string, type: string) {
-        const start = `${reference}.`;
+    async _changeStartsWith (reference: string, type: string) {
+
+        let key, binders, binder;
+        for ([ key, binders ] of this._binders) {
+            if ((key as string)?.startsWith?.(reference)) {
+                // if (binders) {
+                for (binder of binders) {
+                    binder.mode = type;
+                    this._updates.add(binder);
+                }
+                // }
+            }
+        }
+
+        await this.update();
+    }
+
+    async _change (reference: string, type: string) {
 
         let key, binders, binder;
         for ([ key, binders ] of this._binders) {
             if ((key as string) == reference) {
-                if (binders) {
-                    for (binder of binders) {
-                        binder.mode = type;
-                        this._updates.add(binder);
-                    }
+                // if (binders) {
+                for (binder of binders) {
+                    binder.mode = type;
+                    this._updates.add(binder);
                 }
-            } else if ((key as string)?.startsWith?.(start)) {
-                if (binders) {
-                    for (binder of binders) {
-                        binder.mode = type;
-                        this._updates.add(binder);
-                    }
-                }
+                // }
+            }
+        }
+
+        await this.update();
+        await this._changeStartsWith(`${reference}.`, type);
+    }
+
+    _mutation (mutations: Array<MutationRecord>) {
+        if (!this._prepared) return this.prepare();
+        let mutation, node;
+
+        for (mutation of mutations) {
+            for (node of mutation.addedNodes) {
+                this.register(node, this._context);
+            }
+            for (node of mutation.removedNodes) {
+                this.release(node);
             }
         }
 
         this.update();
-    }
-
-    _mutation (mutations: Array<MutationRecord>) {
-        this.prepare();
-        for (const mutation of mutations) {
-            for (const node of mutation.addedNodes) {
-                this.register(node, this._context);
-            }
-            for (const node of mutation.removedNodes) {
-                this.release(node);
-            }
-        }
     }
 
     _remove (node: Node) {
@@ -186,14 +201,10 @@ export default class XElement extends HTMLElement {
     }
 
     async update () {
-        // const count = this._updates.size;
-        // console.log('element update start', count);
-        // if (this._rendering) return;
-        // else this._rendering = true;
-        // this.dispatchEvent(this._renderingEvent);
 
         const tasks = [];
         const updates = this._updates.values();
+
         let result = updates.next();
         while (!result.done) {
             this._updates.delete(result.value);
@@ -201,12 +212,7 @@ export default class XElement extends HTMLElement {
             result = updates.next();
         }
 
-        // await Promise.all(updates.map(async binder => binder.render(binder)));
-        // this.dispatchEvent(this._renderedEvent);
-        // this._rendering = false;
-        // if (this._renders.length) await this.render();
         await Promise.all(tasks);
-        // console.log('element update end', count);
     }
 
     release (node: Node) {
@@ -251,11 +257,9 @@ export default class XElement extends HTMLElement {
             const start = node.nodeValue?.indexOf(XElement.syntaxStart) ?? -1;
             if (start == -1) return;
             if (start != 0) node = (node as Text).splitText(start);
-            // console.log(start != 0, 'start');
 
             const end = node.nodeValue?.indexOf(XElement.syntaxEnd) ?? -1;
             if (end == -1) return;
-            // console.log(end == -1, 'end');
 
             if (end + XElement.syntaxLength != node.nodeValue?.length) {
                 this.register((node as Text).splitText(end + XElement.syntaxLength), context, rewrites);
@@ -264,18 +268,21 @@ export default class XElement extends HTMLElement {
             this._add(node, context, rewrites);
 
         } else if (node.nodeType == node.ELEMENT_NODE) {
-            let attribute;
+            let attribute, inherit, each;
 
-            attribute = ((node as Element).attributes as any).each;
-            if (attribute && XElement.syntaxMatch.test(attribute.value)) {
-                return this._add(attribute, context, rewrites);
-            }
+            each = ((node as Element).attributes as any).each;
+            inherit = ((node as Element).attributes as any).inherit;
+            // if (each && XElement.syntaxMatch.test(each.value)) {
+            //     return this._add(each, context, rewrites);
+            // }
 
             for (attribute of (node as Element).attributes) {
                 if (XElement.syntaxMatch.test(attribute.value)) {
                     this._add(attribute, context, rewrites);
                 }
             }
+
+            if (each || inherit) return;
 
             let child = node.firstChild;
             while (child) {

@@ -12,9 +12,9 @@ var ContextGet = function(event, reference, target, key, receiver) {
   if (value && typeof value === "object") {
     reference = reference ? `${reference}.${key}` : `${key}`;
     return new Proxy(value, {
-      get: ContextGet.bind(null, event, reference),
-      set: ContextSet.bind(null, event, reference),
-      deleteProperty: ContextDelete.bind(null, event, reference)
+      get: ContextGet.bind(this, event, reference),
+      set: ContextSet.bind(this, event, reference),
+      deleteProperty: ContextDelete.bind(this, event, reference)
     });
   }
   return value;
@@ -23,7 +23,7 @@ var ContextDelete = function(event, reference, target, key) {
   if (typeof key === "symbol")
     return Reflect.deleteProperty(target, key);
   Reflect.deleteProperty(target, key);
-  tick(() => event(reference ? `${reference}.${key}` : `${key}`, "reset"));
+  tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, "reset"));
   return true;
 };
 var ContextSet = function(event, reference, target, key, to, receiver) {
@@ -31,14 +31,14 @@ var ContextSet = function(event, reference, target, key, to, receiver) {
     return Reflect.set(target, key, receiver);
   const from = Reflect.get(target, key, receiver);
   if (key === "length") {
-    tick(() => event(reference, "render"));
-    tick(() => event(reference ? `${reference}.${key}` : `${key}`, "render"));
+    tick(event.bind(this, reference, "render"));
+    tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, "render"));
     return Reflect.set(target, key, to, receiver);
   } else if (from === to || isNaN(from) && to === isNaN(to)) {
     return Reflect.set(target, key, to, receiver);
   }
   Reflect.set(target, key, to, receiver);
-  tick(() => event(reference ? `${reference}.${key}` : `${key}`, "render"));
+  tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, "render"));
   return true;
 };
 
@@ -287,6 +287,8 @@ var input = function(binder, event) {
   } else if (binder.owner.type === "number" || binder.owner.type === "range" || date_default.includes(binder.owner.type)) {
     binder.instance.$value = "$value" in binder.owner && typeof binder.owner.$value === "number" ? binder.owner.valueAsNumber : binder.owner.value;
     binder.owner.$value = binder.compute();
+  } else if (binder.owner.nodeName == "OPTION") {
+    throw "option event";
   } else {
     binder.instance.$value = "$value" in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.value) : binder.owner.value;
     binder.instance.$checked = "$value" in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.checked) : binder.owner.checked;
@@ -307,10 +309,9 @@ var value_default = {
     const computed = binder.compute();
     let display;
     if (binder.meta.type === "select-one") {
-      Array.prototype.find.call(
-        binder.owner.options,
-        (o) => "$value" in o ? o.$value : o.value === computed
-      );
+      for (const option of binder.owner.options) {
+        option.selected = "$value" in option ? option.$value === computed : option.value === computed;
+      }
       if (computed === void 0 && binder.owner.options.length && !binder.owner.selectedOptions.length) {
         binder.owner.options[0].selected = true;
         return binder.owner.dispatchEvent(defaultInputEvent);
@@ -318,10 +319,9 @@ var value_default = {
       display = typeof computed == "string" ? computed : typeof computed == "undefined" ? "" : typeof computed == "object" ? JSON.stringify(computed) : computed;
       binder.owner.value = display;
     } else if (binder.meta.type === "select-multiple") {
-      Array.prototype.forEach.call(
-        binder.owner.options,
-        (o) => o.selected = computed?.includes("$value" in o ? o.$value : o.value)
-      );
+      for (const option of binder.owner.options) {
+        option.selected = computed?.includes("$value" in option ? option.$value : option.value);
+      }
       display = typeof computed == "string" ? computed : typeof computed == "undefined" ? "" : typeof computed == "object" ? JSON.stringify(computed) : computed;
     } else if (binder.meta.type === "number" || binder.meta.type === "range" || date_default.includes(binder.meta.type)) {
       if (typeof computed === "string")
@@ -332,6 +332,17 @@ var value_default = {
         binder.owner.value = "";
       display = binder.owner.value;
     } else {
+      if (binder.owner.nodeName == "OPTION") {
+        if ("$value" in binder.owner.parentElement || "$value" in binder.owner.parentElement.parentElement) {
+          if (binder.owner.parentElement.$value === computed || binder.owner.parentElement.parentElement.$value === computed) {
+            binder.owner.selected = true;
+          }
+        } else {
+          if (binder.owner.parentElement.value === computed || binder.owner.parentElement.parentElement.value === computed) {
+            binder.owner.selected = true;
+          }
+        }
+      }
       display = typeof computed == "string" ? computed : typeof computed == "undefined" ? "" : typeof computed == "object" ? JSON.stringify(computed) : computed;
       binder.owner.value = display;
     }
@@ -340,10 +351,9 @@ var value_default = {
   },
   reset(binder) {
     if (binder.meta.type === "select-one" || binder.meta.type === "select-multiple") {
-      Array.prototype.forEach.call(
-        binder.owner.options,
-        (option) => option.selected = false
-      );
+      for (const option of binder.owner.options) {
+        option.selected = false;
+      }
     }
     binder.owner.value = "";
     binder.owner.$value = void 0;
@@ -357,7 +367,7 @@ var text_default = {
     const data = binder.compute();
     binder.node.nodeValue = typeof data == "string" ? data : typeof data == "undefined" ? "" : typeof data == "object" ? JSON.stringify(data) : data;
   },
-  async reset(binder) {
+  reset(binder) {
     binder.node.nodeValue = "";
   }
 };
@@ -419,7 +429,7 @@ var each_default = {
       node = binder.owner.firstChild;
     }
   },
-  async reset(binder) {
+  reset(binder) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
     while (binder.owner.lastChild)
@@ -427,7 +437,7 @@ var each_default = {
     while (binder.meta.queueElement.content.lastChild)
       binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
   },
-  async render(binder) {
+  render(binder) {
     const [data, variable, key, index] = binder.compute();
     const [reference] = binder.references;
     binder.meta.data = data;
@@ -479,12 +489,7 @@ var each_default = {
       }
     }
     if (binder.meta.currentLength === binder.meta.targetLength) {
-      await binder.container.update();
       binder.owner.appendChild(binder.meta.queueElement.content);
-      if (!binder.meta.rerendered) {
-        binder.meta.rerendered = true;
-        binder.container.register(binder.owner, binder.context, binder.rewrites);
-      }
     }
   }
 };
@@ -744,9 +749,9 @@ var _XElement = class extends HTMLElement {
     this._binders = /* @__PURE__ */ new Map();
     this._mutator = new MutationObserver(this._mutation.bind(this));
     this._context = new Proxy({}, {
-      get: ContextGet.bind(null, this._change.bind(this), ""),
-      set: ContextSet.bind(null, this._change.bind(this), ""),
-      deleteProperty: ContextDelete.bind(null, this._change.bind(this), "")
+      get: ContextGet.bind(this, this._change.bind(this), ""),
+      set: ContextSet.bind(this, this._change.bind(this), ""),
+      deleteProperty: ContextDelete.bind(this, this._change.bind(this), "")
     });
     if (!this.shadowRoot)
       this.attachShadow({ mode: "open" });
@@ -765,38 +770,44 @@ var _XElement = class extends HTMLElement {
   get isPrepared() {
     return this._prepared;
   }
-  _change(reference, type) {
-    const start = `${reference}.`;
+  async _changeStartsWith(reference, type) {
+    let key, binders, binder;
+    for ([key, binders] of this._binders) {
+      if (key?.startsWith?.(reference)) {
+        for (binder of binders) {
+          binder.mode = type;
+          this._updates.add(binder);
+        }
+      }
+    }
+    await this.update();
+  }
+  async _change(reference, type) {
     let key, binders, binder;
     for ([key, binders] of this._binders) {
       if (key == reference) {
-        if (binders) {
-          for (binder of binders) {
-            binder.mode = type;
-            this._updates.add(binder);
-          }
-        }
-      } else if (key?.startsWith?.(start)) {
-        if (binders) {
-          for (binder of binders) {
-            binder.mode = type;
-            this._updates.add(binder);
-          }
+        for (binder of binders) {
+          binder.mode = type;
+          this._updates.add(binder);
         }
       }
     }
-    this.update();
+    await this.update();
+    await this._changeStartsWith(`${reference}.`, type);
   }
   _mutation(mutations) {
-    this.prepare();
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes) {
+    if (!this._prepared)
+      return this.prepare();
+    let mutation, node;
+    for (mutation of mutations) {
+      for (node of mutation.addedNodes) {
         this.register(node, this._context);
       }
-      for (const node of mutation.removedNodes) {
+      for (node of mutation.removedNodes) {
         this.release(node);
       }
     }
+    this.update();
   }
   _remove(node) {
     const binders = this._binders.get(node);
@@ -924,16 +935,16 @@ var _XElement = class extends HTMLElement {
       }
       this._add(node, context, rewrites);
     } else if (node.nodeType == node.ELEMENT_NODE) {
-      let attribute;
-      attribute = node.attributes.each;
-      if (attribute && _XElement.syntaxMatch.test(attribute.value)) {
-        return this._add(attribute, context, rewrites);
-      }
+      let attribute, inherit, each;
+      each = node.attributes.each;
+      inherit = node.attributes.inherit;
       for (attribute of node.attributes) {
         if (_XElement.syntaxMatch.test(attribute.value)) {
           this._add(attribute, context, rewrites);
         }
       }
+      if (each || inherit)
+        return;
       let child = node.firstChild;
       while (child) {
         this.register(child, context, rewrites);

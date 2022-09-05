@@ -21,6 +21,8 @@ const input = function (binder: any, event: Event) {
     } else if (binder.owner.type === 'number' || binder.owner.type === 'range' || date.includes(binder.owner.type)) {
         binder.instance.$value = '$value' in binder.owner && typeof binder.owner.$value === 'number' ? binder.owner.valueAsNumber : binder.owner.value;
         binder.owner.$value = binder.compute();
+    } else if (binder.owner.nodeName == 'OPTION') {
+        throw 'option event';
     } else {
         binder.instance.$value = '$value' in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.value) : binder.owner.value;
         binder.instance.$checked = '$value' in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.checked) : binder.owner.checked;
@@ -49,9 +51,9 @@ export default {
 
         if (binder.meta.type === 'select-one') {
 
-            Array.prototype.find.call(binder.owner.options, o =>
-                '$value' in o ? o.$value : o.value === computed
-            );
+            for (const option of binder.owner.options) {
+                option.selected = '$value' in option ? option.$value === computed : option.value === computed;
+            }
 
             if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
                 binder.owner.options[ 0 ].selected = true;
@@ -66,9 +68,9 @@ export default {
             binder.owner.value = display;
         } else if (binder.meta.type === 'select-multiple') {
 
-            Array.prototype.forEach.call(binder.owner.options, o =>
-                o.selected = computed?.includes('$value' in o ? o.$value : o.value)
-            );
+            for (const option of binder.owner.options) {
+                option.selected = computed?.includes('$value' in option ? option.$value : option.value);
+            }
 
             display =
                 typeof computed == 'string' ? computed :
@@ -83,6 +85,18 @@ export default {
 
             display = binder.owner.value;
         } else {
+
+            if (binder.owner.nodeName == 'OPTION') {
+                if ('$value' in binder.owner.parentElement || '$value' in binder.owner.parentElement.parentElement) {
+                    if (binder.owner.parentElement.$value === computed || binder.owner.parentElement.parentElement.$value === computed) {
+                        binder.owner.selected = true;
+                    }
+                } else {
+                    if (binder.owner.parentElement.value === computed || binder.owner.parentElement.parentElement.value === computed) {
+                        binder.owner.selected = true;
+                    }
+                }
+            }
 
             display =
                 typeof computed == 'string' ? computed :
@@ -99,9 +113,9 @@ export default {
     reset (binder: any) {
 
         if (binder.meta.type === 'select-one' || binder.meta.type === 'select-multiple') {
-            Array.prototype.forEach.call(binder.owner.options, option =>
-                option.selected = false
-            );
+            for (const option of binder.owner.options) {
+                option.selected = false;
+            }
         }
 
         binder.owner.value = '';
@@ -110,4 +124,3 @@ export default {
     }
 
 };
-

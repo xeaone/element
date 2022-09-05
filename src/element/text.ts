@@ -11,7 +11,7 @@ export default {
 
     },
 
-    async reset (binder: any) {
+    reset (binder: any) {
         binder.node.nodeValue = '';
     }
 
