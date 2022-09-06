@@ -1,12 +1,11 @@
 <base href="/">
-<!-- <script>document.querySelector('base').href = location.hostname === 'xeaone.github.io' ? '/element/performance/' : '/performance/';</script> -->
+<title>XElement Performance</title>
 <script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/';</script>
 <link rel="stylesheet" href="./index.css">
 
+<h1>XElement Performance</h1>
+
 <o-loop>
-    <div class="wrap">
-        <div class="loader">Loader</div>
-    </div>
 
     <h3><span>{{count.toLocaleString()}}</span> bound elements</h3>
     <input value="{{count = $value}}" type="number">

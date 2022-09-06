@@ -1,10 +1,33 @@
-// src/element/tick.ts
+var __accessCheck = (obj, member, msg) => {
+  if (!member.has(obj))
+    throw TypeError("Cannot " + msg);
+};
+var __privateGet = (obj, member, getter) => {
+  __accessCheck(obj, member, "read from private field");
+  return getter ? getter.call(obj) : member.get(obj);
+};
+var __privateAdd = (obj, member, value) => {
+  if (member.has(obj))
+    throw TypeError("Cannot add the same private member more than once");
+  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+};
+var __privateSet = (obj, member, value, setter) => {
+  __accessCheck(obj, member, "write to private field");
+  setter ? setter.call(obj, value) : member.set(obj, value);
+  return value;
+};
+var __privateMethod = (obj, member, method) => {
+  __accessCheck(obj, member, "access private method");
+  return method;
+};
+
+// src/tick.ts
 var promise = Promise.resolve();
 function tick(method) {
   return promise.then(method);
 }
 
-// src/element/context.ts
+// src/context.ts
 var ContextGet = function(event, reference, target, key, receiver) {
   if (typeof key === "symbol")
     return Reflect.get(target, key, receiver);
@@ -12,9 +35,9 @@ var ContextGet = function(event, reference, target, key, receiver) {
   if (value && typeof value === "object") {
     reference = reference ? `${reference}.${key}` : `${key}`;
     return new Proxy(value, {
-      get: ContextGet.bind(this, event, reference),
-      set: ContextSet.bind(this, event, reference),
-      deleteProperty: ContextDelete.bind(this, event, reference)
+      get: ContextGet.bind(null, event, reference),
+      set: ContextSet.bind(null, event, reference),
+      deleteProperty: ContextDelete.bind(null, event, reference)
     });
   }
   return value;
@@ -23,7 +46,7 @@ var ContextDelete = function(event, reference, target, key) {
   if (typeof key === "symbol")
     return Reflect.deleteProperty(target, key);
   Reflect.deleteProperty(target, key);
-  tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, "reset"));
+  tick(async () => event(reference ? `${reference}.${key}` : `${key}`, "reset"));
   return true;
 };
 var ContextSet = function(event, reference, target, key, to, receiver) {
@@ -31,23 +54,23 @@ var ContextSet = function(event, reference, target, key, to, receiver) {
     return Reflect.set(target, key, receiver);
   const from = Reflect.get(target, key, receiver);
   if (key === "length") {
-    tick(event.bind(this, reference, "render"));
-    tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, "render"));
+    tick(async () => event(reference, "render"));
+    tick(async () => event(reference ? `${reference}.${key}` : `${key}`, "render"));
     return Reflect.set(target, key, to, receiver);
   } else if (from === to || isNaN(from) && to === isNaN(to)) {
     return Reflect.set(target, key, to, receiver);
   }
   Reflect.set(target, key, to, receiver);
-  tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, "render"));
+  tick(async () => event(reference ? `${reference}.${key}` : `${key}`, "render"));
   return true;
 };
 
-// src/element/dash.ts
+// src/dash.ts
 function dash(data) {
   return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
-// src/element/navigation.ts
+// src/navigation.ts
 var navigators = /* @__PURE__ */ new Map();
 var transition = async (options) => {
   if (options.cache && options.instance)
@@ -114,7 +137,7 @@ function navigation(path, file, options) {
   window.navigation.addEventListener("navigate", navigate);
 }
 
-// src/element/boolean.ts
+// src/boolean.ts
 var boolean_default = [
   "allowfullscreen",
   "async",
@@ -162,7 +185,7 @@ var boolean_default = [
   "visible"
 ];
 
-// src/element/standard.ts
+// src/standard.ts
 var standard_default = {
   setup(binder) {
     binder.node.value = "";
@@ -192,7 +215,7 @@ var standard_default = {
   }
 };
 
-// src/element/checked.ts
+// src/checked.ts
 var xRadioInputHandlerEvent = new CustomEvent("xRadioInputHandler");
 var handler = function(event, binder) {
   const owner = binder.owner;
@@ -235,7 +258,7 @@ var checked_default = {
   }
 };
 
-// src/element/inherit.ts
+// src/inherit.ts
 var inherit_default = {
   setup(binder) {
     binder.node.value = "";
@@ -260,7 +283,7 @@ var inherit_default = {
   }
 };
 
-// src/element/date.ts
+// src/date.ts
 var date_default = [
   "date",
   "datetime-local",
@@ -269,7 +292,7 @@ var date_default = [
   "week"
 ];
 
-// src/element/value.ts
+// src/value.ts
 var defaultInputEvent = new Event("input");
 var parseable = function(value) {
   return !isNaN(value) && value !== void 0 && typeof value !== "string";
@@ -361,7 +384,7 @@ var value_default = {
   }
 };
 
-// src/element/text.ts
+// src/text.ts
 var text_default = {
   render(binder) {
     const data = binder.compute();
@@ -372,7 +395,7 @@ var text_default = {
   }
 };
 
-// src/element/html.ts
+// src/html.ts
 var html_default = {
   render(binder) {
     let data = binder.compute();
@@ -409,7 +432,7 @@ var html_default = {
   }
 };
 
-// src/element/each.ts
+// src/each.ts
 var whitespace = /\s+/;
 var each_default = {
   setup(binder) {
@@ -437,7 +460,7 @@ var each_default = {
     while (binder.meta.queueElement.content.lastChild)
       binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
   },
-  render(binder) {
+  async render(binder) {
     const [data, variable, key, index] = binder.compute();
     const [reference] = binder.references;
     binder.meta.data = data;
@@ -494,7 +517,7 @@ var each_default = {
   }
 };
 
-// src/element/on.ts
+// src/on.ts
 var Value = function(element) {
   if (!element)
     return void 0;
@@ -622,7 +645,7 @@ var on_default = {
   }
 };
 
-// src/element/binder.ts
+// src/binder.ts
 var referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
 var stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
 var assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
@@ -720,7 +743,7 @@ function Binder(node, container, context, rewrites) {
   return binder;
 }
 
-// src/element/poly.ts
+// src/poly.ts
 async function Poly() {
   if ("shadowRoot" in HTMLTemplateElement.prototype === false) {
     (function attachShadowRoots(root) {
@@ -739,24 +762,29 @@ async function Poly() {
   }
 }
 
-// src/element/element.ts
+// src/element.ts
+var _prepared, _preparing, _updates, _binders, _mutator, _context, _change, change_fn, _mutation, mutation_fn, _remove, remove_fn, _add, add_fn;
 var _XElement = class extends HTMLElement {
   constructor() {
     super();
-    this._prepared = false;
-    this._preparing = false;
-    this._updates = /* @__PURE__ */ new Set();
-    this._binders = /* @__PURE__ */ new Map();
-    this._mutator = new MutationObserver(this._mutation.bind(this));
-    this._context = new Proxy({}, {
-      get: ContextGet.bind(this, this._change.bind(this), ""),
-      set: ContextSet.bind(this, this._change.bind(this), ""),
-      deleteProperty: ContextDelete.bind(this, this._change.bind(this), "")
-    });
+    __privateAdd(this, _change);
+    __privateAdd(this, _mutation);
+    __privateAdd(this, _remove);
+    __privateAdd(this, _add);
+    __privateAdd(this, _prepared, false);
+    __privateAdd(this, _preparing, false);
+    __privateAdd(this, _updates, /* @__PURE__ */ new Set());
+    __privateAdd(this, _binders, /* @__PURE__ */ new Map());
+    __privateAdd(this, _mutator, new MutationObserver(__privateMethod(this, _mutation, mutation_fn).bind(this)));
+    __privateAdd(this, _context, new Proxy({}, {
+      get: ContextGet.bind(null, __privateMethod(this, _change, change_fn).bind(this), ""),
+      set: ContextSet.bind(null, __privateMethod(this, _change, change_fn).bind(this), ""),
+      deleteProperty: ContextDelete.bind(null, __privateMethod(this, _change, change_fn).bind(this), "")
+    }));
     if (!this.shadowRoot)
       this.attachShadow({ mode: "open" });
-    this._mutator.observe(this, { childList: true });
-    this._mutator.observe(this.shadowRoot, { childList: true });
+    __privateGet(this, _mutator).observe(this, { childList: true });
+    __privateGet(this, _mutator).observe(this.shadowRoot, { childList: true });
   }
   static define(name, constructor) {
     constructor = constructor ?? this;
@@ -768,93 +796,31 @@ var _XElement = class extends HTMLElement {
     return customElements.whenDefined(name);
   }
   get isPrepared() {
-    return this._prepared;
+    return __privateGet(this, _prepared);
   }
-  async _changeStartsWith(reference, type) {
-    let key, binders, binder;
-    for ([key, binders] of this._binders) {
-      if (key?.startsWith?.(reference)) {
-        for (binder of binders) {
-          binder.mode = type;
-          this._updates.add(binder);
-        }
-      }
+  async update() {
+    const tasks = [];
+    const updates = __privateGet(this, _updates).values();
+    let result = updates.next();
+    while (!result.done) {
+      __privateGet(this, _updates).delete(result.value);
+      tasks.push(async function(binder) {
+        return binder[binder.mode](binder);
+      }(result.value));
+      result = updates.next();
     }
-    await this.update();
-  }
-  async _change(reference, type) {
-    let key, binders, binder;
-    for ([key, binders] of this._binders) {
-      if (key == reference) {
-        for (binder of binders) {
-          binder.mode = type;
-          this._updates.add(binder);
-        }
-      }
-    }
-    await this.update();
-    await this._changeStartsWith(`${reference}.`, type);
-  }
-  _mutation(mutations) {
-    if (!this._prepared)
-      return this.prepare();
-    let mutation, node;
-    for (mutation of mutations) {
-      for (node of mutation.addedNodes) {
-        this.register(node, this._context);
-      }
-      for (node of mutation.removedNodes) {
-        this.release(node);
-      }
-    }
-    this.update();
-  }
-  _remove(node) {
-    const binders = this._binders.get(node);
-    if (!binders)
-      return;
-    let binder, reference;
-    for (binder of binders) {
-      for (reference of binder.references) {
-        if (this._binders.has(reference)) {
-          this._binders.get(reference)?.delete(binder);
-          if (!this._binders.get(reference)?.size)
-            this._binders.delete(reference);
-        }
-      }
-    }
-    this._binders.delete(node);
-  }
-  _add(node, context, rewrites) {
-    const binder = Binder(node, this, context, rewrites);
-    let binders, reference;
-    for (reference of binder.references) {
-      binders = this._binders.get(reference);
-      if (binders) {
-        binders.add(binder);
-      } else {
-        this._binders.set(reference, /* @__PURE__ */ new Set([binder]));
-      }
-    }
-    const nodes = this._binders.get(binder.owner ?? binder.node);
-    if (nodes) {
-      nodes.add(binder);
-    } else {
-      this._binders.set(binder.owner ?? binder.node, /* @__PURE__ */ new Set([binder]));
-    }
-    binder.mode = "render";
-    this._updates.add(binder);
+    await Promise.all(tasks);
   }
   async prepare() {
-    if (this._prepared || this._preparing)
+    if (__privateGet(this, _prepared) || __privateGet(this, _preparing))
       return;
-    this._preparing = true;
+    __privateSet(this, _preparing, true);
     this.dispatchEvent(_XElement.preparingEvent);
     const prototype = Object.getPrototypeOf(this);
     const properties = this.constructor.observedProperties;
     const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
     for (const property in descriptors) {
-      if (properties && !properties?.includes(property) || "attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || property.startsWith("_"))
+      if (properties && !properties?.includes(property) || "attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || property.startsWith("#"))
         continue;
       const descriptor = descriptors[property];
       if (!descriptor.configurable)
@@ -865,36 +831,23 @@ var _XElement = class extends HTMLElement {
         descriptor.get = descriptor.get?.bind(this);
       if (typeof descriptor.value === "function")
         descriptor.value = descriptor.value.bind(this);
-      Object.defineProperty(this._context, property, descriptor);
+      Object.defineProperty(__privateGet(this, _context), property, descriptor);
       Object.defineProperty(this, property, {
         enumerable: descriptor.enumerable,
         configurable: descriptor.configureable,
-        get: () => this._context[property],
-        set: (value) => this._context[property] = value
+        get: () => __privateGet(this, _context)[property],
+        set: (value) => __privateGet(this, _context)[property] = value
       });
     }
-    this.register(this.shadowRoot, this._context);
-    this.register(this, this._context);
+    this.register(this.shadowRoot, __privateGet(this, _context));
+    this.register(this, __privateGet(this, _context));
     await this.update();
-    this._prepared = true;
+    __privateSet(this, _prepared, true);
     this.dispatchEvent(_XElement.preparedEvent);
-  }
-  async update() {
-    const tasks = [];
-    const updates = this._updates.values();
-    let result = updates.next();
-    while (!result.done) {
-      this._updates.delete(result.value);
-      tasks.push(async function(binder) {
-        return binder[binder.mode](binder);
-      }(result.value));
-      result = updates.next();
-    }
-    await Promise.all(tasks);
   }
   release(node) {
     if (node.nodeType == Node.TEXT_NODE) {
-      this._remove(node);
+      __privateMethod(this, _remove, remove_fn).call(this, node);
     } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
       let child = node.firstChild;
       while (child) {
@@ -902,10 +855,10 @@ var _XElement = class extends HTMLElement {
         child = child.nextSibling;
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      this._remove(node);
+      __privateMethod(this, _remove, remove_fn).call(this, node);
       let attribute;
       for (attribute of node.attributes) {
-        this._remove(attribute);
+        __privateMethod(this, _remove, remove_fn).call(this, attribute);
       }
       let child = node.firstChild;
       while (child) {
@@ -933,14 +886,14 @@ var _XElement = class extends HTMLElement {
       if (end + _XElement.syntaxLength != node.nodeValue?.length) {
         this.register(node.splitText(end + _XElement.syntaxLength), context, rewrites);
       }
-      this._add(node, context, rewrites);
+      __privateMethod(this, _add, add_fn).call(this, node, context, rewrites);
     } else if (node.nodeType == node.ELEMENT_NODE) {
       let attribute, inherit, each;
       each = node.attributes.each;
       inherit = node.attributes.inherit;
       for (attribute of node.attributes) {
         if (_XElement.syntaxMatch.test(attribute.value)) {
-          this._add(attribute, context, rewrites);
+          __privateMethod(this, _add, add_fn).call(this, attribute, context, rewrites);
         }
       }
       if (each || inherit)
@@ -974,6 +927,88 @@ var _XElement = class extends HTMLElement {
   }
 };
 var XElement = _XElement;
+_prepared = new WeakMap();
+_preparing = new WeakMap();
+_updates = new WeakMap();
+_binders = new WeakMap();
+_mutator = new WeakMap();
+_context = new WeakMap();
+_change = new WeakSet();
+change_fn = async function(reference, type) {
+  let key, binder, binders;
+  for ([key, binders] of __privateGet(this, _binders)) {
+    if (binders && key == reference) {
+      for (binder of binders) {
+        binder.mode = type;
+        __privateGet(this, _updates).add(binder);
+      }
+    }
+  }
+  await this.update();
+  reference = `${reference}.`;
+  for ([key, binders] of __privateGet(this, _binders)) {
+    if (binders && key?.startsWith?.(reference)) {
+      for (binder of binders) {
+        binder.mode = type;
+        __privateGet(this, _updates).add(binder);
+      }
+    }
+  }
+  await this.update();
+};
+_mutation = new WeakSet();
+mutation_fn = function(mutations) {
+  if (!__privateGet(this, _prepared))
+    return this.prepare();
+  let mutation, node;
+  for (mutation of mutations) {
+    for (node of mutation.addedNodes) {
+      this.register(node, __privateGet(this, _context));
+    }
+    for (node of mutation.removedNodes) {
+      this.release(node);
+    }
+  }
+  this.update();
+};
+_remove = new WeakSet();
+remove_fn = function(node) {
+  const binders = __privateGet(this, _binders).get(node);
+  if (!binders)
+    return;
+  let binder, reference;
+  for (binder of binders) {
+    for (reference of binder.references) {
+      if (__privateGet(this, _binders).has(reference)) {
+        __privateGet(this, _binders).get(reference)?.delete(binder);
+        if (!__privateGet(this, _binders).get(reference)?.size)
+          __privateGet(this, _binders).delete(reference);
+      }
+    }
+  }
+  __privateGet(this, _binders).delete(node);
+};
+_add = new WeakSet();
+add_fn = function(node, context, rewrites) {
+  const binder = Binder(node, this, context, rewrites);
+  let binders, reference;
+  for (reference of binder.references) {
+    binders = __privateGet(this, _binders).get(reference);
+    if (binders) {
+      binders.add(binder);
+    } else {
+      __privateGet(this, _binders).set(reference, /* @__PURE__ */ new Set([binder]));
+    }
+  }
+  const nodes = __privateGet(this, _binders).get(binder.owner ?? binder.node);
+  if (nodes) {
+    nodes.add(binder);
+  } else {
+    __privateGet(this, _binders).set(binder.owner ?? binder.node, /* @__PURE__ */ new Set([binder]));
+  }
+  binder.mode = "render";
+  __privateGet(this, _updates).add(binder);
+};
 XElement.poly = Poly;
 XElement.navigation = navigation;
 XElement.syntaxLength = 2;

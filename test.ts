@@ -15,7 +15,7 @@ await build({
     platform: 'browser',
     tsconfig: './tsconfig.json',
     outfile: './tmp/x-element.js',
-    entryPoints: [ 'src/element/element.ts' ],
+    entryPoints: [ 'src/element.ts' ],
 });
 
 stop();

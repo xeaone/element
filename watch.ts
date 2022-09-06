@@ -5,7 +5,7 @@ import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
 
 // Deno.run({ cmd: [ 'tsc', '--watch' ] }).status();
 
-const entry = 'src/element/element.ts';
+const entry = 'src/element.ts';
 
 await build({
     // watch: true,
@@ -17,7 +17,7 @@ await build({
     tsconfig: 'tsconfig.json',
     outfile: 'web/x-element.js',
     entryPoints: [ entry ],
-    // entryPoints: ['tmp/element/element.js'],
+    // entryPoints: ['tmp/element.js'],
     watch: {
         onRebuild (error, result) {
             if (error) {

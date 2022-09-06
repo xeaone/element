@@ -30,7 +30,7 @@ export default {
         while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
     },
 
-    render (binder: any) {
+    async render (binder: any) {
         const [ data, variable, key, index ] = binder.compute();
         const [ reference ] = binder.references;
 

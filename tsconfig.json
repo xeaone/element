@@ -10,9 +10,9 @@
     "target": "es2020",
     "lib": [ "ES2020", "DOM", "DOM.Iterable" ],
 
-    "outDir": "./tmp/element/"
+    "outDir": "./tmp/"
 
   },
-  "include": [ "./src/element/*" ],
-  "files": [ "./src/element/element.ts" ]
+  "include": [ "./src/*", "src/_globals.ts" ],
+  "files": [ "./src/element.ts" ]
 }
