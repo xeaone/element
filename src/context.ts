@@ -25,8 +25,7 @@ export const ContextDelete = function (event: any, reference: string, target: an
 
     Reflect.deleteProperty(target, key);
 
-    // tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, 'reset'));
-    tick(async () => event(reference ? `${reference}.${key}` : `${key}`, 'reset'));
+    tick(async function contextTick () { event(reference ? `${reference}.${key}` : `${key}`, 'reset'); });
 
     return true;
 };
@@ -37,18 +36,15 @@ export const ContextSet = function (event: any, reference: string, target: any, 
     const from = Reflect.get(target, key, receiver);
 
     if (key === 'length') {
-        tick(async () => event(reference, 'render'));
-        tick(async () => event(reference ? `${reference}.${key}` : `${key}`, 'render'));
-        // tick(event.bind(this, reference, 'render'));
-        // tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, 'render'));
+        tick(async function contextTick () { event(reference, 'render'); });
+        tick(async function contextTick () { event(reference ? `${reference}.${key}` : `${key}`, 'render'); });
         return Reflect.set(target, key, to, receiver);
     } else if (from === to || isNaN(from) && to === isNaN(to)) {
         return Reflect.set(target, key, to, receiver);
     }
 
     Reflect.set(target, key, to, receiver);
-    // tick(event.bind(this, reference ? `${reference}.${key}` : `${key}`, 'render'));
-    tick(async () => event(reference ? `${reference}.${key}` : `${key}`, 'render'));
+    tick(async function contextTick () { event(reference ? `${reference}.${key}` : `${key}`, 'render'); });
 
     return true;
 };
