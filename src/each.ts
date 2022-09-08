@@ -1,3 +1,5 @@
+import tick from './tick';
+
 const whitespace = /\s+/;
 
 export default {
@@ -23,14 +25,18 @@ export default {
 
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
-        while (binder.owner.lastChild) binder.release(binder.owner.removeChild(binder.owner.lastChild));
+        const tasks: any = [];
+        while (binder.owner.lastChild) tasks.push(binder.release(binder.owner.removeChild(binder.owner.lastChild)));
         while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
+        await Promise.all(tasks);
     },
 
     async render (binder: any) {
+
+        const tasks: any = [];
         const [ data, variable, key, index ] = binder.compute();
         const [ reference ] = binder.references;
 
@@ -50,6 +56,7 @@ export default {
         }
 
         if (binder.meta.currentLength > binder.meta.targetLength) {
+
             while (binder.meta.currentLength > binder.meta.targetLength) {
                 let count = binder.meta.templateLength, node;
 
@@ -57,13 +64,19 @@ export default {
                     node = binder.owner.lastChild;
                     if (node) {
                         binder.owner.removeChild(node);
-                        binder.container.release(node);
+                        tasks.push(binder.container.release(node));
                     }
                 }
 
                 binder.meta.currentLength--;
             }
+
+            if (binder.meta.currentLength === binder.meta.targetLength) {
+                await Promise.all(tasks);
+            }
+
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
+
             let clone, context, rewrites;
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const keyValue = binder.meta.keys?.[ binder.meta.currentLength ] ?? binder.meta.currentLength;
@@ -92,19 +105,28 @@ export default {
                                     Reflect.set(target, key, value, receiver)
                 });
 
-                let node = binder.meta.templateElement.content.firstChild;
-                while (node) {
-                    clone = node.cloneNode(true);
-                    binder.container.register(clone, context, rewrites);
-                    binder.meta.queueElement.content.appendChild(clone);
-                    node = node.nextSibling;
-                }
+
+                clone = binder.meta.templateElement.cloneNode(true).content;
+                tasks.push(binder.container.register(clone, context, rewrites));
+                binder.meta.queueElement.content.appendChild(clone);
+
+                // let node = binder.meta.templateElement.content.firstChild;
+                // while (node) {
+                //     clone = node.cloneNode(true);
+                //     // tasks.push(tick(binder.container.register.bind(binder.container, clone, context, rewrites)));
+                //     // tasks.push(binder.container.register.bind(binder.container, clone, context, rewrites));
+                //     tasks.push(binder.container.register(clone, context, rewrites));
+                //     binder.meta.queueElement.content.appendChild(clone);
+                //     node = node.nextSibling;
+                // }
 
             }
-        }
 
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            binder.owner.appendChild(binder.meta.queueElement.content);
+            if (binder.meta.currentLength === binder.meta.targetLength) {
+                await Promise.all(tasks);
+                binder.owner.appendChild(binder.meta.queueElement.content);
+            }
+
         }
 
     }

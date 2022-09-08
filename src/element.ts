@@ -3,6 +3,7 @@ import Navigation from './navigation';
 import Binder from './binder';
 import Dash from './dash';
 import Poly from './poly';
+import tick from './tick';
 
 export default class XElement extends HTMLElement {
 
@@ -60,45 +61,62 @@ export default class XElement extends HTMLElement {
 
     async #change (reference: string, type: string) {
         let key, binder, binders;
+        let tasks = [];
 
         for ([ key, binders ] of this.#binders) {
-            if (binders && (key as string) == reference) {
+            if (binders && (key as string) == reference || (key as string)?.startsWith?.(`${reference}.`)) {
                 for (binder of binders) {
-                    binder.mode = type;
-                    this.#updates.add(binder);
+                    // binder.mode = type;
+                    // this.#updates.add(binder);
+                    // tasks.push(tick(binder[ type ].bind(null, binder)));
+                    // binder[ type ](binder);
+                    tasks.push(binder);
                 }
             }
         }
 
-        await this.update();
+        await Promise.all(tasks.map(async function changePromiseAll (binder) {
+            return binder[ type ](binder);
+        }));
 
-        reference = `${reference}.`;
-        for ([ key, binders ] of this.#binders) {
-            if (binders && (key as string)?.startsWith?.(reference)) {
-                for (binder of binders) {
-                    binder.mode = type;
-                    this.#updates.add(binder);
-                }
-            }
-        }
+        // tasks = [];
 
-        await this.update();
+        // await this.update();
+
+        // for ([ key, binders ] of this.#binders) {
+        //     if (binders && (key as string)?.startsWith?.(`${reference}.`)) {
+        //         for (binder of binders) {
+        //             tasks.push(binder[ type ](binder));
+        //             // binder.mode = type;
+        //             // this.#updates.add(binder);
+        //             // tick(binder[ type ].bind(null, binder));
+        //             // ts.push(tick(binder[ type ].bind(null, binder)));
+        //         }
+        //     }
+        // }
+
+        // await Promise.all(tasks);
+        // await this.update();
     }
 
     #mutation (mutations: Array<MutationRecord>) {
-        if (!this.#prepared) return this.prepare();
-        let mutation, node;
+        // console.log(mutations);
+        if (this.#prepared) {
+            let mutation, node;
 
-        for (mutation of mutations) {
-            for (node of mutation.addedNodes) {
-                this.register(node, this.#context);
+            for (mutation of mutations) {
+                for (node of mutation.addedNodes) {
+                    this.register(node, this.#context, []);
+                }
+                for (node of mutation.removedNodes) {
+                    this.release(node);
+                }
             }
-            for (node of mutation.removedNodes) {
-                this.release(node);
-            }
+
+            // this.update();
+        } else {
+            this.prepare();
         }
-
-        this.update();
     }
 
     #remove (node: Node) {
@@ -118,7 +136,8 @@ export default class XElement extends HTMLElement {
         this.#binders.delete(node);
     }
 
-    #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+    async #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+
         const binder = Binder(node, this, context, rewrites);
 
         let binders, reference;
@@ -138,27 +157,34 @@ export default class XElement extends HTMLElement {
             this.#binders.set(binder.owner ?? binder.node, new Set([ binder ]));
         }
 
-        // binder.render(binder);
-        binder.mode = 'render';
-        this.#updates.add(binder);
+
+        await binder.render(binder);
     }
 
-    async update () {
+    // async update () {
+    //     const tasks = [];
+    //     const updates = this.#updates.values();
 
-        const tasks = [];
-        const updates = this.#updates.values();
+    //     let result = updates.next();
+    //     while (!result.done) {
+    //         this.#updates.delete(result.value);
 
-        let result = updates.next();
-        while (!result.done) {
-            this.#updates.delete(result.value);
-            tasks.push((async function (binder) { return binder[ binder.mode ](binder); })(result.value));
-            result = updates.next();
-        }
+    //         tasks.push(tick(async function updateTick (binder: any) {
+    //             return binder[ binder.mode ](binder);
+    //         }.bind(null, result.value)));
 
-        await Promise.all(tasks);
-    }
+    //         // result.value[ result.value.mode ](result.value);
+    //         // binder[ binder.mode ](binder);
+    //         result = updates.next();
+    //     }
+
+    //     await Promise.all(tasks);
+
+    //     if (this.#updates.size) await this.update();
+    // }
 
     async prepare () {
+        console.log('prepare');
         if (this.#prepared || this.#preparing) return;
 
         this.#preparing = true;
@@ -198,50 +224,53 @@ export default class XElement extends HTMLElement {
 
         }
 
-        this.register(this.shadowRoot as any, this.#context);
-        this.register(this, this.#context);
-
-        await this.update();
+        await this.register(this.shadowRoot as any, this.#context);
+        await this.register(this, this.#context);
 
         this.#prepared = true;
         this.dispatchEvent(XElement.preparedEvent);
     }
 
-    release (node: Node) {
+    async release (node: Node) {
+        const tasks = [];
+
         if (node.nodeType == Node.TEXT_NODE) {
-            this.#remove(node);
+            tasks.push(this.#remove(node));
         } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
 
             let child = node.firstChild;
             while (child) {
-                this.release(child);
+                tasks.push(this.release(child));
                 child = child.nextSibling;
             }
 
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            this.#remove(node);
+            tasks.push(this.#remove(node));
 
             let attribute;
             for (attribute of (node as Element).attributes) {
-                this.#remove(attribute);
+                tasks.push(this.#remove(attribute));
             }
 
             let child = node.firstChild;
             while (child) {
-                this.release(child);
+                tasks.push(this.release(child));
                 child = child.nextSibling;
             }
 
         }
+
+        await Promise.all(tasks);
     }
 
-    register (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+    async register (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+        const tasks = [];
 
         if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
 
             let child = node.firstChild;
             while (child) {
-                this.register(child, context, rewrites);
+                tasks.push(this.register(child, context, rewrites));
                 child = child.nextSibling;
             }
 
@@ -255,10 +284,10 @@ export default class XElement extends HTMLElement {
             if (end == -1) return;
 
             if (end + XElement.syntaxLength != node.nodeValue?.length) {
-                this.register((node as Text).splitText(end + XElement.syntaxLength), context, rewrites);
+                tasks.push(this.register((node as Text).splitText(end + XElement.syntaxLength), context, rewrites));
             }
 
-            this.#add(node, context, rewrites);
+            tasks.push(this.#add(node, context, rewrites));
 
         } else if (node.nodeType == node.ELEMENT_NODE) {
             let attribute, inherit, each;
@@ -268,20 +297,21 @@ export default class XElement extends HTMLElement {
 
             for (attribute of (node as Element).attributes) {
                 if (XElement.syntaxMatch.test(attribute.value)) {
-                    this.#add(attribute, context, rewrites);
+                    tasks.push(this.#add(attribute, context, rewrites));
                 }
             }
 
-            if (each || inherit) return;
-
-            let child = node.firstChild;
-            while (child) {
-                this.register(child, context, rewrites);
-                child = child.nextSibling;
+            if (!each && !inherit) {
+                let child = node.firstChild;
+                while (child) {
+                    tasks.push(this.register(child, context, rewrites));
+                    child = child.nextSibling;
+                }
             }
 
         }
 
+        await Promise.all(tasks);
     }
 
     adoptedCallback () {

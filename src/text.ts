@@ -1,7 +1,7 @@
 
 export default {
 
-    render (binder: any) {
+    async render (binder: any) {
         const data = binder.compute();
 
         binder.node.nodeValue =
@@ -11,7 +11,7 @@ export default {
 
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
         binder.node.nodeValue = '';
     }
 

@@ -13,8 +13,8 @@
     "scripts": {
         "p": "deno run -A src/parse.ts",
         "docs": "deno run -A docs.ts",
-        "watch": "deno run -A watch.ts",
         "deploy": "deno run -A deploy.ts",
+        "watch": "deno run -A --unstable watch.ts",
         "test": "deno test --allow-all --coverage=cov/"
     },
     "repository": {

@@ -14,14 +14,14 @@ interface Child extends HTMLElement {
     selectedOptions: NodeListOf<Child>;
 }
 
-const Value = function (element: Child) {
+const onValue = function (element: Child) {
     if (!element) return undefined;
     if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
     if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
     return element.value;
 };
 
-const submit = async function (event: Event, binder: any) {
+const onSubmit = async function (event: Event, binder: any) {
     event.preventDefault();
 
     const form: Record<string, any> = {};
@@ -39,13 +39,13 @@ const submit = async function (event: Event, binder: any) {
         if (type === 'select-multiple') {
             value = [];
             for (const option of element.selectedOptions) {
-                value.push(Value(option));
+                value.push(onValue(option));
             }
         } else if (type === 'select-one') {
             const [ option ] = element.selectedOptions;
-            value = Value(option);
+            value = onValue(option);
         } else {
-            value = Value(element);
+            value = onValue(element);
         }
 
         let data = form;
@@ -86,7 +86,7 @@ const submit = async function (event: Event, binder: any) {
     return false;
 };
 
-const reset = async function (event: Event, binder: any) {
+const onReset = async function (event: Event, binder: any) {
     event.preventDefault();
 
     const target = (event.target as Target)?.form || event.target as HTMLFormElement;
@@ -125,9 +125,9 @@ export default {
 
         binder.meta.method = (event: Event) => {
             if (binder.meta.name === 'reset') {
-                return reset(event, binder);
+                return onReset(event, binder);
             } else if (binder.meta.name === 'submit') {
-                return submit(event, binder);
+                return onSubmit(event, binder);
             } else {
                 binder.instance.event = event;
                 binder.instance.$event = event;

@@ -1,7 +1,7 @@
 
 const xRadioInputHandlerEvent = new CustomEvent('xRadioInputHandler');
 
-const handler = function (event?: Event, binder?: any) {
+const checkedHandler = function (event?: Event, binder?: any) {
     const owner = binder.owner as HTMLInputElement;
     const checked = owner.checked;
     binder.instance.event = event;
@@ -22,13 +22,13 @@ export default {
     setup (binder: any) {
 
         if (binder.owner.type === 'radio') {
-            binder.owner.addEventListener('xRadioInputHandler', (event: any) => handler(event, binder));
+            binder.owner.addEventListener('xRadioInputHandler', (event: any) => checkedHandler(event, binder));
 
             binder.owner.addEventListener('input', (event: InputEvent) => {
                 const parent = binder.owner.form || binder.owner.getRootNode();
                 const radios = parent.querySelectorAll(`[type="radio"][name="${(binder.owner as any).name}"]`);
 
-                handler(event, binder);
+                checkedHandler(event, binder);
 
                 for (const radio of radios) {
                     if (radio === event.target) continue;
@@ -38,13 +38,13 @@ export default {
 
             });
         } else {
-            binder.owner.addEventListener('input', (event: InputEvent) => handler(event, binder));
+            binder.owner.addEventListener('input', (event: InputEvent) => checkedHandler(event, binder));
         }
 
     },
 
     render (binder: any) {
-        handler(undefined, binder);
+        checkedHandler(undefined, binder);
     },
 
     reset (binder: any) {

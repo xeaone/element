@@ -4,6 +4,8 @@ import Color from './modules/color.js';
 
 export default class XGuide extends XElement {
 
+    #setup = false;
+
     title = 'Guide';
     text = 'Hello World';
 
@@ -48,13 +50,15 @@ export default class XGuide extends XElement {
         return this.querySelector(query);
     }
 
-    constructor () {
-        super();
-        this.shadowRoot.innerHTML = '<slot></slot>';
-    }
+    // constructor () {
+        // super();
+        // this.shadowRoot.innerHTML = '<slot></slot>';
+    // }
 
     connectedCallback () {
-        if (this.innerHTML) return;
+        if (this.#setup) return;
+        this.#setup = true;
+        this.shadowRoot.innerHTML = '<slot></slot>';
         this.innerHTML = this.#html;
         // document.body.style.opacity = 1;
         // const expression = document.createExpression(".//*[contains(@*,'{{') or contains(text(),'{{')]");

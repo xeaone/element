@@ -1,43 +1,45 @@
 #! /usr/bin/env -S deno run -A
 
 import { Cors, File, Handler, Normalize, Router, Server } from 'https://deno.land/x/xserver@0.2.1/mod.ts';
-import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
+// import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
 
-// Deno.run({ cmd: [ 'tsc', '--watch' ] }).status();
+Deno.run({ cmd: [ 'npx', 'tsc', '--watch' ] }).status();
+Deno.run({ cmd: [ 'npx', 'rollup', 'tmp/element.js', '--file', 'web/x-element.js', '--format', 'esm', '--watch' ] }).status();
 
-const entry = 'src/element.ts';
+// const entry = 'src/element.ts';
+// const entry = 'tmp/element.js';
 
-await build({
-    // watch: true,
-    bundle: true,
-    format: 'esm',
-    target: 'es2020',
-    treeShaking: true,
-    platform: 'browser',
-    tsconfig: 'tsconfig.json',
-    outfile: 'web/x-element.js',
-    entryPoints: [ entry ],
-    // entryPoints: ['tmp/element.js'],
-    watch: {
-        onRebuild (error, result) {
-            if (error) {
-                console.error(error);
-            } else if (result) {
-                const { errors, warnings } = result;
-                if (errors.length) console.log(errors);
-                else if (warnings.length) console.log(warnings);
-                else {
-                    console.clear();
-                    console.log(`watching: ${entry}`);
-                    console.log(`listening: ${port}`);
-                }
-            }
-        }
-    }
-});
+// await build({
+//     bundle: true,
+//     format: 'esm',
+//     target: 'esnext',
+//     treeShaking: true,
+//     platform: 'browser',
+//     tsconfig: 'tsconfig.json',
+//     outfile: 'web/x-element.js',
+//     entryPoints: [ entry ],
+//     watch: {
+//         onRebuild (error, result) {
+//             if (error) {
+//                 console.error(error);
+//             } else if (result) {
+//                 const { errors, warnings } = result;
+//                 if (errors.length) console.log(errors);
+//                 else if (warnings.length) console.log(warnings);
+//                 else {
+//                     console.clear();
+//                     console.log(`watching: ${entry}`);
+//                     console.log(`listening: ${port}`);
+//                 }
+//             }
+//         }
+//     }
+// });
 
-console.clear();
-console.log(`watching: ${entry}`);
+// Deno.run({ cmd: [ 'deno', 'bundle', 'src/element.ts', 'web/x-element.js', '--watch', ] }).status();
+
+// console.clear();
+// console.log(`watching: ${entry}`);
 
 const port = 8000;
 const file = new File();
@@ -68,4 +70,4 @@ console.log(`listening: ${port}`);
 
 await server;
 
-stop();
+// stop();
