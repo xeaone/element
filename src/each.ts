@@ -1,4 +1,4 @@
-import tick from './tick';
+import utility from './utility';
 
 const whitespace = /\s+/;
 
@@ -106,19 +106,18 @@ export default {
                 });
 
 
-                clone = binder.meta.templateElement.cloneNode(true).content;
-                tasks.push(binder.container.register(clone, context, rewrites));
-                binder.meta.queueElement.content.appendChild(clone);
+                // clone = binder.meta.templateElement.cloneNode(true).content;
+                // tasks.push(binder.container.register(clone, context, rewrites));
+                // binder.meta.queueElement.content.appendChild(clone);
 
-                // let node = binder.meta.templateElement.content.firstChild;
-                // while (node) {
-                //     clone = node.cloneNode(true);
-                //     // tasks.push(tick(binder.container.register.bind(binder.container, clone, context, rewrites)));
-                //     // tasks.push(binder.container.register.bind(binder.container, clone, context, rewrites));
-                //     tasks.push(binder.container.register(clone, context, rewrites));
-                //     binder.meta.queueElement.content.appendChild(clone);
-                //     node = node.nextSibling;
-                // }
+                let node = binder.meta.templateElement.content.firstChild;
+                while (node) {
+                    clone = node.cloneNode(true);
+                    clone[ utility.parent ] = binder.owner;
+                    tasks.push(binder.container.register(clone, context, rewrites));
+                    binder.meta.queueElement.content.appendChild(clone);
+                    node = node.nextSibling;
+                }
 
             }
 

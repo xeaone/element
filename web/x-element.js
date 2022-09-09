@@ -223,47 +223,60 @@ var Inherit = {
     }
 };
 
+var utility = Object.freeze({
+    value: Symbol('value'),
+    parent: Symbol('parent'),
+    parseable(value) {
+        return !isNaN(value) && value !== undefined && typeof value !== 'string';
+    }
+});
+
 var date = [
     'date', 'datetime-local', 'month', 'time', 'week'
 ];
 
-const defaultInputEvent = new Event('input');
-const parseable = function (value) {
-    return !isNaN(value) && value !== undefined && typeof value !== 'string';
+const valueEvent = new Event('input');
+const valueDisplay = function (data) {
+    return typeof data == 'string' ? data :
+        typeof data == 'undefined' ? '' :
+            typeof data == 'object' ? JSON.stringify(data) :
+                data;
 };
-const input = function (binder, event) {
+const valueInput = function (binder, event) {
+    binder.instance.event = event;
     binder.instance.$event = event;
     binder.instance.$assign = true;
     if (binder.owner.type === 'select-one') {
         const [option] = binder.owner.selectedOptions;
-        binder.instance.$value = option ? '$value' in option ? option.$value : option.value : undefined;
-        binder.owner.$value = binder.compute();
+        binder.instance.$value = option ? utility.value in option ? option[utility.value] : option.value : undefined;
+        binder.owner[utility.value] = binder.compute();
     }
     else if (binder.owner.type === 'select-multiple') {
-        binder.instance.$value = Array.prototype.map.call(binder.owner.selectedOptions, o => '$value' in o ? o.$value : o.value);
-        binder.owner.$value = binder.compute();
+        binder.instance.$value = Array.prototype.map.call(binder.owner.selectedOptions, o => utility.value in o ? o[utility.value] : o.value);
+        binder.owner[utility.value] = binder.compute();
     }
     else if (binder.owner.type === 'number' || binder.owner.type === 'range' || date.includes(binder.owner.type)) {
-        binder.instance.$value = '$value' in binder.owner && typeof binder.owner.$value === 'number' ? binder.owner.valueAsNumber : binder.owner.value;
-        binder.owner.$value = binder.compute();
+        binder.instance.$value = utility.value in binder.owner && typeof binder.owner[utility.value] === 'number' ? binder.owner.valueAsNumber : binder.owner.value;
+        binder.owner[utility.value] = binder.compute();
     }
     else if (binder.owner.nodeName == 'OPTION') {
         throw 'option event';
     }
     else {
-        binder.instance.$value = '$value' in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.value) : binder.owner.value;
-        binder.instance.$checked = '$value' in binder.owner && parseable(binder.owner.$value) ? JSON.parse(binder.owner.checked) : binder.owner.checked;
-        binder.owner.$value = binder.compute();
+        binder.instance.$value = utility.value in binder.owner && utility.parseable(binder.owner[utility.value]) ? JSON.parse(binder.owner.value) : binder.owner.value;
+        binder.instance.$checked = utility.value in binder.owner && utility.parseable(binder.owner[utility.value]) ? JSON.parse(binder.owner.checked) : binder.owner.checked;
+        binder.owner[utility.value] = binder.compute();
     }
 };
 var Value = {
     setup(binder) {
         binder.owner.value = '';
         binder.meta.type = binder.owner.type;
-        binder.owner.addEventListener('input', (event) => input(binder, event));
+        binder.owner.addEventListener('input', (event) => valueInput(binder, event));
     },
     render(binder) {
         binder.instance.$assign = false;
+        binder.instance.event = undefined;
         binder.instance.$event = undefined;
         binder.instance.$value = undefined;
         binder.instance.$checked = undefined;
@@ -271,26 +284,20 @@ var Value = {
         let display;
         if (binder.meta.type === 'select-one') {
             for (const option of binder.owner.options) {
-                option.selected = '$value' in option ? option.$value === computed : option.value === computed;
+                option.selected = utility.value in option ? option[utility.value] === computed : option.value === computed;
             }
             if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
                 binder.owner.options[0].selected = true;
-                return binder.owner.dispatchEvent(defaultInputEvent);
+                return binder.owner.dispatchEvent(valueEvent);
             }
-            display =
-                typeof computed == 'string' ? computed :
-                    typeof computed == 'undefined' ? '' :
-                        typeof computed == 'object' ? JSON.stringify(computed) : computed;
+            display = valueDisplay(computed);
             binder.owner.value = display;
         }
         else if (binder.meta.type === 'select-multiple') {
             for (const option of binder.owner.options) {
-                option.selected = computed?.includes('$value' in option ? option.$value : option.value);
+                option.selected = computed?.includes(utility.value in option ? option[utility.value] : option.value);
             }
-            display =
-                typeof computed == 'string' ? computed :
-                    typeof computed == 'undefined' ? '' :
-                        typeof computed == 'object' ? JSON.stringify(computed) : computed;
+            display = valueDisplay(computed);
         }
         else if (binder.meta.type === 'number' || binder.meta.type === 'range' || date.includes(binder.meta.type)) {
             if (typeof computed === 'string')
@@ -303,24 +310,18 @@ var Value = {
         }
         else {
             if (binder.owner.nodeName == 'OPTION') {
-                if ('$value' in binder.owner.parentElement || '$value' in binder.owner.parentElement.parentElement) {
-                    if (binder.owner.parentElement.$value === computed || binder.owner.parentElement.parentElement.$value === computed) {
-                        binder.owner.selected = true;
-                    }
-                }
-                else {
-                    if (binder.owner.parentElement.value === computed || binder.owner.parentElement.parentElement.value === computed) {
-                        binder.owner.selected = true;
-                    }
-                }
+                const parent = binder.owner?.parentElement?.nodeName === 'SELECT' ? binder.owner.parentElement :
+                    binder.owner?.parentElement?.parentElement?.nodeName === 'SELECT' ? binder.owner.parentElement.parentElement :
+                        binder.owner?.[utility.parent]?.nodeName === 'SELECT' ? binder.owner[utility.parent] :
+                            null;
+                const value = utility.value in parent ? parent[utility.value] : parent.value;
+                if (value === computed)
+                    binder.owner.selected = true;
             }
-            display =
-                typeof computed == 'string' ? computed :
-                    typeof computed == 'undefined' ? '' :
-                        typeof computed == 'object' ? JSON.stringify(computed) : computed;
+            display = valueDisplay(computed);
             binder.owner.value = display;
         }
-        binder.owner.$value = computed;
+        binder.owner[utility.value] = computed;
         binder.owner.setAttribute('value', display);
     },
     reset(binder) {
@@ -330,8 +331,8 @@ var Value = {
             }
         }
         binder.owner.value = '';
-        binder.owner.$value = undefined;
         binder.owner.setAttribute('value', '');
+        binder.owner[utility.value] = undefined;
     }
 };
 
@@ -474,9 +475,14 @@ var Each = {
                             key === binder.meta.variable ? Reflect.set(binder.meta.data, keyValue, value) :
                                 Reflect.set(target, key, value, receiver)
                 });
-                clone = binder.meta.templateElement.cloneNode(true).content;
-                tasks.push(binder.container.register(clone, context, rewrites));
-                binder.meta.queueElement.content.appendChild(clone);
+                let node = binder.meta.templateElement.content.firstChild;
+                while (node) {
+                    clone = node.cloneNode(true);
+                    clone[utility.parent] = binder.owner;
+                    tasks.push(binder.container.register(clone, context, rewrites));
+                    binder.meta.queueElement.content.appendChild(clone);
+                    node = node.nextSibling;
+                }
             }
             if (binder.meta.currentLength === binder.meta.targetLength) {
                 await Promise.all(tasks);
@@ -489,10 +495,14 @@ var Each = {
 const onValue = function (element) {
     if (!element)
         return undefined;
-    if ('$value' in element)
-        return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
-    if (element.type === 'number' || element.type === 'range')
+    if (utility.value in element) {
+        return utility.parseable(element[utility.value]) ?
+            JSON.parse(JSON.stringify(element[utility.value])) :
+            element[utility.value];
+    }
+    if (element.type === 'number' || element.type === 'range') {
         return element.valueAsNumber;
+    }
     return element.value;
 };
 const onSubmit = async function (event, binder) {
@@ -685,26 +695,23 @@ function Binder(node, container, context, rewrites) {
         const isValue = name === 'value';
         const isChecked = name === 'checked';
         const compute = new Function('$context', '$instance', `
-        try {
-            with ($context) {
-                with ($instance) {
-                    ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[1]};` : ''}
-                    ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[1]};` : ''}
-                    return ${assignment ? `$assign ? ${code} : ${assignment?.[3]}` : code};
-                }
+        with ($context) {
+            with ($instance) {
+                ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[1]};` : ''}
+                ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[1]};` : ''}
+                return ${assignment ? `$assign ? ${code} : ${assignment?.[3]}` : code};
             }
-        } catch (error){
-            console.error(error);
         }
         `);
         cache = { compute, references };
         Cache.set(value, cache);
     }
-    for (let reference of cache.references) {
+    let reference, nameRewrite, valueRewrite;
+    for (reference of cache.references) {
         if (rewrites) {
-            for (const [name, value] of rewrites) {
-                reference = reference === name ? value :
-                    reference.startsWith(name + '.') ? value + reference.slice(name.length) :
+            for ([nameRewrite, valueRewrite] of rewrites) {
+                reference = reference === nameRewrite ? valueRewrite :
+                    reference.startsWith(nameRewrite + '.') ? valueRewrite + reference.slice(nameRewrite.length) :
                         reference;
             }
         }
@@ -778,6 +785,7 @@ class XElement extends HTMLElement {
         this.#mutator.observe(this.shadowRoot, { childList: true });
     }
     async #change(reference, type) {
+        console.log('change start');
         let key, binder, binders;
         let tasks = [];
         for ([key, binders] of this.#binders) {
@@ -790,8 +798,10 @@ class XElement extends HTMLElement {
         await Promise.all(tasks.map(async function changePromiseAll(binder) {
             return binder[type](binder);
         }));
+        console.log('change end');
     }
     #mutation(mutations) {
+        console.log('mutation');
         if (this.#prepared) {
             let mutation, node;
             for (mutation of mutations) {

@@ -60,6 +60,7 @@ export default class XElement extends HTMLElement {
     }
 
     async #change (reference: string, type: string) {
+        console.log('change start');
         let key, binder, binders;
         let tasks = [];
 
@@ -97,10 +98,11 @@ export default class XElement extends HTMLElement {
 
         // await Promise.all(tasks);
         // await this.update();
+        console.log('change end');
     }
 
     #mutation (mutations: Array<MutationRecord>) {
-        // console.log(mutations);
+        console.log('mutation');
         if (this.#prepared) {
             let mutation, node;
 
@@ -139,6 +141,7 @@ export default class XElement extends HTMLElement {
     async #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
 
         const binder = Binder(node, this, context, rewrites);
+        // const binder = await Binder(node, this, context, rewrites);
 
         let binders, reference;
         for (reference of binder.references) {
@@ -264,6 +267,7 @@ export default class XElement extends HTMLElement {
     }
 
     async register (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+        // console.log(node);
         const tasks = [];
 
         if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {

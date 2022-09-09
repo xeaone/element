@@ -1,3 +1,4 @@
+import utility from './utility';
 
 interface Target extends HTMLElement {
     form: HTMLFormElement;
@@ -7,17 +8,26 @@ interface Child extends HTMLElement {
     type: string;
     name: string;
     value: string;
-    $value: any;
     checked: boolean;
     valueAsNumber: number;
     selectedIndex: number;
     selectedOptions: NodeListOf<Child>;
+    [ key: symbol ]: any;
 }
 
 const onValue = function (element: Child) {
     if (!element) return undefined;
-    if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
-    if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
+
+    if (utility.value in element) {
+        return utility.parseable(element[ utility.value ]) ?
+            JSON.parse(JSON.stringify(element[ utility.value ])) :
+            element[ utility.value ];
+    }
+
+    if (element.type === 'number' || element.type === 'range') {
+        return element.valueAsNumber;
+    }
+
     return element.value;
 };
 
