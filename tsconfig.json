@@ -7,7 +7,7 @@
 
     "module": "ES2022",
     "target": "ES2022",
-    "lib": [ "Es2022", "DOM", "DOM.Iterable" ],
+    "lib": [ "ES2022", "DOM", "DOM.Iterable" ],
 
     "outDir": "./tmp/"
 

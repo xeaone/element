@@ -9,7 +9,15 @@ export default {
 
     render (binder: any) {
 
-        if (binder.meta.boolean) {
+        if (binder.name == 'text') {
+            const data = binder.compute();
+
+            binder.node.nodeValue =
+                typeof data == 'string' ? data :
+                    typeof data == 'undefined' ? '' :
+                        typeof data == 'object' ? JSON.stringify(data) : data;
+
+        } else if (binder.meta.boolean) {
             const data = binder.compute() ? true : false;
             if (data) binder.owner.setAttributeNode(binder.node);
             else binder.owner.removeAttribute(binder.name);
@@ -28,15 +36,14 @@ export default {
     },
 
     reset (binder: any) {
-
-        if (binder.meta.boolean) {
+        if (binder.name == 'text') {
+            binder.node.nodeValue = '';
+        } else if (binder.meta.boolean) {
             binder.owner.removeAttribute(binder.name);
         } else {
             binder.owner[ binder.name ] = undefined;
             binder.owner?.setAttribute(binder.name, '');
         }
-
     }
 
 };
-

@@ -4,7 +4,6 @@ import Standard from './standard';
 import Checked from './checked';
 import Inherit from './inherit';
 import Value from './value';
-import Text from './text';
 import Html from './html';
 import Each from './each';
 import On from './on';
@@ -85,18 +84,25 @@ const Cache: Map<string, any> = new Map();
 // };
 
 export default function Binder (node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-    // export default async function Binder (node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
 
-    const value = node.nodeValue ?? '';
-    const name =
-        node.nodeType === Node.ATTRIBUTE_NODE ? (node as Attr).name :
-            node.nodeType === Node.TEXT_NODE ? 'text' : node.nodeName;
-
-    node.nodeValue = '';
+    let name, value, owner;
+    if (node.nodeType === Node.TEXT_NODE) {
+        owner = node;
+        name = 'text';
+        value = node.textContent ?? '';
+        node.textContent = '';
+    } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
+        name = (node as Attr).name ?? '';
+        value = (node as Attr).value ?? '';
+        // parentNode required for linkdom bug
+        owner = (node as Attr).ownerElement ?? (node as Attr).parentNode as Node;
+        (node as Attr).value = '';
+    } else {
+        throw new Error('XElement - Node not valid');
+    }
 
     let handler: Handler;
-    if (name === 'text') handler = Text as Handler;
-    else if (name === 'html') handler = Html as Handler;
+    if (name === 'html') handler = Html as Handler;
     else if (name === 'each') handler = Each as Handler;
     else if (name === 'value') handler = Value as Handler;
     else if (name === 'inherit') handler = Inherit as Handler;
@@ -105,22 +111,18 @@ export default function Binder (node: Node, container: XElement, context: Record
     else handler = Standard;
 
     const binder: any = {
-        name, value,
-        node, handler,
-        context, container,
+        name, value, owner, node, handler, context, container,
         setup: handler.setup,
         reset: handler.reset,
         render: handler.render,
         references: new Set(),
         meta: {}, instance: {},
         rewrites: rewrites ? [ ...rewrites ] : [],
-        owner: (node as Attr).ownerElement ?? node,
     };
 
     binder.setup?.(binder);
 
     let cache = Cache.get(binder.value);
-    // console.log(cache, binder.value);
 
     if (!cache) {
         const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');

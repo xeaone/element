@@ -3,7 +3,6 @@ import Navigation from './navigation';
 import Binder from './binder';
 import Dash from './dash';
 import Poly from './poly';
-import tick from './tick';
 
 export default class XElement extends HTMLElement {
 
@@ -40,7 +39,6 @@ export default class XElement extends HTMLElement {
 
     #prepared: boolean = false;
     #preparing: boolean = false;
-    #updates: Set<any> = new Set();
     #binders: Map<string | Node, Set<any>> = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
 
@@ -60,17 +58,12 @@ export default class XElement extends HTMLElement {
     }
 
     async #change (reference: string, type: string) {
-        console.log('change start');
         let key, binder, binders;
         let tasks = [];
 
         for ([ key, binders ] of this.#binders) {
             if (binders && (key as string) == reference || (key as string)?.startsWith?.(`${reference}.`)) {
                 for (binder of binders) {
-                    // binder.mode = type;
-                    // this.#updates.add(binder);
-                    // tasks.push(tick(binder[ type ].bind(null, binder)));
-                    // binder[ type ](binder);
                     tasks.push(binder);
                 }
             }
@@ -80,32 +73,11 @@ export default class XElement extends HTMLElement {
             return binder[ type ](binder);
         }));
 
-        // tasks = [];
-
-        // await this.update();
-
-        // for ([ key, binders ] of this.#binders) {
-        //     if (binders && (key as string)?.startsWith?.(`${reference}.`)) {
-        //         for (binder of binders) {
-        //             tasks.push(binder[ type ](binder));
-        //             // binder.mode = type;
-        //             // this.#updates.add(binder);
-        //             // tick(binder[ type ].bind(null, binder));
-        //             // ts.push(tick(binder[ type ].bind(null, binder)));
-        //         }
-        //     }
-        // }
-
-        // await Promise.all(tasks);
-        // await this.update();
-        console.log('change end');
     }
 
     #mutation (mutations: Array<MutationRecord>) {
-        console.log('mutation');
         if (this.#prepared) {
             let mutation, node;
-
             for (mutation of mutations) {
                 for (node of mutation.addedNodes) {
                     this.register(node, this.#context, []);
@@ -114,8 +86,6 @@ export default class XElement extends HTMLElement {
                     this.release(node);
                 }
             }
-
-            // this.update();
         } else {
             this.prepare();
         }
@@ -141,7 +111,6 @@ export default class XElement extends HTMLElement {
     async #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
 
         const binder = Binder(node, this, context, rewrites);
-        // const binder = await Binder(node, this, context, rewrites);
 
         let binders, reference;
         for (reference of binder.references) {
@@ -187,7 +156,6 @@ export default class XElement extends HTMLElement {
     // }
 
     async prepare () {
-        console.log('prepare');
         if (this.#prepared || this.#preparing) return;
 
         this.#preparing = true;
@@ -267,7 +235,6 @@ export default class XElement extends HTMLElement {
     }
 
     async register (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-        // console.log(node);
         const tasks = [];
 
         if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {

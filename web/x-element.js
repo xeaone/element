@@ -127,7 +127,14 @@ var Standard = {
         binder.meta.boolean = booleans.includes(binder.name);
     },
     render(binder) {
-        if (binder.meta.boolean) {
+        if (binder.name == 'text') {
+            const data = binder.compute();
+            binder.node.nodeValue =
+                typeof data == 'string' ? data :
+                    typeof data == 'undefined' ? '' :
+                        typeof data == 'object' ? JSON.stringify(data) : data;
+        }
+        else if (binder.meta.boolean) {
             const data = binder.compute() ? true : false;
             if (data)
                 binder.owner.setAttributeNode(binder.node);
@@ -145,7 +152,10 @@ var Standard = {
         }
     },
     reset(binder) {
-        if (binder.meta.boolean) {
+        if (binder.name == 'text') {
+            binder.node.nodeValue = '';
+        }
+        else if (binder.meta.boolean) {
             binder.owner.removeAttribute(binder.name);
         }
         else {
@@ -333,19 +343,6 @@ var Value = {
         binder.owner.value = '';
         binder.owner.setAttribute('value', '');
         binder.owner[utility.value] = undefined;
-    }
-};
-
-var Text = {
-    async render(binder) {
-        const data = binder.compute();
-        binder.node.nodeValue =
-            typeof data == 'string' ? data :
-                typeof data == 'undefined' ? '' :
-                    typeof data == 'object' ? JSON.stringify(data) : data;
-    },
-    async reset(binder) {
-        binder.node.nodeValue = '';
     }
 };
 
@@ -652,14 +649,24 @@ yield|delete|export|import|return|switch|default|extends|finally|continue|debugg
 `.replace(/\t|\n/g, ''), 'g');
 const Cache = new Map();
 function Binder(node, container, context, rewrites) {
-    const value = node.nodeValue ?? '';
-    const name = node.nodeType === Node.ATTRIBUTE_NODE ? node.name :
-        node.nodeType === Node.TEXT_NODE ? 'text' : node.nodeName;
-    node.nodeValue = '';
+    let name, value, owner;
+    if (node.nodeType === Node.TEXT_NODE) {
+        owner = node;
+        name = 'text';
+        value = node.textContent ?? '';
+        node.textContent = '';
+    }
+    else if (node.nodeType === Node.ATTRIBUTE_NODE) {
+        name = node.name ?? '';
+        value = node.value ?? '';
+        owner = node.ownerElement ?? node.parentNode;
+        node.value = '';
+    }
+    else {
+        throw new Error('XElement - Node not valid');
+    }
     let handler;
-    if (name === 'text')
-        handler = Text;
-    else if (name === 'html')
+    if (name === 'html')
         handler = Html;
     else if (name === 'each')
         handler = Each;
@@ -674,16 +681,13 @@ function Binder(node, container, context, rewrites) {
     else
         handler = Standard;
     const binder = {
-        name, value,
-        node, handler,
-        context, container,
+        name, value, owner, node, handler, context, container,
         setup: handler.setup,
         reset: handler.reset,
         render: handler.render,
         references: new Set(),
         meta: {}, instance: {},
         rewrites: rewrites ? [...rewrites] : [],
-        owner: node.ownerElement ?? node,
     };
     binder.setup?.(binder);
     let cache = Cache.get(binder.value);
@@ -769,7 +773,6 @@ class XElement extends HTMLElement {
     get isPrepared() { return this.#prepared; }
     #prepared = false;
     #preparing = false;
-    #updates = new Set();
     #binders = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
     #context = new Proxy({}, {
@@ -785,7 +788,6 @@ class XElement extends HTMLElement {
         this.#mutator.observe(this.shadowRoot, { childList: true });
     }
     async #change(reference, type) {
-        console.log('change start');
         let key, binder, binders;
         let tasks = [];
         for ([key, binders] of this.#binders) {
@@ -798,10 +800,8 @@ class XElement extends HTMLElement {
         await Promise.all(tasks.map(async function changePromiseAll(binder) {
             return binder[type](binder);
         }));
-        console.log('change end');
     }
     #mutation(mutations) {
-        console.log('mutation');
         if (this.#prepared) {
             let mutation, node;
             for (mutation of mutations) {
@@ -855,7 +855,6 @@ class XElement extends HTMLElement {
         await binder.render(binder);
     }
     async prepare() {
-        console.log('prepare');
         if (this.#prepared || this.#preparing)
             return;
         this.#preparing = true;
