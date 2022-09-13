@@ -21,7 +21,7 @@ stop();
 // await Deno.run({ cmd: [ 'npx', 'tsc' ] }).status();
 // await Deno.run({ cmd: [ 'npx', 'rollup', 'tmp/element.js', '--file', 'tmp/x-element.js', '--format', 'esm' ] }).status();
 
-const { window, document } = parseHTML(`<html><head></head><body></body></html>`);
+const { window, document } = parseHTML(`<html><head></head><body></body></html>`) as any;
 
 const file = await Deno.readTextFile('./tmp/x-element.js');
 
@@ -41,7 +41,7 @@ Deno.test('overwrite array with Each binder', async () => {
     }
 
     AE.define();
-    const ae = document.createElement('a-e') as any;
+    const ae = document.createElement('a-e');
     document.body.appendChild(ae);
     document.toString();
 

@@ -28,16 +28,14 @@ export default {
     async reset (binder: any) {
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
-        const tasks: any = [];
-        while (binder.owner.lastChild) tasks.push(binder.release(binder.owner.removeChild(binder.owner.lastChild)));
+        while (binder.owner.lastChild) binder.container.release(binder.owner.removeChild(binder.owner.lastChild));
         while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
-        await Promise.all(tasks);
     },
 
     async render (binder: any) {
 
         const tasks: any = [];
-        const [ data, variable, key, index ] = binder.compute();
+        const [ data, variable, key, index ] = await binder.compute();
         const [ reference ] = binder.references;
 
         binder.meta.data = data;

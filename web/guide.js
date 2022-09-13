@@ -57,17 +57,9 @@ export default class XGuide extends XElement {
 
     connectedCallback () {
         if (this.#setup) return;
-        this.#setup = true;
+        else this.#setup = true;
         this.shadowRoot.innerHTML = '<slot></slot>';
         this.innerHTML = this.#html;
-        // document.body.style.opacity = 1;
-        // const expression = document.createExpression(".//*[contains(@*,'{{') or contains(text(),'{{')]");
-        // const matches = expression.evaluate(this);
-        // console.log(matches);
-        // let match;
-        // while(match = matches.iterateNext()){
-        //     console.log(match)
-        // }
     }
 
     #html = /*html*/`

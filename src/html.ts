@@ -1,9 +1,9 @@
 export default {
 
-    render (binder: any) {
-        let data = binder.compute();
+    async render (binder: any) {
+        let data = await binder.compute();
 
-        let fragment, node;
+        let fragment, node, tasks = [];
 
         if (typeof data == 'string') {
             const template = document.createElement('template');
@@ -24,14 +24,15 @@ export default {
 
         node = fragment.firstChild;
         while (node) {
-            binder.container.register(node, binder.context);
+            tasks.push(binder.container.register(node, binder.context));
             node = node.nextSibling;
         }
 
+        await Promise.all(tasks);
         binder.owner.appendChild(fragment);
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
 
         let node = binder.owner.lastChild;
         while (node) {

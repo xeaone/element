@@ -1,14 +1,14 @@
 
 const xRadioInputHandlerEvent = new CustomEvent('xRadioInputHandler');
 
-const checkedHandler = function (event?: Event, binder?: any) {
+const checkedHandler = async function (event?: Event, binder?: any) {
     const owner = binder.owner as HTMLInputElement;
     const checked = owner.checked;
     binder.instance.event = event;
     binder.instance.$event = event;
     binder.instance.$assign = !!event;
     binder.instance.$checked = checked;
-    const computed = binder.compute();
+    const computed = await binder.compute();
 
     if (computed) {
         owner.setAttributeNode(binder.node as Attr);
@@ -43,11 +43,11 @@ export default {
 
     },
 
-    render (binder: any) {
-        checkedHandler(undefined, binder);
+    async render (binder: any) {
+        await checkedHandler(undefined, binder);
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
         binder.owner?.removeAttribute('checked');
     }
 

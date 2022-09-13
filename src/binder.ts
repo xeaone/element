@@ -1,4 +1,4 @@
-// import Parse from './parse';
+// import Parse from './_parse';
 import XElement from './element';
 import Standard from './standard';
 import Checked from './checked';
@@ -18,6 +18,8 @@ type Handler = {
 
 const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
 const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
+const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
+const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
 const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
 
 const ignorePattern = new RegExp(`
@@ -35,7 +37,7 @@ Map|Set|WeakMap|WeakSet|
 ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
 Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
 Reflect|Proxy|
-true|false|null|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+true|false|null|of|in|do|if|for|new|try|case|else|with|async|await|break|catch|class|super|throw|while|
 yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
 (([.][a-zA-Z0-9$_.? ]*)?\\b)
 `.replace(/\t|\n/g, ''), 'g');
@@ -43,45 +45,6 @@ yield|delete|export|import|return|switch|default|extends|finally|continue|debugg
 // const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 
 const Cache: Map<string, any> = new Map();
-
-// const X: Record<string, any> = {};
-// (window as any).X = X;
-
-// const run = function (code: string) {
-//     return new Promise(function (resolve, reject) {
-
-//         const id = crypto.randomUUID();
-
-//         code = `window.X['${id}'] = function ($context, $instance) {
-//         ${code}
-//         };`;
-
-//         const blob = new Blob([ code ], { type: 'text/javascript' });
-//         const script = document.createElement('script');
-
-//         // if ('noModule' in script) {
-//         // }
-
-//         // script.type = 'module';
-//         script.src = URL.createObjectURL(blob);
-
-//         script.onerror = function (error) {
-//             reject(error);
-//             script.remove();
-//             URL.revokeObjectURL(script.src);
-//         };
-
-//         script.onload = function () {
-//             resolve(X[ id ]);
-//             script.remove();
-//             URL.revokeObjectURL(script.src);
-//         };
-
-//         script.src = URL.createObjectURL(blob);
-
-//         document.head.appendChild(script);
-//     });
-// };
 
 export default function Binder (node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
 
@@ -126,14 +89,17 @@ export default function Binder (node: Node, container: XElement, context: Record
 
     if (!cache) {
         const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
-        const clean = code.replace(stringPattern, '');
+        const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
         const assignment = clean.match(assignmentPattern);
         const references = clean.replace(ignorePattern, '').match(referencePattern) ?? [];
+        // console.log(code, clean, references, assignment);
 
-        // binder.cache = Parse(value);
+        // const { code, references, assignmentLeft, assignmentMid, assignmentRight } = Parse(value);
+        // const assignment = assignmentLeft && assignmentMid && assignmentRight ? [ undefined, assignmentLeft, assignmentMid, assignmentRight ] : null;
+        // console.log(code, references, assignmentLeft, assignmentMid, assignmentRight);
+
         const isValue = name === 'value';
         const isChecked = name === 'checked';
-        // const assignment = binder.cache.assignmentLeft && binder.cache.assignmentMid && binder.cache.assignmentRight;
 
         // const compute = await run(`
         const compute = new Function('$context', '$instance', `
@@ -167,3 +133,41 @@ export default function Binder (node: Node, container: XElement, context: Record
 
     return binder;
 }
+
+// const X: Record<string, any> = {};
+// (window as any).X = X;
+// const run = function (code: string) {
+//     return new Promise(function (resolve, reject) {
+
+//         const id = crypto.randomUUID();
+
+//         code = `window.X['${id}'] = function ($context, $instance) {
+//         ${code}
+//         };`;
+
+//         const blob = new Blob([ code ], { type: 'text/javascript' });
+//         const script = document.createElement('script');
+
+//         // if ('noModule' in script) {
+//         // }
+
+//         // script.type = 'module';
+//         script.src = URL.createObjectURL(blob);
+
+//         script.onerror = function (error) {
+//             reject(error);
+//             script.remove();
+//             URL.revokeObjectURL(script.src);
+//         };
+
+//         script.onload = function () {
+//             resolve(X[ id ]);
+//             script.remove();
+//             URL.revokeObjectURL(script.src);
+//         };
+
+//         script.src = URL.createObjectURL(blob);
+
+//         document.head.appendChild(script);
+//     });
+// };

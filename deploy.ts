@@ -56,6 +56,8 @@ await Promise.all([
     }),
 ]).then(console.log);
 
+await copy('./pro/x-poly.js', './web/x-poly.js', { overwrite: true });
+
 await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
 
 await copy('./web/index.html', './web/404.html', { overwrite: true });

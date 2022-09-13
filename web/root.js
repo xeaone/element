@@ -3,6 +3,8 @@ import Highlight from './highlight.js';
 
 export default class XRoot extends XElement {
 
+    #setup = false;
+
     example = `
         import XElement from '/x-element.js';
 
@@ -26,49 +28,41 @@ export default class XRoot extends XElement {
     `;
 
     #html = /*html*/`
-        <section>
-            <h2>Vision</h2>
-            <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
+    <section>
+        <h2>Vision</h2>
+        <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
 
-            <h2>Features</h2>
-            <div class="tiles">
-                <div class="tile">
-                    <h4>&#128118; Simple</h4>
-                    <span>Simple to learning if you know custom elements you know XElement.</span>
-                </div>
-                <div class="tile">
-                    <h4>&#128230; Shareable</h4>
-                    <span>A single class to build a single component or an entire app.</span>
-                </div>
-                <div class="tile">
-                    <h4>&#9889; Fast</h4>
-                    <span>Tiny footprint ~15KB (minified and compressed).</span>
-                </div>
-                <div class="tile">
-                    <h4>&#127959; Framework Agnostic</h4>
-                    <span>Use XElement with any framework - React, Vue, Angular...</span>
-                </div>
+        <h2>Features</h2>
+        <div class="tiles">
+            <div class="tile">
+                <h4>&#128118; Simple</h4>
+                <span>Simple to learning if you know custom elements you know XElement.</span>
             </div>
+            <div class="tile">
+                <h4>&#128230; Shareable</h4>
+                <span>A single class to build a single component or an entire app.</span>
+            </div>
+            <div class="tile">
+                <h4>&#9889; Fast</h4>
+                <span>Tiny footprint ~15KB (minified and compressed).</span>
+            </div>
+            <div class="tile">
+                <h4>&#127959; Framework Agnostic</h4>
+                <span>Use XElement with any framework - React, Vue, Angular...</span>
+            </div>
+        </div>
 
-            <h2>Example</h2>
-            <pre><code class="language-js">{{example}}</code></pre>
-        </section>
+        <h2>Example</h2>
+        <pre><code class="language-js">{{example}}</code></pre>
+    </section>
     `;
 
-    // constructor () {
-    //     super();
-    //     this.shadowRoot.innerHTML = '<slot></slot>';
-    // }
-
     connectedCallback () {
-        console.log('root connected');
-        if (this.innerHTML) return;
+        if (this.#setup) return;
+        else this.#setup = true;
         this.shadowRoot.innerHTML = '<slot></slot>';
         this.innerHTML = this.#html;
-        requestAnimationFrame(() => {
-            Highlight();
-            // document.body.style.opacity = 1;
-        });
+        requestAnimationFrame(() =>  Highlight());
     }
 
 }

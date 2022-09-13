@@ -5,29 +5,29 @@ export default {
         binder.meta.rerendered = false;
     },
 
-    render (binder: any) {
+    async render (binder: any) {
 
         if (!binder.owner.inherited) {
             return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
         }
 
-        const inherited = binder.compute();
-        binder.owner.inherited?.(inherited);
+        const inherited = await binder.compute();
+        await binder.owner.inherited?.(inherited);
 
         if (!binder.meta.rerendered) {
             binder.meta.rerendered = true;
-            binder.container.register(binder.owner, binder.context, binder.rewrites);
+            await binder.container.register(binder.owner, binder.context, binder.rewrites);
         }
 
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
 
         if (!binder.owner.inherited) {
             return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
         }
 
-        binder.owner.inherited?.();
+        await binder.owner.inherited?.();
     }
 
 };

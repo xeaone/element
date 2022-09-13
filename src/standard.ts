@@ -7,10 +7,10 @@ export default {
         binder.meta.boolean = booleans.includes(binder.name);
     },
 
-    render (binder: any) {
+    async render (binder: any) {
 
         if (binder.name == 'text') {
-            const data = binder.compute();
+            const data = await binder.compute();
 
             binder.node.nodeValue =
                 typeof data == 'string' ? data :
@@ -18,11 +18,11 @@ export default {
                         typeof data == 'object' ? JSON.stringify(data) : data;
 
         } else if (binder.meta.boolean) {
-            const data = binder.compute() ? true : false;
+            const data = await binder.compute() ? true : false;
             if (data) binder.owner.setAttributeNode(binder.node);
             else binder.owner.removeAttribute(binder.name);
         } else {
-            let data = binder.compute();
+            let data = await binder.compute();
 
             data =
                 typeof data == 'string' ? data :
@@ -35,7 +35,7 @@ export default {
 
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
         if (binder.name == 'text') {
             binder.node.nodeValue = '';
         } else if (binder.meta.boolean) {

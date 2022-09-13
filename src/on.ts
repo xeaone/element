@@ -127,7 +127,7 @@ export default {
         binder.meta.name = binder.name.slice(2);
     },
 
-    render (binder: any) {
+    async render (binder: any) {
 
         if (binder.meta.method) {
             binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
@@ -148,7 +148,7 @@ export default {
         binder.owner.addEventListener(binder.meta.name, binder.meta.method);
     },
 
-    reset (binder: any) {
+    async reset (binder: any) {
 
         if (binder.meta.method) {
             binder.owner.removeEventListener(binder.meta.name, binder.meta.method);

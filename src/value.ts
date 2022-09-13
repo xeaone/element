@@ -10,7 +10,7 @@ const valueDisplay = function (data: any) {
                 data;
 };
 
-const valueInput = function (binder: any, event: Event) {
+const valueInput = async function (binder: any, event: Event) {
 
     binder.instance.event = event;
     binder.instance.$event = event;
@@ -19,19 +19,19 @@ const valueInput = function (binder: any, event: Event) {
     if (binder.owner.type === 'select-one') {
         const [ option ] = binder.owner.selectedOptions;
         binder.instance.$value = option ? utility.value in option ? option[ utility.value ] : option.value : undefined;
-        binder.owner[ utility.value ] = binder.compute();
+        binder.owner[ utility.value ] = await binder.compute();
     } else if (binder.owner.type === 'select-multiple') {
         binder.instance.$value = Array.prototype.map.call(binder.owner.selectedOptions, o => utility.value in o ? o[ utility.value ] : o.value);
-        binder.owner[ utility.value ] = binder.compute();
+        binder.owner[ utility.value ] = await binder.compute();
     } else if (binder.owner.type === 'number' || binder.owner.type === 'range' || date.includes(binder.owner.type)) {
         binder.instance.$value = utility.value in binder.owner && typeof binder.owner[ utility.value ] === 'number' ? binder.owner.valueAsNumber : binder.owner.value;
-        binder.owner[ utility.value ] = binder.compute();
+        binder.owner[ utility.value ] = await binder.compute();
     } else if (binder.owner.nodeName == 'OPTION') {
         throw 'option event';
     } else {
         binder.instance.$value = utility.value in binder.owner && utility.parseable(binder.owner[ utility.value ]) ? JSON.parse(binder.owner.value) : binder.owner.value;
         binder.instance.$checked = utility.value in binder.owner && utility.parseable(binder.owner[ utility.value ]) ? JSON.parse(binder.owner.checked) : binder.owner.checked;
-        binder.owner[ utility.value ] = binder.compute();
+        binder.owner[ utility.value ] = await binder.compute();
     }
 
 };
@@ -44,14 +44,14 @@ export default {
         binder.owner.addEventListener('input', (event: any) => valueInput(binder, event));
     },
 
-    render (binder: any) {
+    async render (binder: any) {
 
         binder.instance.$assign = false;
         binder.instance.event = undefined;
         binder.instance.$event = undefined;
         binder.instance.$value = undefined;
         binder.instance.$checked = undefined;
-        const computed = binder.compute();
+        const computed = await binder.compute();
 
         let display;
 

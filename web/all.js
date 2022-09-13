@@ -2,10 +2,7 @@ import XElement from './x-element.js';
 
 export default class XAll extends XElement {
 
-    constructor () {
-        super();
-        this.shadowRoot.innerHTML = '<slot></slot>';
-    }
+    #setup = false;
 
     #html = /*html*/`
         <h1>404</h1>
@@ -13,9 +10,10 @@ export default class XAll extends XElement {
     `;
 
     connectedCallback () {
-        if (this.innerHTML) return;
+        if (this.#setup) return;
+        else this.#setup = true;
+        this.shadowRoot.innerHTML = '<slot></slot>';
         this.innerHTML = this.#html;
-        document.body.style.opacity = 1;
     }
 
 }
