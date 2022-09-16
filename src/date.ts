@@ -1,3 +1,7 @@
 export default [
-    'date', 'datetime-local', 'month', 'time', 'week'
+    'date',
+    'datetime-local',
+    'month',
+    'time',
+    'week',
 ];

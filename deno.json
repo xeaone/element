@@ -1,7 +1,37 @@
 {
+    "compilerOptions": {
+        "allowJs": true,
+        "target": "esnext",
+        "lib": [
+            "dom",
+            "dom.iterable",
+            "dom.asynciterable",
+            "deno.ns",
+            "deno.unstable"
+        ]
+    },
+    "lint": {
+        "files": {
+            "include": [
+                "server.ts",
+                "deploy.ts",
+                "watch.ts",
+                "test.ts",
+                "docs.ts",
+                "src/"
+            ]
+        }
+    },
     "fmt": {
         "files": {
-            "include": ["./server.ts", "./deploy.ts", "./watch.ts", "./test.ts", "./docs.ts"]
+            "include": [
+                "server.ts",
+                "deploy.ts",
+                "watch.ts",
+                "test.ts",
+                "docs.ts",
+                "src/"
+            ]
         },
         "options": {
             "useTabs": false,

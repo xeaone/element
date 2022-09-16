@@ -1,33 +1,30 @@
-export default {
+import { BinderType } from './types.ts';
 
-    setup (binder: any) {
-        binder.node.value = '';
-        binder.meta.rerendered = false;
-    },
+const inheritSetup = function (binder: BinderType) {
+    // binder.meta.rerendered = false;
+};
 
-    async render (binder: any) {
-
-        if (!binder.owner.inherited) {
-            return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
-        }
-
-        const inherited = await binder.compute();
-        await binder.owner.inherited?.(inherited);
-
-        if (!binder.meta.rerendered) {
-            binder.meta.rerendered = true;
-            await binder.container.register(binder.owner, binder.context, binder.rewrites);
-        }
-
-    },
-
-    async reset (binder: any) {
-
-        if (!binder.owner.inherited) {
-            return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
-        }
-
-        await binder.owner.inherited?.();
+const inheritRender = async function (binder: BinderType) {
+    if (typeof binder.owner.inherited !== 'function') {
+        return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
     }
 
+    const inherited = await binder.compute();
+    await binder.owner.inherited(inherited);
+
+    // if (!binder.meta.rerendered) {
+    // binder.meta.rerendered = true;
+    await binder.container.register(binder.owner, binder.context, binder.rewrites);
+    // }
 };
+
+const inheritReset = async function (binder: BinderType) {
+    if (typeof binder.owner.inherited !== 'function') {
+        return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
+    }
+
+    await binder.owner.inherited?.();
+    // todo: maybe reset
+};
+
+export default { setup: inheritSetup, render: inheritRender, reset: inheritReset };

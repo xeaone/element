@@ -1,16 +1,13 @@
-import { ContextDelete, ContextGet, ContextSet } from './context';
-import Navigation from './navigation';
-import Binder from './binder';
-import Dash from './dash';
-import Poly from './poly';
+import { ContextDelete, ContextGet, ContextSet } from './context.ts';
+import Navigation from './navigation.ts';
+import Binder from './binder.ts';
+import { dash } from './tool.ts';
 
 export default class XElement extends HTMLElement {
-
-    static poly = Poly;
     static navigation = Navigation;
-    static syntaxLength: number = 2;
-    static syntaxEnd: string = '}}';
-    static syntaxStart: string = '{{';
+    static syntaxLength = 2;
+    static syntaxEnd = '}}';
+    static syntaxStart = '{{';
     static syntaxMatch = new RegExp('{{.*?}}');
     static observedProperties?: Array<string>;
     static adoptedEvent = new Event('adopted');
@@ -24,44 +21,51 @@ export default class XElement extends HTMLElement {
     static disconnectedEvent = new Event('disconnected');
     static disconnectingEvent = new Event('disconnecting');
 
-    static define (name?: string, constructor?: typeof XElement) {
+    static define(name?: string, constructor?: typeof XElement) {
         constructor = constructor ?? this;
-        name = name ?? Dash(this.name);
+        name = name ?? dash(this.name);
         customElements.define(name, constructor);
     }
 
-    static defined (name: string) {
-        name = name ?? Dash(this.name);
+    static defined(name: string) {
+        name = name ?? dash(this.name);
         return customElements.whenDefined(name);
     }
 
-    get isPrepared () { return this.#prepared; }
+    get isPrepared() {
+        return this.#prepared;
+    }
 
-    #prepared: boolean = false;
-    #preparing: boolean = false;
+    #prepared = false;
+    #preparing = false;
     #binders: Map<string | Node, Set<any>> = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
+
+    adopted?: () => void;
+    connected?: () => void;
+    disconnected?: () => void;
+    attributed?: (name: string, from: string, to: string) => void;
 
     // #data = {};
     // #context = new Proxy(this.#data, {
     #context = new Proxy({}, {
         get: ContextGet.bind(null, this.#change.bind(this), ''),
         set: ContextSet.bind(null, this.#change.bind(this), ''),
-        deleteProperty: ContextDelete.bind(null, this.#change.bind(this), '')
+        deleteProperty: ContextDelete.bind(null, this.#change.bind(this), ''),
     });
 
-    constructor () {
+    constructor() {
         super();
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
         this.#mutator.observe(this, { childList: true });
-        this.#mutator.observe((this.shadowRoot as ShadowRoot), { childList: true });
+        this.#mutator.observe(this.shadowRoot as ShadowRoot, { childList: true });
     }
 
-    async #change (reference: string, type: string) {
-        let key, binder, binders;
-        let tasks = [];
+    async #change(reference: string, type: string) {
+        const tasks = [];
 
-        for ([ key, binders ] of this.#binders) {
+        let key, binder, binders;
+        for ([key, binders] of this.#binders) {
             if (binders && (key as string) == reference || (key as string)?.startsWith?.(`${reference}.`)) {
                 for (binder of binders) {
                     tasks.push(binder);
@@ -69,13 +73,12 @@ export default class XElement extends HTMLElement {
             }
         }
 
-        await Promise.all(tasks.map(async function changePromiseAll (binder) {
-            return binder[ type ](binder);
+        await Promise.all(tasks.map(async function changes(binder) {
+            await binder[type](binder);
         }));
-
     }
 
-    #mutation (mutations: Array<MutationRecord>) {
+    #mutation(mutations: Array<MutationRecord>) {
         if (this.#prepared) {
             let mutation, node;
             for (mutation of mutations) {
@@ -91,7 +94,7 @@ export default class XElement extends HTMLElement {
         }
     }
 
-    #remove (node: Node) {
+    #remove(node: Node) {
         const binders = this.#binders.get(node);
         if (!binders) return;
 
@@ -108,17 +111,16 @@ export default class XElement extends HTMLElement {
         this.#binders.delete(node);
     }
 
-    async #add (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-
+    async #add(node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
         const binder = Binder(node, this, context, rewrites);
 
-        let binders, reference;
+        let binders, reference: any;
         for (reference of binder.references) {
             binders = this.#binders.get(reference);
             if (binders) {
                 binders.add(binder);
             } else {
-                this.#binders.set(reference, new Set([ binder ]));
+                this.#binders.set(reference, new Set([binder]));
             }
         }
 
@@ -126,9 +128,8 @@ export default class XElement extends HTMLElement {
         if (nodes) {
             nodes.add(binder);
         } else {
-            this.#binders.set(binder.owner ?? binder.node, new Set([ binder ]));
+            this.#binders.set(binder.owner ?? binder.node, new Set([binder]));
         }
-
 
         await binder.render(binder);
     }
@@ -155,28 +156,30 @@ export default class XElement extends HTMLElement {
     //     if (this.#updates.size) await this.update();
     // }
 
-    async prepare () {
+    async prepare() {
         if (this.#prepared || this.#preparing) return;
 
         this.#preparing = true;
         this.dispatchEvent(XElement.preparingEvent);
 
         const prototype = Object.getPrototypeOf(this);
-        const properties = (this.constructor as any).observedProperties;
+        const properties = XElement.observedProperties;
         const descriptors: any = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
 
         for (const property in descriptors) {
-
-            if (properties && !properties?.includes(property) ||
+            if (
+                properties && !properties?.includes(property) ||
                 'attributeChangedCallback' === property ||
                 'disconnectedCallback' === property ||
                 'connectedCallback' === property ||
                 'adoptedCallback' === property ||
                 'constructor' === property ||
                 property.startsWith('#')
-            ) continue;
+            ) {
+                continue;
+            }
 
-            const descriptor = descriptors[ property ];
+            const descriptor = descriptors[property];
 
             if (!descriptor.configurable) continue;
             if (descriptor.set) descriptor.set = descriptor.set?.bind(this);
@@ -189,32 +192,29 @@ export default class XElement extends HTMLElement {
             Object.defineProperty(this, property, {
                 enumerable: descriptor.enumerable,
                 configurable: descriptor.configureable,
-                get: () => this.#context[ property ],
-                set: (value) => this.#context[ property ] = value
+                get: () => this.#context[property],
+                set: (value) => this.#context[property] = value,
             });
-
         }
 
-        await this.register(this.shadowRoot as any, this.#context);
+        await this.register(this.shadowRoot as ShadowRoot, this.#context);
         await this.register(this, this.#context);
 
         this.#prepared = true;
         this.dispatchEvent(XElement.preparedEvent);
     }
 
-    async release (node: Node) {
+    async release(node: Node) {
         const tasks = [];
 
         if (node.nodeType == Node.TEXT_NODE) {
             tasks.push(this.#remove(node));
         } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-
             let child = node.firstChild;
             while (child) {
                 tasks.push(this.release(child));
                 child = child.nextSibling;
             }
-
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             tasks.push(this.#remove(node));
 
@@ -228,25 +228,21 @@ export default class XElement extends HTMLElement {
                 tasks.push(this.release(child));
                 child = child.nextSibling;
             }
-
         }
 
         await Promise.all(tasks);
     }
 
-    async register (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+    async register(node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
         const tasks = [];
 
         if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-
             let child = node.firstChild;
             while (child) {
                 tasks.push(this.register(child, context, rewrites));
                 child = child.nextSibling;
             }
-
         } else if (node.nodeType == node.TEXT_NODE) {
-
             const start = node.nodeValue?.indexOf(XElement.syntaxStart) ?? -1;
             if (start == -1) return;
             if (start != 0) node = (node as Text).splitText(start);
@@ -259,12 +255,11 @@ export default class XElement extends HTMLElement {
             }
 
             tasks.push(this.#add(node, context, rewrites));
-
         } else if (node.nodeType == node.ELEMENT_NODE) {
-            let attribute, inherit, each;
+            let attribute;
 
-            each = ((node as Element).attributes as any).each;
-            inherit = ((node as Element).attributes as any).inherit;
+            const each = ((node as Element).attributes as any).each;
+            const inherit = ((node as Element).attributes as any).inherit;
 
             for (attribute of (node as Element).attributes) {
                 if (XElement.syntaxMatch.test(attribute.value)) {
@@ -279,34 +274,32 @@ export default class XElement extends HTMLElement {
                     child = child.nextSibling;
                 }
             }
-
         }
 
         await Promise.all(tasks);
     }
 
-    adoptedCallback () {
+    adoptedCallback() {
         this.dispatchEvent(XElement.adoptingEvent);
-        (this as any).adopted?.();
+        this.adopted?.();
         this.dispatchEvent(XElement.adoptedEvent);
     }
 
-    connectedCallback () {
+    connectedCallback() {
         this.dispatchEvent(XElement.connectingEvent);
-        (this as any).connected?.();
+        this.connected?.();
         this.dispatchEvent(XElement.connectedEvent);
     }
 
-    disconnectedCallback () {
+    disconnectedCallback() {
         this.dispatchEvent(XElement.disconnectingEvent);
-        (this as any).disconnected?.();
+        this.disconnected?.();
         this.dispatchEvent(XElement.disconnectedEvent);
     }
 
-    attributeChangedCallback (name: string, from: string, to: string) {
+    attributeChangedCallback(name: string, from: string, to: string) {
         this.dispatchEvent(XElement.attributingEvent);
-        (this as any).attributed?.(name, from, to);
+        this.attributed?.(name, from, to);
         this.dispatchEvent(XElement.attributedEvent);
     }
-
 }

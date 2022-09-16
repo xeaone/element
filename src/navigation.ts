@@ -1,4 +1,4 @@
-import Dash from './dash';
+import { dash } from './tool.ts';
 
 const navigators = new Map();
 
@@ -11,7 +11,7 @@ const transition = async (options: any) => {
     options.construct = options.construct ?? (await import(options.file)).default;
     if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
 
-    options.name = options.name ?? Dash(options.construct.name);
+    options.name = options.name ?? dash(options.construct.name);
 
     if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
     if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
@@ -48,10 +48,9 @@ const navigate = (event?: any) => {
     } else {
         transition(options);
     }
-
 };
 
-export default function navigation (path: string, file: string, options: any) {
+export default function navigation(path: string, file: string, options: any) {
     if (!path) throw new Error('XElement - navigation path required');
     if (!file) throw new Error('XElement - navigation file required');
 

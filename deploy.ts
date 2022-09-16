@@ -5,12 +5,12 @@ import { copy, emptyDir } from 'https://deno.land/std@0.152.0/fs/mod.ts';
 import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
 
 const { run, readTextFile, writeTextFile, args } = Deno;
-const [ release ] = args;
+const [release] = args;
 
-const f = await run({ cmd: [ 'git', 'fetch' ] }).status();
+const f = await run({ cmd: ['git', 'fetch'] }).status();
 if (!f.success) throw new Error('git auth');
 
-const n = await run({ cmd: [ 'npm', 'whoami' ] }).status();
+const n = await run({ cmd: ['npm', 'whoami'] }).status();
 if (!n.success) throw new Error('npm auth');
 
 const pkg = JSON.parse(await readTextFile('./package.json'));
@@ -40,7 +40,7 @@ await Promise.all([
         banner: { js: banner },
         outfile: './pro/x-element.js',
         tsconfig: './tsconfig.json',
-        entryPoints: [ 'src/element.ts' ],
+        entryPoints: ['src/element.ts'],
     }),
     build({
         // minify: true,
@@ -52,7 +52,7 @@ await Promise.all([
         banner: { js: banner },
         outfile: './web/x-element.js',
         tsconfig: './tsconfig.json',
-        entryPoints: [ 'src/element.ts' ],
+        entryPoints: ['src/element.ts'],
     }),
 ]).then(console.log);
 
@@ -64,11 +64,11 @@ await copy('./web/index.html', './web/404.html', { overwrite: true });
 await emptyDir('./docs/');
 await copy('./web', './docs', { overwrite: true });
 
-await run({ cmd: [ 'git', 'commit', '-a', '-m', version ] }).status();
-await run({ cmd: [ 'git', 'push' ] }).status();
-await run({ cmd: [ 'git', 'tag', version ] }).status();
-await run({ cmd: [ 'git', 'push', '--tag' ] }).status();
+await run({ cmd: ['git', 'commit', '-a', '-m', version] }).status();
+await run({ cmd: ['git', 'push'] }).status();
+await run({ cmd: ['git', 'tag', version] }).status();
+await run({ cmd: ['git', 'push', '--tag'] }).status();
 
-await run({ cmd: [ 'npm', 'publish', '--access', 'public' ] }).status();
+await run({ cmd: ['npm', 'publish', '--access', 'public'] }).status();
 
 stop();

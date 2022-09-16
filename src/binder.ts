@@ -1,18 +1,14 @@
 // import Parse from './_parse';
-import XElement from './element';
-import Standard from './standard';
-import Checked from './checked';
-import Inherit from './inherit';
-import Value from './value';
-import Html from './html';
-import Each from './each';
-import On from './on';
+import XElement from './element.ts';
+import Standard from './standard.ts';
+import Checked from './checked.ts';
+import Inherit from './inherit.ts';
+import Value from './value.ts';
+import Html from './html.ts';
+import Each from './each.ts';
+import On from './on.ts';
 
-type Handler = {
-    setup?: (binder?: any) => void;
-    reset: (binder?: any) => void;
-    render: (binder?: any) => void;
-};
+import { BinderType, HandlerType } from './types.ts';
 
 // type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
 
@@ -22,7 +18,7 @@ const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
 const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
 const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
 
-const ignorePattern = new RegExp(`
+const ignoreString = `
 (\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
 event|this|window|document|console|location|navigation|
 globalThis|Infinity|NaN|undefined|
@@ -40,52 +36,44 @@ Reflect|Proxy|
 true|false|null|of|in|do|if|for|new|try|case|else|with|async|await|break|catch|class|super|throw|while|
 yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
 (([.][a-zA-Z0-9$_.? ]*)?\\b)
-`.replace(/\t|\n/g, ''), 'g');
+`.replace(/\t|\n/g, '');
+
+const ignorePattern = new RegExp(ignoreString, 'g');
 
 // const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 
 const Cache: Map<string, any> = new Map();
 
-export default function Binder (node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-
+export default function Binder(node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
     let name, value, owner;
+
     if (node.nodeType === Node.TEXT_NODE) {
-        owner = node;
+        const text = node as Text;
+        owner = text;
         name = 'text';
-        value = node.textContent ?? '';
-        node.textContent = '';
+        value = text.textContent ?? '';
+        text.textContent = '';
     } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
-        name = (node as Attr).name ?? '';
-        value = (node as Attr).value ?? '';
+        const attr = node as Attr;
+        name = attr.name ?? '';
+        value = attr.value ?? '';
         // parentNode required for linkdom bug
-        owner = (node as Attr).ownerElement ?? (node as Attr).parentNode as Node;
-        (node as Attr).value = '';
+        owner = attr.ownerElement ?? attr.parentNode;
+        attr.value = '';
     } else {
         throw new Error('XElement - Node not valid');
     }
 
-    let handler: Handler;
-    if (name === 'html') handler = Html as Handler;
-    else if (name === 'each') handler = Each as Handler;
-    else if (name === 'value') handler = Value as Handler;
-    else if (name === 'inherit') handler = Inherit as Handler;
-    else if (name === 'checked') handler = Checked as Handler;
-    else if (name.startsWith('on')) handler = On as Handler;
+    let handler: HandlerType;
+    if (name === 'html') handler = Html;
+    else if (name === 'each') handler = Each;
+    else if (name === 'value') handler = Value;
+    else if (name === 'checked') handler = Checked;
+    else if (name === 'inherit') handler = Inherit;
+    else if (name.startsWith('on')) handler = On;
     else handler = Standard;
 
-    const binder: any = {
-        name, value, owner, node, handler, context, container,
-        setup: handler.setup,
-        reset: handler.reset,
-        render: handler.render,
-        references: new Set(),
-        meta: {}, instance: {},
-        rewrites: rewrites ? [ ...rewrites ] : [],
-    };
-
-    binder.setup?.(binder);
-
-    let cache = Cache.get(binder.value);
+    let cache = Cache.get(value);
 
     if (!cache) {
         const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
@@ -101,35 +89,60 @@ export default function Binder (node: Node, container: XElement, context: Record
         const isValue = name === 'value';
         const isChecked = name === 'checked';
 
-        // const compute = await run(`
-        const compute = new Function('$context', '$instance', `
+        const wrapped = `
         with ($context) {
             with ($instance) {
-                ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[ 1 ]};` : ''}
-                ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[ 1 ]};` : ''}
-                return ${assignment ? `$assign ? ${code} : ${assignment?.[ 3 ]}` : code};
+                ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[1]};` : ''}
+                ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[1]};` : ''}
+                return ${assignment ? `$assign ? ${code} : ${assignment?.[3]}` : code};
             }
         }
-        `);
+        `;
+
+        // const compute = await run(`
+        const compute = new Function('$context', '$instance', wrapped);
 
         cache = { compute, references };
         Cache.set(value, cache);
     }
 
+    const instance = {};
+    const references: Set<string> = new Set();
+
     let reference, nameRewrite, valueRewrite;
     for (reference of cache.references) {
         if (rewrites) {
-            for ([ nameRewrite, valueRewrite ] of rewrites) {
-                reference = reference === nameRewrite ? valueRewrite :
-                    reference.startsWith(nameRewrite + '.') ? valueRewrite + reference.slice(nameRewrite.length) :
-                        reference;
+            for ([nameRewrite, valueRewrite] of rewrites) {
+                if (reference === nameRewrite) {
+                    reference = valueRewrite;
+                } else if (reference.startsWith(nameRewrite + '.')) {
+                    reference = valueRewrite + reference.slice(nameRewrite.length);
+                }
             }
         }
 
-        binder.references.add(reference);
+        references.add(reference);
     }
 
-    binder.compute = cache.compute.bind(binder.owner ?? binder.node, binder.context, binder.instance);
+    const binder: BinderType = {
+        name,
+        node,
+        value,
+        owner,
+        handler,
+        context,
+        instance,
+        container,
+        references,
+        meta: {},
+        setup: handler.setup,
+        reset: handler.reset,
+        render: handler.render,
+        rewrites: rewrites ? [...rewrites] : [],
+        compute: cache.compute.bind(owner, context, instance),
+    };
+
+    binder.setup?.(binder);
 
     return binder;
 }

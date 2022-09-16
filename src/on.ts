@@ -1,4 +1,5 @@
-import utility from './utility';
+import tool from './tool.ts';
+import { BinderType } from './types.ts';
 
 interface Target extends HTMLElement {
     form: HTMLFormElement;
@@ -12,16 +13,14 @@ interface Child extends HTMLElement {
     valueAsNumber: number;
     selectedIndex: number;
     selectedOptions: NodeListOf<Child>;
-    [ key: symbol ]: any;
+    [key: symbol]: any;
 }
 
 const onValue = function (element: Child) {
     if (!element) return undefined;
 
-    if (utility.value in element) {
-        return utility.parseable(element[ utility.value ]) ?
-            JSON.parse(JSON.stringify(element[ utility.value ])) :
-            element[ utility.value ];
+    if (tool.value in element) {
+        return tool.parseable(element[tool.value]) ? JSON.parse(JSON.stringify(element[tool.value])) : element[tool.value];
     }
 
     if (element.type === 'number' || element.type === 'range') {
@@ -31,7 +30,7 @@ const onValue = function (element: Child) {
     return element.value;
 };
 
-const onSubmit = async function (event: Event, binder: any) {
+const onSubmitHandler = async function (event: SubmitEvent, binder: BinderType) {
     event.preventDefault();
 
     const form: Record<string, any> = {};
@@ -52,7 +51,7 @@ const onSubmit = async function (event: Event, binder: any) {
                 value.push(onValue(option));
             }
         } else if (type === 'select-one') {
-            const [ option ] = element.selectedOptions;
+            const [option] = element.selectedOptions;
             value = onValue(option);
         } else {
             value = onValue(element);
@@ -61,18 +60,17 @@ const onSubmit = async function (event: Event, binder: any) {
         let data = form;
         const parts = name.split(/\s*\.\s*/);
         for (let index = 0; index < parts.length; index++) {
-            const part = parts[ index ];
-            const next = parts[ index + 1 ];
+            const part = parts[index];
+            const next = parts[index + 1];
             if (next) {
-                if (!data[ part ]) {
-                    data[ part ] = /[0-9]+/.test(next) ? [] : {};
+                if (!data[part]) {
+                    data[part] = /[0-9]+/.test(next) ? [] : {};
                 }
-                data = data[ part ];
+                data = data[part];
             } else {
-                data[ part ] = value;
+                data[part] = value;
             }
         }
-
     }
 
     binder.instance.event = event;
@@ -96,7 +94,7 @@ const onSubmit = async function (event: Event, binder: any) {
     return false;
 };
 
-const onReset = async function (event: Event, binder: any) {
+const onResetHandler = async function (event: Event, binder: BinderType) {
     event.preventDefault();
 
     const target = (event.target as Target)?.form || event.target as HTMLFormElement;
@@ -120,40 +118,35 @@ const onReset = async function (event: Event, binder: any) {
     return false;
 };
 
-export default {
+const onSetup = function (binder: BinderType) {
+    binder.owner[binder.name] = undefined;
+    binder.meta.name = binder.name.slice(2);
+};
 
-    setup (binder: any) {
-        binder.owner[ binder.name ] = undefined;
-        binder.meta.name = binder.name.slice(2);
-    },
-
-    async render (binder: any) {
-
-        if (binder.meta.method) {
-            binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
-        }
-
-        binder.meta.method = (event: Event) => {
-            if (binder.meta.name === 'reset') {
-                return onReset(event, binder);
-            } else if (binder.meta.name === 'submit') {
-                return onSubmit(event, binder);
-            } else {
-                binder.instance.event = event;
-                binder.instance.$event = event;
-                return binder.compute();
-            }
-        };
-
-        binder.owner.addEventListener(binder.meta.name, binder.meta.method);
-    },
-
-    async reset (binder: any) {
-
-        if (binder.meta.method) {
-            binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
-        }
-
+const onRender = function (binder: BinderType) {
+    if (binder.meta.method) {
+        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
     }
 
+    binder.meta.method = (event: Event) => {
+        if (binder.meta.name === 'reset') {
+            return onResetHandler(event, binder);
+        } else if (binder.meta.name === 'submit') {
+            return onSubmitHandler(event as SubmitEvent, binder);
+        } else {
+            binder.instance.event = event;
+            binder.instance.$event = event;
+            return binder.compute();
+        }
+    };
+
+    binder.owner.addEventListener(binder.meta.name, binder.meta.method);
 };
+
+const onReset = function (binder: BinderType) {
+    if (binder.meta.method) {
+        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
+    }
+};
+
+export default { setup: onSetup, render: onRender, reset: onReset };

@@ -3,8 +3,10 @@
 import { Cors, File, Handler, Normalize, Router, Server } from 'https://deno.land/x/xserver@0.2.1/mod.ts';
 // import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
 
-Deno.run({ cmd: [ 'npx', 'tsc', '--watch' ] }).status();
-Deno.run({ cmd: [ 'npx', 'rollup', 'tmp/element.js', '--file', 'web/x-element.js', '--format', 'esm', '--watch' ] }).status();
+// Deno.run({ cmd: ['npx', 'tsc', '--watch'] }).status();
+// Deno.run({ cmd: ['npx', 'rollup', 'tmp/element.js', '--file', 'web/x-element.js', '--format', 'esm', '--watch'] }).status();
+
+Deno.run({ cmd: ['deno', 'bundle', 'src/element.ts', 'web/x-element.js', '--watch'] }).status();
 
 // const entry = 'src/element.ts';
 // const entry = 'tmp/element.js';

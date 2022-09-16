@@ -1,13 +1,13 @@
 // does not ignore arrow func params from being watched
 // does not convert outside {{ }} to string any more
 
-const aLower = 'a'.charCodeAt(0)-1;
-const zLower = 'z'.charCodeAt(0)+1;
-const aUpper = 'A'.charCodeAt(0)-1;
-const zUpper = 'Z'.charCodeAt(0)+1;
+const aLower = 'a'.charCodeAt(0) - 1;
+const zLower = 'z'.charCodeAt(0) + 1;
+const aUpper = 'A'.charCodeAt(0) - 1;
+const zUpper = 'Z'.charCodeAt(0) + 1;
 
-const zero = '0'.charCodeAt(0)-1;
-const nine = '9'.charCodeAt(0)+1;
+const zero = '0'.charCodeAt(0) - 1;
+const nine = '9'.charCodeAt(0) + 1;
 
 const space = ' '.charCodeAt(0);
 const money = '$'.charCodeAt(0);
@@ -59,24 +59,90 @@ const forward = '/'.charCodeAt(0);
 // ];
 
 const referenceIgnore = [
-    '$context','$instance','$assign','$event','$value','$checked','$form','$e','$v','$c','$f',
+    '$context',
+    '$instance',
+    '$assign',
+    '$event',
+    '$value',
+    '$checked',
+    '$form',
+    '$e',
+    '$v',
+    '$c',
+    '$f',
 
-    'this','arguments','true','false','null',
+    'this',
+    'arguments',
+    'true',
+    'false',
+    'null',
 
-    'of','in','do','if','for','new','try','case','else','with', 'while', 'await', 'break','catch',
-    'class','super','throw', 'yield','delete','export','import','return','switch','default',
-    'extends','finally','continue','debugger','function','typeof','instanceof','void',
+    'of',
+    'in',
+    'do',
+    'if',
+    'for',
+    'new',
+    'try',
+    'case',
+    'else',
+    'with',
+    'while',
+    'await',
+    'break',
+    'catch',
+    'class',
+    'super',
+    'throw',
+    'yield',
+    'delete',
+    'export',
+    'import',
+    'return',
+    'switch',
+    'default',
+    'extends',
+    'finally',
+    'continue',
+    'debugger',
+    'function',
+    'typeof',
+    'instanceof',
+    'void',
 
     'window',
-    'undefined','NaN',
-    'globalThis','self','document',
-    'console','location','history','navigation','localStorage','sessionStorage',
-    'Infinity','Math','Map','Set','Array','Object','String','RegExp',
-    'isFinite','isNaN','parseFloat','parseInt','btoa','atob',
-    'decodeURI','decodeURIComponent','encodeURI','encodeURIComponent',
+    'undefined',
+    'NaN',
+    'globalThis',
+    'self',
+    'document',
+    'console',
+    'location',
+    'history',
+    'navigation',
+    'localStorage',
+    'sessionStorage',
+    'Infinity',
+    'Math',
+    'Map',
+    'Set',
+    'Array',
+    'Object',
+    'String',
+    'RegExp',
+    'isFinite',
+    'isNaN',
+    'parseFloat',
+    'parseInt',
+    'btoa',
+    'atob',
+    'decodeURI',
+    'decodeURIComponent',
+    'encodeURI',
+    'encodeURIComponent',
 ];
 
-export default function parse (data:string) {
+export default function parse(data: string) {
     let code = '';
 
     let objectMode = 0;
@@ -98,10 +164,10 @@ export default function parse (data:string) {
     for (let index = 0; index < length; index++) {
         const char = data[index];
         const c = data.charCodeAt(index);
-        const l = data.charCodeAt(index-1);
-        const n = data.charCodeAt(index+1);
-        const nn = data.charCodeAt(index+2);
-        const nnn = data.charCodeAt(index+3);
+        const l = data.charCodeAt(index - 1);
+        const n = data.charCodeAt(index + 1);
+        const nn = data.charCodeAt(index + 2);
+        const nnn = data.charCodeAt(index + 3);
 
         if (!stringMode && !objectMode && c == openCurley && n == openCurley) {
             code += '(';
@@ -110,12 +176,11 @@ export default function parse (data:string) {
         }
 
         if (!stringMode && !objectMode && c == closeCurley && n == closeCurley) {
-
             // assignment end
             if (!assignmentRight) assignmentLeft = '';
 
             // reference end
-            if (referenceMode){
+            if (referenceMode) {
                 if (!referenceIgnore.includes(reference.split('.')[0])) references.push(reference);
                 referenceMode = false;
                 reference = '';
@@ -150,15 +215,17 @@ export default function parse (data:string) {
         }
 
         // assignment start
-        if (!stringMode && !assignmentMode &&
+        if (
+            !stringMode && !assignmentMode &&
             c == equal && l != equal && n != equal && n != great
         ) {
             assignmentMode = 1;
             assignmentMid += char;
         }
 
-        if (!stringMode && !assignmentMode &&
-            c == and && n == equal ||
+        if (
+            !stringMode && !assignmentMode &&
+                c == and && n == equal ||
             c == pipe && n == equal ||
             c == star && n == equal ||
             c == plus && n == equal ||
@@ -171,8 +238,9 @@ export default function parse (data:string) {
             assignmentMid += String.fromCharCode(c, n);
         }
 
-        if (!stringMode && !assignmentMode &&
-            c == and && n == and && nn == equal ||
+        if (
+            !stringMode && !assignmentMode &&
+                c == and && n == and && nn == equal ||
             c == pipe && n == pipe && nn == equal ||
             c == star && n == star && nn == equal ||
             c == less && n == less && nn == equal ||
@@ -183,7 +251,8 @@ export default function parse (data:string) {
             assignmentMid += String.fromCharCode(c, n, nn);
         }
 
-        if (!stringMode && !assignmentMode &&
+        if (
+            !stringMode && !assignmentMode &&
             c == great && n == great && nn == great && nnn == equal
         ) {
             assignmentMode = 4;
@@ -197,7 +266,7 @@ export default function parse (data:string) {
 
         // string end
         if (stringMode && c == string && l != back) {
-            stringMode = false
+            stringMode = false;
             string = NaN;
             continue;
         }
@@ -208,7 +277,7 @@ export default function parse (data:string) {
         }
 
         // string start
-        if (c == tick || c == single || c == double){
+        if (c == tick || c == single || c == double) {
             stringMode = true;
             string = c;
             continue;
@@ -219,8 +288,9 @@ export default function parse (data:string) {
         if (referenceMode && c == question && n == period) continue;
 
         // reference collect
-        if (referenceMode &&
-            c > aLower && c < zLower ||
+        if (
+            referenceMode &&
+                c > aLower && c < zLower ||
             c > aUpper && c < zUpper ||
             c > zero && c < nine ||
             c == money || c == underscore || c == period
@@ -230,12 +300,14 @@ export default function parse (data:string) {
         }
 
         // reference end
-        if (referenceMode && !(
-            c > aLower && c < zLower ||
-            c > aUpper && c < zUpper ||
-            c > zero && c < nine ||
-            c == money || c == underscore || c == period
-        )) {
+        if (
+            referenceMode && !(
+                c > aLower && c < zLower ||
+                c > aUpper && c < zUpper ||
+                c > zero && c < nine ||
+                c == money || c == underscore || c == period
+            )
+        ) {
             if (!referenceIgnore.includes(reference.split('.')[0])) references.push(reference);
             referenceMode = false;
             reference = '';
@@ -252,7 +324,6 @@ export default function parse (data:string) {
             reference += char;
             continue;
         }
-
     }
 
     return { code, references, assignmentLeft, assignmentMid, assignmentRight };

@@ -1,11 +1,61 @@
 {
-  "deno.enable": true,
-  "deno.unstable": true,
-  "deno.enablePaths": [
-    "./server.ts",
-    "./deploy.ts",
-    "./watch.ts",
-    "./test.ts",
-    "./docs.ts"
-  ]
+
+    "deno.lint": true,
+    "deno.enable": true,
+    "deno.unstable": true,
+    "deno.config": "./deno.json",
+    "editor.formatOnSave": true,
+    "[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+
+    // "javascript.format.enable": true,
+    // "javascript.autoClosingTags": true,
+
+    // "javascript.format.semicolons": "insert",
+    // "javascript.preferences.quoteStyle": "single",
+    // "javascript.updateImportsOnFileMove.enabled": "prompt",
+    // "javascript.preferences.importModuleSpecifier": "relative",
+
+    // "javascript.format.insertSpaceAfterConstructor": true,
+    // "javascript.format.insertSpaceAfterCommaDelimiter": true,
+    // "javascript.format.insertSpaceBeforeFunctionParenthesis": true,
+    // "javascript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+    // "javascript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+    // "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": true,
+
+    // "javascript.format.placeOpenBraceOnNewLineForFunctions": false,
+    // "javascript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+    // "javascript.format.insertSpaceAfterSemicolonInForStatements": false,
+    // "javascript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+    // "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+    // "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
+    // "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
+    // "javascript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
+    // "javascript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
+
+    // "typescript.format.enable": true,
+    // "typescript.autoClosingTags": true,
+
+    // "typescript.format.semicolons": "insert",
+    // "typescript.preferences.quoteStyle": "single",
+    // "typescript.updateImportsOnFileMove.enabled": "prompt",
+    // "typescript.preferences.importModuleSpecifier": "relative",
+
+    // "typescript.format.insertSpaceAfterConstructor": true,
+    // "typescript.format.insertSpaceAfterTypeAssertion": true,
+    // "typescript.format.insertSpaceAfterCommaDelimiter": true,
+    // "typescript.format.insertSpaceBeforeFunctionParenthesis": true,
+    // "typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+    // "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+    // "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": true,
+
+    // "typescript.format.placeOpenBraceOnNewLineForFunctions": false,
+    // "typescript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+    // "typescript.format.insertSpaceAfterSemicolonInForStatements": false,
+    // "typescript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+    // "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+    // "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
+    // "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
+    // "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
+    // "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
+
 }

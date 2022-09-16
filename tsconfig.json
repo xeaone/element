@@ -1,17 +1,17 @@
 {
-  "compilerOptions": {
+    "compilerOptions": {
 
-    "strict": true,
-    "removeComments": true,
-    "experimentalDecorators": true,
+        "strict": true,
+        "removeComments": true,
+        "experimentalDecorators": true,
 
-    "module": "ES2022",
-    "target": "ES2022",
-    "lib": [ "ES2022", "DOM", "DOM.Iterable" ],
+        "module": "ES2022",
+        "target": "ES2022",
+        "lib": [ "ES2022", "DOM", "DOM.Iterable" ],
 
-    "outDir": "./tmp/"
+        "outDir": "./tmp/"
 
-  },
-  "include": [ "./src/*", "src/_globals.ts" ],
-  "files": [ "./src/element.ts" ]
+    },
+    "include": [ "./src/*" ],
+    "files": [ "./src/element.ts" ]
 }
