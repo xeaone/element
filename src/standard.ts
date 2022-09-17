@@ -2,11 +2,11 @@ import tool from './tool.ts';
 import booleans from './boolean.ts';
 import { BinderType } from './types.ts';
 
-const onSetup = function (binder: BinderType) {
+const standardSetup = function (binder: BinderType) {
     binder.meta.boolean = booleans.includes(binder.name);
 };
 
-const onRender = async function (binder: BinderType) {
+const standardRender = async function (binder: BinderType) {
     if (binder.name == 'text') {
         let data = await binder.compute();
         data = tool.display(data);
@@ -23,7 +23,7 @@ const onRender = async function (binder: BinderType) {
     }
 };
 
-const onReset = function (binder: BinderType) {
+const standardReset = function (binder: BinderType) {
     if (binder.name == 'text') {
         binder.node.textContent = '';
     } else if (binder.meta.boolean) {
@@ -34,4 +34,6 @@ const onReset = function (binder: BinderType) {
     }
 };
 
-export default { setup: onSetup, render: onRender, reset: onReset };
+const standardDefault = { setup: standardSetup, render: standardRender, reset: standardReset };
+
+export default standardDefault;

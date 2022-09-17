@@ -89,15 +89,46 @@ export default function Binder(node: Node, container: XElement, context: Record<
         const isValue = name === 'value';
         const isChecked = name === 'checked';
 
-        const wrapped = `
-        with ($context) {
-            with ($instance) {
-                ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[1]};` : ''}
-                ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[1]};` : ''}
-                return ${assignment ? `$assign ? ${code} : ${assignment?.[3]}` : code};
+        let wrapped: string;
+        if (assignment && isValue) {
+            wrapped = `
+            with ($context) {
+                with ($instance) {
+                    $value = $assign ? $value : ${assignment?.[1]};
+                    return $assign ? ${code} : ${assignment?.[3]};
+                }
             }
+            `;
+        } else if (assignment && isChecked) {
+            wrapped = `
+            with ($context) {
+                with ($instance) {
+                    $checked = $assign ? $checked : ${assignment?.[1]};
+                    return $assign ? ${code} : ${assignment?.[3]};
+                }
+            }
+            `;
+        } else {
+            wrapped = `
+            with ($context) {
+                with ($instance) {
+                   return ${code};
+                }
+            }
+            `;
         }
-        `;
+
+        // const wrapped = `
+        // with ($context) {
+        //     with ($instance) {
+        // ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[1]};` : ''}
+        // ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[1]};` : ''}
+        // return ${assignment ? `$assign ? ${code} : ${assignment?.[3]}` : code};
+        //     }
+        // }
+        // `;
+
+        // console.log(wrapped);
 
         // const compute = await run(`
         const compute = new Function('$context', '$instance', wrapped);

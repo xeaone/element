@@ -1,6 +1,6 @@
 // JSON.stringify(Object.getOwnPropertyNames(window).sort()).replace(/"/g,"'")
 
-export default [
+const globalsDefault = Object.freeze([
     '$',
     '$$',
     '$0',
@@ -1084,4 +1084,6 @@ export default [
     'webkitStorageInfo',
     'webkitURL',
     'window',
-];
+]);
+
+export default globalsDefault;

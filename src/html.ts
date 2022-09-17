@@ -41,4 +41,6 @@ const htmlReset = function (binder: BinderType) {
     }
 };
 
-export default { render: htmlRender, reset: htmlReset };
+const htmlDefault = { render: htmlRender, reset: htmlReset };
+
+export default htmlDefault;

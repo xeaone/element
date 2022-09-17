@@ -149,4 +149,6 @@ const onReset = function (binder: BinderType) {
     }
 };
 
-export default { setup: onSetup, render: onRender, reset: onReset };
+const onDefault = { setup: onSetup, render: onRender, reset: onReset };
+
+export default onDefault;

@@ -19,7 +19,7 @@ export const dash = function (data: string) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 };
 
-export default Object.freeze({
+const toolDefault = Object.freeze({
     checked: Symbol('checked'),
     parent: Symbol('parent'),
     value: Symbol('value'),
@@ -28,3 +28,5 @@ export default Object.freeze({
     dash,
     tick,
 });
+
+export default toolDefault;

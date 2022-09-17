@@ -48,4 +48,6 @@ const checkedReset = function (binder: BinderType) {
     binder.owner?.removeAttribute('checked');
 };
 
-export default { setup: checkedSetup, render: checkedRender, reset: checkedReset };
+const checkedDefault = { setup: checkedSetup, render: checkedRender, reset: checkedReset };
+
+export default checkedDefault;

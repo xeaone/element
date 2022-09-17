@@ -123,4 +123,6 @@ const eachReset = function (binder: BinderType) {
     while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
 };
 
-export default { setup: eachSetup, render: eachRender, reset: eachReset };
+const eachDefault = { setup: eachSetup, render: eachRender, reset: eachReset };
+
+export default eachDefault;

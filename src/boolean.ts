@@ -1,4 +1,4 @@
-export default [
+const booleanDefault = Object.freeze([
     'allowfullscreen',
     'async',
     'autofocus',
@@ -43,4 +43,6 @@ export default [
     'truespeed',
     'typemustmatch',
     'visible',
-];
+]);
+
+export default booleanDefault;

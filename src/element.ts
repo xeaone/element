@@ -62,18 +62,25 @@ export default class XElement extends HTMLElement {
     }
 
     async #change(reference: string, type: string) {
-        const tasks = [];
+        const tasksFirst = [];
+        const tasksSecond = [];
 
         let key, binder, binders;
         for ([key, binders] of this.#binders) {
-            if (binders && (key as string) == reference || (key as string)?.startsWith?.(`${reference}.`)) {
-                for (binder of binders) {
-                    tasks.push(binder);
+            if (binders) {
+                if ((key as string) == reference) {
+                    for (binder of binders) tasksFirst.push(binder);
+                } else if ((key as string)?.startsWith?.(`${reference}.`)) {
+                    for (binder of binders) tasksSecond.push(binder);
                 }
             }
         }
 
-        await Promise.all(tasks.map(async function changes(binder) {
+        await Promise.all(tasksFirst.map(async function changes(binder) {
+            await binder[type](binder);
+        }));
+
+        await Promise.all(tasksSecond.map(async function changes(binder) {
             await binder[type](binder);
         }));
     }

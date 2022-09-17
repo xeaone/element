@@ -27,4 +27,6 @@ const inheritReset = async function (binder: BinderType) {
     // todo: maybe reset
 };
 
-export default { setup: inheritSetup, render: inheritRender, reset: inheritReset };
+const inheritDefault = { setup: inheritSetup, render: inheritRender, reset: inheritReset };
+
+export default inheritDefault;

@@ -18,7 +18,7 @@ const display = function(data) {
 const dash = function(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 };
-const __default = Object.freeze({
+const toolDefault = Object.freeze({
     checked: Symbol('checked'),
     parent: Symbol('parent'),
     value: Symbol('value'),
@@ -122,7 +122,7 @@ function navigation(path, file, options) {
     navigate();
     window.navigation.addEventListener('navigate', navigate);
 }
-const __default1 = [
+const booleanDefault = Object.freeze([
     'allowfullscreen',
     'async',
     'autofocus',
@@ -167,14 +167,14 @@ const __default1 = [
     'truespeed',
     'typemustmatch',
     'visible', 
-];
-const onSetup = function(binder) {
-    binder.meta.boolean = __default1.includes(binder.name);
+]);
+const standardSetup = function(binder) {
+    binder.meta.boolean = booleanDefault.includes(binder.name);
 };
-const onRender = async function(binder) {
+const standardRender = async function(binder) {
     if (binder.name == 'text') {
         let data = await binder.compute();
-        data = __default.display(data);
+        data = toolDefault.display(data);
         binder.node.textContent = data;
     } else if (binder.meta.boolean) {
         const data1 = await binder.compute() ? true : false;
@@ -182,12 +182,12 @@ const onRender = async function(binder) {
         else binder.owner.removeAttribute(binder.name);
     } else {
         let data2 = await binder.compute();
-        data2 = __default.display(data2);
+        data2 = toolDefault.display(data2);
         binder.owner[binder.name] = data2;
         binder.owner.setAttribute(binder.name, data2);
     }
 };
-const onReset = function(binder) {
+const standardReset = function(binder) {
     if (binder.name == 'text') {
         binder.node.textContent = '';
     } else if (binder.meta.boolean) {
@@ -197,10 +197,10 @@ const onReset = function(binder) {
         binder.owner?.setAttribute(binder.name, '');
     }
 };
-const __default2 = {
-    setup: onSetup,
-    render: onRender,
-    reset: onReset
+const standardDefault = {
+    setup: standardSetup,
+    render: standardRender,
+    reset: standardReset
 };
 const checkedEvent = new CustomEvent('xRadioInputHandler');
 const checkedHandler = async function(event, binder) {
@@ -240,7 +240,7 @@ const checkedRender = async function(binder) {
 const checkedReset = function(binder) {
     binder.owner?.removeAttribute('checked');
 };
-const __default3 = {
+const checkedDefault = {
     setup: checkedSetup,
     render: checkedRender,
     reset: checkedReset
@@ -260,18 +260,18 @@ const inheritReset = async function(binder) {
     }
     await binder.owner.inherited?.();
 };
-const __default4 = {
+const inheritDefault = {
     setup: inheritSetup,
     render: inheritRender,
     reset: inheritReset
 };
-const __default5 = [
-    'date',
+const dateDefault = Object.freeze([
     'datetime-local',
+    'date',
     'month',
     'time',
     'week', 
-];
+]);
 const valueEvent = new Event('input');
 const valueInput = async function(binder, event) {
     binder.instance.event = event;
@@ -281,8 +281,8 @@ const valueInput = async function(binder, event) {
     if (owner.type === 'select-one') {
         const option = owner.selectedOptions[0];
         if (option) {
-            if (__default.value in option) {
-                binder.instance.$value = option[__default.value];
+            if (toolDefault.value in option) {
+                binder.instance.$value = option[toolDefault.value];
             } else {
                 binder.instance.$value = option.value;
             }
@@ -290,9 +290,9 @@ const valueInput = async function(binder, event) {
             binder.instance.$value = undefined;
         }
     } else if (owner.type === 'select-multiple') {
-        binder.instance.$value = Array.prototype.map.call(owner.selectedOptions, (option)=>__default.value in option ? option[__default.value] : option.value);
-    } else if (owner.type === 'number' || owner.type === 'range' || __default5.includes(owner.type)) {
-        if (__default.value in binder.owner && typeof owner[__default.value] === 'number') {
+        binder.instance.$value = Array.prototype.map.call(owner.selectedOptions, (option)=>toolDefault.value in option ? option[toolDefault.value] : option.value);
+    } else if (owner.type === 'number' || owner.type === 'range' || dateDefault.includes(owner.type)) {
+        if (toolDefault.value in binder.owner && typeof owner[toolDefault.value] === 'number') {
             binder.instance.$value = owner.valueAsNumber;
         } else {
             binder.instance.$value = owner.value;
@@ -300,13 +300,13 @@ const valueInput = async function(binder, event) {
     } else if (owner.nodeName == 'OPTION') {
         throw 'option event';
     } else {
-        if (__default.value in binder.owner && __default.parseable(owner[__default.value])) {
+        if (toolDefault.value in binder.owner && toolDefault.parseable(owner[toolDefault.value])) {
             binder.instance.$value = JSON.parse(owner.value);
         } else {
             binder.instance.$value = owner.value;
         }
     }
-    owner[__default.value] = await binder.compute();
+    owner[toolDefault.value] = await binder.compute();
 };
 const valueSetup = function(binder) {
     binder.owner.addEventListener('input', (event)=>valueInput(binder, event));
@@ -318,37 +318,39 @@ const valueRender = async function(binder) {
     binder.instance.$value = undefined;
     const computed = await binder.compute();
     const owner = binder.owner;
+    owner.value = '';
     let display;
     if (owner.type === 'select-one') {
-        for (const option of binder.owner.options){
-            option.selected = __default.value in option ? option[__default.value] === computed : option.value === computed;
+        for(let i = 0; i < owner.options.length; i++){
+            const option = owner.options[i];
+            option.selected = toolDefault.value in option ? option[toolDefault.value] === computed : option.value === computed;
         }
-        if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
-            binder.owner.options[0].selected = true;
-            return binder.owner.dispatchEvent(valueEvent);
+        if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
+            owner.options[0].selected = true;
+            return owner.dispatchEvent(valueEvent);
         }
-        display = __default.display(computed);
-        owner.value = display;
+        display = toolDefault.display(computed);
     } else if (owner.type === 'select-multiple') {
-        for (const option1 of binder.owner.options){
-            option1.selected = computed?.includes(__default.value in option1 ? option1[__default.value] : option1.value);
+        for(let i1 = 0; i1 < owner.options.length; i1++){
+            const option1 = owner.options[i1];
+            option1.selected = computed?.includes(toolDefault.value in option1 ? option1[toolDefault.value] : option1.value);
         }
-        display = __default.display(computed);
-    } else if (owner.type === 'number' || owner.type === 'range' || __default5.includes(owner.type)) {
+        display = toolDefault.display(computed);
+    } else if (owner.type === 'number' || owner.type === 'range' || dateDefault.includes(owner.type)) {
         if (typeof computed === 'string') owner.value = computed;
         else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
         else owner.value = '';
         display = owner.value;
     } else {
         if (owner.nodeName == 'OPTION') {
-            const parent = owner?.parentElement?.nodeName === 'SELECT' ? owner.parentElement : owner?.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement.parentElement : owner?.[__default.parent]?.nodeName === 'SELECT' ? owner[__default.parent] : null;
-            const value = __default.value in parent ? parent[__default.value] : parent.value;
+            const parent = owner?.parentElement?.nodeName === 'SELECT' ? owner.parentElement : owner?.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement.parentElement : owner?.[toolDefault.parent]?.nodeName === 'SELECT' ? owner[toolDefault.parent] : null;
+            const value = toolDefault.value in parent ? parent[toolDefault.value] : parent.value;
             if (value === computed) owner.selected = true;
         }
-        display = __default.display(computed);
+        display = toolDefault.display(computed);
         owner.value = display;
     }
-    owner[__default.value] = computed;
+    owner[toolDefault.value] = computed;
     owner.setAttribute('value', display);
 };
 const valueReset = function(binder) {
@@ -360,9 +362,9 @@ const valueReset = function(binder) {
     }
     owner.value = '';
     owner.setAttribute('value', '');
-    owner[__default.value] = undefined;
+    owner[toolDefault.value] = undefined;
 };
-const __default6 = {
+const valueDefault = {
     setup: valueSetup,
     render: valueRender,
     reset: valueReset
@@ -401,7 +403,7 @@ const htmlReset = function(binder) {
         node = binder.owner.lastChild;
     }
 };
-const __default7 = {
+const htmlDefault = {
     render: htmlRender,
     reset: htmlReset
 };
@@ -475,7 +477,7 @@ const eachRender = async function(binder) {
             let node1 = binder.meta.templateElement.content.firstChild;
             while(node1){
                 clone = node1.cloneNode(true);
-                clone[__default.parent] = binder.owner;
+                clone[toolDefault.parent] = binder.owner;
                 tasks.push(binder.container.register(clone, context, rewrites));
                 binder.meta.queueElement.content.appendChild(clone);
                 node1 = node1.nextSibling;
@@ -493,15 +495,15 @@ const eachReset = function(binder) {
     while(binder.owner.lastChild)binder.container.release(binder.owner.removeChild(binder.owner.lastChild));
     while(binder.meta.queueElement.content.lastChild)binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
 };
-const __default8 = {
+const eachDefault = {
     setup: eachSetup,
     render: eachRender,
     reset: eachReset
 };
 const onValue = function(element) {
     if (!element) return undefined;
-    if (__default.value in element) {
-        return __default.parseable(element[__default.value]) ? JSON.parse(JSON.stringify(element[__default.value])) : element[__default.value];
+    if (toolDefault.value in element) {
+        return toolDefault.parseable(element[toolDefault.value]) ? JSON.parse(JSON.stringify(element[toolDefault.value])) : element[toolDefault.value];
     }
     if (element.type === 'number' || element.type === 'range') {
         return element.valueAsNumber;
@@ -582,11 +584,11 @@ const onResetHandler = async function(event, binder) {
     await binder.compute();
     return false;
 };
-const onSetup1 = function(binder) {
+const onSetup = function(binder) {
     binder.owner[binder.name] = undefined;
     binder.meta.name = binder.name.slice(2);
 };
-const onRender1 = function(binder) {
+const onRender = function(binder) {
     if (binder.meta.method) {
         binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
     }
@@ -603,15 +605,15 @@ const onRender1 = function(binder) {
     };
     binder.owner.addEventListener(binder.meta.name, binder.meta.method);
 };
-const onReset1 = function(binder) {
+const onReset = function(binder) {
     if (binder.meta.method) {
         binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
     }
 };
-const __default9 = {
-    setup: onSetup1,
-    render: onRender1,
-    reset: onReset1
+const onDefault = {
+    setup: onSetup,
+    render: onRender,
+    reset: onReset
 };
 const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
 const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
@@ -657,13 +659,13 @@ function Binder(node, container, context, rewrites) {
         throw new Error('XElement - Node not valid');
     }
     let handler;
-    if (name === 'html') handler = __default7;
-    else if (name === 'each') handler = __default8;
-    else if (name === 'value') handler = __default6;
-    else if (name === 'checked') handler = __default3;
-    else if (name === 'inherit') handler = __default4;
-    else if (name.startsWith('on')) handler = __default9;
-    else handler = __default2;
+    if (name === 'html') handler = htmlDefault;
+    else if (name === 'each') handler = eachDefault;
+    else if (name === 'value') handler = valueDefault;
+    else if (name === 'checked') handler = checkedDefault;
+    else if (name === 'inherit') handler = inheritDefault;
+    else if (name.startsWith('on')) handler = onDefault;
+    else handler = standardDefault;
     let cache = Cache.get(value);
     if (!cache) {
         const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
@@ -672,15 +674,34 @@ function Binder(node, container, context, rewrites) {
         const references = clean.replace(ignorePattern, '').match(referencePattern) ?? [];
         const isValue = name === 'value';
         const isChecked = name === 'checked';
-        const wrapped = `
-        with ($context) {
-            with ($instance) {
-                ${assignment && isValue ? `$value = $assign ? $value : ${assignment?.[1]};` : ''}
-                ${assignment && isChecked ? `$checked = $assign ? $checked : ${assignment?.[1]};` : ''}
-                return ${assignment ? `$assign ? ${code} : ${assignment?.[3]}` : code};
+        let wrapped;
+        if (assignment && isValue) {
+            wrapped = `
+            with ($context) {
+                with ($instance) {
+                    $value = $assign ? $value : ${assignment?.[1]};
+                    return $assign ? ${code} : ${assignment?.[3]};
+                }
             }
+            `;
+        } else if (assignment && isChecked) {
+            wrapped = `
+            with ($context) {
+                with ($instance) {
+                    $checked = $assign ? $checked : ${assignment?.[1]};
+                    return $assign ? ${code} : ${assignment?.[3]};
+                }
+            }
+            `;
+        } else {
+            wrapped = `
+            with ($context) {
+                with ($instance) {
+                   return ${code};
+                }
+            }
+            `;
         }
-        `;
         const compute = new Function('$context', '$instance', wrapped);
         cache = {
             compute,
@@ -780,16 +801,22 @@ class XElement extends HTMLElement {
         });
     }
     async #change(reference, type) {
-        const tasks = [];
+        const tasksFirst = [];
+        const tasksSecond = [];
         let key, binder, binders;
         for ([key, binders] of this.#binders){
-            if (binders && key == reference || key?.startsWith?.(`${reference}.`)) {
-                for (binder of binders){
-                    tasks.push(binder);
+            if (binders) {
+                if (key == reference) {
+                    for (binder of binders)tasksFirst.push(binder);
+                } else if (key?.startsWith?.(`${reference}.`)) {
+                    for (binder of binders)tasksSecond.push(binder);
                 }
             }
         }
-        await Promise.all(tasks.map(async function changes(binder) {
+        await Promise.all(tasksFirst.map(async function changes(binder) {
+            await binder[type](binder);
+        }));
+        await Promise.all(tasksSecond.map(async function changes(binder) {
             await binder[type](binder);
         }));
     }

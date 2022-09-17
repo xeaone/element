@@ -60,26 +60,29 @@ const valueRender = async function (binder: BinderType) {
     binder.instance.event = undefined;
     binder.instance.$event = undefined;
     binder.instance.$value = undefined;
-    // binder.instance.$checked = undefined;
+
     const computed = await binder.compute();
     const owner = binder.owner as valueElement;
+
+    owner.value = '';
 
     let display;
 
     if (owner.type === 'select-one') {
-        for (const option of binder.owner.options) {
+        for (let i = 0; i < owner.options.length; i++) {
+            const option = owner.options[i] as valueElement;
             option.selected = tool.value in option ? option[tool.value] === computed : option.value === computed;
         }
 
-        if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
-            binder.owner.options[0].selected = true;
-            return binder.owner.dispatchEvent(valueEvent);
+        if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
+            owner.options[0].selected = true;
+            return owner.dispatchEvent(valueEvent);
         }
 
         display = tool.display(computed);
-        owner.value = display;
     } else if (owner.type === 'select-multiple') {
-        for (const option of binder.owner.options) {
+        for (let i = 0; i < owner.options.length; i++) {
+            const option = owner.options[i] as valueElement;
             option.selected = computed?.includes(tool.value in option ? option[tool.value] : option.value);
         }
 
@@ -88,7 +91,6 @@ const valueRender = async function (binder: BinderType) {
         if (typeof computed === 'string') owner.value = computed;
         else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
         else owner.value = '';
-
         display = owner.value;
     } else {
         if (owner.nodeName == 'OPTION') {
@@ -127,4 +129,6 @@ const valueReset = function (binder: BinderType) {
     owner[tool.value] = undefined;
 };
 
-export default { setup: valueSetup, render: valueRender, reset: valueReset };
+const valueDefault = { setup: valueSetup, render: valueRender, reset: valueReset };
+
+export default valueDefault;
