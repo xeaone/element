@@ -265,16 +265,24 @@ export default class XElement extends HTMLElement {
         } else if (node.nodeType == node.ELEMENT_NODE) {
             let attribute;
 
+            const html = ((node as Element).attributes as any).html;
             const each = ((node as Element).attributes as any).each;
             const inherit = ((node as Element).attributes as any).inherit;
 
+            if (html) await this.#add(html, context, rewrites);
+            if (each) await this.#add(each, context, rewrites);
+            if (inherit) await this.#add(inherit, context, rewrites);
+
             for (attribute of (node as Element).attributes) {
+                if (html === attribute) continue;
+                if (each === attribute) continue;
+                if (inherit === attribute) continue;
                 if (XElement.syntaxMatch.test(attribute.value)) {
                     tasks.push(this.#add(attribute, context, rewrites));
                 }
             }
 
-            if (!each && !inherit) {
+            if (!html && !each && !inherit) {
                 let child = node.firstChild;
                 while (child) {
                     tasks.push(this.register(child, context, rewrites));

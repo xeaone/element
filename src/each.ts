@@ -1,4 +1,4 @@
-import tool from './tool.ts';
+// import tool from './tool.ts';
 import { BinderType } from './types.ts';
 
 const whitespace = /\s+/;
@@ -102,7 +102,6 @@ const eachRender = async function (binder: BinderType) {
             let node = binder.meta.templateElement.content.firstChild;
             while (node) {
                 clone = node.cloneNode(true);
-                clone[tool.parent] = binder.owner;
                 tasks.push(binder.container.register(clone, context, rewrites));
                 binder.meta.queueElement.content.appendChild(clone);
                 node = node.nextSibling;

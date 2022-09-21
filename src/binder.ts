@@ -49,16 +49,17 @@ export default function Binder(node: Node, container: XElement, context: Record<
 
     if (node.nodeType === Node.TEXT_NODE) {
         const text = node as Text;
-        owner = text;
-        name = 'text';
         value = text.textContent ?? '';
+        name = 'text';
+        owner = text;
         text.textContent = '';
     } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
         const attr = node as Attr;
-        name = attr.name ?? '';
-        value = attr.value ?? '';
         // parentNode required for linkdom bug
-        owner = attr.ownerElement ?? attr.parentNode;
+        owner = attr.parentNode ?? attr.ownerElement;
+        // owner = attr.ownerElement;
+        value = attr.value ?? '';
+        name = attr.name ?? '';
         attr.value = '';
     } else {
         throw new Error('XElement - Node not valid');

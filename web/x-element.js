@@ -20,7 +20,6 @@ const dash = function(data) {
 };
 const toolDefault = Object.freeze({
     checked: Symbol('checked'),
-    parent: Symbol('parent'),
     value: Symbol('value'),
     parseable,
     display,
@@ -342,11 +341,6 @@ const valueRender = async function(binder) {
         else owner.value = '';
         display = owner.value;
     } else {
-        if (owner.nodeName == 'OPTION') {
-            const parent = owner?.parentElement?.nodeName === 'SELECT' ? owner.parentElement : owner?.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement.parentElement : owner?.[toolDefault.parent]?.nodeName === 'SELECT' ? owner[toolDefault.parent] : null;
-            const value = toolDefault.value in parent ? parent[toolDefault.value] : parent.value;
-            if (value === computed) owner.selected = true;
-        }
         display = toolDefault.display(computed);
         owner.value = display;
     }
@@ -477,7 +471,6 @@ const eachRender = async function(binder) {
             let node1 = binder.meta.templateElement.content.firstChild;
             while(node1){
                 clone = node1.cloneNode(true);
-                clone[toolDefault.parent] = binder.owner;
                 tasks.push(binder.container.register(clone, context, rewrites));
                 binder.meta.queueElement.content.appendChild(clone);
                 node1 = node1.nextSibling;
@@ -645,15 +638,15 @@ function Binder(node, container, context, rewrites) {
     let name, value, owner;
     if (node.nodeType === Node.TEXT_NODE) {
         const text = node;
-        owner = text;
-        name = 'text';
         value = text.textContent ?? '';
+        name = 'text';
+        owner = text;
         text.textContent = '';
     } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
         const attr = node;
-        name = attr.name ?? '';
+        owner = attr.parentNode ?? attr.ownerElement;
         value = attr.value ?? '';
-        owner = attr.ownerElement ?? attr.parentNode;
+        name = attr.name ?? '';
         attr.value = '';
     } else {
         throw new Error('XElement - Node not valid');
@@ -820,7 +813,7 @@ class XElement extends HTMLElement {
             await binder[type](binder);
         }));
     }
-     #mutation(mutations) {
+    #mutation(mutations) {
         if (this.#prepared) {
             let mutation, node;
             for (mutation of mutations){
@@ -835,7 +828,7 @@ class XElement extends HTMLElement {
             this.prepare();
         }
     }
-     #remove(node1) {
+    #remove(node1) {
         const binders1 = this.#binders.get(node1);
         if (!binders1) return;
         let binder1, reference1;
@@ -948,14 +941,21 @@ class XElement extends HTMLElement {
             tasks.push(this.#add(node, context, rewrites));
         } else if (node.nodeType == node.ELEMENT_NODE) {
             let attribute;
+            const html = node.attributes.html;
             const each = node.attributes.each;
             const inherit = node.attributes.inherit;
+            if (html) await this.#add(html, context, rewrites);
+            if (each) await this.#add(each, context, rewrites);
+            if (inherit) await this.#add(inherit, context, rewrites);
             for (attribute of node.attributes){
+                if (html === attribute) continue;
+                if (each === attribute) continue;
+                if (inherit === attribute) continue;
                 if (XElement.syntaxMatch.test(attribute.value)) {
                     tasks.push(this.#add(attribute, context, rewrites));
                 }
             }
-            if (!each && !inherit) {
+            if (!html && !each && !inherit) {
                 let child1 = node.firstChild;
                 while(child1){
                     tasks.push(this.register(child1, context, rewrites));

@@ -93,20 +93,6 @@ const valueRender = async function (binder: BinderType) {
         else owner.value = '';
         display = owner.value;
     } else {
-        if (owner.nodeName == 'OPTION') {
-            const parent = owner?.parentElement?.nodeName === 'SELECT'
-                ? owner.parentElement
-                : owner?.parentElement?.parentElement?.nodeName === 'SELECT'
-                ? owner.parentElement.parentElement
-                : owner?.[tool.parent]?.nodeName === 'SELECT'
-                ? owner[tool.parent]
-                : null;
-
-            const value = tool.value in parent ? parent[tool.value] : parent.value;
-
-            if (value === computed) owner.selected = true;
-        }
-
         display = tool.display(computed);
         owner.value = display;
     }

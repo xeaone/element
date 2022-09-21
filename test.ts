@@ -1,7 +1,8 @@
 import { assertEquals } from 'https://deno.land/std@0.152.0/testing/asserts.ts';
 import { delay } from 'https://deno.land/std@0.152.0/async/delay.ts';
 import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
-import { parseHTML } from 'https://esm.sh/linkedom@0.14.12';
+// import { parseHTML } from 'https://esm.sh/linkedom@0.14.14';
+import { parseHTML } from 'https://esm.sh/linkedom@0.14.15';
 
 console.clear();
 
@@ -21,9 +22,7 @@ stop();
 // await Deno.run({ cmd: [ 'npx', 'tsc' ] }).status();
 // await Deno.run({ cmd: [ 'npx', 'rollup', 'tmp/element.js', '--file', 'tmp/x-element.js', '--format', 'esm' ] }).status();
 
-const { window, document } = parseHTML(
-    `<html><head></head><body></body></html>`,
-) as any;
+const { window, document } = parseHTML(`<html><head></head><body></body></html>`) as any;
 
 const file = await Deno.readTextFile('./tmp/x-element.js');
 

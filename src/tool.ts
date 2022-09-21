@@ -21,7 +21,7 @@ export const dash = function (data: string) {
 
 const toolDefault = Object.freeze({
     checked: Symbol('checked'),
-    parent: Symbol('parent'),
+    // parent: Symbol('parent'),
     value: Symbol('value'),
     parseable,
     display,
