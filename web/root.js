@@ -3,7 +3,8 @@ import Highlight from './highlight.js';
 
 export default class XRoot extends XElement {
 
-    #setup = false;
+    #rendered = false;
+    #highlighted = false;
 
     example = `
         import XElement from '/x-element.js';
@@ -57,12 +58,16 @@ export default class XRoot extends XElement {
     </section>
     `;
 
-    connectedCallback () {
-        if (this.#setup) return;
-        else this.#setup = true;
+    async connectedCallback() {
+        if (!this.#rendered && (this.#rendered = true)) this.innerHTML = this.#html;
+        await super.connectedCallback();
         this.shadowRoot.innerHTML = '<slot></slot>';
-        this.innerHTML = this.#html;
-        requestAnimationFrame(() =>  Highlight());
+        if (!this.#highlighted && (this.#highlighted = true)) Highlight();
+    }
+
+    async disconnectedCallback() {
+        this.shadowRoot.innerHTML = '';
+        await super.disconnectedCallback();
     }
 
 }

@@ -14,8 +14,8 @@
         "p": "deno run -A src/parse.ts",
         "docs": "deno run -A docs.ts",
         "deploy": "deno run -A deploy.ts",
-        "watch": "deno run -A watch.ts",
-        "test": "deno test -A test.ts --unstable"
+        "test": "deno --unstable test -A test.ts",
+        "watch": "deno --unstable run -A watch.ts"
     },
     "repository": {
         "type": "git",

@@ -6,6 +6,10 @@
 <h1>XElement Performance</h1>
 
 <o-loop>
+    <template shadowroot="open">
+        <span>{{count.toLocaleString()}}</span>
+        <slot></slot>
+    </template>
 
     <h3><span>{{count.toLocaleString()}}</span> bound elements</h3>
     <input value="{{count=$value}}" type="number">
@@ -32,7 +36,7 @@
         message = '';
         count = 100000;
 
-        raw () {
+        raw() {
             console.time('raw');
             const template = document.createElement('template');
 
@@ -55,14 +59,14 @@
             raw.appendChild(template.content);
             console.timeEnd('raw');
         }
-        push () {
+        push() {
             console.time('push');
             for (var i = 0; i < this.count; i++) {
                 this.items.push({ number: i });
             }
             console.timeEnd('push');
         }
-        overwrite () {
+        overwrite() {
             console.time('overwrite');
             var items = [];
             for (var i = 0; i < this.count; i++) {
@@ -71,13 +75,15 @@
             this.items = items;
             console.timeEnd('overwrite');
         }
-        clear () {
+        clear() {
             this.items = [];
         }
-        constructor () {
-            super();
-            this.shadowRoot.innerHTML = '<slot></slot>';
-        }
+        // async connected() {
+        // async connectedCallback() {
+        // await super.connectedCallback();
+        // this.shadowRoot.innerHTML = '<slot></slot>';
+        // console.log('child');
+        // }
     }
 
     OLoop.define();

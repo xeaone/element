@@ -11,13 +11,18 @@ export type HandlerType = {
     reset: ResetType;
 };
 
+export type ElementType = {
+    release: (node: Node) => Promise<void>;
+    register: (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) => Promise<void>;
+};
+
 export type BinderType = {
     name: string;
     value: string;
 
     node: any;
     owner: any;
-    container: XElement;
+    container: ElementType;
 
     meta: Record<string, any>;
     context: Record<string, any>;

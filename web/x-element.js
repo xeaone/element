@@ -644,7 +644,7 @@ function Binder(node, container, context, rewrites) {
         text.textContent = '';
     } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
         const attr = node;
-        owner = attr.parentNode ?? attr.ownerElement;
+        owner = attr.ownerElement;
         value = attr.value ?? '';
         name = attr.name ?? '';
         attr.value = '';
@@ -740,12 +740,12 @@ function Binder(node, container, context, rewrites) {
     return binder;
 }
 class XElement extends HTMLElement {
+    static observedProperties;
     static navigation = navigation;
     static syntaxLength = 2;
     static syntaxEnd = '}}';
     static syntaxStart = '{{';
     static syntaxMatch = new RegExp('{{.*?}}');
-    static observedProperties;
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
     static preparedEvent = new Event('prepared');
@@ -772,10 +772,6 @@ class XElement extends HTMLElement {
     #preparing = false;
     #binders = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
-    adopted;
-    connected;
-    disconnected;
-    attributed;
     #context = new Proxy({}, {
         get: ContextGet.bind(null, this.#change.bind(this), ''),
         set: ContextSet.bind(null, this.#change.bind(this), ''),
@@ -866,7 +862,8 @@ class XElement extends HTMLElement {
         await binder2.render(binder2);
     }
     async prepare() {
-        if (this.#prepared || this.#preparing) return;
+        if (this.#prepared) return;
+        if (this.#preparing) return new Promise((resolve)=>this.addEventListener('preparing', ()=>resolve(undefined)));
         this.#preparing = true;
         this.dispatchEvent(XElement.preparingEvent);
         const prototype = Object.getPrototypeOf(this);
@@ -876,9 +873,7 @@ class XElement extends HTMLElement {
             ...Object.getOwnPropertyDescriptors(prototype)
         };
         for(const property in descriptors){
-            if (properties && !properties?.includes(property) || 'attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'constructor' === property || property.startsWith('#')) {
-                continue;
-            }
+            if (properties && !properties?.includes(property) || 'attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'disconnected' === property || 'constructor' === property || 'attributed' === property || 'connected' === property || 'adopted' === property || property.startsWith('#')) continue;
             const descriptor = descriptors[property];
             if (!descriptor.configurable) continue;
             if (descriptor.set) descriptor.set = descriptor.set?.bind(this);
@@ -887,7 +882,7 @@ class XElement extends HTMLElement {
             Object.defineProperty(this.#context, property, descriptor);
             Object.defineProperty(this, property, {
                 enumerable: descriptor.enumerable,
-                configurable: descriptor.configureable,
+                configurable: descriptor.configurable,
                 get: ()=>this.#context[property],
                 set: (value)=>this.#context[property] = value
             });
@@ -895,6 +890,7 @@ class XElement extends HTMLElement {
         await this.register(this.shadowRoot, this.#context);
         await this.register(this, this.#context);
         this.#prepared = true;
+        this.#preparing = false;
         this.dispatchEvent(XElement.preparedEvent);
     }
     async release(node) {
@@ -943,19 +939,16 @@ class XElement extends HTMLElement {
             let attribute;
             const html = node.attributes.html;
             const each = node.attributes.each;
-            const inherit = node.attributes.inherit;
             if (html) await this.#add(html, context, rewrites);
             if (each) await this.#add(each, context, rewrites);
-            if (inherit) await this.#add(inherit, context, rewrites);
             for (attribute of node.attributes){
                 if (html === attribute) continue;
                 if (each === attribute) continue;
-                if (inherit === attribute) continue;
                 if (XElement.syntaxMatch.test(attribute.value)) {
                     tasks.push(this.#add(attribute, context, rewrites));
                 }
             }
-            if (!html && !each && !inherit) {
+            if (!html && !each) {
                 let child1 = node.firstChild;
                 while(child1){
                     tasks.push(this.register(child1, context, rewrites));
@@ -965,24 +958,26 @@ class XElement extends HTMLElement {
         }
         await Promise.all(tasks);
     }
-    adoptedCallback() {
+    async adoptedCallback() {
+        await this.prepare();
         this.dispatchEvent(XElement.adoptingEvent);
-        this.adopted?.();
+        await this.adopted?.();
         this.dispatchEvent(XElement.adoptedEvent);
     }
-    connectedCallback() {
+    async connectedCallback() {
+        await this.prepare();
         this.dispatchEvent(XElement.connectingEvent);
-        this.connected?.();
+        await this.connected?.();
         this.dispatchEvent(XElement.connectedEvent);
     }
-    disconnectedCallback() {
+    async disconnectedCallback() {
         this.dispatchEvent(XElement.disconnectingEvent);
-        this.disconnected?.();
+        await this.disconnected?.();
         this.dispatchEvent(XElement.disconnectedEvent);
     }
-    attributeChangedCallback(name, from, to) {
+    async attributeChangedCallback(name, from, to) {
         this.dispatchEvent(XElement.attributingEvent);
-        this.attributed?.(name, from, to);
+        await this.attributed?.(name, from, to);
         this.dispatchEvent(XElement.attributedEvent);
     }
 }

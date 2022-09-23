@@ -1,5 +1,4 @@
 // import Parse from './_parse';
-import XElement from './element.ts';
 import Standard from './standard.ts';
 import Checked from './checked.ts';
 import Inherit from './inherit.ts';
@@ -8,7 +7,7 @@ import Html from './html.ts';
 import Each from './each.ts';
 import On from './on.ts';
 
-import { BinderType, HandlerType } from './types.ts';
+import { BinderType, ElementType, HandlerType } from './types.ts';
 
 // type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
 
@@ -44,7 +43,7 @@ const ignorePattern = new RegExp(ignoreString, 'g');
 
 const Cache: Map<string, any> = new Map();
 
-export default function Binder(node: Node, container: XElement, context: Record<string, any>, rewrites?: Array<Array<string>>) {
+export default function Binder(node: Node, container: ElementType, context: Record<string, any>, rewrites?: Array<Array<string>>) {
     let name, value, owner;
 
     if (node.nodeType === Node.TEXT_NODE) {
@@ -55,9 +54,7 @@ export default function Binder(node: Node, container: XElement, context: Record<
         text.textContent = '';
     } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
         const attr = node as Attr;
-        // parentNode required for linkdom bug
-        owner = attr.parentNode ?? attr.ownerElement;
-        // owner = attr.ownerElement;
+        owner = attr.ownerElement;
         value = attr.value ?? '';
         name = attr.name ?? '';
         attr.value = '';

@@ -3,13 +3,33 @@ import Navigation from './navigation.ts';
 import Binder from './binder.ts';
 import { dash } from './tool.ts';
 
+// const DEFINED = new WeakSet();
+// const CE = window.customElements;
+// Object.defineProperty(window, 'customElements', {
+//     get: () => ({
+//         define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
+//             if (constructor.prototype instanceof XElement && !DEFINED.has(constructor)) {
+//                 DEFINED.add(constructor);
+//                 Object.defineProperties(constructor.prototype, {
+//                     connected: { value: constructor.prototype.connectedCallback },
+//                     connectedCallback: { value: XElement.prototype.connectedCallback },
+//                 });
+//             }
+//             CE.define(name, constructor, options);
+//         },
+//         get: CE.get,
+//         whenDefined: CE.whenDefined,
+//     }),
+// });
+
 export default class XElement extends HTMLElement {
+    static observedProperties?: Array<string>;
+
     static navigation = Navigation;
     static syntaxLength = 2;
     static syntaxEnd = '}}';
     static syntaxStart = '{{';
     static syntaxMatch = new RegExp('{{.*?}}');
-    static observedProperties?: Array<string>;
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
     static preparedEvent = new Event('prepared');
@@ -41,13 +61,6 @@ export default class XElement extends HTMLElement {
     #binders: Map<string | Node, Set<any>> = new Map();
     #mutator = new MutationObserver(this.#mutation.bind(this));
 
-    adopted?: () => void;
-    connected?: () => void;
-    disconnected?: () => void;
-    attributed?: (name: string, from: string, to: string) => void;
-
-    // #data = {};
-    // #context = new Proxy(this.#data, {
     #context = new Proxy({}, {
         get: ContextGet.bind(null, this.#change.bind(this), ''),
         set: ContextSet.bind(null, this.#change.bind(this), ''),
@@ -64,6 +77,7 @@ export default class XElement extends HTMLElement {
     async #change(reference: string, type: string) {
         const tasksFirst = [];
         const tasksSecond = [];
+        // const tasks = new Map();
 
         let key, binder, binders;
         for ([key, binders] of this.#binders) {
@@ -86,6 +100,7 @@ export default class XElement extends HTMLElement {
     }
 
     #mutation(mutations: Array<MutationRecord>) {
+        // console.log('mutation');
         if (this.#prepared) {
             let mutation, node;
             for (mutation of mutations) {
@@ -141,37 +156,17 @@ export default class XElement extends HTMLElement {
         await binder.render(binder);
     }
 
-    // async update () {
-    //     const tasks = [];
-    //     const updates = this.#updates.values();
-
-    //     let result = updates.next();
-    //     while (!result.done) {
-    //         this.#updates.delete(result.value);
-
-    //         tasks.push(tick(async function updateTick (binder: any) {
-    //             return binder[ binder.mode ](binder);
-    //         }.bind(null, result.value)));
-
-    //         // result.value[ result.value.mode ](result.value);
-    //         // binder[ binder.mode ](binder);
-    //         result = updates.next();
-    //     }
-
-    //     await Promise.all(tasks);
-
-    //     if (this.#updates.size) await this.update();
-    // }
-
     async prepare() {
-        if (this.#prepared || this.#preparing) return;
+        if (this.#prepared) return;
+        if (this.#preparing) return new Promise((resolve) => this.addEventListener('preparing', () => resolve(undefined)));
+        // console.log('prepare');
 
         this.#preparing = true;
         this.dispatchEvent(XElement.preparingEvent);
 
         const prototype = Object.getPrototypeOf(this);
         const properties = XElement.observedProperties;
-        const descriptors: any = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
+        const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
 
         for (const property in descriptors) {
             if (
@@ -180,11 +175,13 @@ export default class XElement extends HTMLElement {
                 'disconnectedCallback' === property ||
                 'connectedCallback' === property ||
                 'adoptedCallback' === property ||
+                'disconnected' === property ||
                 'constructor' === property ||
+                'attributed' === property ||
+                'connected' === property ||
+                'adopted' === property ||
                 property.startsWith('#')
-            ) {
-                continue;
-            }
+            ) continue;
 
             const descriptor = descriptors[property];
 
@@ -193,12 +190,11 @@ export default class XElement extends HTMLElement {
             if (descriptor.get) descriptor.get = descriptor.get?.bind(this);
             if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
 
-            // Object.defineProperty(this.#data, property, descriptor);
             Object.defineProperty(this.#context, property, descriptor);
 
             Object.defineProperty(this, property, {
                 enumerable: descriptor.enumerable,
-                configurable: descriptor.configureable,
+                configurable: descriptor.configurable,
                 get: () => this.#context[property],
                 set: (value) => this.#context[property] = value,
             });
@@ -208,6 +204,7 @@ export default class XElement extends HTMLElement {
         await this.register(this, this.#context);
 
         this.#prepared = true;
+        this.#preparing = false;
         this.dispatchEvent(XElement.preparedEvent);
     }
 
@@ -267,22 +264,22 @@ export default class XElement extends HTMLElement {
 
             const html = ((node as Element).attributes as any).html;
             const each = ((node as Element).attributes as any).each;
-            const inherit = ((node as Element).attributes as any).inherit;
+            // const inherit = ((node as Element).attributes as any).inherit;
 
             if (html) await this.#add(html, context, rewrites);
             if (each) await this.#add(each, context, rewrites);
-            if (inherit) await this.#add(inherit, context, rewrites);
+            // if (inherit) await this.#add(inherit, context, rewrites);
 
             for (attribute of (node as Element).attributes) {
                 if (html === attribute) continue;
                 if (each === attribute) continue;
-                if (inherit === attribute) continue;
+                // if (inherit === attribute) continue;
                 if (XElement.syntaxMatch.test(attribute.value)) {
                     tasks.push(this.#add(attribute, context, rewrites));
                 }
             }
 
-            if (!html && !each && !inherit) {
+            if (!html && !each) {
                 let child = node.firstChild;
                 while (child) {
                     tasks.push(this.register(child, context, rewrites));
@@ -294,27 +291,30 @@ export default class XElement extends HTMLElement {
         await Promise.all(tasks);
     }
 
-    adoptedCallback() {
+    async adoptedCallback() {
+        await this.prepare();
         this.dispatchEvent(XElement.adoptingEvent);
-        this.adopted?.();
+        await (this as any).adopted?.();
         this.dispatchEvent(XElement.adoptedEvent);
     }
 
-    connectedCallback() {
+    async connectedCallback() {
+        // console.log('parent');
+        await this.prepare();
         this.dispatchEvent(XElement.connectingEvent);
-        this.connected?.();
+        await (this as any).connected?.();
         this.dispatchEvent(XElement.connectedEvent);
     }
 
-    disconnectedCallback() {
+    async disconnectedCallback() {
         this.dispatchEvent(XElement.disconnectingEvent);
-        this.disconnected?.();
+        await (this as any).disconnected?.();
         this.dispatchEvent(XElement.disconnectedEvent);
     }
 
-    attributeChangedCallback(name: string, from: string, to: string) {
+    async attributeChangedCallback(name: string, from: string, to: string) {
         this.dispatchEvent(XElement.attributingEvent);
-        this.attributed?.(name, from, to);
+        await (this as any).attributed?.(name, from, to);
         this.dispatchEvent(XElement.attributedEvent);
     }
 }
