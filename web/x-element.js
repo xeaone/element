@@ -48,19 +48,20 @@ const ContextDelete = function(event, reference, target, key) {
     return true;
 };
 const ContextSet = function(event, reference, target, key, to, receiver) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, receiver);
-    const from = Reflect.get(target, key, receiver);
+    if (typeof key === 'symbol') return Reflect.set(target, key, to, receiver);
     if (key === 'length') {
+        Reflect.set(target, key, to, receiver);
         tick(async function contextTick() {
             await event(reference, 'render');
         });
         tick(async function contextTick() {
             await event(reference ? `${reference}.${key}` : `${key}`, 'render');
         });
-        return Reflect.set(target, key, to, receiver);
-    } else if (from === to || isNaN(from) && to === isNaN(to)) {
-        return Reflect.set(target, key, to, receiver);
+        return true;
     }
+    const from = Reflect.get(target, key, receiver);
+    if (from === to) return true;
+    if (Number.isNaN(from) && Number.isNaN(to)) return true;
     Reflect.set(target, key, to, receiver);
     tick(async function contextTick() {
         await event(reference ? `${reference}.${key}` : `${key}`, 'render');
@@ -172,9 +173,8 @@ const standardSetup = function(binder) {
 };
 const standardRender = async function(binder) {
     if (binder.name == 'text') {
-        let data = await binder.compute();
-        data = toolDefault.display(data);
-        binder.node.textContent = data;
+        const data = await binder.compute();
+        binder.node.textContent = toolDefault.display(data);
     } else if (binder.meta.boolean) {
         const data1 = await binder.compute() ? true : false;
         if (data1) binder.owner.setAttributeNode(binder.node);
@@ -790,24 +790,22 @@ class XElement extends HTMLElement {
         });
     }
     async #change(reference, type) {
-        const tasksFirst = [];
-        const tasksSecond = [];
+        const tasks = [];
         let key, binder, binders;
         for ([key, binders] of this.#binders){
             if (binders) {
                 if (key == reference) {
-                    for (binder of binders)tasksFirst.push(binder);
+                    for (binder of binders){
+                        tasks.push(binder);
+                    }
                 } else if (key?.startsWith?.(`${reference}.`)) {
-                    for (binder of binders)tasksSecond.push(binder);
+                    for (binder of binders){
+                        tasks.push(binder);
+                    }
                 }
             }
         }
-        await Promise.all(tasksFirst.map(async function changes(binder) {
-            await binder[type](binder);
-        }));
-        await Promise.all(tasksSecond.map(async function changes(binder) {
-            await binder[type](binder);
-        }));
+        await Promise.all(tasks.map(async (task)=>await task[type](task)));
     }
     #mutation(mutations) {
         if (this.#prepared) {
@@ -958,12 +956,6 @@ class XElement extends HTMLElement {
         }
         await Promise.all(tasks);
     }
-    async adoptedCallback() {
-        await this.prepare();
-        this.dispatchEvent(XElement.adoptingEvent);
-        await this.adopted?.();
-        this.dispatchEvent(XElement.adoptedEvent);
-    }
     async connectedCallback() {
         await this.prepare();
         this.dispatchEvent(XElement.connectingEvent);
@@ -974,6 +966,11 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.disconnectingEvent);
         await this.disconnected?.();
         this.dispatchEvent(XElement.disconnectedEvent);
+    }
+    async adoptedCallback() {
+        this.dispatchEvent(XElement.adoptingEvent);
+        await this.adopted?.();
+        this.dispatchEvent(XElement.adoptedEvent);
     }
     async attributeChangedCallback(name, from, to) {
         this.dispatchEvent(XElement.attributingEvent);

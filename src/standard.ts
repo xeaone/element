@@ -8,9 +8,8 @@ const standardSetup = function (binder: BinderType) {
 
 const standardRender = async function (binder: BinderType) {
     if (binder.name == 'text') {
-        let data = await binder.compute();
-        data = tool.display(data);
-        binder.node.textContent = data;
+        const data = await binder.compute();
+        binder.node.textContent = tool.display(data);
     } else if (binder.meta.boolean) {
         const data = await binder.compute() ? true : false;
         if (data) binder.owner.setAttributeNode(binder.node);

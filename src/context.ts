@@ -3,6 +3,35 @@ import { tick } from './tool.ts';
 type ContextKeys = string | symbol;
 // type ContextHandlers = 'render' | 'reset';
 
+// const diff = function (from: any, to: any, resets?: string[], renders?: string[], reference?: string) {
+//     resets = resets ?? [];
+//     renders = renders ?? [];
+//     reference = reference ?? '';
+
+//     if (from && typeof from === 'object') {
+//         for (const key in from) {
+//             if (to === null || to === undefined) {
+//                 resets.push(reference ? `${reference}.${key}` : key);
+//                 if (from[key] && typeof from[key] === 'object') {
+//                     diff(from[key], to, resets, renders, reference ? `${reference}.${key}` : key);
+//                 }
+//             } else if (to && typeof to === 'object') {
+//                 if (key in to) {
+//                     if (from[key] === to[key]) {
+//                         renders.push(reference ? `${reference}.${key}` : key);
+//                         diff(from[key], to[key], resets, renders, reference ? `${reference}.${key}` : key);
+//                     } else {
+//                     }
+//                 } else {
+//                 }
+//                 if (from[key] !== to[key]) {
+//                 }
+//             }
+//         }
+//     }
+
+// };
+
 export const ContextGet = function (event: any, reference: string, target: any, key: ContextKeys, receiver: any): any {
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
 
@@ -33,23 +62,29 @@ export const ContextDelete = function (event: any, reference: string, target: an
 };
 
 export const ContextSet = function (event: any, reference: string, target: any, key: ContextKeys, to: any, receiver: any) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, receiver);
-
-    const from = Reflect.get(target, key, receiver);
+    if (typeof key === 'symbol') return Reflect.set(target, key, to, receiver);
 
     if (key === 'length') {
+        Reflect.set(target, key, to, receiver);
+
         tick(async function contextTick() {
             await event(reference, 'render');
         });
+
         tick(async function contextTick() {
             await event(reference ? `${reference}.${key}` : `${key}`, 'render');
         });
-        return Reflect.set(target, key, to, receiver);
-    } else if (from === to || isNaN(from) && to === isNaN(to)) {
-        return Reflect.set(target, key, to, receiver);
+
+        return true;
     }
 
+    const from = Reflect.get(target, key, receiver);
+
+    if (from === to) return true;
+    if (Number.isNaN(from) && Number.isNaN(to)) return true;
+
     Reflect.set(target, key, to, receiver);
+
     tick(async function contextTick() {
         await event(reference ? `${reference}.${key}` : `${key}`, 'render');
     });

@@ -66,13 +66,10 @@ handler.add(normalize);
 handler.add(cors);
 handler.add(router);
 
-console.log(Deno.serve)
-
 // const server = Server((request) => handler.handle(request), { port });
-const server = Deno.serve({ port }, (request) => handler.handle(request));
+// console.log(`listening: ${port}`);
+// await server;
 
-console.log(`listening: ${port}`);
-
-await server;
+Deno.serve({ port }, (request) => handler.handle(request));
 
 // stop();

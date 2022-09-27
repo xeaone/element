@@ -75,28 +75,25 @@ export default class XElement extends HTMLElement {
     }
 
     async #change(reference: string, type: string) {
-        const tasksFirst = [];
-        const tasksSecond = [];
-        // const tasks = new Map();
+        const tasks = [];
 
         let key, binder, binders;
+
         for ([key, binders] of this.#binders) {
             if (binders) {
                 if ((key as string) == reference) {
-                    for (binder of binders) tasksFirst.push(binder);
+                    for (binder of binders) {
+                        tasks.push(binder);
+                    }
                 } else if ((key as string)?.startsWith?.(`${reference}.`)) {
-                    for (binder of binders) tasksSecond.push(binder);
+                    for (binder of binders) {
+                        tasks.push(binder);
+                    }
                 }
             }
         }
 
-        await Promise.all(tasksFirst.map(async function changes(binder) {
-            await binder[type](binder);
-        }));
-
-        await Promise.all(tasksSecond.map(async function changes(binder) {
-            await binder[type](binder);
-        }));
+        await Promise.all(tasks.map(async (task) => await task[type](task)));
     }
 
     #mutation(mutations: Array<MutationRecord>) {
@@ -291,15 +288,7 @@ export default class XElement extends HTMLElement {
         await Promise.all(tasks);
     }
 
-    async adoptedCallback() {
-        await this.prepare();
-        this.dispatchEvent(XElement.adoptingEvent);
-        await (this as any).adopted?.();
-        this.dispatchEvent(XElement.adoptedEvent);
-    }
-
     async connectedCallback() {
-        // console.log('parent');
         await this.prepare();
         this.dispatchEvent(XElement.connectingEvent);
         await (this as any).connected?.();
@@ -310,6 +299,12 @@ export default class XElement extends HTMLElement {
         this.dispatchEvent(XElement.disconnectingEvent);
         await (this as any).disconnected?.();
         this.dispatchEvent(XElement.disconnectedEvent);
+    }
+
+    async adoptedCallback() {
+        this.dispatchEvent(XElement.adoptingEvent);
+        await (this as any).adopted?.();
+        this.dispatchEvent(XElement.adoptedEvent);
     }
 
     async attributeChangedCallback(name: string, from: string, to: string) {
