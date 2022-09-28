@@ -790,22 +790,24 @@ class XElement extends HTMLElement {
         });
     }
     async #change(reference, type) {
-        const tasks = [];
+        const parents = [];
+        const children = [];
         let key, binder, binders;
         for ([key, binders] of this.#binders){
             if (binders) {
-                if (key == reference) {
+                if (key === reference) {
                     for (binder of binders){
-                        tasks.push(binder);
+                        parents.push(binder);
                     }
                 } else if (key?.startsWith?.(`${reference}.`)) {
                     for (binder of binders){
-                        tasks.push(binder);
+                        children.push(binder);
                     }
                 }
             }
         }
-        await Promise.all(tasks.map(async (task)=>await task[type](task)));
+        await Promise.all(parents.map(async (binder)=>await binder[type]?.(binder)));
+        await Promise.all(children.map(async (binder)=>await binder[type]?.(binder)));
     }
     #mutation(mutations) {
         if (this.#prepared) {
@@ -829,6 +831,8 @@ class XElement extends HTMLElement {
         for (binder1 of binders1){
             for (reference1 of binder1.references){
                 if (this.#binders.has(reference1)) {
+                    binder1.reset = undefined;
+                    binder1.render = undefined;
                     this.#binders.get(reference1)?.delete(binder1);
                     if (!this.#binders.get(reference1)?.size) this.#binders.delete(reference1);
                 }

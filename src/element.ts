@@ -75,29 +75,30 @@ export default class XElement extends HTMLElement {
     }
 
     async #change(reference: string, type: string) {
-        const tasks = [];
+        const parents = [];
+        const children = [];
 
         let key, binder, binders;
 
         for ([key, binders] of this.#binders) {
             if (binders) {
-                if ((key as string) == reference) {
+                if ((key as string) === reference) {
                     for (binder of binders) {
-                        tasks.push(binder);
+                        parents.push(binder);
                     }
                 } else if ((key as string)?.startsWith?.(`${reference}.`)) {
                     for (binder of binders) {
-                        tasks.push(binder);
+                        children.push(binder);
                     }
                 }
             }
         }
 
-        await Promise.all(tasks.map(async (task) => await task[type](task)));
+        await Promise.all(parents.map(async (binder) => await binder[type]?.(binder)));
+        await Promise.all(children.map(async (binder) => await binder[type]?.(binder)));
     }
 
     #mutation(mutations: Array<MutationRecord>) {
-        // console.log('mutation');
         if (this.#prepared) {
             let mutation, node;
             for (mutation of mutations) {
@@ -121,6 +122,8 @@ export default class XElement extends HTMLElement {
         for (binder of binders) {
             for (reference of binder.references) {
                 if (this.#binders.has(reference)) {
+                    binder.reset = undefined;
+                    binder.render = undefined;
                     this.#binders.get(reference)?.delete(binder);
                     if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
                 }
@@ -156,7 +159,6 @@ export default class XElement extends HTMLElement {
     async prepare() {
         if (this.#prepared) return;
         if (this.#preparing) return new Promise((resolve) => this.addEventListener('preparing', () => resolve(undefined)));
-        // console.log('prepare');
 
         this.#preparing = true;
         this.dispatchEvent(XElement.preparingEvent);
