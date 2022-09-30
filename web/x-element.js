@@ -69,7 +69,7 @@ const ContextSet = function(event, reference, target, key, to, receiver) {
     return true;
 };
 const navigators = new Map();
-const transition = async (options)=>{
+const transition = async function(options) {
     if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
     if (options.navigating) return;
     else options.navigating = true;
@@ -82,7 +82,7 @@ const transition = async (options)=>{
     options.target.replaceChildren(options.instance);
     options.navigating = false;
 };
-const navigate = (event)=>{
+const navigate = function(event) {
     if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
     const destination = new URL(event?.destination.url ?? location.href);
     const base = new URL(document.querySelector('base')?.href ?? location.origin);
@@ -101,7 +101,7 @@ const navigate = (event)=>{
             handler: ()=>transition(options)
         });
     } else if (event?.transitionWhile) {
-        if (options.instance === options.target.lastElementChild) return event.transitionWhile((async ()=>undefined)());
+        if (options.instance === options.target.lastElementChild) return event.transitionWhile((()=>undefined)());
         return event.transitionWhile(transition(options));
     } else {
         transition(options);
@@ -464,9 +464,24 @@ const eachRender = async function(binder) {
                 ], 
             ];
             context = new Proxy(binder.context, {
-                has: (target, key)=>key === binder.meta.variable || key === binder.meta.keyName || key === binder.meta.indexName || Reflect.has(target, key),
-                get: (target, key, receiver)=>key === binder.meta.keyName ? keyValue : key === binder.meta.indexName ? indexValue : key === binder.meta.variable ? Reflect.get(binder.meta.data, keyValue) : Reflect.get(target, key, receiver),
-                set: (target, key, value, receiver)=>key === binder.meta.keyName ? true : key === binder.meta.indexName ? true : key === binder.meta.variable ? Reflect.set(binder.meta.data, keyValue, value) : Reflect.set(target, key, value, receiver)
+                has: function eachHas(target, key) {
+                    if (key === binder.meta.variable) return true;
+                    if (key === binder.meta.keyName) return true;
+                    if (key === binder.meta.indexName) return true;
+                    return Reflect.has(target, key);
+                },
+                get: function eachGet(target, key, receiver) {
+                    if (key === binder.meta.keyName) return keyValue;
+                    if (key === binder.meta.indexName) return indexValue;
+                    if (key === binder.meta.variable) return Reflect.get(binder.meta.data, keyValue);
+                    return Reflect.get(target, key, receiver);
+                },
+                set: function eachSet(target, key, value, receiver) {
+                    if (key === binder.meta.keyName) return true;
+                    if (key === binder.meta.indexName) return true;
+                    if (key === binder.meta.variable) return Reflect.set(binder.meta.data, keyValue, value);
+                    return Reflect.set(target, key, value, receiver);
+                }
             });
             let node1 = binder.meta.templateElement.content.firstChild;
             while(node1){

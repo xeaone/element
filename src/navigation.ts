@@ -2,7 +2,7 @@ import { dash } from './tool.ts';
 
 const navigators = new Map();
 
-const transition = async (options: any) => {
+const transition = async function (options: any) {
     if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
 
     if (options.navigating) return;
@@ -21,7 +21,7 @@ const transition = async (options: any) => {
     options.navigating = false;
 };
 
-const navigate = (event?: any) => {
+const navigate = function (event?: any) {
     if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
     const destination = new URL(event?.destination.url ?? location.href);
     const base = new URL(document.querySelector('base')?.href ?? location.origin);
@@ -43,7 +43,7 @@ const navigate = (event?: any) => {
         if (options.instance === options.target.lastElementChild) return event.intercept();
         return event.intercept({ handler: () => transition(options) });
     } else if (event?.transitionWhile) {
-        if (options.instance === options.target.lastElementChild) return event.transitionWhile((async () => undefined)());
+        if (options.instance === options.target.lastElementChild) return event.transitionWhile((() => undefined)());
         return event.transitionWhile(transition(options));
     } else {
         transition(options);

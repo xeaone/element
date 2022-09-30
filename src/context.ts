@@ -32,6 +32,21 @@ type ContextKeys = string | symbol;
 
 // };
 
+// const ContextProxy = function (event: any, reference: string, value: any) {
+//     if (value && typeof value === 'object') {
+//         for (const key in value) {
+//             value[key] = ContextProxy(event, reference ? `${reference}.${key}` : `${key}`, value[key]);
+//         }
+//         return new Proxy(value, {
+//             get: ContextGet.bind(null, event, reference),
+//             set: ContextSet.bind(null, event, reference),
+//             deleteProperty: ContextDelete.bind(null, event, reference),
+//         });
+//     } else {
+//         return value;
+//     }
+// };
+
 export const ContextGet = function (event: any, reference: string, target: any, key: ContextKeys, receiver: any): any {
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
 
@@ -82,6 +97,10 @@ export const ContextSet = function (event: any, reference: string, target: any, 
 
     if (from === to) return true;
     if (Number.isNaN(from) && Number.isNaN(to)) return true;
+
+    // if (to && typeof to === 'object') {
+    //     to = ContextProxy(event, reference ? `${reference}.${key}` : `${key}`, to);
+    // }
 
     Reflect.set(target, key, to, receiver);
 

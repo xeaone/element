@@ -9,8 +9,6 @@ import On from './on.ts';
 
 import { BinderType, ElementType, HandlerType } from './types.ts';
 
-// type Compute = (context: Record<string, any>, instance: Record<string, any>) => any;
-
 const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
 const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
 const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;

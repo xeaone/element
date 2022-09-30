@@ -1,5 +1,3 @@
-import XElement from './element.ts';
-
 export type ComputeType = () => any;
 export type SetupType = (binder?: any) => void;
 export type RenderType = (binder?: any) => void;
