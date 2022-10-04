@@ -110,16 +110,20 @@ Deno.test('checked-binder', async () => {
 Deno.test('radio-binder', async () => {
     const element = Element(
         'radio-binder',
-        `<input type="radio" name="radio" value="one" checked="{{radioOne=$checked}}">` +
-            `<input type="radio" name="radio" value="two" checked="{{radioTwo=$checked}}">`,
+        [
+            `<input checked="{{radioOne=$checked}}" type="radio" name="radio" value="one">`,
+            `<input checked="{{radioTwo=$checked}}" type="radio" name="radio" value="two">`,
+        ].join(''),
         { radioOne: undefined, radioTwo: undefined },
     );
 
     await delay(10);
     assertEquals(
         element.innerHTML,
-        `<input type="radio" name="radio" value="one">` +
+        [
+            `<input type="radio" name="radio" value="one">`,
             `<input type="radio" name="radio" value="two">`,
+        ].join(''),
     );
 
     element.radioOne = 'one';
@@ -127,8 +131,10 @@ Deno.test('radio-binder', async () => {
     await delay(10);
     assertEquals(
         element.innerHTML,
-        `<input checked type="radio" name="radio" value="one">` +
+        [
+            `<input checked type="radio" name="radio" value="one">`,
             `<input type="radio" name="radio" value="two">`,
+        ].join(''),
     );
 });
 
@@ -143,4 +149,3 @@ Deno.test('value-binder', async () => {
     await delay(10);
     assertEquals(element.innerHTML, '<input value="HELLO WORLD">');
 });
-

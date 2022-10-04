@@ -136,7 +136,7 @@ export default class XElement extends HTMLElement {
     async #add(node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
         const binder = Binder(node, this, context, rewrites);
 
-        let binders, reference: any;
+        let binders, reference;
         for (reference of binder.references) {
             binders = this.#binders.get(reference);
             if (binders) {
@@ -164,12 +164,18 @@ export default class XElement extends HTMLElement {
         this.dispatchEvent(XElement.preparingEvent);
 
         const prototype = Object.getPrototypeOf(this);
-        const properties = XElement.observedProperties;
-        const descriptors = { ...Object.getOwnPropertyDescriptors(this), ...Object.getOwnPropertyDescriptors(prototype) };
+        const descriptors: Record<string, PropertyDescriptor> = {};
+        const properties: Array<string> | undefined = (this.constructor as any).observedProperties;
+
+        if (properties) {
+            properties.forEach((property) => descriptors[property] = Object.getOwnPropertyDescriptor(this, property) ?? {});
+        } else {
+            Object.assign(descriptors, Object.getOwnPropertyDescriptors(this));
+            Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
+        }
 
         for (const property in descriptors) {
             if (
-                properties && !properties?.includes(property) ||
                 'attributeChangedCallback' === property ||
                 'disconnectedCallback' === property ||
                 'connectedCallback' === property ||

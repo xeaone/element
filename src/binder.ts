@@ -9,12 +9,6 @@ import On from './on.ts';
 
 import { BinderType, ElementType, HandlerType } from './types.ts';
 
-const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
-const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
-const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
-const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
-const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
-
 const ignoreString = `
 (\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
 event|this|window|document|console|location|navigation|
@@ -36,8 +30,12 @@ yield|delete|export|import|return|switch|default|extends|finally|continue|debugg
 `.replace(/\t|\n/g, '');
 
 const ignorePattern = new RegExp(ignoreString, 'g');
-
-// const referenceNormalize = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
+const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
+const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
+const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
+const referenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
+const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
 
 const Cache: Map<string, any> = new Map();
 
@@ -75,7 +73,7 @@ export default function Binder(node: Node, container: ElementType, context: Reco
         const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
         const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
         const assignment = clean.match(assignmentPattern);
-        const references = clean.replace(ignorePattern, '').match(referencePattern) ?? [];
+        const references = clean.replace(ignorePattern, '').replace(referenceNormalize, '.$2$3').match(referencePattern) ?? [];
         // console.log(code, clean, references, assignment);
 
         // const { code, references, assignmentLeft, assignmentMid, assignmentRight } = Parse(value);
@@ -211,3 +209,17 @@ export default function Binder(node: Node, container: ElementType, context: Reco
 //         document.head.appendChild(script);
 //     });
 // };
+
+// const values = [
+//     `{{foo?.bar}}`,
+//     `{{foo?.[1]?.bar}}`,
+//     `{{foo?.[1][2]}}`,
+// ];
+
+// for (const value of values) {
+//     const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
+//     const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
+//     const assignment = clean.match(assignmentPattern);
+//     const references = clean.replace(ignorePattern, '').replace(referenceNormalize, '.$2$3').match(referencePattern) ?? [];
+//     console.log(value, assignment, references);
+// }

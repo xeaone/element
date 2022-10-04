@@ -11,7 +11,7 @@ export default class XRoot extends XElement {
 
         MyElement extends XElement {
 
-            greeting: '',
+            greeting = '';
             greet () { this.greeting = 'Greeting'; }
 
             constructor () {

@@ -623,11 +623,6 @@ const onDefault = {
     render: onRender,
     reset: onReset
 };
-const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
-const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
-const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
-const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
-const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
 const ignoreString = `
 (\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
 event|this|window|document|console|location|navigation|
@@ -648,6 +643,12 @@ yield|delete|export|import|return|switch|default|extends|finally|continue|debugg
 (([.][a-zA-Z0-9$_.? ]*)?\\b)
 `.replace(/\t|\n/g, '');
 const ignorePattern = new RegExp(ignoreString, 'g');
+const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
+const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
+const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
+const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
+const referenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
+const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
 const Cache = new Map();
 function Binder(node, container, context, rewrites) {
     let name, value, owner;
@@ -679,7 +680,7 @@ function Binder(node, container, context, rewrites) {
         const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
         const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
         const assignment = clean.match(assignmentPattern);
-        const references = clean.replace(ignorePattern, '').match(referencePattern) ?? [];
+        const references = clean.replace(ignorePattern, '').replace(referenceNormalize, '.$2$3').match(referencePattern) ?? [];
         const isValue = name === 'value';
         const isChecked = name === 'checked';
         let wrapped;
@@ -884,13 +885,16 @@ class XElement extends HTMLElement {
         this.#preparing = true;
         this.dispatchEvent(XElement.preparingEvent);
         const prototype = Object.getPrototypeOf(this);
-        const properties = XElement.observedProperties;
-        const descriptors = {
-            ...Object.getOwnPropertyDescriptors(this),
-            ...Object.getOwnPropertyDescriptors(prototype)
-        };
+        const descriptors = {};
+        const properties = this.constructor.observedProperties;
+        if (properties) {
+            properties.forEach((property)=>descriptors[property] = Object.getOwnPropertyDescriptor(this, property) ?? {});
+        } else {
+            Object.assign(descriptors, Object.getOwnPropertyDescriptors(this));
+            Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
+        }
         for(const property in descriptors){
-            if (properties && !properties?.includes(property) || 'attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'disconnected' === property || 'constructor' === property || 'attributed' === property || 'connected' === property || 'adopted' === property || property.startsWith('#')) continue;
+            if ('attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'disconnected' === property || 'constructor' === property || 'attributed' === property || 'connected' === property || 'adopted' === property || property.startsWith('#')) continue;
             const descriptor = descriptors[property];
             if (!descriptor.configurable) continue;
             if (descriptor.set) descriptor.set = descriptor.set?.bind(this);

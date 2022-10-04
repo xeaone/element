@@ -10,6 +10,7 @@ export type HandlerType = {
 };
 
 export type ElementType = {
+    // static observedProperties: Array<>;
     release: (node: Node) => Promise<void>;
     register: (node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) => Promise<void>;
 };
