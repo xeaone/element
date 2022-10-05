@@ -7,6 +7,11 @@ type valueElement = HTMLElement & HTMLInputElement & HTMLOptionElement & HTMLSel
 const valueEvent = new Event('input');
 
 const valueInput = async function (binder: BinderType, event: InputEvent) {
+    console.log('valueInput');
+
+    if (binder.meta.busy) return;
+    else binder.meta.busy = true;
+
     binder.instance.event = event;
     binder.instance.$event = event;
     binder.instance.$assign = true;
@@ -48,7 +53,13 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
         // }
     }
 
-    owner[tool.value] = await binder.compute();
+    await binder.compute();
+    binder.meta.busy = false;
+    // const value = await binder.compute();
+    // owner.value = value;
+    // owner[tool.value] = value;
+    // owner.setAttribute('value', value);
+    // console.log(owner.value, value);
 };
 
 const valueSetup = function (binder: BinderType) {
@@ -56,15 +67,20 @@ const valueSetup = function (binder: BinderType) {
 };
 
 const valueRender = async function (binder: BinderType) {
+    console.log('valueRender');
+
+    if (binder.meta.busy) return;
+    else binder.meta.busy = true;
+
     binder.instance.$assign = false;
     binder.instance.event = undefined;
     binder.instance.$event = undefined;
     binder.instance.$value = undefined;
+    // binder.owner.value = '';
 
-    const computed = await binder.compute();
     const owner = binder.owner as valueElement;
-
-    owner.value = '';
+    const computed = await binder.compute();
+    console.log(computed, binder);
 
     let display;
 
@@ -99,6 +115,7 @@ const valueRender = async function (binder: BinderType) {
 
     owner[tool.value] = computed;
     owner.setAttribute('value', display);
+    binder.meta.busy = false;
 };
 
 const valueReset = function (binder: BinderType) {

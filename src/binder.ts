@@ -10,7 +10,8 @@ import On from './on.ts';
 import { BinderType, ElementType, HandlerType } from './types.ts';
 
 const ignoreString = `
-(\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+(\\b
+(\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
 event|this|window|document|console|location|navigation|
 globalThis|Infinity|NaN|undefined|
 isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
@@ -26,7 +27,8 @@ Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncF
 Reflect|Proxy|
 true|false|null|of|in|do|if|for|new|try|case|else|with|async|await|break|catch|class|super|throw|while|
 yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-(([.][a-zA-Z0-9$_.? ]*)?\\b)
+([.][a-zA-Z0-9$_.? ]*)?
+\\b)
 `.replace(/\t|\n/g, '');
 
 const ignorePattern = new RegExp(ignoreString, 'g');
@@ -84,24 +86,37 @@ export default function Binder(node: Node, container: ElementType, context: Reco
         const isChecked = name === 'checked';
 
         let wrapped: string;
-        if (assignment && isValue) {
+        if (assignment && (isValue || isChecked)) {
             wrapped = `
             with ($context) {
                 with ($instance) {
-                    $value = $assign ? $value : ${assignment?.[1]};
-                    return $assign ? ${code} : ${assignment?.[3]};
+                    // $value = $assign ? $value : ${assignment?.[1]};
+                    // $checked = $assign ? $checked : ${assignment?.[1]};
+                    // return $assign ? ${assignment?.[1]} ${assignment?.[2]} $result : $result;
+                    // return $assign ? ${code} : ${assignment?.[1]};
+                    // return $assign ? ${code} : $value;
+                    return ${code};
                 }
             }
             `;
-        } else if (assignment && isChecked) {
-            wrapped = `
-            with ($context) {
-                with ($instance) {
-                    $checked = $assign ? $checked : ${assignment?.[1]};
-                    return $assign ? ${code} : ${assignment?.[3]};
-                }
-            }
-            `;
+            console.log(wrapped);
+            // wrapped = `
+            // with ($context) {
+            //     with ($instance) {
+            //         $value = $assign ? $value : ${assignment?.[1]};
+            //         return $assign ? ${code} : ${assignment?.[3]};
+            //     }
+            // }
+            // `;
+            // } else if (assignment && isChecked) {
+            //     wrapped = `
+            //     with ($context) {
+            //         with ($instance) {
+            //             $checked = $assign ? $checked : ${assignment?.[1]};
+            //             return $assign ? ${code} : ${assignment?.[3]};
+            //         }
+            //     }
+            //     `;
         } else {
             wrapped = `
             with ($context) {
@@ -148,6 +163,8 @@ export default function Binder(node: Node, container: ElementType, context: Reco
 
         references.add(reference);
     }
+
+    console.log(references);
 
     const binder: BinderType = {
         name,
@@ -210,6 +227,7 @@ export default function Binder(node: Node, container: ElementType, context: Reco
 //     });
 // };
 
+// Reference Test
 // const values = [
 //     `{{foo?.bar}}`,
 //     `{{foo?.[1]?.bar}}`,

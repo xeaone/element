@@ -51,6 +51,10 @@ export default class XRoot extends XElement {
                 <h4>&#127959; Framework Agnostic</h4>
                 <span>Use XElement with any framework - React, Vue, Angular...</span>
             </div>
+            <div class="tile">
+                <h4>&#129517; Client Side Routing</h4>
+                <span>Using the new <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a></span>
+            </div>
         </div>
 
         <h2>Example</h2>

@@ -1,19 +1,18 @@
 <base href="/">
-<!-- <script>document.querySelector('base').href = location.hostname === 'xeaone.github.io' ? '/element/performance/' : '/performance/';</script> -->
+<title>XElement Performance</title>
 <script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/';</script>
 <link rel="stylesheet" href="./index.css">
 
+<h1>XElement Performance</h1>
+
 <o-loop>
     <template shadowroot="open">
+        <span>{{count.toLocaleString()}}</span>
         <slot></slot>
     </template>
 
-    <div class="wrap">
-        <div class="loader">Loader</div>
-    </div>
-
     <h3><span>{{count.toLocaleString()}}</span> bound elements</h3>
-    <input value="{{count = $value}}" type="number">
+    <input value="{{count=$value}}" type="number">
 
     <br>
     <button onclick="{{push()}}">push</button>
@@ -40,16 +39,23 @@
         raw() {
             console.time('raw');
             const template = document.createElement('template');
+
             let html = '';
-            for (var i = 0; i < this.count; i++) {
-                html += `
-                <div class="box">
-                    <div>${i}</div>
-                </div>
-                `;
+
+            // const bp = document.createElement('div');
+            // const bc = document.createElement('div');
+            // bp.classList.add('box');
+            // bp.appendChild(bc);
+
+            const count = this.count;
+            for (var i = 0; i < count; i++) {
+                // const clone = bp.cloneNode(true);
+                // clone.firstElementChild.textContent = `${i}`;
+                // template.content.appendChild(clone);
+                html += `<div class="box"><div>${i}</div></div>`;
             }
             template.innerHTML = html;
-            const raw = document.querySelector('o-loop').shadowRoot.getElementById('raw');
+            // const raw = this.querySelector('#raw');
             raw.appendChild(template.content);
             console.timeEnd('raw');
         }
@@ -72,10 +78,12 @@
         clear() {
             this.items = [];
         }
-        constructor () {
-            super();
-            this.prepare();
-        }
+        // async connected() {
+        // async connectedCallback() {
+        // await super.connectedCallback();
+        // this.shadowRoot.innerHTML = '<slot></slot>';
+        // console.log('child');
+        // }
     }
 
     OLoop.define();

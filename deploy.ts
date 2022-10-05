@@ -2,7 +2,7 @@
 
 import { inc, ReleaseType } from 'https://deno.land/std@0.151.0/semver/mod.ts';
 import { copy, emptyDir } from 'https://deno.land/std@0.152.0/fs/mod.ts';
-import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
+// import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
 
 const { run, readTextFile, writeTextFile, args } = Deno;
 const [release] = args;
@@ -29,32 +29,39 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/`;
 
-await Promise.all([
-    build({
-        // minify: true,
-        bundle: true,
-        format: 'esm',
-        target: 'es2020',
-        treeShaking: true,
-        platform: 'browser',
-        banner: { js: banner },
-        outfile: './pro/x-element.js',
-        tsconfig: './tsconfig.json',
-        entryPoints: ['src/element.ts'],
-    }),
-    build({
-        // minify: true,
-        bundle: true,
-        format: 'esm',
-        target: 'es2020',
-        treeShaking: true,
-        platform: 'browser',
-        banner: { js: banner },
-        outfile: './web/x-element.js',
-        tsconfig: './tsconfig.json',
-        entryPoints: ['src/element.ts'],
-    }),
-]).then(console.log);
+await run({ cmd: ['deno', 'bundle', 'src/element.ts', 'tmp/x-element.js'] }).status();
+
+const bundle = await readTextFile('tmp/x-element.js');
+
+await writeTextFile('pro/x-element.js', banner + bundle);
+await writeTextFile('web/x-element.js', banner + bundle);
+
+// await Promise.all([
+//     build({
+//         // minify: true,
+//         bundle: true,
+//         format: 'esm',
+//         target: 'es2020',
+//         treeShaking: true,
+//         platform: 'browser',
+//         banner: { js: banner },
+//         outfile: './pro/x-element.js',
+//         tsconfig: './tsconfig.json',
+//         entryPoints: ['src/element.ts'],
+//     }),
+//     build({
+//         // minify: true,
+//         bundle: true,
+//         format: 'esm',
+//         target: 'es2020',
+//         treeShaking: true,
+//         platform: 'browser',
+//         banner: { js: banner },
+//         outfile: './web/x-element.js',
+//         tsconfig: './tsconfig.json',
+//         entryPoints: ['src/element.ts'],
+//     }),
+// ]).then(console.log);
 
 await copy('./pro/x-poly.js', './web/x-poly.js', { overwrite: true });
 
@@ -71,4 +78,4 @@ await run({ cmd: ['git', 'push', '--tag'] }).status();
 
 await run({ cmd: ['npm', 'publish', '--access', 'public'] }).status();
 
-stop();
+// stop();

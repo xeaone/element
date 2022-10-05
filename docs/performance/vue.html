@@ -1,11 +1,11 @@
 <base href="/">
+<title>Vue Performance</title>
 <script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/performance/';</script>
 <link rel="stylesheet" href="./index.css">
 
+<h1>Vue Performance</h1>
+
 <div id="scope">
-    <div class="wrap">
-        <div class="loader">Loader</div>
-    </div>
 
     <h3>{{count.toLocaleString()}} bound elements</h3>
     <input v-model="count" type="number">
@@ -19,9 +19,7 @@
     <div id="raw"></div>
 
     <div id="push">
-
         <div class="box" v-for="item in items">{{item.number}}</div>
-
     </div>
 
 </div>
@@ -29,15 +27,15 @@
 <script src="https://unpkg.com/vue@next"></script>
 <script>
     Vue.createApp({
-        data() {
+        data () {
             return {
                 items: [],
                 message: '',
                 count: 100000,
-            }
+            };
         },
         methods: {
-            raw() {
+            raw () {
                 console.time('raw');
                 const template = document.createElement('template');
                 let html = '';
@@ -54,14 +52,14 @@
                 raw.appendChild(template.content);
                 console.timeEnd('raw');
             },
-            push() {
+            push () {
                 console.time('push');
                 for (var i = 0; i < this.count; i++) {
                     this.items.push({ number: i });
                 }
                 console.timeEnd('push');
             },
-            overwrite() {
+            overwrite () {
                 console.time('overwrite');
                 var items = [];
                 for (var i = 0; i < this.count; i++) {
@@ -71,7 +69,7 @@
                 console.timeEnd('overwrite');
                 window.model = this;
             },
-            clear() {
+            clear () {
                 this.items = [];
             }
         }

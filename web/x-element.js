@@ -273,6 +273,9 @@ const dateDefault = Object.freeze([
 ]);
 const valueEvent = new Event('input');
 const valueInput = async function(binder, event) {
+    console.log('valueInput');
+    if (binder.meta.busy) return;
+    else binder.meta.busy = true;
     binder.instance.event = event;
     binder.instance.$event = event;
     binder.instance.$assign = true;
@@ -305,19 +308,23 @@ const valueInput = async function(binder, event) {
             binder.instance.$value = owner.value;
         }
     }
-    owner[toolDefault.value] = await binder.compute();
+    await binder.compute();
+    binder.meta.busy = false;
 };
 const valueSetup = function(binder) {
     binder.owner.addEventListener('input', (event)=>valueInput(binder, event));
 };
 const valueRender = async function(binder) {
+    console.log('valueRender');
+    if (binder.meta.busy) return;
+    else binder.meta.busy = true;
     binder.instance.$assign = false;
     binder.instance.event = undefined;
     binder.instance.$event = undefined;
     binder.instance.$value = undefined;
-    const computed = await binder.compute();
     const owner = binder.owner;
-    owner.value = '';
+    const computed = await binder.compute();
+    console.log(computed, binder);
     let display;
     if (owner.type === 'select-one') {
         for(let i = 0; i < owner.options.length; i++){
@@ -346,6 +353,7 @@ const valueRender = async function(binder) {
     }
     owner[toolDefault.value] = computed;
     owner.setAttribute('value', display);
+    binder.meta.busy = false;
 };
 const valueReset = function(binder) {
     const owner = binder.owner;
@@ -624,7 +632,8 @@ const onDefault = {
     reset: onReset
 };
 const ignoreString = `
-(\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+(\\b
+(\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
 event|this|window|document|console|location|navigation|
 globalThis|Infinity|NaN|undefined|
 isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
@@ -640,7 +649,8 @@ Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncF
 Reflect|Proxy|
 true|false|null|of|in|do|if|for|new|try|case|else|with|async|await|break|catch|class|super|throw|while|
 yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-(([.][a-zA-Z0-9$_.? ]*)?\\b)
+([.][a-zA-Z0-9$_.? ]*)?
+\\b)
 `.replace(/\t|\n/g, '');
 const ignorePattern = new RegExp(ignoreString, 'g');
 const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
@@ -684,24 +694,20 @@ function Binder(node, container, context, rewrites) {
         const isValue = name === 'value';
         const isChecked = name === 'checked';
         let wrapped;
-        if (assignment && isValue) {
+        if (assignment && (isValue || isChecked)) {
             wrapped = `
             with ($context) {
                 with ($instance) {
-                    $value = $assign ? $value : ${assignment?.[1]};
-                    return $assign ? ${code} : ${assignment?.[3]};
+                    // $value = $assign ? $value : ${assignment?.[1]};
+                    // $checked = $assign ? $checked : ${assignment?.[1]};
+                    // return $assign ? ${assignment?.[1]} ${assignment?.[2]} $result : $result;
+                    // return $assign ? ${code} : ${assignment?.[1]};
+                    // return $assign ? ${code} : $value;
+                    return ${code};
                 }
             }
             `;
-        } else if (assignment && isChecked) {
-            wrapped = `
-            with ($context) {
-                with ($instance) {
-                    $checked = $assign ? $checked : ${assignment?.[1]};
-                    return $assign ? ${code} : ${assignment?.[3]};
-                }
-            }
-            `;
+            console.log(wrapped);
         } else {
             wrapped = `
             with ($context) {
@@ -733,6 +739,7 @@ function Binder(node, container, context, rewrites) {
         }
         references1.add(reference);
     }
+    console.log(references1);
     const binder = {
         name,
         node,

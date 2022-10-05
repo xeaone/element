@@ -17,6 +17,8 @@
 
 - &#127959; Framework Agnostic Use X-Element with any framework - React, Vue, Angular...
 
+- &#129517; Client Side Routing using the new [Navigation API](https://developer.chrome.com/docs/web-platform/navigation-api/)
+
 
 ## Learn
 [https://xeaone.github.io/element/](https://xeaone.github.io/element/)
@@ -28,7 +30,7 @@ import XElement from '/x-element.js';
 
 MyElement extends XElement {
 
-    greeting: '',
+    greeting = '';
     greet () { this.greeting = 'Greeting'; }
 
     constructor () {
