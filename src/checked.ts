@@ -10,6 +10,7 @@ const checkedHandler = async function (event?: Event, binder?: any) {
     binder.instance.$event = event;
     binder.instance.$assign = !!event;
     binder.instance.$checked = checked;
+    binder.instance.$render = event ? false : true;
 
     const computed = await binder.compute();
 

@@ -14,7 +14,7 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
 
     binder.instance.event = event;
     binder.instance.$event = event;
-    binder.instance.$assign = true;
+    binder.instance.$render = false;
 
     const owner = binder.owner as valueElement;
 
@@ -53,13 +53,13 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
         // }
     }
 
-    await binder.compute();
+    const computed = await binder.compute();
+    const display =  tool.display(computed);
+
+    owner.value = computed;
+    owner[tool.value] = computed;
+    owner.setAttribute('value', display);
     binder.meta.busy = false;
-    // const value = await binder.compute();
-    // owner.value = value;
-    // owner[tool.value] = value;
-    // owner.setAttribute('value', value);
-    // console.log(owner.value, value);
 };
 
 const valueSetup = function (binder: BinderType) {
@@ -72,11 +72,11 @@ const valueRender = async function (binder: BinderType) {
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
 
-    binder.instance.$assign = false;
+    binder.instance.$render = true;
     binder.instance.event = undefined;
     binder.instance.$event = undefined;
     binder.instance.$value = undefined;
-    // binder.owner.value = '';
+    binder.owner.value = '';
 
     const owner = binder.owner as valueElement;
     const computed = await binder.compute();

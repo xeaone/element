@@ -209,6 +209,7 @@ const checkedHandler = async function(event, binder) {
     binder.instance.$event = event;
     binder.instance.$assign = !!event;
     binder.instance.$checked = checked;
+    binder.instance.$render = event ? false : true;
     const computed = await binder.compute();
     if (computed) {
         owner.setAttributeNode(binder.node);
@@ -278,7 +279,7 @@ const valueInput = async function(binder, event) {
     else binder.meta.busy = true;
     binder.instance.event = event;
     binder.instance.$event = event;
-    binder.instance.$assign = true;
+    binder.instance.$render = false;
     const owner = binder.owner;
     if (owner.type === 'select-one') {
         const option = owner.selectedOptions[0];
@@ -308,7 +309,11 @@ const valueInput = async function(binder, event) {
             binder.instance.$value = owner.value;
         }
     }
-    await binder.compute();
+    const computed = await binder.compute();
+    const display = toolDefault.display(computed);
+    owner.value = computed;
+    owner[toolDefault.value] = computed;
+    owner.setAttribute('value', display);
     binder.meta.busy = false;
 };
 const valueSetup = function(binder) {
@@ -318,10 +323,11 @@ const valueRender = async function(binder) {
     console.log('valueRender');
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
-    binder.instance.$assign = false;
+    binder.instance.$render = true;
     binder.instance.event = undefined;
     binder.instance.$event = undefined;
     binder.instance.$value = undefined;
+    binder.owner.value = '';
     const owner = binder.owner;
     const computed = await binder.compute();
     console.log(computed, binder);
@@ -658,7 +664,7 @@ const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
 const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
 const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
 const referenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
-const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
+const assignmentPattern = /(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)/;
 const Cache = new Map();
 function Binder(node, container, context, rewrites) {
     let name, value, owner;
@@ -698,12 +704,13 @@ function Binder(node, container, context, rewrites) {
             wrapped = `
             with ($context) {
                 with ($instance) {
-                    // $value = $assign ? $value : ${assignment?.[1]};
-                    // $checked = $assign ? $checked : ${assignment?.[1]};
-                    // return $assign ? ${assignment?.[1]} ${assignment?.[2]} $result : $result;
-                    // return $assign ? ${code} : ${assignment?.[1]};
-                    // return $assign ? ${code} : $value;
-                    return ${code};
+                    // ${assignment?.[0]}
+                    // ${assignment?.[1]}
+                    // ${assignment?.[2]}
+                    // ${assignment?.[3]}
+                    // ${assignment?.[4]}
+                    // return $render ? (${assignment?.[2]}) : ${code};
+                    return ${assignment?.[1]} $render ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
                 }
             }
             `;

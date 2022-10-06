@@ -37,7 +37,7 @@ const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
 const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
 const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
 const referenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
-const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
+const assignmentPattern = /(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)/;
 
 const Cache: Map<string, any> = new Map();
 
@@ -90,12 +90,13 @@ export default function Binder(node: Node, container: ElementType, context: Reco
             wrapped = `
             with ($context) {
                 with ($instance) {
-                    // $value = $assign ? $value : ${assignment?.[1]};
-                    // $checked = $assign ? $checked : ${assignment?.[1]};
-                    // return $assign ? ${assignment?.[1]} ${assignment?.[2]} $result : $result;
-                    // return $assign ? ${code} : ${assignment?.[1]};
-                    // return $assign ? ${code} : $value;
-                    return ${code};
+                    // ${assignment?.[0]}
+                    // ${assignment?.[1]}
+                    // ${assignment?.[2]}
+                    // ${assignment?.[3]}
+                    // ${assignment?.[4]}
+                    // return $render ? (${assignment?.[2]}) : ${code};
+                    return ${assignment?.[1]} $render ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
                 }
             }
             `;
