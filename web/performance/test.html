@@ -6,8 +6,11 @@
 
 <x-c>
 
+    <x-t>obj.text</x-t>
+    <br>
     <x-t>obj.text?.toUpperCase()</x-t>
-    <x-i value="obj.text = this.value || obj.text"></x-i>
+    <br>
+    <x-i>(obj.text = this.value ?? obj.text).toLowerCase()</x-i>
 
 </x-c>
 
@@ -16,15 +19,16 @@
     const X = Symbol.for('x');
     const HANDLERS = new Map();
 
-    const setChild = function (element, references, path, target, key, to, receiver) {
+    const set = function (element, references, path, target, key, to, receiver) {
         // if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
 
-        console.log('setChild:', path, key, element);
-
         const from = Reflect.get(target, key, receiver);
+        console.log('set:', path, key, element, from, to);
 
         if (from === to) return true;
         if (Number.isNaN(from) && Number.isNaN(to)) return true;
+
+        Reflect.set(target, key, to, receiver);
 
         path = path ? `${path}.${key}` : key;
 
@@ -39,10 +43,10 @@
         return true
     };
 
-    const getChild = function (element, references, path, target, key, receiver) {
-        if (key === X) return path ? references.get(path) : references;
+    const get = function (element, references, path, target, key, receiver) {
+        console.log('get:', path, key, element);
 
-        console.log('getChild:', path, key, element);
+        if (key === X) return path ? references.get(path) : references;
 
         path = path ? `${path}.${key}` : key;
 
@@ -55,78 +59,32 @@
 
         if (typeof value === 'object') {
             return new Proxy(value, {
-                get: getChild.bind(null, element, references, path),
-                set: setChild.bind(null, element, references, path),
+                get: get.bind(null, element, references, path),
+                set: set.bind(null, element, references, path),
             });
         }
 
         return value;
     };
 
-    // const set = function (path, target, key, value, receiver) {
-    //     // if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
-
-    //     console.log('set:', path, key);
-
-    //     Reflect.set(target, key, value, receiver);
-
-    //     path = path ? `${path}.${key}` : key;
-    //     const nodes = References.get(path) ?? References.set(path, new Set()).get(path);
-    //     let iterator = nodes.values();
-    //     let result = iterator.next();
-    //     while (!result.done) {
-    //         Promise.resolve(result.value).then(async element => element.render());
-    //         result = iterator.next();
-    //     }
-
-    //     return true
-    // };
-
-    // const get = function (path, target, key, receiver) {
-    //     if (key === X) return path ? References.get(path) : References;
-
-    //     console.log('get:', path, key);
-
-    //     path = path ? `${path}.${key}` : key;
-    //     if (!References.has(path)) References.set(path, new Set());
-
-    //     const value = Reflect.get(target, key, receiver);
-
-    //     if (typeof value === 'object') {
-    //         return new Proxy(value, {
-    //             get: get.bind(null, path),
-    //             set: set.bind(null, path),
-    //         });
-    //     }
-
-    //     return value;
-    // };
-
     class XBase extends HTMLElement {
         static handlers = new Map();
-
-        #context;
-        #handler;
-        #references;
-
-        get context() { return this.#context; }
-        get handler() { return this.#handler; }
-        get references() { return this.#references; }
 
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
         }
 
-        render(context, references, code) {
-            code = `with($context){return(${code});}`;
-
-            this.#context = new Proxy(context, {
-                get: getChild.bind(null, this, references, ''),
-                set: setChild.bind(null, this, references, '')
+        context(context, references) {
+            return new Proxy(context, {
+                get: get.bind(null, this, references, ''),
+                set: set.bind(null, this, references, '')
             });
+        }
 
-            this.#handler = this.constructor.handlers.get(code) ?? this.constructor.handlers.set(code, new Function('$context', code)).get(code);
+        handler(code) {
+            code = `with($context){return(${code});}`;
+            return this.constructor.handlers.get(code) ?? this.constructor.handlers.set(code, new Function('$context', code)).get(code);
         }
 
     }
@@ -143,8 +101,8 @@
 
             if (!this.#rendered) {
                 this.#rendered = true;
-                const code = this.#node.textContent;
-                await super.render(context, references, code);
+                this.context = super.context(context, references);
+                this.handler = super.handler(this.#node.textContent);
             }
 
             this.#node.textContent = await this.handler(this.context);
@@ -154,7 +112,7 @@
     class XContext extends HTMLElement {
         // context = {};
         references = new Map();
-        context = new Proxy({ obj: { text: 'Hello World' } }, { get: getChild.bind(null, null, this.references, ''), set: setChild.bind(null, null, this.references, '') });
+        context = new Proxy({ obj: { text: 'Hello World' } }, { get: get.bind(null, null, this.references, ''), set: set.bind(null, null, this.references, '') });
         #shadow = this.attachShadow({ mode: 'open' });
 
         constructor() {
@@ -189,12 +147,10 @@
                 </style>
                 <slot></slot>
             `;
-            // this.oninput = null;
             this.contentEditable = true;
-            this.addEventListener('input', this.beforeinput);
-            // this.addEventListener('beforeinput', this.beforeinput);
+            this.addEventListener('input', this.input);
         }
-        #value = '';
+        #value = undefined;
         get value() {
             return this.#value;
         }
@@ -205,37 +161,15 @@
 
             if (!this.#rendered) {
                 this.#rendered = true;
-                const code = this.attributes['value'].value;
-                console.log(code)
-                console.log(context, references)
-                await super.render(context, references, code);
+                this.context = super.context(context, references);
+                this.handler = super.handler(this.textContent);
             }
 
             this.value = await this.handler(this.context);
         }
-        async beforeinput(event) {
-            // const { data } = event;
-            // const { value, selectionStart, selectionEnd } = event.target;
-
-            // console.log(
-            //     selectionStart,
-            //     selectionEnd,
-            //     value.substring(0, event.target.selectionStart),
-            //     value,
-            //     data,
-            //     value.substring(event.target.selectionEnd),
-            // );
-
-            // const next = value.substring(0, selectionStart) + (data ?? '') + value.substring(selectionEnd);
-            // console.log(next);
-            // console.log(event)
-            // this.value = this.value;
-            // this.value =
-            // this.value =
-            // console.log(this.#value, this.textContent);
-            this.#value = this.textContent;
-            // this.value =
-            await this.handler(this.context);
+        async input(event) {
+            this.value = this.textContent;
+            this.value = await this.handler(this.context);
         }
     }
 
