@@ -61,8 +61,25 @@ const html = /*html*/`
 <h3>Value Binder</h3>
 <template id="value-template">
     <span>{{value.text}}</span>
-    <input value="{{(value.text = $value)?.toUpperCase()}}">
+
+    <input value="{{ this.value = this.value || value.text }}" oninput="">
+
+    <input value="{{ (value.text = $value)?.toUpperCase() }}">
+    <input value="{{ value.text = this.value?.toUpperCase() }}">
+
+    <input value="{{ value.text = this.value?.toLowerCase() }}">
+    <input value="{{ (value.text = this.value)?.toLowerCase() }}">
+
+    <!--
+    <input value="{{ value.text = this.value?.toUpperCase() }}">
+
+    <input value="{{ $value = (value.text = $value)?.toUpperCase() }}">
+    <input value="{{(value.text = this.value)?.toUpperCase()}}">
+
     <input value="{{(value.text = $value)?.toLowerCase()}}">
+    <input value="{{(value.text = this.value)?.toLowerCase()}}">
+    -->
+
 </template>
 <pre html="{{highlight('#value-template')}}"></pre>
 <pre html="{{result('#value-template')}}"></pre>

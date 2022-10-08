@@ -76,6 +76,7 @@ export default function Binder(node: Node, container: ElementType, context: Reco
         const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
         const assignment = clean.match(assignmentPattern);
         const references = clean.replace(ignorePattern, '').replace(referenceNormalize, '.$2$3').match(referencePattern) ?? [];
+        console.log(value);
         // console.log(code, clean, references, assignment);
 
         // const { code, references, assignmentLeft, assignmentMid, assignmentRight } = Parse(value);
@@ -90,13 +91,10 @@ export default function Binder(node: Node, container: ElementType, context: Reco
             wrapped = `
             with ($context) {
                 with ($instance) {
-                    // ${assignment?.[0]}
-                    // ${assignment?.[1]}
-                    // ${assignment?.[2]}
-                    // ${assignment?.[3]}
-                    // ${assignment?.[4]}
-                    // return $render ? (${assignment?.[2]}) : ${code};
-                    return ${assignment?.[1]} $render ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
+                    // return ${assignment?.[1]} $render ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
+                    //
+                    return ${assignment?.[1]} !$event ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
+                    // return ${code};
                 }
             }
             `;

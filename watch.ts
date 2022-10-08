@@ -70,6 +70,6 @@ handler.add(router);
 // console.log(`listening: ${port}`);
 // await server;
 
-Deno.serve({ port }, (request) => handler.handle(request));
+await Deno.serve({ port }, (request) => handler.handle(request));
 
 // stop();

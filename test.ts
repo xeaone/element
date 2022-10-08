@@ -139,7 +139,7 @@ Deno.test('radio-binder', async () => {
 });
 
 Deno.test('value-binder', async () => {
-    const element = Element('value-binder', '<input value="{{text=$value.toUpperCase()}}">', { text: '' });
+    const element = Element('value-binder', '<input value="{{(text=$value).toUpperCase()}}">', { text: '' });
 
     await delay(10);
     assertEquals(element.innerHTML, '<input value="">');

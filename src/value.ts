@@ -8,7 +8,6 @@ const valueEvent = new Event('input');
 
 const valueInput = async function (binder: BinderType, event: InputEvent) {
     console.log('valueInput');
-
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
 
@@ -16,6 +15,27 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
     binder.instance.$event = event;
     binder.instance.$render = false;
 
+    // console.log(event.inputType, event.isComposing, event.dataTransfer, event.data);
+
+    // const data = event.data;
+    // const { value, selectionStart, selectionEnd } = (event.target as any);
+
+    // console.log(
+    //     binder.owner.value,
+    //     selectionStart,
+    //     selectionEnd,
+    //     value.substring(0, (event.target as any).selectionStart),
+    //     event.data,
+    //     value.substring((event.target as any).selectionEnd),
+    // );
+
+    // binder.meta.value = value.substring(0, selectionStart) + (data ?? '') + value.substring(selectionEnd);
+    // console.log(next);
+    // const next = value;
+
+    // const data = event.data;
+    // const value = event.data ?? '';
+    // const value = event.data ?? binder.owner.value;
     const owner = binder.owner as valueElement;
 
     if (owner.type === 'select-one') {
@@ -46,41 +66,56 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
         if (tool.value in binder.owner && tool.parseable(owner[tool.value])) {
             binder.instance.$value = JSON.parse(owner.value);
         } else {
+            if (event.data) binder.meta.value += event.data;
+            else binder.meta.value = '';
+            console.log(binder.meta.value);
+
             binder.instance.$value = owner.value;
         }
-        // if (owner.type === 'checkbox' || owner.type === 'radio') {
-        //     binder.instance.$checked = owner.checked;
-        // }
+        if (owner.type === 'checkbox' || owner.type === 'radio') {
+            binder.instance.$checked = owner.checked;
+        }
     }
 
     const computed = await binder.compute();
-    const display =  tool.display(computed);
+    const display = tool.display(computed);
 
-    owner.value = computed;
-    owner[tool.value] = computed;
+    // owner[tool.value] = computed;
+
+    owner.value = display;
     owner.setAttribute('value', display);
     binder.meta.busy = false;
 };
 
 const valueSetup = function (binder: BinderType) {
+    binder.owner.value = '';
+    // binder.owner.addEventListener('beforeinput', (event: InputEvent) => valueInput(binder, event));
+    Object.defineProperties(binder.instance, {
+        $value: {
+            get() {
+                return binder.owner.value;
+            },
+            set(value) {
+                binder.owner.value = value;
+            },
+        },
+    });
     binder.owner.addEventListener('input', (event: InputEvent) => valueInput(binder, event));
 };
 
 const valueRender = async function (binder: BinderType) {
-    console.log('valueRender');
-
+    console.log('valueRender', binder.meta.busy);
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
 
     binder.instance.$render = true;
     binder.instance.event = undefined;
     binder.instance.$event = undefined;
-    binder.instance.$value = undefined;
-    binder.owner.value = '';
 
     const owner = binder.owner as valueElement;
     const computed = await binder.compute();
-    console.log(computed, binder);
+
+    // owner[tool.value] = owner.value;
 
     let display;
 
@@ -113,7 +148,7 @@ const valueRender = async function (binder: BinderType) {
         owner.value = display;
     }
 
-    owner[tool.value] = computed;
+    // owner[tool.value] = computed;
     owner.setAttribute('value', display);
     binder.meta.busy = false;
 };

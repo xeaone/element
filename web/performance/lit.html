@@ -1,0 +1,34 @@
+<base href="/">
+<title>Lit Performance</title>
+<script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/performance/';</script>
+<link rel="stylesheet" href="./index.css">
+
+<h1>Lite Performance</h1>
+
+<lit-test></lit-test>
+
+<script type="module">
+    import { LitElement, html } from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
+
+    class LitTest extends LitElement {
+
+        static properties = {
+            text: { type: String },
+        };
+
+        constructor() {
+            super();
+            this.text = 'Hello World';
+        }
+
+        render() {
+            return html`
+                <span>${this.text}</span>
+                <input value=${this.text.toUpperCase()} />
+                <input value=${this.text.toLowerCase()} />
+            `;
+        }
+    }
+
+    customElements.define('lit-test', LitTest);
+</script>

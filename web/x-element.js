@@ -306,31 +306,44 @@ const valueInput = async function(binder, event) {
         if (toolDefault.value in binder.owner && toolDefault.parseable(owner[toolDefault.value])) {
             binder.instance.$value = JSON.parse(owner.value);
         } else {
+            if (event.data) binder.meta.value += event.data;
+            else binder.meta.value = '';
+            console.log(binder.meta.value);
             binder.instance.$value = owner.value;
+        }
+        if (owner.type === 'checkbox' || owner.type === 'radio') {
+            binder.instance.$checked = owner.checked;
         }
     }
     const computed = await binder.compute();
     const display = toolDefault.display(computed);
-    owner.value = computed;
-    owner[toolDefault.value] = computed;
+    owner.value = display;
     owner.setAttribute('value', display);
     binder.meta.busy = false;
 };
 const valueSetup = function(binder) {
+    binder.owner.value = '';
+    Object.defineProperties(binder.instance, {
+        $value: {
+            get () {
+                return binder.owner.value;
+            },
+            set (value) {
+                binder.owner.value = value;
+            }
+        }
+    });
     binder.owner.addEventListener('input', (event)=>valueInput(binder, event));
 };
 const valueRender = async function(binder) {
-    console.log('valueRender');
+    console.log('valueRender', binder.meta.busy);
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
     binder.instance.$render = true;
     binder.instance.event = undefined;
     binder.instance.$event = undefined;
-    binder.instance.$value = undefined;
-    binder.owner.value = '';
     const owner = binder.owner;
     const computed = await binder.compute();
-    console.log(computed, binder);
     let display;
     if (owner.type === 'select-one') {
         for(let i = 0; i < owner.options.length; i++){
@@ -357,7 +370,6 @@ const valueRender = async function(binder) {
         display = toolDefault.display(computed);
         owner.value = display;
     }
-    owner[toolDefault.value] = computed;
     owner.setAttribute('value', display);
     binder.meta.busy = false;
 };
@@ -697,6 +709,7 @@ function Binder(node, container, context, rewrites) {
         const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
         const assignment = clean.match(assignmentPattern);
         const references = clean.replace(ignorePattern, '').replace(referenceNormalize, '.$2$3').match(referencePattern) ?? [];
+        console.log(value);
         const isValue = name === 'value';
         const isChecked = name === 'checked';
         let wrapped;
@@ -704,13 +717,10 @@ function Binder(node, container, context, rewrites) {
             wrapped = `
             with ($context) {
                 with ($instance) {
-                    // ${assignment?.[0]}
-                    // ${assignment?.[1]}
-                    // ${assignment?.[2]}
-                    // ${assignment?.[3]}
-                    // ${assignment?.[4]}
-                    // return $render ? (${assignment?.[2]}) : ${code};
-                    return ${assignment?.[1]} $render ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
+                    // return ${assignment?.[1]} $render ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
+                    //
+                    return ${assignment?.[1]} !$event ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
+                    // return ${code};
                 }
             }
             `;
