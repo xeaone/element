@@ -1,17 +1,25 @@
 <base href="/">
-<title>Test Performance</title>
-<script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/performance/';</script>
+<title>Ideas</title>
 
-<h1>Test Performance</h1>
+<h1>Ideas</h1>
 
 <x-c>
 
-    <strong>Is Span:</strong> <span is="x-span" x-text="obj.text"></span><br />
-    <strong>Is Input:</strong> <input is="x-input" x-value="(obj.text = this.value) && console.log(this, obj.text)" /><br>
+    <strong>Is Span:</strong>
+    <span is="x-span" x-text="obj.text.toUpperCase()"></span>
+    <br />
 
-    <x-t>obj.text</x-t><br>
-    <x-t>obj.text.toUpperCase()</x-t><br>
-    <x-i>(obj.text = this.value ?? obj.text).toLowerCase()</x-i></br>
+    <strong>Is Input:</strong>
+    <input is="x-input" x-value="obj.text = event?.target?.value ?? obj.text" />
+    <br>
+
+    <strong>X-T:</strong>
+    <x-t>obj.text.toUpperCase()</x-t>
+    <br>
+
+    <strong>X-I:</strong>
+    <x-i>obj.text = event?.target?.value ?? obj.text</x-i>
+    </br>
 
 </x-c>
 
@@ -33,9 +41,7 @@
     const handlers = new Map();
 
     const change = async function ([references, reference, element]) {
-        // console.log(element)
         const nodes = references.get(reference) ?? references.set(reference, new Set()).get(reference);
-        console.log(nodes);
 
         let iterator = nodes.values();
         let result = iterator.next();
@@ -50,9 +56,9 @@
 
     const set = function (element, references, reference, target, key, value, receiver) {
         if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
-        console.log('set:', reference, key, value, element);
 
         const from = Reflect.get(target, key, receiver);
+        // console.log('set:', reference, key, value, from, element);
 
         if (from === value) return true;
         if (Number.isNaN(from) && Number.isNaN(value)) return true;
@@ -66,7 +72,7 @@
 
         Promise.resolve([references, reference, element]).then(change);
 
-        return true
+        return true;
     };
 
     const get = function (element, references, reference, target, key, receiver) {
@@ -80,13 +86,13 @@
         const value = Reflect.get(target, key, receiver);
 
         if (value && typeof value === 'object') {
-            // if (!proxies.has(element)) proxies.set(element, new Map());
-            // let proxy = proxies.get(element).get(reference);
-            // if (proxy) return proxy;
-            // proxy = new Proxy(value, { get: get.bind(null, element, references, reference), set: set.bind(null, element, references, reference) });
-            // proxies.get(element).set(reference, proxy);
-            // return proxy;
-            return new Proxy(value, { get: get.bind(null, element, references, reference), set: set.bind(null, element, references, reference) });
+            if (!proxies.has(element)) proxies.set(element, new Map());
+            let proxy = proxies.get(element).get(reference);
+            if (proxy) return proxy;
+            proxy = new Proxy(value, { get: get.bind(null, element, references, reference), set: set.bind(null, element, references, reference) });
+            proxies.get(element).set(reference, proxy);
+            return proxy;
+            // return new Proxy(value, { get: get.bind(null, element, references, reference), set: set.bind(null, element, references, reference) });
         }
 
         return value;
@@ -101,7 +107,7 @@
 
     const handler = function (code) {
         code = `with($context){return(${code});}`;
-        return handlers.get(code) ?? handlers.set(code, new Function('$context', code)).get(code);
+        return handlers.get(code) ?? handlers.set(code, new Function('$context', 'event', code)).get(code);
     };
 
     class XT extends HTMLElement {
@@ -146,7 +152,6 @@
                 <slot></slot>
             `;
             this.contentEditable = true;
-            this.addEventListener('input', this.input);
         }
         #value = undefined;
         get value() {
@@ -161,13 +166,14 @@
                 this.#rendered = true;
                 this.#context = context(data, this, references, reference);
                 this.#handler = handler(this.textContent);
+                this.addEventListener('input', this.input);
             }
 
             this.value = await this.#handler(this.#context);
         }
         async input(event) {
             this.value = this.textContent;
-            this.value = await this.#handler(this.#context);
+            this.value = await this.#handler(this.#context, event);
         }
     }
 
@@ -186,9 +192,7 @@
             await element.render(this.context, this.references, '');
         }
         async change(event) {
-            setTimeout(() => {
-                Promise.all(Array.prototype.map.call(this.querySelectorAll('x-i, x-t, [is^="x-"]'), this.each.bind(this)));
-            }, 1000)
+            Promise.all(Array.prototype.map.call(this.querySelectorAll('x-i, x-t, [is^="x-"]'), this.each.bind(this)));
         }
     }
 
@@ -235,28 +239,14 @@
                 const value = this.attributes['x-value'];
                 if (value) {
                     this.#value = handler(value.value);
-                    this.addEventListener('input', async (event) => {
-                        console.log(event)
-                        // // this.onbeforeinput = async (event) => {
-                        // const { data, target } = event;
-                        // const { value, selectionStart, selectionEnd } = target;
-                        // const next = value.substring(0, selectionStart) + (data ?? '') + value.substring(selectionEnd);
-
-                        // event.preventDefault();
-                        // console.log('value before:', this.value, 'next:', next);
-                        // this.value = next;
-                        // this.value =
-                        console.log('value before:', this.value);
-                        this.#value.call(this, this.#context);
-                        console.log(this.#value)
-                        console.log('value after:', this.value);
-                        // console.log('value after:', this.value, 'next:', next);
-                    });
+                    this.addEventListener('input', this.input);
                 }
-
             }
 
-            // if (this.#value) this.value = await this.#value(this.#context);
+            if (this.#value) this.value = await this.#value(this.#context);
+        }
+        async input(event) {
+            this.value = await this.#value(this.#context, event);
         }
     }
 
