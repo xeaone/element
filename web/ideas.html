@@ -11,6 +11,7 @@
 
     <strong>Is Input:</strong>
     <input is="x-input" x-value="obj.text = event?.target?.value ?? obj.text" />
+    <!-- <x-input x-value="obj.text = event?.target?.value ?? obj.text"></x-input> -->
     <br>
 
     <strong>X-T:</strong>
@@ -39,6 +40,7 @@
 
     const proxies = new Map();
     const handlers = new Map();
+    const meta = Symbol('meta');
 
     const change = async function ([references, reference, element]) {
         const nodes = references.get(reference) ?? references.set(reference, new Set()).get(reference);
@@ -110,6 +112,44 @@
         return handlers.get(code) ?? handlers.set(code, new Function('$context', 'event', code)).get(code);
     };
 
+    const render = async function (data, references, reference) {
+        const self = this[meta];
+
+        if (!self.rendered) {
+            self.rendered = true;
+            self.context = context(data, this, references, reference);
+
+            const text = this.attributes['x-text'];
+            if (text) self.text = handler(text.value);
+
+            const html = this.attributes['x-html'];
+            if (html) self.html = handler(html.value);
+
+            const value = this.attributes['x-value'];
+            if (value) {
+                self.value = handler(value.value);
+                this.addEventListener('input', async (event) => {
+                    this.value = await self.value(self.context, event);
+                });
+            }
+
+        }
+
+        if (self.text) this.textContent = await self.text(self.context);
+        if (self.html) this.innerHTML = await self.html(self.context);
+        if (self.value) this.value = await self.value(self.context);
+    };
+
+    const instance = function () {
+        return {
+            rendered: false,
+            html: undefined,
+            text: undefined,
+            value: undefined,
+            context: undefined,
+        }
+    };
+
     class XT extends HTMLElement {
         #node;
         #text;
@@ -132,6 +172,7 @@
             this.#node.textContent = await this.#text(this.#context);
         }
     }
+    customElements.define('x-t', XT);
 
     class XI extends HTMLElement {
         #handler;
@@ -176,6 +217,7 @@
             this.value = await this.#handler(this.#context, event);
         }
     }
+    customElements.define('x-i', XI);
 
     class XContext extends HTMLElement {
         references = new Map();
@@ -195,65 +237,19 @@
             Promise.all(Array.prototype.map.call(this.querySelectorAll('x-i, x-t, [is^="x-"]'), this.each.bind(this)));
         }
     }
+    customElements.define('x-c', XContext);
 
     class XSpan extends HTMLSpanElement {
-        // #html;
-        #text;
-        #context;
-        #rendered = false;
-        constructor() {
-            super();
-            this.attachShadow({ mode: 'open' });
-            this.shadowRoot.innerHTML = '<slot></slot>';
-        }
-        async render(data, references, reference) {
-
-            if (!this.#rendered) {
-                this.#rendered = true;
-                this.#context = context(data, this, references, reference);
-                const text = this.attributes['x-text'];
-                if (text) this.#text = handler(text.value);
-                // const html = this.attributes['x-html'];
-                // if (html) this.#html = handler(html.value);
-            }
-
-            if (this.#text) this.textContent = this.#text(this.#context);
-            // if (this.#html) this.innerHTML = this.#html(this.#context);
-        }
+        [meta] = instance();
+        render = render;
     }
+    customElements.define('x-span', XSpan, { extends: 'span' });
 
     class XInput extends HTMLInputElement {
-        #value;
-        #context;
-        #rendered = false;
-        constructor() {
-            super();
-            // this.attachShadow({ mode: 'open' });
-            // this.shadowRoot.innerHTML = '<slot></slot>';
-        }
-        async render(data, references, reference) {
+        [meta] = instance();
+        render = render;
 
-            if (!this.#rendered) {
-                this.#rendered = true;
-                this.#context = context(data, this, references, reference);
-                const value = this.attributes['x-value'];
-                if (value) {
-                    this.#value = handler(value.value);
-                    this.addEventListener('input', this.input);
-                }
-            }
-
-            if (this.#value) this.value = await this.#value(this.#context);
-        }
-        async input(event) {
-            this.value = await this.#value(this.#context, event);
-        }
     }
-
-    customElements.define('x-t', XT);
-    customElements.define('x-i', XI);
-    customElements.define('x-span', XSpan, { extends: 'span' });
     customElements.define('x-input', XInput, { extends: 'input' });
-    customElements.define('x-c', XContext);
 
 </script>
