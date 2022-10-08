@@ -6,143 +6,141 @@
 
 <x-c>
 
-    <x-t>obj.text</x-t>
-    <br>
-    <x-t>obj.text?.toUpperCase()</x-t>
-    <br>
-    <x-i>(obj.text = this.value ?? obj.text).toLowerCase()</x-i>
+    <strong>Is Span:</strong> <span is="x-span" x-text="obj.text"></span><br />
+    <strong>Is Input:</strong> <input is="x-input" x-value="(obj.text = this.value) && console.log(this, obj.text)" /><br>
+
+    <x-t>obj.text</x-t><br>
+    <x-t>obj.text.toUpperCase()</x-t><br>
+    <x-i>(obj.text = this.value ?? obj.text).toLowerCase()</x-i></br>
 
 </x-c>
 
 <script type="module">
 
-    const X = Symbol.for('x');
-    const HANDLERS = new Map();
+    // const i = document.createElement('input');
+    // const t = document.createElement('template');
+    // t.appendChild(i);
+    // document.head.appendChild(t);
+    // const inputComputedStyle = window.getComputedStyle(i);
+    // const style = document.createElement('style');
+    // let styleContent = '';
+    // Array.from(inputComputedStyle).forEach(key => styleContent += `${key}: ${inputComputedStyle.getPropertyValue(key)} ${inputComputedStyle.getPropertyPriority(key)};`);
+    // style.type = 'text/css';
+    // style.innerHTML = `x-i { ${styleContent} }`;
+    // document.head.appendChild(style);
 
-    const set = function (element, references, path, target, key, to, receiver) {
-        // if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
+    const proxies = new Map();
+    const handlers = new Map();
 
-        const from = Reflect.get(target, key, receiver);
-        console.log('set:', path, key, element, from, to);
+    const change = async function ([references, reference, element]) {
+        // console.log(element)
+        const nodes = references.get(reference) ?? references.set(reference, new Set()).get(reference);
+        console.log(nodes);
 
-        if (from === to) return true;
-        if (Number.isNaN(from) && Number.isNaN(to)) return true;
-
-        Reflect.set(target, key, to, receiver);
-
-        path = path ? `${path}.${key}` : key;
-
-        const nodes = references.get(path) ?? references.set(path, new Set()).get(path);
         let iterator = nodes.values();
         let result = iterator.next();
+
         while (!result.done) {
-            Promise.resolve(result.value).then(async element => element.render());
+            // if (element !== result.value) Promise.resolve(result.value).then(async element => element.render());
+            Promise.resolve(result.value).then(async value => value?.render());
             result = iterator.next();
         }
+
+    }
+
+    const set = function (element, references, reference, target, key, value, receiver) {
+        if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
+        console.log('set:', reference, key, value, element);
+
+        const from = Reflect.get(target, key, receiver);
+
+        if (from === value) return true;
+        if (Number.isNaN(from) && Number.isNaN(value)) return true;
+
+        Reflect.set(target, key, value, receiver);
+
+        reference = reference ? `${reference}.${key}` : key;
+        if (references.has(reference)) references.get(reference).add(element);
+        else references.set(reference, new Set([element]));
+        // proxies?.get?.(element)?.remove?.(reference);
+
+        Promise.resolve([references, reference, element]).then(change);
 
         return true
     };
 
-    const get = function (element, references, path, target, key, receiver) {
-        console.log('get:', path, key, element);
+    const get = function (element, references, reference, target, key, receiver) {
+        if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+        // console.log('get:', reference, key, element);
 
-        if (key === X) return path ? references.get(path) : references;
-
-        path = path ? `${path}.${key}` : key;
-
-        if (element) {
-            if (references.has(path)) references.get(path).add(element);
-            else references.set(path, new Set([element]));
-        }
+        reference = reference ? `${reference}.${key}` : key;
+        if (references.has(reference)) references.get(reference).add(element);
+        else references.set(reference, new Set([element]));
 
         const value = Reflect.get(target, key, receiver);
 
-        if (typeof value === 'object') {
-            return new Proxy(value, {
-                get: get.bind(null, element, references, path),
-                set: set.bind(null, element, references, path),
-            });
+        if (value && typeof value === 'object') {
+            // if (!proxies.has(element)) proxies.set(element, new Map());
+            // let proxy = proxies.get(element).get(reference);
+            // if (proxy) return proxy;
+            // proxy = new Proxy(value, { get: get.bind(null, element, references, reference), set: set.bind(null, element, references, reference) });
+            // proxies.get(element).set(reference, proxy);
+            // return proxy;
+            return new Proxy(value, { get: get.bind(null, element, references, reference), set: set.bind(null, element, references, reference) });
         }
 
         return value;
     };
 
-    class XBase extends HTMLElement {
-        static handlers = new Map();
+    const context = function (data, element, references, reference) {
+        return new Proxy(data, {
+            get: get.bind(null, element, references, reference),
+            set: set.bind(null, element, references, reference)
+        });
+    };
 
+    const handler = function (code) {
+        code = `with($context){return(${code});}`;
+        return handlers.get(code) ?? handlers.set(code, new Function('$context', code)).get(code);
+    };
+
+    class XT extends HTMLElement {
+        #node;
+        #text;
+        #context;
+        #rendered = false;
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
-        }
-
-        context(context, references) {
-            return new Proxy(context, {
-                get: get.bind(null, this, references, ''),
-                set: set.bind(null, this, references, '')
-            });
-        }
-
-        handler(code) {
-            code = `with($context){return(${code});}`;
-            return this.constructor.handlers.get(code) ?? this.constructor.handlers.set(code, new Function('$context', code)).get(code);
-        }
-
-    }
-
-    class XText extends XBase {
-        #node;
-        #rendered = false;
-        constructor() {
-            super();
             this.shadowRoot.innerHTML = '<slot></slot>';
             this.#node = this.childNodes[0];
         }
-        async render(context, references) {
+        async render(data, references, reference) {
 
             if (!this.#rendered) {
                 this.#rendered = true;
-                this.context = super.context(context, references);
-                this.handler = super.handler(this.#node.textContent);
+                this.#context = context(data, this, references, reference);
+                this.#text = handler(this.#node.textContent);
             }
 
-            this.#node.textContent = await this.handler(this.context);
+            this.#node.textContent = await this.#text(this.#context);
         }
     }
 
-    class XContext extends HTMLElement {
-        // context = {};
-        references = new Map();
-        context = new Proxy({ obj: { text: 'Hello World' } }, { get: get.bind(null, null, this.references, ''), set: set.bind(null, null, this.references, '') });
-        #shadow = this.attachShadow({ mode: 'open' });
-
-        constructor() {
-            super();
-            // Object.assign(this.#context, { obj: { text: 'hello world' } });
-            this.#shadow.innerHTML = '<slot></slot>';
-            this.#shadow.firstElementChild.addEventListener('slotchange', (event) => this.change(event));
-        }
-        async change(event) {
-            const elements = [
-                ...this.querySelectorAll('x-i'),
-                ...this.querySelectorAll('x-t')
-            ];
-            for (const element of elements) {
-                await element.render(this.context, this.references);
-                // await element.render(this.context, this.references);
-            }
-        }
-    }
-
-    class XInput extends XBase {
+    class XI extends HTMLElement {
+        #handler;
+        #context;
         #rendered = false;
         constructor() {
             super();
+            this.attachShadow({ mode: 'open' });
             this.shadowRoot.innerHTML = `
                 <style>
                     :host {
-                        height: 1rem;
                         width: 10rem;
+                        height: 1.2rem;
                         display: inline-block;
+                        border: 1px solid lightgray;
                     }
                 </style>
                 <slot></slot>
@@ -157,34 +155,115 @@
         set value(value) {
             this.setAttribute('value', this.textContent = this.#value = value);
         }
-        async render(context, references) {
+        async render(data, references, reference) {
 
             if (!this.#rendered) {
                 this.#rendered = true;
-                this.context = super.context(context, references);
-                this.handler = super.handler(this.textContent);
+                this.#context = context(data, this, references, reference);
+                this.#handler = handler(this.textContent);
             }
 
-            this.value = await this.handler(this.context);
+            this.value = await this.#handler(this.#context);
         }
         async input(event) {
             this.value = this.textContent;
-            this.value = await this.handler(this.context);
+            this.value = await this.#handler(this.#context);
         }
     }
 
-
-    class XS extends HTMLSpanElement {
+    class XContext extends HTMLElement {
+        references = new Map();
+        // context = { obj: { text: 'Hello World' } };
+        // context = new Proxy({ obj: { text: 'Hello World' } }, { get: get.bind(null, null, this.references, ''), set: set.bind(null, null, this.references, '') });
+        context = context({ obj: { text: 'Hello World' } }, null, this.references, '');
         constructor() {
             super();
-            const shadow = this.attachShadow({ mode: 'open' });
-            shadow.textContent = 'Hello World';
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.innerHTML = '<slot></slot>';
+            this.shadowRoot.firstElementChild.addEventListener('slotchange', this.change.bind(this));
+        }
+        async each(element) {
+            await element.render(this.context, this.references, '');
+        }
+        async change(event) {
+            setTimeout(() => {
+                Promise.all(Array.prototype.map.call(this.querySelectorAll('x-i, x-t, [is^="x-"]'), this.each.bind(this)));
+            }, 1000)
         }
     }
 
-    customElements.define('x-t', XText);
-    customElements.define('x-i', XInput);
+    class XSpan extends HTMLSpanElement {
+        // #html;
+        #text;
+        #context;
+        #rendered = false;
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.innerHTML = '<slot></slot>';
+        }
+        async render(data, references, reference) {
+
+            if (!this.#rendered) {
+                this.#rendered = true;
+                this.#context = context(data, this, references, reference);
+                const text = this.attributes['x-text'];
+                if (text) this.#text = handler(text.value);
+                // const html = this.attributes['x-html'];
+                // if (html) this.#html = handler(html.value);
+            }
+
+            if (this.#text) this.textContent = this.#text(this.#context);
+            // if (this.#html) this.innerHTML = this.#html(this.#context);
+        }
+    }
+
+    class XInput extends HTMLInputElement {
+        #value;
+        #context;
+        #rendered = false;
+        constructor() {
+            super();
+            // this.attachShadow({ mode: 'open' });
+            // this.shadowRoot.innerHTML = '<slot></slot>';
+        }
+        async render(data, references, reference) {
+
+            if (!this.#rendered) {
+                this.#rendered = true;
+                this.#context = context(data, this, references, reference);
+                const value = this.attributes['x-value'];
+                if (value) {
+                    this.#value = handler(value.value);
+                    this.addEventListener('input', async (event) => {
+                        console.log(event)
+                        // // this.onbeforeinput = async (event) => {
+                        // const { data, target } = event;
+                        // const { value, selectionStart, selectionEnd } = target;
+                        // const next = value.substring(0, selectionStart) + (data ?? '') + value.substring(selectionEnd);
+
+                        // event.preventDefault();
+                        // console.log('value before:', this.value, 'next:', next);
+                        // this.value = next;
+                        // this.value =
+                        console.log('value before:', this.value);
+                        this.#value.call(this, this.#context);
+                        console.log(this.#value)
+                        console.log('value after:', this.value);
+                        // console.log('value after:', this.value, 'next:', next);
+                    });
+                }
+
+            }
+
+            // if (this.#value) this.value = await this.#value(this.#context);
+        }
+    }
+
+    customElements.define('x-t', XT);
+    customElements.define('x-i', XI);
+    customElements.define('x-span', XSpan, { extends: 'span' });
+    customElements.define('x-input', XInput, { extends: 'input' });
     customElements.define('x-c', XContext);
-    customElements.define('x-s', XS, { extends: 'span' });
 
 </script>
