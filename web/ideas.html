@@ -3,46 +3,37 @@
 
 <h1>Ideas</h1>
 
-<x-c>
+<x-context>
 
-    <strong>Is Span:</strong>
-    <span is="x-span" x-text="obj.text.toUpperCase()"></span>
-    <br />
-
-    <strong>Is Input:</strong>
-    <input is="x-input" x-value="obj.text = event?.target?.value ?? obj.text" />
-    <!-- <x-input x-value="obj.text = event?.target?.value ?? obj.text"></x-input> -->
+    <strong>Slotted Span:</strong>
+    <span text="{{obj.text.toUpperCase()}}"></span>
     <br>
 
-    <strong>X-T:</strong>
-    <x-t>obj.text.toUpperCase()</x-t>
+    <strong>Slotted Input:</strong>
+    <input value="{{obj.text = event?.target?.value ?? obj.text}}">
     <br>
 
-    <strong>X-I:</strong>
-    <x-i>obj.text = event?.target?.value ?? obj.text</x-i>
-    </br>
-
-</x-c>
+</x-context>
 
 <script type="module">
 
-    // const i = document.createElement('input');
-    // const t = document.createElement('template');
-    // t.appendChild(i);
-    // document.head.appendChild(t);
-    // const inputComputedStyle = window.getComputedStyle(i);
-    // const style = document.createElement('style');
-    // let styleContent = '';
-    // Array.from(inputComputedStyle).forEach(key => styleContent += `${key}: ${inputComputedStyle.getPropertyValue(key)} ${inputComputedStyle.getPropertyPriority(key)};`);
-    // style.type = 'text/css';
-    // style.innerHTML = `x-i { ${styleContent} }`;
-    // document.head.appendChild(style);
-
+    const x = Symbol('x');
     const proxies = new Map();
     const handlers = new Map();
-    const meta = Symbol('meta');
 
-    const change = async function ([references, reference, element]) {
+    const all = function (promises) {
+        return Promise.all(promises);
+    };
+
+    const map = function (item, method, self) {
+        return Array.prototype.map.call(item, method, self);
+    };
+
+    const resolve = function (item, method) {
+        return Promise.resolve(item).then(method);
+    };
+
+    const setted = async function ([references, reference, element]) {
         const nodes = references.get(reference) ?? references.set(reference, new Set()).get(reference);
 
         let iterator = nodes.values();
@@ -50,11 +41,11 @@
 
         while (!result.done) {
             // if (element !== result.value) Promise.resolve(result.value).then(async element => element.render());
-            Promise.resolve(result.value).then(async value => value?.render());
+            resolve(result.value, async node => node?.[x]?.render());
             result = iterator.next();
         }
 
-    }
+    };
 
     const set = function (element, references, reference, target, key, value, receiver) {
         if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
@@ -72,7 +63,7 @@
         else references.set(reference, new Set([element]));
         // proxies?.get?.(element)?.remove?.(reference);
 
-        Promise.resolve([references, reference, element]).then(change);
+        resolve([references, reference, element], setted);
 
         return true;
     };
@@ -100,156 +91,101 @@
         return value;
     };
 
-    const context = function (data, element, references, reference) {
+    const context = function (data, references, reference, node) {
         return new Proxy(data, {
-            get: get.bind(null, element, references, reference),
-            set: set.bind(null, element, references, reference)
+            get: get.bind(null, node, references, reference),
+            set: set.bind(null, node, references, reference)
         });
     };
 
     const handler = function (code) {
-        code = `with($context){return(${code});}`;
+        code = `with($context){return(${code.slice(2, -2)});}`;
         return handlers.get(code) ?? handlers.set(code, new Function('$context', 'event', code)).get(code);
     };
 
-    const render = async function (data, references, reference) {
-        const self = this[meta];
+    const binder = function (container, attribute) {
 
-        if (!self.rendered) {
-            self.rendered = true;
-            self.context = context(data, this, references, reference);
+        attribute[x] = {
+            node: attribute,
+            name: attribute.name,
+            value: attribute.value,
+            owner: attribute.ownerElement,
+            handler: handler(attribute.value),
+            context: context(container.context, container.references, '', attribute)
+        };
 
-            const text = this.attributes['x-text'];
-            if (text) self.text = handler(text.value);
-
-            const html = this.attributes['x-html'];
-            if (html) self.html = handler(html.value);
-
-            const value = this.attributes['x-value'];
-            if (value) {
-                self.value = handler(value.value);
-                this.addEventListener('input', async (event) => {
-                    this.value = await self.value(self.context, event);
-                });
-            }
-
+        if (attribute[x].name === 'value') {
+            attribute[x].render = async function (event) {
+                attribute[x].owner.value = await attribute[x].handler(attribute[x].context, event);
+            };
+            attribute[x].owner.addEventListener('input', attribute[x].render);
+        } else if (attribute[x].name === 'text') {
+            attribute[x].render = async function () {
+                attribute[x].owner.textContent = await attribute[x].handler(attribute[x].context);
+            };
+        } else if (attribute[x].name === 'html') {
+            attribute[x].render = async function () {
+                attribute[x].owner.innerHTML = await attribute[x].handler(attribute[x].context);
+            };
         }
 
-        if (self.text) this.textContent = await self.text(self.context);
-        if (self.html) this.innerHTML = await self.html(self.context);
-        if (self.value) this.value = await self.value(self.context);
+        attribute[x].node.value = '';
+
+        return attribute[x];
     };
 
-    const instance = function () {
-        return {
-            rendered: false,
-            html: undefined,
-            text: undefined,
-            value: undefined,
-            context: undefined,
+    const bind = async function (element) {
+        const renders = [];
+
+        for (const attribute of element.attributes) {
+            const { name, value } = attribute;
+            if (value.startsWith('{{') && value.endsWith('}}')) {
+                renders.push(binder(this, attribute));
+            }
         }
+
+        await all(map(renders, async (binder) => await (await binder).render()));
+        await all(map(element.children, bind, this));
     };
-
-    class XT extends HTMLElement {
-        #node;
-        #text;
-        #context;
-        #rendered = false;
-        constructor() {
-            super();
-            this.attachShadow({ mode: 'open' });
-            this.shadowRoot.innerHTML = '<slot></slot>';
-            this.#node = this.childNodes[0];
-        }
-        async render(data, references, reference) {
-
-            if (!this.#rendered) {
-                this.#rendered = true;
-                this.#context = context(data, this, references, reference);
-                this.#text = handler(this.#node.textContent);
-            }
-
-            this.#node.textContent = await this.#text(this.#context);
-        }
-    }
-    customElements.define('x-t', XT);
-
-    class XI extends HTMLElement {
-        #handler;
-        #context;
-        #rendered = false;
-        constructor() {
-            super();
-            this.attachShadow({ mode: 'open' });
-            this.shadowRoot.innerHTML = `
-                <style>
-                    :host {
-                        width: 10rem;
-                        height: 1.2rem;
-                        display: inline-block;
-                        border: 1px solid lightgray;
-                    }
-                </style>
-                <slot></slot>
-            `;
-            this.contentEditable = true;
-        }
-        #value = undefined;
-        get value() {
-            return this.#value;
-        }
-        set value(value) {
-            this.setAttribute('value', this.textContent = this.#value = value);
-        }
-        async render(data, references, reference) {
-
-            if (!this.#rendered) {
-                this.#rendered = true;
-                this.#context = context(data, this, references, reference);
-                this.#handler = handler(this.textContent);
-                this.addEventListener('input', this.input);
-            }
-
-            this.value = await this.#handler(this.#context);
-        }
-        async input(event) {
-            this.value = this.textContent;
-            this.value = await this.#handler(this.#context, event);
-        }
-    }
-    customElements.define('x-i', XI);
 
     class XContext extends HTMLElement {
+
         references = new Map();
-        // context = { obj: { text: 'Hello World' } };
-        // context = new Proxy({ obj: { text: 'Hello World' } }, { get: get.bind(null, null, this.references, ''), set: set.bind(null, null, this.references, '') });
-        context = context({ obj: { text: 'Hello World' } }, null, this.references, '');
+        context = context({}, this.references, '');
+
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
             this.shadowRoot.innerHTML = '<slot></slot>';
-            this.shadowRoot.firstElementChild.addEventListener('slotchange', this.change.bind(this));
+            this.shadowRoot.addEventListener('slotchange', this.slotted.bind(this));
+
+            // maybe handle element attributes here
+
+            Object.assign(this.context, { obj: { text: 'Hello World' } });
+
+            const template = document.createElement('template');
+            template.innerHTML = '<strong>Shadow Span: </strong><span text="{{obj.text}}"></span><br>';
+
+            this.shadowRoot.prepend(template.content);
+
+            all(map(this.shadowRoot.children, bind, this));
+
         }
-        async each(element) {
-            await element.render(this.context, this.references, '');
+
+        async slotted(event) {
+            console.log('slotted');
+            // console.log(event);
+            // console.log(event.target);
+            const slot = event.target;
+            const elements = slot.assignedElements();
+            await all(map(elements, bind, this));
         }
-        async change(event) {
-            Promise.all(Array.prototype.map.call(this.querySelectorAll('x-i, x-t, [is^="x-"]'), this.each.bind(this)));
+
+        async connectedCallback() {
+            console.log('connected');
         }
-    }
-    customElements.define('x-c', XContext);
-
-    class XSpan extends HTMLSpanElement {
-        [meta] = instance();
-        render = render;
-    }
-    customElements.define('x-span', XSpan, { extends: 'span' });
-
-    class XInput extends HTMLInputElement {
-        [meta] = instance();
-        render = render;
 
     }
-    customElements.define('x-input', XInput, { extends: 'input' });
 
+    customElements.define('x-context', XContext);
 </script>
