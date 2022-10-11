@@ -9,10 +9,10 @@ const standardSetup = function (binder: BinderType) {
 const standardRender = async function (binder: BinderType) {
     if (binder.name == 'text') {
         const data = await binder.compute();
-        binder.node.textContent = tool.display(data);
+        binder.owner.textContent = tool.display(data);
     } else if (binder.meta.boolean) {
         const data = await binder.compute() ? true : false;
-        if (data) binder.owner.setAttributeNode(binder.node);
+        if (data) binder.owner.setAttribute(binder.name, '');
         else binder.owner.removeAttribute(binder.name);
     } else {
         let data = await binder.compute();
@@ -24,7 +24,7 @@ const standardRender = async function (binder: BinderType) {
 
 const standardReset = function (binder: BinderType) {
     if (binder.name == 'text') {
-        binder.node.textContent = '';
+        binder.owner.textContent = '';
     } else if (binder.meta.boolean) {
         binder.owner.removeAttribute(binder.name);
     } else {

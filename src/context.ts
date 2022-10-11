@@ -1,112 +1,107 @@
-import { tick } from './tool.ts';
+import { Path, RewriteName, RewriteValue } from './globals.ts';
 
-type ContextKeys = string | symbol;
-// type ContextHandlers = 'render' | 'reset';
+const Resolve = function (item: any, method: any) {
+    return Promise.resolve(item).then(method);
+};
 
-// const diff = function (from: any, to: any, resets?: string[], renders?: string[], reference?: string) {
-//     resets = resets ?? [];
-//     renders = renders ?? [];
-//     reference = reference ?? '';
+const ContextEvent = function ([binders, path, binder]: any) {
+    const nodes = binders.get(path) ?? binders.set(path, new Set()).get(path);
+    const iterator = nodes.values();
 
-//     if (from && typeof from === 'object') {
-//         for (const key in from) {
-//             if (to === null || to === undefined) {
-//                 resets.push(reference ? `${reference}.${key}` : key);
-//                 if (from[key] && typeof from[key] === 'object') {
-//                     diff(from[key], to, resets, renders, reference ? `${reference}.${key}` : key);
-//                 }
-//             } else if (to && typeof to === 'object') {
-//                 if (key in to) {
-//                     if (from[key] === to[key]) {
-//                         renders.push(reference ? `${reference}.${key}` : key);
-//                         diff(from[key], to[key], resets, renders, reference ? `${reference}.${key}` : key);
-//                     } else {
-//                     }
-//                 } else {
-//                 }
-//                 if (from[key] !== to[key]) {
-//                 }
-//             }
-//         }
-//     }
+    let result = iterator.next();
 
-// };
+    while (!result.done) {
+        if (binder !== result.value) {
+            Resolve(result.value, async (binder: any) => await binder?.render());
+        }
+        result = iterator.next();
+    }
+};
 
-// const ContextProxy = function (event: any, reference: string, value: any) {
-//     if (value && typeof value === 'object') {
-//         for (const key in value) {
-//             value[key] = ContextProxy(event, reference ? `${reference}.${key}` : `${key}`, value[key]);
-//         }
-//         return new Proxy(value, {
-//             get: ContextGet.bind(null, event, reference),
-//             set: ContextSet.bind(null, event, reference),
-//             deleteProperty: ContextDelete.bind(null, event, reference),
-//         });
-//     } else {
-//         return value;
-//     }
-// };
+const ContextSet = function (binder: any, binders: any, path: any, target: any, key: any, value: any, receiver: any) {
+    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
 
-export const ContextGet = function (event: any, reference: string, target: any, key: ContextKeys, receiver: any): any {
+    const from = Reflect.get(target, key, receiver);
+    // console.log('set:', path, key, value, from, binder);
+
+    if (from === value) return true;
+    if (Number.isNaN(from) && Number.isNaN(value)) return true;
+
+    Reflect.set(target, key, value, receiver);
+
+    if (key === target[RewriteName]) {
+        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
+    } else {
+        path = path ? `${path}.${key}` : key;
+    }
+
+    if (binder) {
+        if (binders.has(path)) {
+            binders.get(path).add(binder);
+        } else {
+            binders.set(path, new Set([binder]));
+        }
+
+        // Proxies?.get?.(binder)?.remove?.(path);
+    }
+
+    Resolve([binders, path, binder], ContextEvent);
+
+    return true;
+};
+
+const ContextGet = function (binder: any, binders: any, path: any, target: any, key: any, receiver: any): any {
+    // console.log('get:', path, key, binder);
+
+    if (key === Path) return path;
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+
+    if (key === target[RewriteName]) {
+        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
+    } else {
+        path = path ? `${path}.${key}` : key;
+    }
+
+    if (binder) {
+        if (binders.has(path)) {
+            binders.get(path).add(binder);
+        } else {
+            binders.set(path, new Set([binder]));
+        }
+    }
 
     const value = Reflect.get(target, key, receiver);
 
     if (value && typeof value === 'object') {
-        reference = reference ? `${reference}.${key}` : `${key}`;
-        return new Proxy(value, {
-            get: ContextGet.bind(null, event, reference),
-            set: ContextSet.bind(null, event, reference),
-            deleteProperty: ContextDelete.bind(null, event, reference),
+        let proxy;
+
+        // if (binder) {
+        //     if (!Proxies.has(binder)) Proxies.set(binder, new Map());
+        //     proxy = Proxies.get(binder).get(path);
+        //     if (proxy) return proxy;
+        // }
+
+        proxy = new Proxy(value, {
+            get: ContextGet.bind(null, binder, binders, path),
+            set: ContextSet.bind(null, binder, binders, path),
         });
+
+        // if (binder) {
+        //     Proxies.get(binder).set(path, proxy);
+        // }
+
+        return proxy;
+        // return new Proxy(value, { get: get.bind(null, binder, binders, path), set: set.bind(null, binder, binders, path) });
     }
 
     return value;
 };
 
-export const ContextDelete = function (event: any, reference: string, target: any, key: ContextKeys) {
-    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
-
-    Reflect.deleteProperty(target, key);
-
-    tick(async function contextTick() {
-        await event(reference ? `${reference}.${key}` : `${key}`, 'reset');
+const Context = function (data: any, binders: any, path?: any, binder?: any) {
+    return new Proxy(data, {
+        get: ContextGet.bind(null, binder, binders, path),
+        set: ContextSet.bind(null, binder, binders, path),
     });
-
-    return true;
 };
 
-export const ContextSet = function (event: any, reference: string, target: any, key: ContextKeys, to: any, receiver: any) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, to, receiver);
-
-    if (key === 'length') {
-        Reflect.set(target, key, to, receiver);
-
-        tick(async function contextTick() {
-            await event(reference, 'render');
-        });
-
-        tick(async function contextTick() {
-            await event(reference ? `${reference}.${key}` : `${key}`, 'render');
-        });
-
-        return true;
-    }
-
-    const from = Reflect.get(target, key, receiver);
-
-    if (from === to) return true;
-    if (Number.isNaN(from) && Number.isNaN(to)) return true;
-
-    // if (to && typeof to === 'object') {
-    //     to = ContextProxy(event, reference ? `${reference}.${key}` : `${key}`, to);
-    // }
-
-    Reflect.set(target, key, to, receiver);
-
-    tick(async function contextTick() {
-        await event(reference ? `${reference}.${key}` : `${key}`, 'render');
-    });
-
-    return true;
-};
+export default Context;

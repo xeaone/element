@@ -2,7 +2,90 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
+new Map();
+const Path = Symbol('Path');
+const RewriteName = Symbol('RewriteName');
+const RewriteValue = Symbol('RewriteValue');
+const Resolve = function(item, method) {
+    return Promise.resolve(item).then(method);
+};
+const ContextEvent = function([binders, path, binder]) {
+    const nodes = binders.get(path) ?? binders.set(path, new Set()).get(path);
+    const iterator = nodes.values();
+    let result = iterator.next();
+    while(!result.done){
+        if (binder !== result.value) {
+            Resolve(result.value, async (binder)=>await binder?.render());
+        }
+        result = iterator.next();
+    }
+};
+const ContextSet = function(binder, binders, path, target, key, value, receiver) {
+    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
+    const from = Reflect.get(target, key, receiver);
+    if (from === value) return true;
+    if (Number.isNaN(from) && Number.isNaN(value)) return true;
+    Reflect.set(target, key, value, receiver);
+    if (key === target[RewriteName]) {
+        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
+    } else {
+        path = path ? `${path}.${key}` : key;
+    }
+    if (binder) {
+        if (binders.has(path)) {
+            binders.get(path).add(binder);
+        } else {
+            binders.set(path, new Set([
+                binder
+            ]));
+        }
+    }
+    Resolve([
+        binders,
+        path,
+        binder
+    ], ContextEvent);
+    return true;
+};
+const ContextGet = function(binder, binders, path, target, key, receiver) {
+    if (key === Path) return path;
+    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+    if (key === target[RewriteName]) {
+        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
+    } else {
+        path = path ? `${path}.${key}` : key;
+    }
+    if (binder) {
+        if (binders.has(path)) {
+            binders.get(path).add(binder);
+        } else {
+            binders.set(path, new Set([
+                binder
+            ]));
+        }
+    }
+    const value = Reflect.get(target, key, receiver);
+    if (value && typeof value === 'object') {
+        let proxy;
+        proxy = new Proxy(value, {
+            get: ContextGet.bind(null, binder, binders, path),
+            set: ContextSet.bind(null, binder, binders, path)
+        });
+        return proxy;
+    }
+    return value;
+};
+const Context = function(data, binders, path, binder) {
+    return new Proxy(data, {
+        get: ContextGet.bind(null, binder, binders, path),
+        set: ContextSet.bind(null, binder, binders, path)
+    });
+};
 const promise = Promise.resolve();
+new Map();
+const Path1 = Symbol('Path');
+const RewriteName1 = Symbol('RewriteName');
+const RewriteValue1 = Symbol('RewriteValue');
 const tick = function(method) {
     return promise.then(method);
 };
@@ -26,102 +109,16 @@ const toolDefault = Object.freeze({
     dash,
     tick
 });
-const ContextGet = function(event, reference, target, key, receiver) {
-    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-    const value = Reflect.get(target, key, receiver);
-    if (value && typeof value === 'object') {
-        reference = reference ? `${reference}.${key}` : `${key}`;
-        return new Proxy(value, {
-            get: ContextGet.bind(null, event, reference),
-            set: ContextSet.bind(null, event, reference),
-            deleteProperty: ContextDelete.bind(null, event, reference)
-        });
-    }
-    return value;
+const ComputeCache = new Map();
+const Compute = function(code) {
+    const cache = ComputeCache.get(code);
+    if (cache) return cache;
+    const method = new Function('$context', '$instance', `with ($context) { with ($instance) {
+            return (${code});
+        } }`);
+    ComputeCache.set(code, method);
+    return method;
 };
-const ContextDelete = function(event, reference, target, key) {
-    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
-    Reflect.deleteProperty(target, key);
-    tick(async function contextTick() {
-        await event(reference ? `${reference}.${key}` : `${key}`, 'reset');
-    });
-    return true;
-};
-const ContextSet = function(event, reference, target, key, to, receiver) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, to, receiver);
-    if (key === 'length') {
-        Reflect.set(target, key, to, receiver);
-        tick(async function contextTick() {
-            await event(reference, 'render');
-        });
-        tick(async function contextTick() {
-            await event(reference ? `${reference}.${key}` : `${key}`, 'render');
-        });
-        return true;
-    }
-    const from = Reflect.get(target, key, receiver);
-    if (from === to) return true;
-    if (Number.isNaN(from) && Number.isNaN(to)) return true;
-    Reflect.set(target, key, to, receiver);
-    tick(async function contextTick() {
-        await event(reference ? `${reference}.${key}` : `${key}`, 'render');
-    });
-    return true;
-};
-const navigators = new Map();
-const transition = async function(options) {
-    if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
-    if (options.navigating) return;
-    else options.navigating = true;
-    options.construct = options.construct ?? (await import(options.file)).default;
-    if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
-    options.name = options.name ?? dash(options.construct.name);
-    if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
-    if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
-    options.instance = document.createElement(options.name);
-    options.target.replaceChildren(options.instance);
-    options.navigating = false;
-};
-const navigate = function(event) {
-    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
-    const destination = new URL(event?.destination.url ?? location.href);
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    destination.hash = '';
-    destination.search = '';
-    const pathname = destination.href.replace(base.href, '/');
-    const options = navigators.get(pathname) ?? navigators.get('/*');
-    if (!options) return;
-    options.target = options.target ?? document.querySelector(options.query);
-    if (!options.target) throw new Error('XElement - navigation target not found');
-    if (event?.intercept) {
-        if (options.instance === options.target.lastElementChild) return event.intercept();
-        return event.intercept({
-            handler: ()=>transition(options)
-        });
-    } else if (event?.transitionWhile) {
-        if (options.instance === options.target.lastElementChild) return event.transitionWhile((()=>undefined)());
-        return event.transitionWhile(transition(options));
-    } else {
-        transition(options);
-    }
-};
-function navigation(path, file, options) {
-    if (!path) throw new Error('XElement - navigation path required');
-    if (!file) throw new Error('XElement - navigation file required');
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    options = options ?? {};
-    options.path = path;
-    options.cache = options.cache ?? true;
-    options.query = options.query ?? 'main';
-    options.file = new URL(file, base.href).href;
-    navigators.set(path, options);
-    navigate();
-    window.navigation.addEventListener('navigate', navigate);
-}
 const booleanDefault = Object.freeze([
     'allowfullscreen',
     'async',
@@ -174,10 +171,10 @@ const standardSetup = function(binder) {
 const standardRender = async function(binder) {
     if (binder.name == 'text') {
         const data = await binder.compute();
-        binder.node.textContent = toolDefault.display(data);
+        binder.owner.textContent = toolDefault.display(data);
     } else if (binder.meta.boolean) {
         const data1 = await binder.compute() ? true : false;
-        if (data1) binder.owner.setAttributeNode(binder.node);
+        if (data1) binder.owner.setAttribute(binder.name, '');
         else binder.owner.removeAttribute(binder.name);
     } else {
         let data2 = await binder.compute();
@@ -188,7 +185,7 @@ const standardRender = async function(binder) {
 };
 const standardReset = function(binder) {
     if (binder.name == 'text') {
-        binder.node.textContent = '';
+        binder.owner.textContent = '';
     } else if (binder.meta.boolean) {
         binder.owner.removeAttribute(binder.name);
     } else {
@@ -278,8 +275,6 @@ const valueInput = async function(binder, event) {
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
     binder.instance.event = event;
-    binder.instance.$event = event;
-    binder.instance.$render = false;
     const owner = binder.owner;
     if (owner.type === 'select-one') {
         const option = owner.selectedOptions[0];
@@ -320,28 +315,17 @@ const valueInput = async function(binder, event) {
     owner.value = display;
     owner.setAttribute('value', display);
     binder.meta.busy = false;
+    binder.instance.event = undefined;
 };
 const valueSetup = function(binder) {
     binder.owner.value = '';
-    Object.defineProperties(binder.instance, {
-        $value: {
-            get () {
-                return binder.owner.value;
-            },
-            set (value) {
-                binder.owner.value = value;
-            }
-        }
-    });
     binder.owner.addEventListener('input', (event)=>valueInput(binder, event));
 };
 const valueRender = async function(binder) {
     console.log('valueRender', binder.meta.busy);
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
-    binder.instance.$render = true;
     binder.instance.event = undefined;
-    binder.instance.$event = undefined;
     const owner = binder.owner;
     const computed = await binder.compute();
     let display;
@@ -389,6 +373,90 @@ const valueDefault = {
     render: valueRender,
     reset: valueReset
 };
+const onSetup = function(binder) {
+    binder.owner[binder.name] = undefined;
+    binder.meta.name = binder.name.slice(2);
+};
+const onRender = function(binder) {
+    if (binder.meta.method) {
+        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
+    }
+    binder.meta.method = async (event)=>{
+        let result;
+        binder.instance.event = event;
+        result = await binder.compute();
+        binder.instance.event = undefined;
+        return result;
+    };
+    binder.owner.addEventListener(binder.meta.name, binder.meta.method);
+};
+const onReset = function(binder) {
+    if (binder.meta.method) {
+        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
+    }
+};
+const onDefault = {
+    setup: onSetup,
+    render: onRender,
+    reset: onReset
+};
+const BinderCreate = function(context, binders, attribute) {
+    let { name , value , ownerElement  } = attribute;
+    if (name.startsWith('x-')) {
+        name = name.slice(2);
+    }
+    if (value.startsWith('{{') && value.endsWith('}}')) {
+        value = value.slice(2, -2);
+    }
+    let handler;
+    if (name === 'html') handler = htmlDefault;
+    else if (name === 'each') handler = eachDefault;
+    else if (name === 'value') handler = valueDefault;
+    else if (name === 'checked') handler = checkedDefault;
+    else if (name === 'inherit') handler = inheritDefault;
+    else if (name.startsWith('on')) handler = onDefault;
+    else handler = standardDefault;
+    const binder = {
+        name,
+        value,
+        binders,
+        meta: {},
+        instance: {},
+        owner: ownerElement,
+        setup: undefined,
+        reset: undefined,
+        render: undefined,
+        compute: undefined,
+        context: undefined
+    };
+    binder.reset = handler.reset.bind(null, binder);
+    binder.render = handler.render.bind(null, binder);
+    binder.setup = handler?.setup?.bind(null, binder);
+    binder.owner.removeAttributeNode(attribute);
+    binder.context = Context(context, binders, '', binder);
+    binder.compute = Compute(value).bind(binder.owner, binder.context, binder.instance);
+    binder.setup?.(binder);
+    return binder;
+};
+const BinderHandle = async function(context, binders, element) {
+    const tasks = [];
+    let each = false;
+    for (const attribute of element.attributes){
+        const { name , value  } = attribute;
+        if (value.startsWith('{{') && value.endsWith('}}')) {
+            each = name === 'each' || name === 'x-each';
+            tasks.push(BinderCreate(context, binders, attribute).render());
+        }
+    }
+    if (!each) {
+        let child = element.firstElementChild;
+        while(child){
+            tasks.push(BinderHandle(context, binders, child));
+            child = child.nextElementSibling;
+        }
+    }
+    await Promise.all(tasks);
+};
 const htmlRender = async function(binder) {
     const data = await binder.compute();
     let fragment, node, tasks = [];
@@ -404,12 +472,11 @@ const htmlRender = async function(binder) {
     node = binder.owner.lastChild;
     while(node){
         binder.owner.removeChild(node);
-        binder.container.release(node);
         node = binder.owner.lastChild;
     }
     node = fragment.firstChild;
     while(node){
-        tasks.push(binder.container.register(node, binder.context));
+        tasks.push(BinderHandle(binder.context, binder.binders, node));
         node = node.nextSibling;
     }
     await Promise.all(tasks);
@@ -427,7 +494,6 @@ const htmlDefault = {
     render: htmlRender,
     reset: htmlReset
 };
-const whitespace = /\s+/;
 const eachSetup = function(binder) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
@@ -436,24 +502,26 @@ const eachSetup = function(binder) {
     binder.meta.templateElement = document.createElement('template');
     let node = binder.owner.firstChild;
     while(node){
-        if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue)) {
-            binder.owner.removeChild(node);
-        } else {
+        if (node.nodeType === Node.ELEMENT_NODE) {
             binder.meta.templateLength++;
             binder.meta.templateElement.content.appendChild(node);
+        } else {
+            binder.owner.removeChild(node);
         }
         node = binder.owner.firstChild;
     }
 };
 const eachRender = async function(binder) {
+    if (binder.meta.busy) console.log(binder);
+    if (binder.meta.busy) return;
+    else binder.meta.busy = true;
     const tasks = [];
     const [data, variable, key, index] = await binder.compute();
-    const [reference] = binder.references;
     binder.meta.data = data;
     binder.meta.keyName = key;
     binder.meta.indexName = index;
     binder.meta.variable = variable;
-    binder.meta.reference = reference;
+    binder.meta.reference = Reflect.get(data, Path1);
     if (data?.constructor === Array) {
         binder.meta.targetLength = data.length;
     } else if (data?.constructor === Object) {
@@ -462,59 +530,52 @@ const eachRender = async function(binder) {
     } else {
         return console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
     }
+    console.time('each render');
     if (binder.meta.currentLength > binder.meta.targetLength) {
         while(binder.meta.currentLength > binder.meta.targetLength){
             let count = binder.meta.templateLength, node;
             while(count--){
-                node = binder.owner.lastChild;
+                node = binder.owner.lastElementChild;
                 if (node) {
                     binder.owner.removeChild(node);
-                    tasks.push(binder.container.release(node));
                 }
             }
             binder.meta.currentLength--;
         }
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(tasks);
-        }
+        if (binder.meta.currentLength === binder.meta.targetLength) {}
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        let clone, context, rewrites;
+        let clone, context;
         while(binder.meta.currentLength < binder.meta.targetLength){
             const keyValue = binder.meta.keys?.[binder.meta.currentLength] ?? binder.meta.currentLength;
             const indexValue = binder.meta.currentLength++;
-            rewrites = [
-                ...binder.rewrites,
-                [
-                    binder.meta.variable,
-                    `${binder.meta.reference}.${keyValue}`
-                ], 
-            ];
             context = new Proxy(binder.context, {
                 has: function eachHas(target, key) {
-                    if (key === binder.meta.variable) return true;
                     if (key === binder.meta.keyName) return true;
                     if (key === binder.meta.indexName) return true;
+                    if (key === binder.meta.variable) return true;
                     return Reflect.has(target, key);
                 },
                 get: function eachGet(target, key, receiver) {
+                    if (key === RewriteName1) return binder.meta.variable;
+                    if (key === RewriteValue1) return `${binder.meta.reference}.${keyValue}`;
                     if (key === binder.meta.keyName) return keyValue;
                     if (key === binder.meta.indexName) return indexValue;
-                    if (key === binder.meta.variable) return Reflect.get(binder.meta.data, keyValue);
+                    if (key === binder.meta.variable) return Reflect.get(binder.meta.data, keyValue, receiver);
                     return Reflect.get(target, key, receiver);
                 },
                 set: function eachSet(target, key, value, receiver) {
                     if (key === binder.meta.keyName) return true;
                     if (key === binder.meta.indexName) return true;
-                    if (key === binder.meta.variable) return Reflect.set(binder.meta.data, keyValue, value);
+                    if (key === binder.meta.variable) return Reflect.set(binder.meta.data, keyValue, value, receiver);
                     return Reflect.set(target, key, value, receiver);
                 }
             });
-            let node1 = binder.meta.templateElement.content.firstChild;
+            let node1 = binder.meta.templateElement.content.firstElementChild;
             while(node1){
                 clone = node1.cloneNode(true);
-                tasks.push(binder.container.register(clone, context, rewrites));
+                tasks.push(BinderHandle(context, binder.binders, clone));
                 binder.meta.queueElement.content.appendChild(clone);
-                node1 = node1.nextSibling;
+                node1 = node1.nextElementSibling;
             }
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
@@ -522,6 +583,8 @@ const eachRender = async function(binder) {
             binder.owner.appendChild(binder.meta.queueElement.content);
         }
     }
+    binder.meta.busy = false;
+    console.timeEnd('each render');
 };
 const eachReset = function(binder) {
     binder.meta.targetLength = 0;
@@ -534,250 +597,59 @@ const eachDefault = {
     render: eachRender,
     reset: eachReset
 };
-const onValue = function(element) {
-    if (!element) return undefined;
-    if (toolDefault.value in element) {
-        return toolDefault.parseable(element[toolDefault.value]) ? JSON.parse(JSON.stringify(element[toolDefault.value])) : element[toolDefault.value];
-    }
-    if (element.type === 'number' || element.type === 'range') {
-        return element.valueAsNumber;
-    }
-    return element.value;
+const navigators = new Map();
+const transition = async function(options) {
+    if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
+    if (options.navigating) return;
+    else options.navigating = true;
+    options.construct = options.construct ?? (await import(options.file)).default;
+    if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
+    options.name = options.name ?? dash(options.construct.name);
+    if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
+    if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
+    options.instance = document.createElement(options.name);
+    options.target.replaceChildren(options.instance);
+    options.navigating = false;
 };
-const onSubmitHandler = async function(event, binder) {
-    event.preventDefault();
-    const form = {};
-    const target = event.target?.form || event.target;
-    const elements = target?.querySelectorAll('[name]');
-    for (const element of elements){
-        const { type , name , checked  } = element;
-        if (!name) continue;
-        if (type === 'radio' && !checked) continue;
-        if (type === 'submit' || type === 'button') continue;
-        let value;
-        if (type === 'select-multiple') {
-            value = [];
-            for (const option of element.selectedOptions){
-                value.push(onValue(option));
-            }
-        } else if (type === 'select-one') {
-            const [option1] = element.selectedOptions;
-            value = onValue(option1);
-        } else {
-            value = onValue(element);
-        }
-        let data = form;
-        const parts = name.split(/\s*\.\s*/);
-        for(let index = 0; index < parts.length; index++){
-            const part = parts[index];
-            const next = parts[index + 1];
-            if (next) {
-                if (!data[part]) {
-                    data[part] = /[0-9]+/.test(next) ? [] : {};
-                }
-                data = data[part];
-            } else {
-                data[part] = value;
-            }
-        }
-    }
-    binder.instance.event = event;
-    binder.instance.$event = event;
-    binder.instance.$form = form;
-    await binder.compute();
-    if (target.hasAttribute('reset')) {
-        for (const element1 of elements){
-            const { type: type1 , name: name1  } = element1;
-            if (!name1) continue;
-            else if (type1 === 'submit' || type1 === 'button') continue;
-            else if (type1 === 'select-one') element1.selectedIndex = 0;
-            else if (type1 === 'select-multiple') element1.selectedIndex = -1;
-            else if (type1 === 'radio' || type1 === 'checkbox') element1.checked = false;
-            else element1.value = '';
-            element1.dispatchEvent(new Event('input'));
-        }
-    }
-    return false;
-};
-const onResetHandler = async function(event, binder) {
-    event.preventDefault();
-    const target = event.target?.form || event.target;
-    const elements = target?.querySelectorAll('[name]');
-    for (const element of elements){
-        const { type , name  } = element;
-        if (!name) continue;
-        else if (type === 'submit' || type === 'button') continue;
-        else if (type === 'select-one') element.selectedIndex = 0;
-        else if (type === 'select-multiple') element.selectedIndex = -1;
-        else if (type === 'radio' || type === 'checkbox') element.checked = false;
-        else element.value = '';
-        element.dispatchEvent(new Event('input'));
-    }
-    binder.instance.event = event;
-    binder.instance.$event = event;
-    await binder.compute();
-    return false;
-};
-const onSetup = function(binder) {
-    binder.owner[binder.name] = undefined;
-    binder.meta.name = binder.name.slice(2);
-};
-const onRender = function(binder) {
-    if (binder.meta.method) {
-        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
-    }
-    binder.meta.method = (event)=>{
-        if (binder.meta.name === 'reset') {
-            return onResetHandler(event, binder);
-        } else if (binder.meta.name === 'submit') {
-            return onSubmitHandler(event, binder);
-        } else {
-            binder.instance.event = event;
-            binder.instance.$event = event;
-            return binder.compute();
-        }
-    };
-    binder.owner.addEventListener(binder.meta.name, binder.meta.method);
-};
-const onReset = function(binder) {
-    if (binder.meta.method) {
-        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
-    }
-};
-const onDefault = {
-    setup: onSetup,
-    render: onRender,
-    reset: onReset
-};
-const ignoreString = `
-(\\b
-(\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-event|this|window|document|console|location|navigation|
-globalThis|Infinity|NaN|undefined|
-isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-Object|Function|Boolean|Symbole|Array|
-Number|Math|Date|BigInt|
-String|RegExp|
-Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-Map|Set|WeakMap|WeakSet|
-ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-Reflect|Proxy|
-true|false|null|of|in|do|if|for|new|try|case|else|with|async|await|break|catch|class|super|throw|while|
-yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-([.][a-zA-Z0-9$_.? ]*)?
-\\b)
-`.replace(/\t|\n/g, '');
-const ignorePattern = new RegExp(ignoreString, 'g');
-const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
-const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
-const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
-const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
-const referenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
-const assignmentPattern = /(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)/;
-const Cache = new Map();
-function Binder(node, container, context, rewrites) {
-    let name, value, owner;
-    if (node.nodeType === Node.TEXT_NODE) {
-        const text = node;
-        value = text.textContent ?? '';
-        name = 'text';
-        owner = text;
-        text.textContent = '';
-    } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
-        const attr = node;
-        owner = attr.ownerElement;
-        value = attr.value ?? '';
-        name = attr.name ?? '';
-        attr.value = '';
+const navigate = function(event) {
+    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
+    const destination = new URL(event?.destination.url ?? location.href);
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    destination.hash = '';
+    destination.search = '';
+    const pathname = destination.href.replace(base.href, '/');
+    const options = navigators.get(pathname) ?? navigators.get('/*');
+    if (!options) return;
+    options.target = options.target ?? document.querySelector(options.query);
+    if (!options.target) throw new Error('XElement - navigation target not found');
+    if (event?.intercept) {
+        if (options.instance === options.target.lastElementChild) return event.intercept();
+        return event.intercept({
+            handler: ()=>transition(options)
+        });
+    } else if (event?.transitionWhile) {
+        if (options.instance === options.target.lastElementChild) return event.transitionWhile((()=>undefined)());
+        return event.transitionWhile(transition(options));
     } else {
-        throw new Error('XElement - Node not valid');
+        transition(options);
     }
-    let handler;
-    if (name === 'html') handler = htmlDefault;
-    else if (name === 'each') handler = eachDefault;
-    else if (name === 'value') handler = valueDefault;
-    else if (name === 'checked') handler = checkedDefault;
-    else if (name === 'inherit') handler = inheritDefault;
-    else if (name.startsWith('on')) handler = onDefault;
-    else handler = standardDefault;
-    let cache = Cache.get(value);
-    if (!cache) {
-        const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
-        const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
-        const assignment = clean.match(assignmentPattern);
-        const references = clean.replace(ignorePattern, '').replace(referenceNormalize, '.$2$3').match(referencePattern) ?? [];
-        console.log(value);
-        const isValue = name === 'value';
-        const isChecked = name === 'checked';
-        let wrapped;
-        if (assignment && (isValue || isChecked)) {
-            wrapped = `
-            with ($context) {
-                with ($instance) {
-                    // return ${assignment?.[1]} $render ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
-                    //
-                    return ${assignment?.[1]} !$event ? ${assignment?.[2]} : ${assignment?.[2]} ${assignment?.[3]} ${assignment?.[4]};
-                    // return ${code};
-                }
-            }
-            `;
-            console.log(wrapped);
-        } else {
-            wrapped = `
-            with ($context) {
-                with ($instance) {
-                   return ${code};
-                }
-            }
-            `;
-        }
-        const compute = new Function('$context', '$instance', wrapped);
-        cache = {
-            compute,
-            references
-        };
-        Cache.set(value, cache);
-    }
-    const instance = {};
-    const references1 = new Set();
-    let reference, nameRewrite, valueRewrite;
-    for (reference of cache.references){
-        if (rewrites) {
-            for ([nameRewrite, valueRewrite] of rewrites){
-                if (reference === nameRewrite) {
-                    reference = valueRewrite;
-                } else if (reference.startsWith(nameRewrite + '.')) {
-                    reference = valueRewrite + reference.slice(nameRewrite.length);
-                }
-            }
-        }
-        references1.add(reference);
-    }
-    console.log(references1);
-    const binder = {
-        name,
-        node,
-        value,
-        owner,
-        handler,
-        context,
-        instance,
-        container,
-        references: references1,
-        meta: {},
-        setup: handler.setup,
-        reset: handler.reset,
-        render: handler.render,
-        rewrites: rewrites ? [
-            ...rewrites
-        ] : [],
-        compute: cache.compute.bind(owner, context, instance)
-    };
-    binder.setup?.(binder);
-    return binder;
+};
+function navigation(path, file, options) {
+    if (!path) throw new Error('XElement - navigation path required');
+    if (!file) throw new Error('XElement - navigation file required');
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    options = options ?? {};
+    options.path = path;
+    options.cache = options.cache ?? true;
+    options.query = options.query ?? 'main';
+    options.file = new URL(file, base.href).href;
+    navigators.set(path, options);
+    navigate();
+    window.navigation.addEventListener('navigate', navigate);
 }
 class XElement extends HTMLElement {
     static observedProperties;
@@ -811,97 +683,13 @@ class XElement extends HTMLElement {
     #prepared = false;
     #preparing = false;
     #binders = new Map();
-    #mutator = new MutationObserver(this.#mutation.bind(this));
-    #context = new Proxy({}, {
-        get: ContextGet.bind(null, this.#change.bind(this), ''),
-        set: ContextSet.bind(null, this.#change.bind(this), ''),
-        deleteProperty: ContextDelete.bind(null, this.#change.bind(this), '')
-    });
+    #context = Context({}, this.#binders, '', undefined);
     constructor(){
         super();
         if (!this.shadowRoot) this.attachShadow({
             mode: 'open'
         });
-        this.#mutator.observe(this, {
-            childList: true
-        });
-        this.#mutator.observe(this.shadowRoot, {
-            childList: true
-        });
-    }
-    async #change(reference, type) {
-        const parents = [];
-        const children = [];
-        let key, binder, binders;
-        for ([key, binders] of this.#binders){
-            if (binders) {
-                if (key === reference) {
-                    for (binder of binders){
-                        parents.push(binder);
-                    }
-                } else if (key?.startsWith?.(`${reference}.`)) {
-                    for (binder of binders){
-                        children.push(binder);
-                    }
-                }
-            }
-        }
-        await Promise.all(parents.map(async (binder)=>await binder[type]?.(binder)));
-        await Promise.all(children.map(async (binder)=>await binder[type]?.(binder)));
-    }
-    #mutation(mutations) {
-        if (this.#prepared) {
-            let mutation, node;
-            for (mutation of mutations){
-                for (node of mutation.addedNodes){
-                    this.register(node, this.#context, []);
-                }
-                for (node of mutation.removedNodes){
-                    this.release(node);
-                }
-            }
-        } else {
-            this.prepare();
-        }
-    }
-    #remove(node1) {
-        const binders1 = this.#binders.get(node1);
-        if (!binders1) return;
-        let binder1, reference1;
-        for (binder1 of binders1){
-            for (reference1 of binder1.references){
-                if (this.#binders.has(reference1)) {
-                    binder1.reset = undefined;
-                    binder1.render = undefined;
-                    this.#binders.get(reference1)?.delete(binder1);
-                    if (!this.#binders.get(reference1)?.size) this.#binders.delete(reference1);
-                }
-            }
-        }
-        this.#binders.delete(node1);
-    }
-    async #add(node2, context, rewrites) {
-        const binder2 = Binder(node2, this, context, rewrites);
-        let binders2, reference2;
-        for (reference2 of binder2.references){
-            binders2 = this.#binders.get(reference2);
-            if (binders2) {
-                binders2.add(binder2);
-            } else {
-                this.#binders.set(reference2, new Set([
-                    binder2
-                ]));
-            }
-        }
-        const nodes = this.#binders.get(binder2.owner ?? binder2.node);
-        if (nodes) {
-            nodes.add(binder2);
-        } else {
-            this.#binders.set(binder2.owner ?? binder2.node, new Set([
-                binder2
-            ]));
-        }
-        await binder2.render(binder2);
+        this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
     async prepare() {
         if (this.#prepared) return;
@@ -932,76 +720,34 @@ class XElement extends HTMLElement {
                 set: (value)=>this.#context[property] = value
             });
         }
-        await this.register(this.shadowRoot, this.#context);
-        await this.register(this, this.#context);
+        const promises = [];
+        let child = this.shadowRoot?.firstElementChild;
+        while(child){
+            promises.push(BinderHandle(this.#context, this.#binders, child));
+            child = child.nextElementSibling;
+        }
+        const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
+        for (const slot of slots){
+            const elements = slot.assignedElements();
+            for (const element of elements){
+                promises.push(BinderHandle(this.#context, this.#binders, element));
+            }
+        }
+        await Promise.all(promises);
         this.#prepared = true;
         this.#preparing = false;
         this.dispatchEvent(XElement.preparedEvent);
     }
-    async release(node) {
-        const tasks = [];
-        if (node.nodeType == Node.TEXT_NODE) {
-            tasks.push(this.#remove(node));
-        } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-            let child = node.firstChild;
-            while(child){
-                tasks.push(this.release(child));
-                child = child.nextSibling;
-            }
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            tasks.push(this.#remove(node));
-            let attribute;
-            for (attribute of node.attributes){
-                tasks.push(this.#remove(attribute));
-            }
-            let child1 = node.firstChild;
-            while(child1){
-                tasks.push(this.release(child1));
-                child1 = child1.nextSibling;
-            }
+    async slottedCallback(event) {
+        console.log('slottedCallback');
+        const promises = [];
+        const slot = event.target;
+        const elements = slot?.assignedElements();
+        for (const element of elements){
+            promises.push(BinderHandle(this.#context, this.#binders, element));
         }
-        await Promise.all(tasks);
-    }
-    async register(node, context, rewrites) {
-        const tasks = [];
-        if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-            let child = node.firstChild;
-            while(child){
-                tasks.push(this.register(child, context, rewrites));
-                child = child.nextSibling;
-            }
-        } else if (node.nodeType == node.TEXT_NODE) {
-            const start = node.nodeValue?.indexOf(XElement.syntaxStart) ?? -1;
-            if (start == -1) return;
-            if (start != 0) node = node.splitText(start);
-            const end = node.nodeValue?.indexOf(XElement.syntaxEnd) ?? -1;
-            if (end == -1) return;
-            if (end + XElement.syntaxLength != node.nodeValue?.length) {
-                tasks.push(this.register(node.splitText(end + XElement.syntaxLength), context, rewrites));
-            }
-            tasks.push(this.#add(node, context, rewrites));
-        } else if (node.nodeType == node.ELEMENT_NODE) {
-            let attribute;
-            const html = node.attributes.html;
-            const each = node.attributes.each;
-            if (html) await this.#add(html, context, rewrites);
-            if (each) await this.#add(each, context, rewrites);
-            for (attribute of node.attributes){
-                if (html === attribute) continue;
-                if (each === attribute) continue;
-                if (XElement.syntaxMatch.test(attribute.value)) {
-                    tasks.push(this.#add(attribute, context, rewrites));
-                }
-            }
-            if (!html && !each) {
-                let child1 = node.firstChild;
-                while(child1){
-                    tasks.push(this.register(child1, context, rewrites));
-                    child1 = child1.nextSibling;
-                }
-            }
-        }
-        await Promise.all(tasks);
+        await Promise.all(promises);
+        await this.slotted?.();
     }
     async connectedCallback() {
         await this.prepare();

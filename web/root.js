@@ -58,15 +58,17 @@ export default class XRoot extends XElement {
         </div>
 
         <h2>Example</h2>
-        <pre><code class="language-js">{{example}}</code></pre>
+        <pre><code class="language-js" text="{{example}}"></code></pre>
     </section>
     `;
 
     async connectedCallback() {
+        console.log('connected start');
         if (!this.#rendered && (this.#rendered = true)) this.innerHTML = this.#html;
-        await super.connectedCallback();
         this.shadowRoot.innerHTML = '<slot></slot>';
+        await super.connectedCallback();
         if (!this.#highlighted && (this.#highlighted = true)) Highlight();
+        console.log('connected end');
     }
 
     async disconnectedCallback() {

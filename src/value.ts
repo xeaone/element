@@ -12,8 +12,6 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
     else binder.meta.busy = true;
 
     binder.instance.event = event;
-    binder.instance.$event = event;
-    binder.instance.$render = false;
 
     // console.log(event.inputType, event.isComposing, event.dataTransfer, event.data);
 
@@ -85,21 +83,24 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
     owner.value = display;
     owner.setAttribute('value', display);
     binder.meta.busy = false;
+    binder.instance.event = undefined;
 };
 
 const valueSetup = function (binder: BinderType) {
     binder.owner.value = '';
     // binder.owner.addEventListener('beforeinput', (event: InputEvent) => valueInput(binder, event));
-    Object.defineProperties(binder.instance, {
-        $value: {
-            get() {
-                return binder.owner.value;
-            },
-            set(value) {
-                binder.owner.value = value;
-            },
-        },
-    });
+
+    // Object.defineProperties(binder.instance, {
+    //     $value: {
+    //         get() {
+    //             return binder.owner.value;
+    //         },
+    //         set(value) {
+    //             binder.owner.value = value;
+    //         },
+    //     },
+    // });
+
     binder.owner.addEventListener('input', (event: InputEvent) => valueInput(binder, event));
 };
 
@@ -108,9 +109,7 @@ const valueRender = async function (binder: BinderType) {
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
 
-    binder.instance.$render = true;
     binder.instance.event = undefined;
-    binder.instance.$event = undefined;
 
     const owner = binder.owner as valueElement;
     const computed = await binder.compute();

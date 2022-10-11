@@ -7,13 +7,12 @@
 
 <o-loop>
     <template shadowroot="open">
-        <span>{{count.toLocaleString()}}</span>
+        <span text="{{count.toLocaleString()}}"></span>
         <slot></slot>
     </template>
 
-    <h3><span>{{count.toLocaleString()}}</span> bound elements</h3>
-    <input value="{{(count=this.valueAsNumber)}}" type="number">
-    <!-- <input value="{{count=$value}}" type="number"> -->
+    <h3><span text="{{count.toLocaleString()}}"></span> bound elements</h3>
+    <input value="{{count = event?.target?.value ?? count}}" type="number">
 
     <br>
     <button onclick="{{push()}}">push</button>
@@ -24,7 +23,7 @@
     <div id="raw"></div>
 
     <div each="{{[items,'item']}}">
-        <div class="box">{{item.number}}</div>
+        <div class="box" text="{{item}}"></div>
     </div>
 </o-loop>
 
@@ -40,39 +39,22 @@
         raw() {
             console.time('raw');
             const template = document.createElement('template');
-
             let html = '';
-
-            // const bp = document.createElement('div');
-            // const bc = document.createElement('div');
-            // bp.classList.add('box');
-            // bp.appendChild(bc);
-
             const count = this.count;
-            for (var i = 0; i < count; i++) {
-                // const clone = bp.cloneNode(true);
-                // clone.firstElementChild.textContent = `${i}`;
-                // template.content.appendChild(clone);
-                html += `<div class="box"><div>${i}</div></div>`;
-            }
+            for (var i = 0; i < count; i++) html += `<div class="box"><div>${i}</div></div>`;
             template.innerHTML = html;
-            // const raw = this.querySelector('#raw');
             raw.appendChild(template.content);
             console.timeEnd('raw');
         }
         push() {
             console.time('push');
-            for (var i = 0; i < this.count; i++) {
-                this.items.push({ number: i });
-            }
+            for (var i = 0; i < this.count; i++) this.items.push(i);
             console.timeEnd('push');
         }
         overwrite() {
             console.time('overwrite');
             var items = [];
-            for (var i = 0; i < this.count; i++) {
-                items.push({ number: i });
-            }
+            for (var i = 0; i < this.count; i++) items.push(i);
             this.items = items;
             console.timeEnd('overwrite');
         }

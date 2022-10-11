@@ -1,4 +1,5 @@
 import { BinderType } from './types.ts';
+import { BinderHandle } from './binder.ts';
 
 const htmlRender = async function (binder: BinderType) {
     const data = await binder.compute();
@@ -18,13 +19,14 @@ const htmlRender = async function (binder: BinderType) {
     node = binder.owner.lastChild;
     while (node) {
         binder.owner.removeChild(node);
-        binder.container.release(node);
+        // binder.container.release(node);
         node = binder.owner.lastChild;
     }
 
     node = fragment.firstChild;
     while (node) {
-        tasks.push(binder.container.register(node, binder.context));
+        // tasks.push(binder.container.register(node, binder.context));
+        tasks.push(BinderHandle(binder.context, binder.binders, node));
         node = node.nextSibling;
     }
 

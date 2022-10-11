@@ -19,6 +19,8 @@ export type BinderType = {
     name: string;
     value: string;
 
+    binders: any;
+
     node: any;
     owner: any;
     container: ElementType;

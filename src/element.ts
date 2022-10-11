@@ -1,7 +1,8 @@
-import { ContextDelete, ContextGet, ContextSet } from './context.ts';
+import Context from './context.ts';
+import { BinderCreate, BinderHandle } from './binder.ts';
 import Navigation from './navigation.ts';
-import Binder from './binder.ts';
 import { dash } from './tool.ts';
+import { BinderType } from './types.ts';
 
 // const DEFINED = new WeakSet();
 // const CE = window.customElements;
@@ -58,103 +59,57 @@ export default class XElement extends HTMLElement {
 
     #prepared = false;
     #preparing = false;
-    #binders: Map<string | Node, Set<any>> = new Map();
-    #mutator = new MutationObserver(this.#mutation.bind(this));
-
-    #context = new Proxy({}, {
-        get: ContextGet.bind(null, this.#change.bind(this), ''),
-        set: ContextSet.bind(null, this.#change.bind(this), ''),
-        deleteProperty: ContextDelete.bind(null, this.#change.bind(this), ''),
-    });
+    #binders: Map<string, Set<BinderType>> = new Map();
+    #context = Context({}, this.#binders, '', undefined);
 
     constructor() {
         super();
         if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-        this.#mutator.observe(this, { childList: true });
-        this.#mutator.observe(this.shadowRoot as ShadowRoot, { childList: true });
+        this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
 
-    async #change(reference: string, type: string) {
-        const parents = [];
-        const children = [];
+    // async #change(reference: string, type: string) {
+    //     const parents = [];
+    //     const children = [];
 
-        let key, binder, binders;
+    //     let key, binder, binders;
 
-        for ([key, binders] of this.#binders) {
-            if (binders) {
-                if ((key as string) === reference) {
-                    for (binder of binders) {
-                        parents.push(binder);
-                    }
-                } else if ((key as string)?.startsWith?.(`${reference}.`)) {
-                    for (binder of binders) {
-                        children.push(binder);
-                    }
-                }
-            }
-        }
+    //     for ([key, binders] of this.#binders) {
+    //         if (binders) {
+    //             if ((key as string) === reference) {
+    //                 for (binder of binders) {
+    //                     parents.push(binder);
+    //                 }
+    //             } else if ((key as string)?.startsWith?.(`${reference}.`)) {
+    //                 for (binder of binders) {
+    //                     children.push(binder);
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        await Promise.all(parents.map(async (binder) => await binder[type]?.(binder)));
-        await Promise.all(children.map(async (binder) => await binder[type]?.(binder)));
-    }
+    //     await Promise.all(parents.map(async (binder) => await binder[type]?.(binder)));
+    //     await Promise.all(children.map(async (binder) => await binder[type]?.(binder)));
+    // }
 
-    #mutation(mutations: Array<MutationRecord>) {
-        if (this.#prepared) {
-            let mutation, node;
-            for (mutation of mutations) {
-                for (node of mutation.addedNodes) {
-                    this.register(node, this.#context, []);
-                }
-                for (node of mutation.removedNodes) {
-                    this.release(node);
-                }
-            }
-        } else {
-            this.prepare();
-        }
-    }
+    // #remove(node: Node) {
+    //     const binders = this.#binders.get(node);
+    //     if (!binders) return;
 
-    #remove(node: Node) {
-        const binders = this.#binders.get(node);
-        if (!binders) return;
+    //     let binder, reference;
+    //     for (binder of binders) {
+    //         for (reference of binder.references) {
+    //             if (this.#binders.has(reference)) {
+    //                 binder.reset = undefined;
+    //                 binder.render = undefined;
+    //                 this.#binders.get(reference)?.delete(binder);
+    //                 if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
+    //             }
+    //         }
+    //     }
 
-        let binder, reference;
-        for (binder of binders) {
-            for (reference of binder.references) {
-                if (this.#binders.has(reference)) {
-                    binder.reset = undefined;
-                    binder.render = undefined;
-                    this.#binders.get(reference)?.delete(binder);
-                    if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
-                }
-            }
-        }
-
-        this.#binders.delete(node);
-    }
-
-    async #add(node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-        const binder = Binder(node, this, context, rewrites);
-
-        let binders, reference;
-        for (reference of binder.references) {
-            binders = this.#binders.get(reference);
-            if (binders) {
-                binders.add(binder);
-            } else {
-                this.#binders.set(reference, new Set([binder]));
-            }
-        }
-
-        const nodes = this.#binders.get(binder.owner ?? binder.node);
-        if (nodes) {
-            nodes.add(binder);
-        } else {
-            this.#binders.set(binder.owner ?? binder.node, new Set([binder]));
-        }
-
-        await binder.render(binder);
-    }
+    //     this.#binders.delete(node);
+    // }
 
     async prepare() {
         if (this.#prepared) return;
@@ -205,95 +160,72 @@ export default class XElement extends HTMLElement {
             });
         }
 
-        await this.register(this.shadowRoot as ShadowRoot, this.#context);
-        await this.register(this, this.#context);
+        const promises = [];
+
+        let child = this.shadowRoot?.firstElementChild;
+        while (child) {
+            promises.push(BinderHandle(this.#context, this.#binders, child));
+            child = child.nextElementSibling;
+        }
+
+        const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
+        for (const slot of slots) {
+            const elements = slot.assignedElements();
+            for (const element of elements) {
+                promises.push(BinderHandle(this.#context, this.#binders, element));
+            }
+        }
+
+        await Promise.all(promises);
 
         this.#prepared = true;
         this.#preparing = false;
         this.dispatchEvent(XElement.preparedEvent);
     }
 
-    async release(node: Node) {
-        const tasks = [];
+    // async release(node: Node) {
+    //     const tasks = [];
 
-        if (node.nodeType == Node.TEXT_NODE) {
-            tasks.push(this.#remove(node));
-        } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-            let child = node.firstChild;
-            while (child) {
-                tasks.push(this.release(child));
-                child = child.nextSibling;
-            }
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            tasks.push(this.#remove(node));
+    //     if (node.nodeType == Node.TEXT_NODE) {
+    //         tasks.push(this.#remove(node));
+    //     } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
+    //         let child = node.firstChild;
+    //         while (child) {
+    //             tasks.push(this.release(child));
+    //             child = child.nextSibling;
+    //         }
+    //     } else if (node.nodeType === Node.ELEMENT_NODE) {
+    //         tasks.push(this.#remove(node));
 
-            let attribute;
-            for (attribute of (node as Element).attributes) {
-                tasks.push(this.#remove(attribute));
-            }
+    //         let attribute;
+    //         for (attribute of (node as Element).attributes) {
+    //             tasks.push(this.#remove(attribute));
+    //         }
 
-            let child = node.firstChild;
-            while (child) {
-                tasks.push(this.release(child));
-                child = child.nextSibling;
-            }
+    //         let child = node.firstChild;
+    //         while (child) {
+    //             tasks.push(this.release(child));
+    //             child = child.nextSibling;
+    //         }
+    //     }
+
+    //     await Promise.all(tasks);
+    // }
+
+    async slottedCallback(event: Event) {
+        console.log('slottedCallback');
+        // this.dispatchEvent(XElement.slottingEvent);
+        const promises = [];
+        const slot = event.target as HTMLSlotElement;
+        const elements = slot?.assignedElements();
+
+        for (const element of elements) {
+            promises.push(BinderHandle(this.#context, this.#binders, element));
         }
 
-        await Promise.all(tasks);
-    }
-
-    async register(node: Node, context: Record<string, any>, rewrites?: Array<Array<string>>) {
-        const tasks = [];
-
-        if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-            let child = node.firstChild;
-            while (child) {
-                tasks.push(this.register(child, context, rewrites));
-                child = child.nextSibling;
-            }
-        } else if (node.nodeType == node.TEXT_NODE) {
-            const start = node.nodeValue?.indexOf(XElement.syntaxStart) ?? -1;
-            if (start == -1) return;
-            if (start != 0) node = (node as Text).splitText(start);
-
-            const end = node.nodeValue?.indexOf(XElement.syntaxEnd) ?? -1;
-            if (end == -1) return;
-
-            if (end + XElement.syntaxLength != node.nodeValue?.length) {
-                tasks.push(this.register((node as Text).splitText(end + XElement.syntaxLength), context, rewrites));
-            }
-
-            tasks.push(this.#add(node, context, rewrites));
-        } else if (node.nodeType == node.ELEMENT_NODE) {
-            let attribute;
-
-            const html = ((node as Element).attributes as any).html;
-            const each = ((node as Element).attributes as any).each;
-            // const inherit = ((node as Element).attributes as any).inherit;
-
-            if (html) await this.#add(html, context, rewrites);
-            if (each) await this.#add(each, context, rewrites);
-            // if (inherit) await this.#add(inherit, context, rewrites);
-
-            for (attribute of (node as Element).attributes) {
-                if (html === attribute) continue;
-                if (each === attribute) continue;
-                // if (inherit === attribute) continue;
-                if (XElement.syntaxMatch.test(attribute.value)) {
-                    tasks.push(this.#add(attribute, context, rewrites));
-                }
-            }
-
-            if (!html && !each) {
-                let child = node.firstChild;
-                while (child) {
-                    tasks.push(this.register(child, context, rewrites));
-                    child = child.nextSibling;
-                }
-            }
-        }
-
-        await Promise.all(tasks);
+        await Promise.all(promises);
+        await (this as any).slotted?.();
+        // this.dispatchEvent(XElement.slottedEvent);
     }
 
     async connectedCallback() {

@@ -1,10 +1,5 @@
 const promise = Promise.resolve();
 
-export const Proxies = new Map();
-export const Path = Symbol('Path');
-export const RewriteName = Symbol('RewriteName');
-export const RewriteValue = Symbol('RewriteValue');
-
 export const tick = function (method: (any: any) => any) {
     return promise.then(method);
 };
