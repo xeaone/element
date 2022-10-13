@@ -18,7 +18,7 @@ const standardRender = async function (binder: BinderType) {
         let data = await binder.compute();
         data = tool.display(data);
         binder.owner[binder.name] = data;
-        binder.owner.setAttribute(binder.name, data);
+        binder.owner.setAttribute(binder.name, data ?? '');
     }
 };
 

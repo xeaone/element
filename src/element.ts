@@ -2,7 +2,7 @@ import Context from './context.ts';
 import { BinderCreate, BinderHandle } from './binder.ts';
 import Navigation from './navigation.ts';
 import { dash } from './tool.ts';
-import { BinderType } from './types.ts';
+import { BindersType, ContextType, RewritesType } from './types.ts';
 
 // const DEFINED = new WeakSet();
 // const CE = window.customElements;
@@ -59,8 +59,17 @@ export default class XElement extends HTMLElement {
 
     #prepared = false;
     #preparing = false;
-    #binders: Map<string, Set<BinderType>> = new Map();
-    #context = Context({}, this.#binders, '', undefined);
+    #rewrites: RewritesType = [];
+    #binders: BindersType = new Map();
+    #context: ContextType = Context({}, this.#binders);
+    // #context = Context({}, this.#binders, '', undefined);
+    // #context: any = {};
+    get b() {
+        return this.#binders;
+    }
+    get c() {
+        return this.#context;
+    }
 
     constructor() {
         super();
@@ -162,17 +171,17 @@ export default class XElement extends HTMLElement {
 
         const promises = [];
 
-        let child = this.shadowRoot?.firstElementChild;
+        let child = this.shadowRoot?.firstChild;
         while (child) {
-            promises.push(BinderHandle(this.#context, this.#binders, child));
-            child = child.nextElementSibling;
+            promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, child));
+            child = child.nextSibling;
         }
 
         const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
         for (const slot of slots) {
-            const elements = slot.assignedElements();
-            for (const element of elements) {
-                promises.push(BinderHandle(this.#context, this.#binders, element));
+            const nodes = slot.assignedNodes();
+            for (const node of nodes) {
+                promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
             }
         }
 
@@ -215,15 +224,15 @@ export default class XElement extends HTMLElement {
     async slottedCallback(event: Event) {
         console.log('slottedCallback');
         // this.dispatchEvent(XElement.slottingEvent);
-        const promises = [];
-        const slot = event.target as HTMLSlotElement;
-        const elements = slot?.assignedElements();
+        // const promises = [];
+        // const slot = event.target as HTMLSlotElement;
 
-        for (const element of elements) {
-            promises.push(BinderHandle(this.#context, this.#binders, element));
-        }
+        // const nodes = slot.assignedNodes();
+        // for (const node of nodes) {
+        //     promises.push(BinderHandle(this.#context, this.#binders, node));
+        // }
 
-        await Promise.all(promises);
+        // await Promise.all(promises);
         await (this as any).slotted?.();
         // this.dispatchEvent(XElement.slottedEvent);
     }

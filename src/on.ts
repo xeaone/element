@@ -116,7 +116,7 @@ import { BinderType } from './types.ts';
 // };
 
 const onSetup = function (binder: BinderType) {
-    binder.owner[binder.name] = undefined;
+    // binder.owner[binder.name] = undefined;
     binder.meta.name = binder.name.slice(2);
 };
 

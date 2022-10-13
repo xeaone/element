@@ -13,29 +13,44 @@ const html = /*html*/`
     }
 </style>
 
+<!--
+-->
 <section id="text">
-<h3>Text Binder</h3>
-<template id="text-template">
-    <span>{{text}}</span>
-</template>
-<pre html="{{highlight('#text-template')}}"></pre>
-<pre html="{{result('#text-template')}}"></pre>
+    <h3>Text Binder</h3>
+    <template id="text-template">
+    <span text="{{text}}"></span>
+    <span>One: {{text}} Two: {{text}}</span>
+    </template>
+    <pre html="{{highlight('#text-template')}}"></pre>
+    <article html="{{result('#text-template')}}"></article>
 </section>
 
 <section id="checked">
 <h3>Checked Binder</h3>
-<template id="checked-template">
-    <input type="checkbox" value="{{checked}}" checked="{{checked = $checked}}"> Checkbox {{checked ? 'checked' : ''}}
-</template>
-<pre html="{{highlight('#checked-template')}}"></pre>
-<pre  html="{{result('#checked-template')}}"></pre>
-<template id="radio-template">
-    <input type="radio" name="radio" value="one" checked="{{radioOne = $checked}}"> Radio One {{radioOne ? 'checked' : ''}}
-    <input type="radio" name="radio" value="two" checked="{{radioTwo = $checked}}"> Radio Two {{radioTwo ? 'checked' : ''}}
-</template>
-<pre html="{{highlight('#radio-template')}}"></pre>
-<pre html="{{result('#radio-template')}}"></pre>
+    <template id="checked-template">
+    <input type="checkbox" checked="{{checked = event ? this.checked : checked}}" value="{{checked}}" />
+    <span>Checkbox {{checked ? 'checked' : ''}}</span>
+    </template>
+    <pre html="{{highlight('#checked-template')}}"></pre>
+    <article html="{{result('#checked-template')}}"></article>
+
+    <template id="radio-template">
+    <span>Value: {{radioValue}}</span>
+
+    <input type="radio" name="radio" value="{{radioValue = radioOne ? 'one' : radioValue}}" checked="{{radioOne = event ? this.checked : radioOne}}" />
+    <span> Radio One </span>
+    <span text="{{radioOne ? 'checked' : ''}}"></span>
+
+    <input type="radio" name="radio" value="{{radioValue = radioTwo ? 'two' : radioValue}}" checked="{{radioTwo = event ? this.checked : radioTwo}}" />
+    <span> Radio Two </span>
+    <span text="{{radioTwo ? 'checked' : ''}}"></span>
+    </template>
+    <pre html="{{highlight('#radio-template')}}"></pre>
+    <article html="{{result('#radio-template')}}"></article>
 </section>
+
+<!--
+
 
 <section id="style">
 <h3>Style Binder</h3>
@@ -64,21 +79,11 @@ const html = /*html*/`
 
     <input value="{{ this.value = this.value || value.text }}" oninput="">
 
-    <input value="{{ (value.text = $value)?.toUpperCase() }}">
+    <input value="{{ (value.text = event?.target?.value ?? value.text)?.toUpperCase() }}">
     <input value="{{ value.text = this.value?.toUpperCase() }}">
 
     <input value="{{ value.text = this.value?.toLowerCase() }}">
     <input value="{{ (value.text = this.value)?.toLowerCase() }}">
-
-    <!--
-    <input value="{{ value.text = this.value?.toUpperCase() }}">
-
-    <input value="{{ $value = (value.text = $value)?.toUpperCase() }}">
-    <input value="{{(value.text = this.value)?.toUpperCase()}}">
-
-    <input value="{{(value.text = $value)?.toLowerCase()}}">
-    <input value="{{(value.text = this.value)?.toLowerCase()}}">
-    -->
 
 </template>
 <pre html="{{highlight('#value-template')}}"></pre>
@@ -182,7 +187,7 @@ const html = /*html*/`
 </template>
 <pre html="{{highlight('#routing-template', 'js')}}"></pre>
 </section>
-
+-->
 `;
 
 export default class XGuide extends XElement {
@@ -194,6 +199,7 @@ export default class XGuide extends XElement {
 
     radioOne = undefined;
     radioTwo = undefined;
+    radioValue = undefined;
 
     color = Color();
     colorChange () { this.color = Color(); }
@@ -217,13 +223,14 @@ export default class XGuide extends XElement {
     firstName = 'james';
     favoriteNumber = undefined;
     submit (form) {
-        console.log(this.favoriteNumber);
+        // console.log(this.favoriteNumber);
         this.form = JSON.stringify(form, null, '\t');
         console.log(form);
         console.log(this);
     }
 
     highlight (query, type) {
+        // console.log('highlight', this);
         type = type ?? 'html';
         let result = this.querySelector(query).innerHTML;
         if (type === 'html') result = result.replace(/^(\t{4}|\s{16})/mg, '').slice(1);
@@ -233,13 +240,14 @@ export default class XGuide extends XElement {
     }
 
     result (query) {
+        // console.log('result', this);
         return this.querySelector(query);
     }
 
     async connectedCallback () {
         if (!this.hasChildNodes()) this.innerHTML = html;
-        await super.connectedCallback();
         this.shadowRoot.innerHTML = '<slot></slot>';
+        await super.connectedCallback();
     }
 
     async disconnectedCallback () {

@@ -1,13 +1,29 @@
 import { dash } from './tool.ts';
+import XElement from './element.ts';
+
+type Options = {
+    path?: string;
+    cache?: boolean;
+    query?: string;
+    file?: string;
+
+    name?: string;
+    target?: Element;
+    instance?: Element;
+    navigating?: boolean;
+    construct?: typeof XElement;
+};
 
 const navigators = new Map();
 
-const transition = async function (options: any) {
+const transition = async function (options: Options) {
+    if (!options.target) throw new Error('XElement - navigation target option required');
     if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
 
     if (options.navigating) return;
     else options.navigating = true;
 
+    if (!options.file) throw new Error('XElement - navigation file option required');
     options.construct = options.construct ?? (await import(options.file)).default;
     if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
 
@@ -50,7 +66,7 @@ const navigate = function (event?: any) {
     }
 };
 
-export default function navigation(path: string, file: string, options: any) {
+export default function navigation(path: string, file: string, options: Options = {}) {
     if (!path) throw new Error('XElement - navigation path required');
     if (!file) throw new Error('XElement - navigation file required');
 
@@ -58,8 +74,6 @@ export default function navigation(path: string, file: string, options: any) {
 
     base.hash = '';
     base.search = '';
-
-    options = options ?? {};
     options.path = path;
     options.cache = options.cache ?? true;
     options.query = options.query ?? 'main';

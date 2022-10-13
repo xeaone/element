@@ -1,18 +1,22 @@
-const ComputeCache = new Map();
+import { ComputeType } from './types.ts';
 
-const Compute = function (code: string) {
-    const cache = ComputeCache.get(code);
+const Cache: Map<string, ComputeType> = new Map();
+
+const Compute = function (value: string) {
+    const cache = Cache.get(value);
     if (cache) return cache;
 
-    const method = new Function(
-        '$context',
-        '$instance',
-        `with ($context) { with ($instance) {
-            return (${code});
-        } }`,
-    );
+    const code = `
+    with ($context) {
+        with ($instance) {
+            return (${value});
+        }
+    }
+    `;
 
-    ComputeCache.set(code, method);
+    const method = new Function('$context', '$instance', code) as ComputeType;
+
+    Cache.set(value, method);
 
     return method;
 };

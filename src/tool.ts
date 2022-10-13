@@ -1,13 +1,13 @@
-const promise = Promise.resolve();
+// const promise = Promise.resolve();
 
-export const Proxies = new Map();
-export const Path = Symbol('Path');
-export const RewriteName = Symbol('RewriteName');
-export const RewriteValue = Symbol('RewriteValue');
+// export const Proxies = new Map();
+// export const Path = Symbol("Path");
+// export const RewriteName = Symbol("RewriteName");
+// export const RewriteValue = Symbol("RewriteValue");
 
-export const tick = function (method: (any: any) => any) {
-    return promise.then(method);
-};
+// export const tick = function (method: (any: any) => any) {
+//     return promise.then(method);
+// };
 
 export const parseable = function (value: any) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
@@ -25,13 +25,13 @@ export const dash = function (data: string) {
 };
 
 const toolDefault = Object.freeze({
-    checked: Symbol('checked'),
+    // checked: Symbol('checked'),
     // parent: Symbol('parent'),
-    value: Symbol('value'),
+    // value: Symbol('value'),
     parseable,
     display,
     dash,
-    tick,
+    // tick,
 });
 
 export default toolDefault;

@@ -1,12 +1,17 @@
-export type ComputeType = () => any;
-export type SetupType = (binder?: any) => void;
-export type RenderType = (binder?: any) => void;
-export type ResetType = (binder?: any) => void;
+export type PathsType = Array<string>;
+export type ContextType = Record<any, any>;
+export type ComputeType = () => Promise<any> | any;
+
+export type PathType = string;
+export type RewritesType = Array<[string, string]>;
+export type SetupType = (binder: BinderType) => Promise<any> | any;
+export type ResetType = (binder: BinderType) => Promise<any> | any;
+export type RenderType = (binder: BinderType) => Promise<any> | any;
 
 export type HandlerType = {
     setup?: SetupType;
-    render: RenderType;
     reset: ResetType;
+    render: RenderType;
 };
 
 export type ElementType = {
@@ -18,12 +23,7 @@ export type ElementType = {
 export type BinderType = {
     name: string;
     value: string;
-
-    binders: any;
-
-    node: any;
     owner: any;
-    container: ElementType;
 
     meta: Record<string, any>;
     context: Record<string, any>;
@@ -32,9 +32,11 @@ export type BinderType = {
     setup?: SetupType;
     reset: ResetType;
     render: RenderType;
-    handler: HandlerType;
-    compute: ComputeType;
 
-    references: Set<string>;
-    rewrites: Array<Array<string>>;
+    paths: PathsType;
+    compute: ComputeType;
+    binders: BindersType;
+    rewrites: RewritesType;
 };
+
+export type BindersType = Map<string, Set<BinderType>>;

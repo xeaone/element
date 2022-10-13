@@ -1,6 +1,8 @@
-import { BinderType } from './types.ts';
+import { BinderType, RewritesType } from './types.ts';
 import { BinderHandle } from './binder.ts';
-import { Path, RewriteName, RewriteValue } from './tool.ts';
+
+const eachWhitespace = /\s+/;
+const eachText = Node.TEXT_NODE;
 
 const eachSetup = function (binder: BinderType) {
     binder.meta.targetLength = 0;
@@ -11,11 +13,11 @@ const eachSetup = function (binder: BinderType) {
 
     let node = binder.owner.firstChild;
     while (node) {
-        if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.nodeType === eachText && eachWhitespace.test(node.nodeValue)) {
+            binder.owner.removeChild(node);
+        } else {
             binder.meta.templateLength++;
             binder.meta.templateElement.content.appendChild(node);
-        } else {
-            binder.owner.removeChild(node);
         }
         node = binder.owner.firstChild;
     }
@@ -27,13 +29,14 @@ const eachRender = async function (binder: BinderType) {
     else binder.meta.busy = true;
 
     const tasks = [];
+    const [path] = binder.paths;
     const [data, variable, key, index] = await binder.compute();
 
     binder.meta.data = data;
     binder.meta.keyName = key;
     binder.meta.indexName = index;
     binder.meta.variable = variable;
-    binder.meta.reference = Reflect.get(data, Path);
+    binder.meta.path = path;
 
     if (data?.constructor === Array) {
         binder.meta.targetLength = data.length;
@@ -51,7 +54,7 @@ const eachRender = async function (binder: BinderType) {
             let count = binder.meta.templateLength, node;
 
             while (count--) {
-                node = binder.owner.lastElementChild;
+                node = binder.owner.lastChild;
                 if (node) {
                     binder.owner.removeChild(node);
                     // tasks.push(binder.container.release(node));
@@ -65,10 +68,15 @@ const eachRender = async function (binder: BinderType) {
             // await Promise.all(tasks);
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        let clone, context;
+        let clone, context, rewrites: RewritesType;
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const keyValue = binder.meta.keys?.[binder.meta.currentLength] ?? binder.meta.currentLength;
             const indexValue = binder.meta.currentLength++;
+
+            rewrites = [
+                ...binder.rewrites,
+                [binder.meta.variable, `${binder.meta.path}.${keyValue}`],
+            ];
 
             context = new Proxy(binder.context, {
                 has: function eachHas(target, key) {
@@ -78,8 +86,6 @@ const eachRender = async function (binder: BinderType) {
                     return Reflect.has(target, key);
                 },
                 get: function eachGet(target, key, receiver) {
-                    if (key === RewriteName) return binder.meta.variable;
-                    if (key === RewriteValue) return `${binder.meta.reference}.${keyValue}`;
                     if (key === binder.meta.keyName) return keyValue;
                     if (key === binder.meta.indexName) return indexValue;
                     if (key === binder.meta.variable) return Reflect.get(binder.meta.data, keyValue, receiver);
@@ -94,16 +100,15 @@ const eachRender = async function (binder: BinderType) {
             });
 
             // clone = binder.meta.templateElement.cloneNode(true).content;
-            // tasks.push(binder.container.register(clone, context, rewrites));
+            // tasks.push(BinderHandle(context, binder.binders, rewrites, clone));
             // binder.meta.queueElement.content.appendChild(clone);
 
-            let node = binder.meta.templateElement.content.firstElementChild;
+            let node = binder.meta.templateElement.content.firstChild;
             while (node) {
                 clone = node.cloneNode(true);
-                // tasks.push(binder.container.register(clone, context, rewrites));
-                tasks.push(BinderHandle(context, binder.binders, clone));
+                tasks.push(BinderHandle(context, binder.binders, rewrites, clone));
                 binder.meta.queueElement.content.appendChild(clone);
-                node = node.nextElementSibling;
+                node = node.nextSibling;
             }
         }
 
@@ -119,7 +124,7 @@ const eachRender = async function (binder: BinderType) {
 const eachReset = function (binder: BinderType) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
-    while (binder.owner.lastChild) binder.container.release(binder.owner.removeChild(binder.owner.lastChild));
+    // while (binder.owner.lastChild) binder.container.release(binder.owner.removeChild(binder.owner.lastChild));
     while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
 };
 

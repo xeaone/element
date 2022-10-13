@@ -98,15 +98,11 @@ h4 {
     font-size: 1.5rem;
 }
 
-pre {
-    display: block;
-    /* display: flex; */
-    /* white-space: normal; */
-    /* flex-direction: column; */
-
+pre, article {
     tab-size: 4;
     padding: 1rem;
     margin: 0.1rem;
+    display: block;
     overflow-x: auto;
     border-radius: 4px;
     font-family: monospace;

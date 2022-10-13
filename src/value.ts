@@ -6,11 +6,10 @@ type valueElement = HTMLElement & HTMLInputElement & HTMLOptionElement & HTMLSel
 
 const valueEvent = new Event('input');
 
-const valueInput = async function (binder: BinderType, event: InputEvent) {
-    console.log('valueInput');
+const valueInput = async function (binder: BinderType, event: Event) {
     if (binder.meta.busy) return;
-    else binder.meta.busy = true;
 
+    binder.meta.busy = true;
     binder.instance.event = event;
 
     // console.log(event.inputType, event.isComposing, event.dataTransfer, event.data);
@@ -34,60 +33,59 @@ const valueInput = async function (binder: BinderType, event: InputEvent) {
     // const data = event.data;
     // const value = event.data ?? '';
     // const value = event.data ?? binder.owner.value;
-    const owner = binder.owner as valueElement;
+    const type = binder.owner.type;
 
-    if (owner.type === 'select-one') {
-        const option = owner.selectedOptions[0] as valueElement;
+    if (type === 'select-one') {
+        const option = binder.owner.selectedOptions[0];
         if (option) {
-            if (tool.value in option) {
-                binder.instance.$value = option[tool.value];
+            if (option.x.value) {
+                binder.instance.$value = option.x.value.meta.value;
             } else {
                 binder.instance.$value = option.value;
             }
         } else {
             binder.instance.$value = undefined;
         }
-    } else if (owner.type === 'select-multiple') {
+    } else if (type === 'select-multiple') {
         binder.instance.$value = Array.prototype.map.call(
-            owner.selectedOptions,
-            (option) => tool.value in option ? option[tool.value] : option.value,
+            binder.owner.selectedOptions,
+            (option) => option.x ? option.x.value.meta.value : option.value,
         );
-    } else if (owner.type === 'number' || owner.type === 'range' || date.includes(owner.type)) {
-        if (tool.value in binder.owner && typeof owner[tool.value] === 'number') {
-            binder.instance.$value = owner.valueAsNumber;
+    } else if (type === 'number' || type === 'range' || date.includes(type)) {
+        if (typeof binder.meta.value === 'number') {
+            binder.instance.$value = binder.owner.valueAsNumber;
         } else {
-            binder.instance.$value = owner.value;
+            binder.instance.$value = binder.owner.value;
         }
-    } else if (owner.nodeName == 'OPTION') {
+    } else if (binder.owner.nodeName == 'OPTION') {
         throw 'option event';
     } else {
-        if (tool.value in binder.owner && tool.parseable(owner[tool.value])) {
-            binder.instance.$value = JSON.parse(owner.value);
+        if (tool.parseable(binder.meta.value)) {
+            binder.instance.$value = JSON.parse(binder.owner.value);
         } else {
-            if (event.data) binder.meta.value += event.data;
-            else binder.meta.value = '';
-            console.log(binder.meta.value);
-
-            binder.instance.$value = owner.value;
+            // if (event.data) binder.meta.value += event.data;
+            // else binder.meta.value = '';
+            // console.log(binder.meta.value);
+            binder.instance.$value = binder.owner.value;
         }
-        if (owner.type === 'checkbox' || owner.type === 'radio') {
-            binder.instance.$checked = owner.checked;
-        }
+        // if (type === 'checkbox' || type === 'radio') {
+        // binder.instance.$checked = owner.checked;
+        // }
     }
 
     const computed = await binder.compute();
     const display = tool.display(computed);
 
-    // owner[tool.value] = computed;
-
-    owner.value = display;
-    owner.setAttribute('value', display);
     binder.meta.busy = false;
+    binder.meta.value = computed;
+    binder.owner.value = display;
     binder.instance.event = undefined;
+    binder.owner.setAttribute('value', display);
 };
 
 const valueSetup = function (binder: BinderType) {
-    binder.owner.value = '';
+    binder.meta.value = undefined;
+    // binder.owner.value = '';
     // binder.owner.addEventListener('beforeinput', (event: InputEvent) => valueInput(binder, event));
 
     // Object.defineProperties(binder.instance, {
@@ -101,69 +99,71 @@ const valueSetup = function (binder: BinderType) {
     //     },
     // });
 
-    binder.owner.addEventListener('input', (event: InputEvent) => valueInput(binder, event));
+    binder.owner.addEventListener('input', (event: Event) => valueInput(binder, event));
 };
 
 const valueRender = async function (binder: BinderType) {
-    console.log('valueRender', binder.meta.busy);
     if (binder.meta.busy) return;
-    else binder.meta.busy = true;
 
+    binder.meta.busy = true;
     binder.instance.event = undefined;
 
-    const owner = binder.owner as valueElement;
     const computed = await binder.compute();
-
-    // owner[tool.value] = owner.value;
 
     let display;
 
-    if (owner.type === 'select-one') {
-        for (let i = 0; i < owner.options.length; i++) {
-            const option = owner.options[i] as valueElement;
-            option.selected = tool.value in option ? option[tool.value] === computed : option.value === computed;
+    if (binder.owner.type === 'select-one') {
+        for (let i = 0; i < binder.owner.options.length; i++) {
+            const option = binder.owner.options[i];
+            option.selected = option.x.value ? option.x.value.meta.value === computed : option.value === computed;
         }
 
-        if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
-            owner.options[0].selected = true;
-            return owner.dispatchEvent(valueEvent);
-        }
-
-        display = tool.display(computed);
-    } else if (owner.type === 'select-multiple') {
-        for (let i = 0; i < owner.options.length; i++) {
-            const option = owner.options[i] as valueElement;
-            option.selected = computed?.includes(tool.value in option ? option[tool.value] : option.value);
+        if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
+            binder.owner.options[0].selected = true;
+            binder.owner.dispatchEvent(valueEvent);
+            return;
         }
 
         display = tool.display(computed);
-    } else if (owner.type === 'number' || owner.type === 'range' || date.includes(owner.type)) {
-        if (typeof computed === 'string') owner.value = computed;
-        else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
-        else owner.value = '';
-        display = owner.value;
+    } else if (binder.owner.type === 'select-multiple') {
+        for (let i = 0; i < binder.owner.options.length; i++) {
+            const option = binder.owner.options[i];
+            option.selected = computed?.includes(option.x ? option.x.value.meta.value : option.value);
+        }
+
+        display = tool.display(computed);
+    } else if (binder.owner.type === 'number' || binder.owner.type === 'range' || date.includes(binder.owner.type)) {
+        if (typeof computed === 'string') binder.owner.value = computed;
+        else if (typeof computed === 'number' && !isNaN(computed)) binder.owner.valueAsNumber = computed;
+        else binder.owner.value = '';
+        display = binder.owner.value;
     } else {
         display = tool.display(computed);
-        owner.value = display;
+        binder.owner.value = display;
     }
 
-    // owner[tool.value] = computed;
-    owner.setAttribute('value', display);
     binder.meta.busy = false;
+    binder.meta.value = computed;
+    // binder.owner.value = display;
+    binder.instance.event = undefined;
+    binder.owner.setAttribute('value', display);
 };
 
 const valueReset = function (binder: BinderType) {
-    const owner = binder.owner as HTMLElement & HTMLInputElement & HTMLSelectElement & Record<symbol, any>;
+    if (binder.meta.busy) return;
 
-    if (owner.type === 'select-one' || owner.type === 'select-multiple') {
-        for (const option of owner.options) {
+    binder.meta.busy = true;
+
+    if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
+        for (const option of binder.owner.options) {
             option.selected = false;
         }
     }
 
-    owner.value = '';
-    owner.setAttribute('value', '');
-    owner[tool.value] = undefined;
+    binder.meta.busy = false;
+    binder.owner.value = null;
+    binder.meta.value = undefined;
+    binder.owner.setAttribute('value', '');
 };
 
 const valueDefault = { setup: valueSetup, render: valueRender, reset: valueReset };

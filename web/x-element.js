@@ -2,92 +2,118 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-new Map();
-const Path = Symbol('Path');
-const RewriteName = Symbol('RewriteName');
-const RewriteValue = Symbol('RewriteValue');
-const Resolve = function(item, method) {
-    return Promise.resolve(item).then(method);
+const Cache = new WeakMap();
+const ContextResolve = async function(item, method) {
+    await Promise.resolve(item).then(method);
 };
-const ContextEvent = function([binders, path, binder]) {
-    const nodes = binders.get(path) ?? binders.set(path, new Set()).get(path);
-    const iterator = nodes.values();
-    let result = iterator.next();
-    while(!result.done){
-        if (binder !== result.value) {
-            Resolve(result.value, async (binder)=>await binder?.render());
+const ContextEvent = async function([binders, path]) {
+    const parents = [];
+    const children = [];
+    let key, value, binder;
+    for ([key, value] of binders){
+        if (value) {
+            if (key === path) {
+                for (binder of value){
+                    parents.push(binder);
+                }
+            } else if (key?.startsWith?.(`${path}.`)) {
+                for (binder of value){
+                    children.push(binder);
+                }
+            }
         }
-        result = iterator.next();
     }
+    await Promise.all(parents.map(async (binder)=>await binder.render?.(binder)));
+    await Promise.all(children.map(async (binder)=>await binder.render?.(binder)));
 };
-const ContextSet = function(binder, binders, path, target, key, value, receiver) {
+const ContextSet = function(binders, path, target, key, value, receiver) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
     const from = Reflect.get(target, key, receiver);
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
+    if (from && typeof from === 'object') {
+        Cache.delete(from);
+    }
     Reflect.set(target, key, value, receiver);
-    if (key === target[RewriteName]) {
-        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
-    } else {
-        path = path ? `${path}.${key}` : key;
-    }
-    if (binder) {
-        if (binders.has(path)) {
-            binders.get(path).add(binder);
-        } else {
-            binders.set(path, new Set([
-                binder
-            ]));
-        }
-    }
-    Resolve([
+    path = path ? `${path}.${key}` : key;
+    ContextResolve([
         binders,
-        path,
-        binder
+        path
     ], ContextEvent);
     return true;
 };
-const ContextGet = function(binder, binders, path, target, key, receiver) {
-    if (key === Path) return path;
-    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-    if (key === target[RewriteName]) {
-        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
-    } else {
-        path = path ? `${path}.${key}` : key;
-    }
-    if (binder) {
-        if (binders.has(path)) {
-            binders.get(path).add(binder);
-        } else {
-            binders.set(path, new Set([
-                binder
-            ]));
-        }
-    }
+const ContextGet = function(binders, path, target, key, receiver) {
+    if (typeof key === 'symbol') return Reflect.get(target, key);
     const value = Reflect.get(target, key, receiver);
     if (value && typeof value === 'object') {
-        let proxy;
-        proxy = new Proxy(value, {
-            get: ContextGet.bind(null, binder, binders, path),
-            set: ContextSet.bind(null, binder, binders, path)
+        path = path ? `${path}.${key}` : key;
+        const cache = Cache.get(value);
+        if (cache) return cache;
+        const proxy = new Proxy(value, {
+            get: ContextGet.bind(null, binders, path),
+            set: ContextSet.bind(null, binders, path)
         });
+        Cache.set(value, proxy);
         return proxy;
     }
     return value;
 };
-const Context = function(data, binders, path, binder) {
+const ContextCreate = function(data, binders, path = '') {
     return new Proxy(data, {
-        get: ContextGet.bind(null, binder, binders, path),
-        set: ContextSet.bind(null, binder, binders, path)
+        get: ContextGet.bind(null, binders, path),
+        set: ContextSet.bind(null, binders, path)
     });
 };
-const promise = Promise.resolve();
-new Map();
-const Path1 = Symbol('Path');
-const RewriteName1 = Symbol('RewriteName');
-const RewriteValue1 = Symbol('RewriteValue');
-const tick = function(method) {
-    return promise.then(method);
+const Cache1 = new Map();
+const Compute = function(value) {
+    const cache = Cache1.get(value);
+    if (cache) return cache;
+    const code = `
+    with ($context) {
+        with ($instance) {
+            return (${value});
+        }
+    }
+    `;
+    const method = new Function('$context', '$instance', code);
+    Cache1.set(value, method);
+    return method;
+};
+const IgnoreString = `
+(\\b
+(\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+event|this|window|document|console|location|navigation|
+globalThis|Infinity|NaN|undefined|
+isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+Object|Function|Boolean|Symbole|Array|
+Number|Math|Date|BigInt|
+String|RegExp|
+Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+Map|Set|WeakMap|WeakSet|
+ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+Reflect|Proxy|
+true|false|null|of|in|do|if|for|new|try|case|else|with|async|await|break|catch|class|super|throw|while|
+yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
+((\\??\\.)[a-zA-Z0-9$_.? ]*)?
+\\b)
+`.replace(/\t|\n/g, '');
+const IgnorePattern = new RegExp(IgnoreString, 'g');
+const ReferencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
+const StringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
+const RegularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
+const ArrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
+const ReferenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
+const Cache2 = new Map();
+const Paths = function(value) {
+    const cache = Cache2.get(value);
+    if (cache) return cache;
+    const clean = value.replace(StringPattern, '').replace(ArrowFunctionPattern, '').replace(RegularFunctionPattern, '');
+    const paths = clean.replace(IgnorePattern, '').replace(ReferenceNormalize, '.$2$3').match(ReferencePattern) ?? [];
+    Cache2.set(value, paths);
+    return paths;
 };
 const parseable = function(value) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
@@ -102,23 +128,10 @@ const dash = function(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 };
 const toolDefault = Object.freeze({
-    checked: Symbol('checked'),
-    value: Symbol('value'),
     parseable,
     display,
-    dash,
-    tick
+    dash
 });
-const ComputeCache = new Map();
-const Compute = function(code) {
-    const cache = ComputeCache.get(code);
-    if (cache) return cache;
-    const method = new Function('$context', '$instance', `with ($context) { with ($instance) {
-            return (${code});
-        } }`);
-    ComputeCache.set(code, method);
-    return method;
-};
 const booleanDefault = Object.freeze([
     'allowfullscreen',
     'async',
@@ -180,7 +193,7 @@ const standardRender = async function(binder) {
         let data2 = await binder.compute();
         data2 = toolDefault.display(data2);
         binder.owner[binder.name] = data2;
-        binder.owner.setAttribute(binder.name, data2);
+        binder.owner.setAttribute(binder.name, data2 ?? '');
     }
 };
 const standardReset = function(binder) {
@@ -198,44 +211,46 @@ const standardDefault = {
     render: standardRender,
     reset: standardReset
 };
-const checkedEvent = new CustomEvent('xRadioInputHandler');
-const checkedHandler = async function(event, binder) {
-    const owner = binder.owner;
-    const checked = event === undefined ? undefined : owner.checked;
+const checkedHandler = async function(binder, event) {
     binder.instance.event = event;
-    binder.instance.$event = event;
-    binder.instance.$assign = !!event;
-    binder.instance.$checked = checked;
-    binder.instance.$render = event ? false : true;
+    binder.instance.$checked = event ? binder.owner.checked : undefined;
     const computed = await binder.compute();
     if (computed) {
-        owner.setAttributeNode(binder.node);
+        binder.owner.checked = true;
+        binder.owner.setAttribute('checked', '');
     } else {
-        owner.removeAttribute('checked');
+        binder.owner.checked = false;
+        binder.owner.removeAttribute('checked');
     }
 };
 const checkedSetup = function(binder) {
     if (binder.owner.type === 'radio') {
-        binder.owner.addEventListener('xRadioInputHandler', (event)=>checkedHandler(event, binder));
-        binder.owner.addEventListener('input', async (event)=>{
+        binder.owner.addEventListener('input', async function checkInput(event) {
             const parent = binder.owner.form || binder.owner.getRootNode();
             const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
-            await checkedHandler(event, binder);
+            await checkedHandler(binder, event);
             for (const radio of radios){
                 if (radio === event.target) continue;
-                radio.checked = false;
-                radio.dispatchEvent(checkedEvent);
+                if (radio?.x?.checked) {
+                    checkedHandler(radio.x.checked, new Event('input'));
+                } else {
+                    radio.checked = false;
+                    radio.removeAttribute('checked');
+                }
             }
         });
     } else {
-        binder.owner.addEventListener('input', (event)=>checkedHandler(event, binder));
+        binder.owner.addEventListener('input', function checkInput(event) {
+            checkedHandler(binder, event);
+        });
     }
 };
 const checkedRender = async function(binder) {
-    await checkedHandler(undefined, binder);
+    await checkedHandler(binder);
 };
 const checkedReset = function(binder) {
-    binder.owner?.removeAttribute('checked');
+    binder.owner.checked = undefined;
+    binder.owner.removeAttribute('checked');
 };
 const checkedDefault = {
     setup: checkedSetup,
@@ -249,7 +264,6 @@ const inheritRender = async function(binder) {
     }
     const inherited = await binder.compute();
     await binder.owner.inherited(inherited);
-    await binder.container.register(binder.owner, binder.context, binder.rewrites);
 };
 const inheritReset = async function(binder) {
     if (typeof binder.owner.inherited !== 'function') {
@@ -271,102 +285,99 @@ const dateDefault = Object.freeze([
 ]);
 const valueEvent = new Event('input');
 const valueInput = async function(binder, event) {
-    console.log('valueInput');
     if (binder.meta.busy) return;
-    else binder.meta.busy = true;
+    binder.meta.busy = true;
     binder.instance.event = event;
-    const owner = binder.owner;
-    if (owner.type === 'select-one') {
-        const option = owner.selectedOptions[0];
+    const type = binder.owner.type;
+    if (type === 'select-one') {
+        const option = binder.owner.selectedOptions[0];
         if (option) {
-            if (toolDefault.value in option) {
-                binder.instance.$value = option[toolDefault.value];
+            if (option.x.value) {
+                binder.instance.$value = option.x.value.meta.value;
             } else {
                 binder.instance.$value = option.value;
             }
         } else {
             binder.instance.$value = undefined;
         }
-    } else if (owner.type === 'select-multiple') {
-        binder.instance.$value = Array.prototype.map.call(owner.selectedOptions, (option)=>toolDefault.value in option ? option[toolDefault.value] : option.value);
-    } else if (owner.type === 'number' || owner.type === 'range' || dateDefault.includes(owner.type)) {
-        if (toolDefault.value in binder.owner && typeof owner[toolDefault.value] === 'number') {
-            binder.instance.$value = owner.valueAsNumber;
+    } else if (type === 'select-multiple') {
+        binder.instance.$value = Array.prototype.map.call(binder.owner.selectedOptions, (option)=>option.x ? option.x.value.meta.value : option.value);
+    } else if (type === 'number' || type === 'range' || dateDefault.includes(type)) {
+        if (typeof binder.meta.value === 'number') {
+            binder.instance.$value = binder.owner.valueAsNumber;
         } else {
-            binder.instance.$value = owner.value;
+            binder.instance.$value = binder.owner.value;
         }
-    } else if (owner.nodeName == 'OPTION') {
+    } else if (binder.owner.nodeName == 'OPTION') {
         throw 'option event';
     } else {
-        if (toolDefault.value in binder.owner && toolDefault.parseable(owner[toolDefault.value])) {
-            binder.instance.$value = JSON.parse(owner.value);
+        if (toolDefault.parseable(binder.meta.value)) {
+            binder.instance.$value = JSON.parse(binder.owner.value);
         } else {
-            if (event.data) binder.meta.value += event.data;
-            else binder.meta.value = '';
-            console.log(binder.meta.value);
-            binder.instance.$value = owner.value;
-        }
-        if (owner.type === 'checkbox' || owner.type === 'radio') {
-            binder.instance.$checked = owner.checked;
+            binder.instance.$value = binder.owner.value;
         }
     }
     const computed = await binder.compute();
     const display = toolDefault.display(computed);
-    owner.value = display;
-    owner.setAttribute('value', display);
     binder.meta.busy = false;
+    binder.meta.value = computed;
+    binder.owner.value = display;
     binder.instance.event = undefined;
+    binder.owner.setAttribute('value', display);
 };
 const valueSetup = function(binder) {
-    binder.owner.value = '';
+    binder.meta.value = undefined;
     binder.owner.addEventListener('input', (event)=>valueInput(binder, event));
 };
 const valueRender = async function(binder) {
-    console.log('valueRender', binder.meta.busy);
     if (binder.meta.busy) return;
-    else binder.meta.busy = true;
+    binder.meta.busy = true;
     binder.instance.event = undefined;
-    const owner = binder.owner;
     const computed = await binder.compute();
     let display;
-    if (owner.type === 'select-one') {
-        for(let i = 0; i < owner.options.length; i++){
-            const option = owner.options[i];
-            option.selected = toolDefault.value in option ? option[toolDefault.value] === computed : option.value === computed;
+    if (binder.owner.type === 'select-one') {
+        for(let i = 0; i < binder.owner.options.length; i++){
+            const option = binder.owner.options[i];
+            option.selected = option.x.value ? option.x.value.meta.value === computed : option.value === computed;
         }
-        if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
-            owner.options[0].selected = true;
-            return owner.dispatchEvent(valueEvent);
-        }
-        display = toolDefault.display(computed);
-    } else if (owner.type === 'select-multiple') {
-        for(let i1 = 0; i1 < owner.options.length; i1++){
-            const option1 = owner.options[i1];
-            option1.selected = computed?.includes(toolDefault.value in option1 ? option1[toolDefault.value] : option1.value);
+        if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
+            binder.owner.options[0].selected = true;
+            binder.owner.dispatchEvent(valueEvent);
+            return;
         }
         display = toolDefault.display(computed);
-    } else if (owner.type === 'number' || owner.type === 'range' || dateDefault.includes(owner.type)) {
-        if (typeof computed === 'string') owner.value = computed;
-        else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
-        else owner.value = '';
-        display = owner.value;
+    } else if (binder.owner.type === 'select-multiple') {
+        for(let i1 = 0; i1 < binder.owner.options.length; i1++){
+            const option1 = binder.owner.options[i1];
+            option1.selected = computed?.includes(option1.x ? option1.x.value.meta.value : option1.value);
+        }
+        display = toolDefault.display(computed);
+    } else if (binder.owner.type === 'number' || binder.owner.type === 'range' || dateDefault.includes(binder.owner.type)) {
+        if (typeof computed === 'string') binder.owner.value = computed;
+        else if (typeof computed === 'number' && !isNaN(computed)) binder.owner.valueAsNumber = computed;
+        else binder.owner.value = '';
+        display = binder.owner.value;
     } else {
         display = toolDefault.display(computed);
-        owner.value = display;
+        binder.owner.value = display;
     }
-    owner.setAttribute('value', display);
     binder.meta.busy = false;
+    binder.meta.value = computed;
+    binder.instance.event = undefined;
+    binder.owner.setAttribute('value', display);
 };
 const valueReset = function(binder) {
-    const owner = binder.owner;
-    if (owner.type === 'select-one' || owner.type === 'select-multiple') {
-        for (const option of owner.options){
+    if (binder.meta.busy) return;
+    binder.meta.busy = true;
+    if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
+        for (const option of binder.owner.options){
             option.selected = false;
         }
     }
-    owner.value = '';
-    owner.setAttribute('value', '');
-    owner[toolDefault.value] = undefined;
+    binder.meta.busy = false;
+    binder.owner.value = null;
+    binder.meta.value = undefined;
+    binder.owner.setAttribute('value', '');
 };
 const valueDefault = {
     setup: valueSetup,
@@ -374,7 +385,6 @@ const valueDefault = {
     reset: valueReset
 };
 const onSetup = function(binder) {
-    binder.owner[binder.name] = undefined;
     binder.meta.name = binder.name.slice(2);
 };
 const onRender = function(binder) {
@@ -400,66 +410,17 @@ const onDefault = {
     render: onRender,
     reset: onReset
 };
-const BinderCreate = function(context, binders, attribute) {
-    let { name , value , ownerElement  } = attribute;
-    if (name.startsWith('x-')) {
-        name = name.slice(2);
-    }
-    if (value.startsWith('{{') && value.endsWith('}}')) {
-        value = value.slice(2, -2);
-    }
-    let handler;
-    if (name === 'html') handler = htmlDefault;
-    else if (name === 'each') handler = eachDefault;
-    else if (name === 'value') handler = valueDefault;
-    else if (name === 'checked') handler = checkedDefault;
-    else if (name === 'inherit') handler = inheritDefault;
-    else if (name.startsWith('on')) handler = onDefault;
-    else handler = standardDefault;
-    const binder = {
-        name,
-        value,
-        binders,
-        meta: {},
-        instance: {},
-        owner: ownerElement,
-        setup: undefined,
-        reset: undefined,
-        render: undefined,
-        compute: undefined,
-        context: undefined
-    };
-    binder.reset = handler.reset.bind(null, binder);
-    binder.render = handler.render.bind(null, binder);
-    binder.setup = handler?.setup?.bind(null, binder);
-    binder.owner.removeAttributeNode(attribute);
-    binder.context = Context(context, binders, '', binder);
-    binder.compute = Compute(value).bind(binder.owner, binder.context, binder.instance);
-    binder.setup?.(binder);
-    return binder;
-};
-const BinderHandle = async function(context, binders, element) {
-    const tasks = [];
-    let each = false;
-    for (const attribute of element.attributes){
-        const { name , value  } = attribute;
-        if (value.startsWith('{{') && value.endsWith('}}')) {
-            each = name === 'each' || name === 'x-each';
-            tasks.push(BinderCreate(context, binders, attribute).render());
-        }
-    }
-    if (!each) {
-        let child = element.firstElementChild;
-        while(child){
-            tasks.push(BinderHandle(context, binders, child));
-            child = child.nextElementSibling;
-        }
-    }
-    await Promise.all(tasks);
-};
+const BinderSyntaxLength = 2;
+const BinderSyntaxEnd = '}}';
+const BinderSyntaxStart = '{{';
+const BinderText = Node.TEXT_NODE;
+const BinderElement = Node.ELEMENT_NODE;
+const BinderAttribute = Node.ATTRIBUTE_NODE;
+const BinderFragment = Node.DOCUMENT_FRAGMENT_NODE;
 const htmlRender = async function(binder) {
     const data = await binder.compute();
-    let fragment, node, tasks = [];
+    const tasks = [];
+    let fragment;
     if (typeof data == 'string') {
         const template = document.createElement('template');
         template.innerHTML = data;
@@ -469,15 +430,15 @@ const htmlRender = async function(binder) {
     } else {
         return console.error(`XElement - Html Binder ${binder.name} ${binder.value} requires a string or Template`);
     }
-    node = binder.owner.lastChild;
+    let node = binder.owner.lastChild;
     while(node){
         binder.owner.removeChild(node);
         node = binder.owner.lastChild;
     }
-    node = fragment.firstChild;
-    while(node){
-        tasks.push(BinderHandle(binder.context, binder.binders, node));
-        node = node.nextSibling;
+    let element = fragment.firstChild;
+    while(element){
+        tasks.push(BinderHandle(binder.context, binder.binders, binder.rewrites, element));
+        element = element.nextSibling;
     }
     await Promise.all(tasks);
     binder.owner.appendChild(fragment);
@@ -486,7 +447,6 @@ const htmlReset = function(binder) {
     let node = binder.owner.lastChild;
     while(node){
         binder.owner.removeChild(node);
-        binder.container.release(node);
         node = binder.owner.lastChild;
     }
 };
@@ -494,6 +454,8 @@ const htmlDefault = {
     render: htmlRender,
     reset: htmlReset
 };
+const eachWhitespace = /\s+/;
+const eachText = Node.TEXT_NODE;
 const eachSetup = function(binder) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
@@ -502,26 +464,72 @@ const eachSetup = function(binder) {
     binder.meta.templateElement = document.createElement('template');
     let node = binder.owner.firstChild;
     while(node){
-        if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.nodeType === eachText && eachWhitespace.test(node.nodeValue)) {
+            binder.owner.removeChild(node);
+        } else {
             binder.meta.templateLength++;
             binder.meta.templateElement.content.appendChild(node);
-        } else {
-            binder.owner.removeChild(node);
         }
         node = binder.owner.firstChild;
     }
+};
+const BinderHandle = async function(context, binders, rewrites, node) {
+    const type = node.nodeType;
+    const bindings = [];
+    const handles = [];
+    if (type === BinderFragment) {
+        let child = node.firstChild;
+        while(child){
+            handles.push(BinderHandle(context, binders, rewrites, child));
+            child = child.nextSibling;
+        }
+    } else if (type === BinderText) {
+        const start = node.nodeValue?.indexOf(BinderSyntaxStart) ?? -1;
+        if (start === -1) return;
+        if (start !== 0) node = node.splitText(start);
+        const end = node.nodeValue?.indexOf(BinderSyntaxEnd) ?? -1;
+        if (end === -1) return;
+        if (end + 2 !== node.nodeValue?.length) {
+            handles.push(BinderHandle(context, binders, rewrites, node.splitText(end + 2)));
+            bindings.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''));
+        } else {
+            bindings.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''), type);
+        }
+    } else if (type === BinderElement) {
+        let each = false;
+        const attributes = [
+            ...node.attributes
+        ];
+        for (const attribute of attributes){
+            const { name , value  } = attribute;
+            if (value.startsWith(BinderSyntaxStart) && value.endsWith(BinderSyntaxEnd)) {
+                each = name === 'each' || name === 'x-each';
+                bindings.push(BinderCreate(context, binders, rewrites, attribute, BinderAttribute, name, value));
+            }
+        }
+        if (!each) {
+            let child1 = node.firstChild;
+            while(child1){
+                handles.push(BinderHandle(context, binders, rewrites, child1));
+                child1 = child1.nextSibling;
+            }
+        }
+    }
+    await Promise.all(bindings);
+    await Promise.all(handles);
 };
 const eachRender = async function(binder) {
     if (binder.meta.busy) console.log(binder);
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
     const tasks = [];
+    const [path] = binder.paths;
     const [data, variable, key, index] = await binder.compute();
     binder.meta.data = data;
     binder.meta.keyName = key;
     binder.meta.indexName = index;
     binder.meta.variable = variable;
-    binder.meta.reference = Reflect.get(data, Path1);
+    binder.meta.path = path;
     if (data?.constructor === Array) {
         binder.meta.targetLength = data.length;
     } else if (data?.constructor === Object) {
@@ -535,7 +543,7 @@ const eachRender = async function(binder) {
         while(binder.meta.currentLength > binder.meta.targetLength){
             let count = binder.meta.templateLength, node;
             while(count--){
-                node = binder.owner.lastElementChild;
+                node = binder.owner.lastChild;
                 if (node) {
                     binder.owner.removeChild(node);
                 }
@@ -544,10 +552,17 @@ const eachRender = async function(binder) {
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {}
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        let clone, context;
+        let clone, context, rewrites;
         while(binder.meta.currentLength < binder.meta.targetLength){
             const keyValue = binder.meta.keys?.[binder.meta.currentLength] ?? binder.meta.currentLength;
             const indexValue = binder.meta.currentLength++;
+            rewrites = [
+                ...binder.rewrites,
+                [
+                    binder.meta.variable,
+                    `${binder.meta.path}.${keyValue}`
+                ], 
+            ];
             context = new Proxy(binder.context, {
                 has: function eachHas(target, key) {
                     if (key === binder.meta.keyName) return true;
@@ -556,8 +571,6 @@ const eachRender = async function(binder) {
                     return Reflect.has(target, key);
                 },
                 get: function eachGet(target, key, receiver) {
-                    if (key === RewriteName1) return binder.meta.variable;
-                    if (key === RewriteValue1) return `${binder.meta.reference}.${keyValue}`;
                     if (key === binder.meta.keyName) return keyValue;
                     if (key === binder.meta.indexName) return indexValue;
                     if (key === binder.meta.variable) return Reflect.get(binder.meta.data, keyValue, receiver);
@@ -570,12 +583,12 @@ const eachRender = async function(binder) {
                     return Reflect.set(target, key, value, receiver);
                 }
             });
-            let node1 = binder.meta.templateElement.content.firstElementChild;
+            let node1 = binder.meta.templateElement.content.firstChild;
             while(node1){
                 clone = node1.cloneNode(true);
-                tasks.push(BinderHandle(context, binder.binders, clone));
+                tasks.push(BinderHandle(context, binder.binders, rewrites, clone));
                 binder.meta.queueElement.content.appendChild(clone);
-                node1 = node1.nextElementSibling;
+                node1 = node1.nextSibling;
             }
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
@@ -589,7 +602,6 @@ const eachRender = async function(binder) {
 const eachReset = function(binder) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
-    while(binder.owner.lastChild)binder.container.release(binder.owner.removeChild(binder.owner.lastChild));
     while(binder.meta.queueElement.content.lastChild)binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
 };
 const eachDefault = {
@@ -597,11 +609,78 @@ const eachDefault = {
     render: eachRender,
     reset: eachReset
 };
+const BinderCreate = async function(context, binders, rewrites, node, type, name, value) {
+    name = name ?? '';
+    value = value ?? '';
+    const owner = node.ownerElement ?? node;
+    if (type === BinderAttribute) {
+        node.ownerElement.removeAttributeNode(node);
+        name = name.startsWith('x-') ? name.slice(2) : name;
+    }
+    if (type === BinderText) {
+        node.textContent = '';
+    }
+    if (value.startsWith(BinderSyntaxStart) && value.endsWith(BinderSyntaxEnd)) {
+        value = value.slice(BinderSyntaxLength, -BinderSyntaxLength);
+    }
+    let handler;
+    if (name === 'html') handler = htmlDefault;
+    else if (name === 'each') handler = eachDefault;
+    else if (name === 'value') handler = valueDefault;
+    else if (name === 'text') handler = standardDefault;
+    else if (name === 'checked') handler = checkedDefault;
+    else if (name === 'inherit') handler = inheritDefault;
+    else if (name?.startsWith('on')) handler = onDefault;
+    else handler = standardDefault;
+    const binder = {
+        name,
+        value,
+        owner,
+        binders,
+        context,
+        rewrites,
+        meta: {},
+        instance: {},
+        paths: Paths(value),
+        compute: Compute(value),
+        setup: handler.setup,
+        reset: handler.reset,
+        render: handler.render
+    };
+    binder.reset = binder.reset.bind(null, binder);
+    binder.render = binder.render.bind(null, binder);
+    binder.setup = binder?.setup?.bind(null, binder);
+    binder.compute = binder.compute.bind(binder.owner, binder.context, binder.instance);
+    let path, from, to;
+    for (path of binder.paths){
+        for ([from, to] of rewrites){
+            if (path === from) {
+                path = to;
+            } else if (path.startsWith(from + '.')) {
+                path = to + path.slice(from.length);
+            }
+        }
+        if (binders.has(path)) {
+            binders.get(path)?.add(binder);
+        } else {
+            binders.set(path, new Set([
+                binder
+            ]));
+        }
+    }
+    binder.owner.x = binder.owner.x ?? {};
+    binder.owner.x[name] = binder;
+    binder.setup?.(binder);
+    await binder.render(binder);
+    return binder;
+};
 const navigators = new Map();
 const transition = async function(options) {
+    if (!options.target) throw new Error('XElement - navigation target option required');
     if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
     if (options.navigating) return;
     else options.navigating = true;
+    if (!options.file) throw new Error('XElement - navigation file option required');
     options.construct = options.construct ?? (await import(options.file)).default;
     if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
     options.name = options.name ?? dash(options.construct.name);
@@ -636,13 +715,12 @@ const navigate = function(event) {
         transition(options);
     }
 };
-function navigation(path, file, options) {
+function navigation(path, file, options = {}) {
     if (!path) throw new Error('XElement - navigation path required');
     if (!file) throw new Error('XElement - navigation file required');
     const base = new URL(document.querySelector('base')?.href ?? location.origin);
     base.hash = '';
     base.search = '';
-    options = options ?? {};
     options.path = path;
     options.cache = options.cache ?? true;
     options.query = options.query ?? 'main';
@@ -682,8 +760,15 @@ class XElement extends HTMLElement {
     }
     #prepared = false;
     #preparing = false;
+    #rewrites = [];
     #binders = new Map();
-    #context = Context({}, this.#binders, '', undefined);
+    #context = ContextCreate({}, this.#binders);
+    get b() {
+        return this.#binders;
+    }
+    get c() {
+        return this.#context;
+    }
     constructor(){
         super();
         if (!this.shadowRoot) this.attachShadow({
@@ -721,16 +806,16 @@ class XElement extends HTMLElement {
             });
         }
         const promises = [];
-        let child = this.shadowRoot?.firstElementChild;
+        let child = this.shadowRoot?.firstChild;
         while(child){
-            promises.push(BinderHandle(this.#context, this.#binders, child));
-            child = child.nextElementSibling;
+            promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, child));
+            child = child.nextSibling;
         }
         const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
         for (const slot of slots){
-            const elements = slot.assignedElements();
-            for (const element of elements){
-                promises.push(BinderHandle(this.#context, this.#binders, element));
+            const nodes = slot.assignedNodes();
+            for (const node of nodes){
+                promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
             }
         }
         await Promise.all(promises);
@@ -740,13 +825,6 @@ class XElement extends HTMLElement {
     }
     async slottedCallback(event) {
         console.log('slottedCallback');
-        const promises = [];
-        const slot = event.target;
-        const elements = slot?.assignedElements();
-        for (const element of elements){
-            promises.push(BinderHandle(this.#context, this.#binders, element));
-        }
-        await Promise.all(promises);
         await this.slotted?.();
     }
     async connectedCallback() {

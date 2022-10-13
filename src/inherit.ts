@@ -14,7 +14,7 @@ const inheritRender = async function (binder: BinderType) {
 
     // if (!binder.meta.rerendered) {
     // binder.meta.rerendered = true;
-    await binder.container.register(binder.owner, binder.context, binder.rewrites);
+    // await binder.container.register(binder.owner, binder.context, binder.rewrites);
     // }
 };
 

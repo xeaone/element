@@ -1,107 +1,87 @@
-import { Path, RewriteName, RewriteValue } from './globals.ts';
+import { BindersType, ContextType, PathType } from './types.ts';
 
-const Resolve = function (item: any, method: any) {
-    return Promise.resolve(item).then(method);
+const Cache = new WeakMap();
+
+const ContextResolve = async function (item: [BindersType, PathType], method: typeof ContextEvent) {
+    await Promise.resolve(item).then(method);
 };
 
-const ContextEvent = function ([binders, path, binder]: any) {
-    const nodes = binders.get(path) ?? binders.set(path, new Set()).get(path);
-    const iterator = nodes.values();
+const ContextEvent = async function ([binders, path]: [BindersType, PathType]) {
+    const parents = [];
+    const children = [];
 
-    let result = iterator.next();
+    let key, value, binder;
 
-    while (!result.done) {
-        if (binder !== result.value) {
-            Resolve(result.value, async (binder: any) => await binder?.render());
+    // console.log(path);
+    // console.log(binders);
+    for ([key, value] of binders) {
+        if (value) {
+            if ((key as string) === path) {
+                for (binder of value) {
+                    parents.push(binder);
+                }
+            } else if ((key as string)?.startsWith?.(`${path}.`)) {
+                for (binder of value) {
+                    children.push(binder);
+                }
+            }
         }
-        result = iterator.next();
     }
+
+    // console.log(parents, children);
+    await Promise.all(parents.map(async (binder) => await binder.render?.(binder)));
+    await Promise.all(children.map(async (binder) => await binder.render?.(binder)));
 };
 
-const ContextSet = function (binder: any, binders: any, path: any, target: any, key: any, value: any, receiver: any) {
+const ContextSet = function (binders: BindersType, path: PathType, target: any, key: any, value: any, receiver: any) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
 
     const from = Reflect.get(target, key, receiver);
-    // console.log('set:', path, key, value, from, binder);
 
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
 
+    if (from && typeof from === 'object') {
+        Cache.delete(from);
+    }
+
     Reflect.set(target, key, value, receiver);
+    path = path ? `${path}.${key}` : key;
 
-    if (key === target[RewriteName]) {
-        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
-    } else {
-        path = path ? `${path}.${key}` : key;
-    }
-
-    if (binder) {
-        if (binders.has(path)) {
-            binders.get(path).add(binder);
-        } else {
-            binders.set(path, new Set([binder]));
-        }
-
-        // Proxies?.get?.(binder)?.remove?.(path);
-    }
-
-    Resolve([binders, path, binder], ContextEvent);
+    ContextResolve([binders, path], ContextEvent);
 
     return true;
 };
 
-const ContextGet = function (binder: any, binders: any, path: any, target: any, key: any, receiver: any): any {
-    // console.log('get:', path, key, binder);
-
-    if (key === Path) return path;
-    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-
-    if (key === target[RewriteName]) {
-        path = path ? `${path}.${target[RewriteValue]}` : target[RewriteValue];
-    } else {
-        path = path ? `${path}.${key}` : key;
-    }
-
-    if (binder) {
-        if (binders.has(path)) {
-            binders.get(path).add(binder);
-        } else {
-            binders.set(path, new Set([binder]));
-        }
-    }
+const ContextGet = function (binders: BindersType, path: PathType, target: any, key: any, receiver: any): any {
+    if (typeof key === 'symbol') return Reflect.get(target, key);
 
     const value = Reflect.get(target, key, receiver);
 
     if (value && typeof value === 'object') {
-        let proxy;
+        path = path ? `${path}.${key}` : key;
 
-        // if (binder) {
-        //     if (!Proxies.has(binder)) Proxies.set(binder, new Map());
-        //     proxy = Proxies.get(binder).get(path);
-        //     if (proxy) return proxy;
-        // }
+        const cache = Cache.get(value);
+        if (cache) return cache;
 
-        proxy = new Proxy(value, {
-            get: ContextGet.bind(null, binder, binders, path),
-            set: ContextSet.bind(null, binder, binders, path),
+        const proxy = new Proxy(value, {
+            get: ContextGet.bind(null, binders, path),
+            set: ContextSet.bind(null, binders, path),
         });
 
-        // if (binder) {
-        //     Proxies.get(binder).set(path, proxy);
-        // }
+        Cache.set(value, proxy);
 
         return proxy;
-        // return new Proxy(value, { get: get.bind(null, binder, binders, path), set: set.bind(null, binder, binders, path) });
     }
 
     return value;
 };
 
-const Context = function (data: any, binders: any, path?: any, binder?: any) {
+const ContextCreate = function (data: ContextType, binders: BindersType, path: PathType = '') {
     return new Proxy(data, {
-        get: ContextGet.bind(null, binder, binders, path),
-        set: ContextSet.bind(null, binder, binders, path),
+        get: ContextGet.bind(null, binders, path),
+        set: ContextSet.bind(null, binders, path),
     });
 };
 
-export default Context;
+export default ContextCreate;
