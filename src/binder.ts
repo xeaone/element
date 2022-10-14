@@ -87,8 +87,13 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
         }
     }
 
-    binder.owner.x = binder.owner.x ?? {};
-    binder.owner.x[name] = binder;
+    // binder.owner.x = binder.owner.x ?? {};
+    // binder.owner.x[name] = binder;
+    if (!binder.owner.x) {
+        Object.defineProperty(binder.owner, 'x', { value: {} });
+    }
+
+    Object.defineProperty(binder.owner.x, name, { value: binder });
 
     binder.setup?.(binder);
     await binder.render(binder);
