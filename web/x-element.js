@@ -6,7 +6,7 @@ const Cache = new WeakMap();
 const ContextResolve = async function(item, method) {
     await Promise.resolve(item).then(method);
 };
-const ContextEvent = async function([binders, path]) {
+const ContextEvent = async function([binders, path, event]) {
     const parents = [];
     const children = [];
     let key, value, binder;
@@ -23,8 +23,8 @@ const ContextEvent = async function([binders, path]) {
             }
         }
     }
-    await Promise.all(parents.map(async (binder)=>await binder.render?.(binder)));
-    await Promise.all(children.map(async (binder)=>await binder.render?.(binder)));
+    await Promise.all(parents.map(async (binder)=>await binder[event]?.(binder)));
+    await Promise.all(children.map(async (binder)=>await binder[event]?.(binder)));
 };
 const ContextSet = function(binders, path, target, key, value, receiver) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
@@ -32,18 +32,21 @@ const ContextSet = function(binders, path, target, key, value, receiver) {
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
     if (from && typeof from === 'object') {
+        const cache = Cache.get(from);
+        if (cache === value) return true;
         Cache.delete(from);
     }
     Reflect.set(target, key, value, receiver);
     path = path ? `${path}.${key}` : key;
     ContextResolve([
         binders,
-        path
+        path,
+        'render'
     ], ContextEvent);
     return true;
 };
 const ContextGet = function(binders, path, target, key, receiver) {
-    if (typeof key === 'symbol') return Reflect.get(target, key);
+    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
     const value = Reflect.get(target, key, receiver);
     if (value && typeof value === 'object') {
         path = path ? `${path}.${key}` : key;
@@ -51,17 +54,32 @@ const ContextGet = function(binders, path, target, key, receiver) {
         if (cache) return cache;
         const proxy = new Proxy(value, {
             get: ContextGet.bind(null, binders, path),
-            set: ContextSet.bind(null, binders, path)
+            set: ContextSet.bind(null, binders, path),
+            deleteProperty: ContextDelete.bind(null, binders, path)
         });
         Cache.set(value, proxy);
         return proxy;
     }
     return value;
 };
+const ContextDelete = function(binders, path, target, key) {
+    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
+    const from = Reflect.get(target, key);
+    Cache.delete(from);
+    Reflect.deleteProperty(target, key);
+    path = path ? `${path}.${key}` : key;
+    ContextResolve([
+        binders,
+        path,
+        'reset'
+    ], ContextEvent);
+    return true;
+};
 const ContextCreate = function(data, binders, path = '') {
     return new Proxy(data, {
         get: ContextGet.bind(null, binders, path),
-        set: ContextSet.bind(null, binders, path)
+        set: ContextSet.bind(null, binders, path),
+        deleteProperty: ContextDelete.bind(null, binders, path)
     });
 };
 const Cache1 = new Map();
@@ -211,6 +229,7 @@ const standardDefault = {
     render: standardRender,
     reset: standardReset
 };
+const checkedEvent = new Event('input');
 const checkedHandler = async function(binder, event) {
     binder.instance.event = event;
     binder.instance.$checked = event ? binder.owner.checked : undefined;
@@ -225,22 +244,21 @@ const checkedHandler = async function(binder, event) {
 };
 const checkedSetup = function(binder) {
     if (binder.owner.type === 'radio') {
-        binder.owner.addEventListener('input', async function checkInput(event) {
+        binder.owner.addEventListener('input', async function checkedInput(event) {
+            await checkedHandler(binder, event);
             const parent = binder.owner.form || binder.owner.getRootNode();
             const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
-            await checkedHandler(binder, event);
             for (const radio of radios){
                 if (radio === event.target) continue;
+                radio.checked = false;
+                radio.removeAttribute('checked');
                 if (radio?.x?.checked) {
-                    checkedHandler(radio.x.checked, new Event('input'));
-                } else {
-                    radio.checked = false;
-                    radio.removeAttribute('checked');
+                    checkedHandler(radio.x.checked, checkedEvent);
                 }
             }
         });
     } else {
-        binder.owner.addEventListener('input', function checkInput(event) {
+        binder.owner.addEventListener('input', function checkedInput(event) {
             checkedHandler(binder, event);
         });
     }
@@ -285,99 +303,111 @@ const dateDefault = Object.freeze([
 ]);
 const valueEvent = new Event('input');
 const valueInput = async function(binder, event) {
-    if (binder.meta.busy) return;
-    binder.meta.busy = true;
-    binder.instance.event = event;
-    const type = binder.owner.type;
+    const { owner , instance  } = binder;
+    let value;
+    const type = binder.meta.type;
     if (type === 'select-one') {
-        const option = binder.owner.selectedOptions[0];
-        if (option) {
-            if (option.x.value) {
-                binder.instance.$value = option.x.value.meta.value;
-            } else {
-                binder.instance.$value = option.value;
-            }
-        } else {
-            binder.instance.$value = undefined;
+        value = undefined;
+        const option = owner.selectedOptions[0];
+        if (option?.x?.value) {
+            await option.x.value.promise;
+            value = option.x.value.instance.$value;
+        } else if (option) {
+            value = option.value;
         }
     } else if (type === 'select-multiple') {
-        binder.instance.$value = Array.prototype.map.call(binder.owner.selectedOptions, (option)=>option.x ? option.x.value.meta.value : option.value);
+        value = [];
+        for (const option1 of owner.selectedOptions){
+            if (option1?.x?.value) {
+                await option1.x.value.promise;
+                value?.push?.(option1.x.value.instance.$value);
+            } else {
+                value?.push?.(option1.value);
+            }
+        }
     } else if (type === 'number' || type === 'range' || dateDefault.includes(type)) {
-        if (typeof binder.meta.value === 'number') {
-            binder.instance.$value = binder.owner.valueAsNumber;
+        if (typeof instance.$value === 'number') {
+            value = owner.valueAsNumber;
         } else {
-            binder.instance.$value = binder.owner.value;
+            value = owner.value;
         }
-    } else if (binder.owner.nodeName == 'OPTION') {
-        throw 'option event';
     } else {
-        if (toolDefault.parseable(binder.meta.value)) {
-            binder.instance.$value = JSON.parse(binder.owner.value);
-        } else {
-            binder.instance.$value = binder.owner.value;
-        }
+        value = owner.value;
     }
-    const computed = await binder.compute();
-    const display = toolDefault.display(computed);
-    binder.meta.busy = false;
-    binder.meta.value = computed;
-    binder.owner.value = display;
-    binder.instance.event = undefined;
-    binder.owner.setAttribute('value', display);
+    instance.$value = value;
+    instance.$event = event;
+    instance.event = event;
+    value = await binder.compute();
+    instance.$value = value;
+    instance.event = undefined;
+    instance.$event = undefined;
+    owner.setAttribute('value', JSON.stringify(value));
 };
 const valueSetup = function(binder) {
-    binder.meta.value = undefined;
+    binder.owner.value = '';
+    binder.instance.$value = undefined;
+    binder.meta.type = binder.owner.type;
     binder.owner.addEventListener('input', (event)=>valueInput(binder, event));
 };
 const valueRender = async function(binder) {
-    if (binder.meta.busy) return;
-    binder.meta.busy = true;
-    binder.instance.event = undefined;
-    const computed = await binder.compute();
-    let display;
-    if (binder.owner.type === 'select-one') {
-        for(let i = 0; i < binder.owner.options.length; i++){
-            const option = binder.owner.options[i];
-            option.selected = option.x.value ? option.x.value.meta.value === computed : option.value === computed;
+    const { owner , instance  } = binder;
+    instance.event = undefined;
+    instance.$value = undefined;
+    instance.$event = undefined;
+    const value = await binder.compute();
+    instance.$value = value;
+    instance.event = undefined;
+    instance.$event = undefined;
+    const type = binder.meta.type;
+    if (type === 'select-one') {
+        await owner?.x?.each?.promise;
+        for(let i = 0; i < owner.options.length; i++){
+            const option = owner.options[i];
+            if (option?.x?.value) {
+                await option.x.value.promise;
+                option.selected = option.x.value.instance.$value === value;
+            } else {
+                option.selected = option.value === value;
+            }
         }
-        if (computed === undefined && binder.owner.options.length && !binder.owner.selectedOptions.length) {
-            binder.owner.options[0].selected = true;
-            binder.owner.dispatchEvent(valueEvent);
+        if (value === undefined && owner.options.length && !owner.selectedOptions.length) {
+            owner.options[0].selected = true;
+            owner.dispatchEvent(valueEvent);
             return;
         }
-        display = toolDefault.display(computed);
-    } else if (binder.owner.type === 'select-multiple') {
-        for(let i1 = 0; i1 < binder.owner.options.length; i1++){
-            const option1 = binder.owner.options[i1];
-            option1.selected = computed?.includes(option1.x ? option1.x.value.meta.value : option1.value);
+    } else if (type === 'select-multiple') {
+        await owner?.x?.each?.promise;
+        for(let i1 = 0; i1 < owner.options.length; i1++){
+            const option1 = owner.options[i1];
+            if (option1?.x?.value) {
+                await option1.x.value.promise;
+                option1.selected = value?.includes(option1.x.value.instance.$value);
+            } else {
+                option1.selected = value?.includes(option1.value);
+            }
         }
-        display = toolDefault.display(computed);
-    } else if (binder.owner.type === 'number' || binder.owner.type === 'range' || dateDefault.includes(binder.owner.type)) {
-        if (typeof computed === 'string') binder.owner.value = computed;
-        else if (typeof computed === 'number' && !isNaN(computed)) binder.owner.valueAsNumber = computed;
-        else binder.owner.value = '';
-        display = binder.owner.value;
+    } else if (type === 'number' || type === 'range' || dateDefault.includes(type)) {
+        if (typeof value === 'string') owner.value = value;
+        else if (typeof value === 'number') owner.valueAsNumber = value || 0;
+        else owner.value = undefined;
     } else {
-        display = toolDefault.display(computed);
-        binder.owner.value = display;
+        owner.value = value ?? '';
     }
-    binder.meta.busy = false;
-    binder.meta.value = computed;
-    binder.instance.event = undefined;
-    binder.owner.setAttribute('value', display);
+    owner.setAttribute('value', toolDefault.display(value));
 };
 const valueReset = function(binder) {
-    if (binder.meta.busy) return;
-    binder.meta.busy = true;
-    if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
-        for (const option of binder.owner.options){
+    const type = binder.meta.type;
+    const { owner , instance  } = binder;
+    if (type === 'select-one' || type === 'select-multiple') {
+        for (const option of owner.options){
             option.selected = false;
         }
     }
-    binder.meta.busy = false;
-    binder.owner.value = null;
-    binder.meta.value = undefined;
-    binder.owner.setAttribute('value', '');
+    owner.value = null;
+    instance.event = undefined;
+    instance.$event = undefined;
+    instance.$value = undefined;
+    owner.setAttribute('value', '');
 };
 const valueDefault = {
     setup: valueSetup,
@@ -519,9 +549,6 @@ const BinderHandle = async function(context, binders, rewrites, node) {
     await Promise.all(handles);
 };
 const eachRender = async function(binder) {
-    if (binder.meta.busy) console.log(binder);
-    if (binder.meta.busy) return;
-    else binder.meta.busy = true;
     const tasks = [];
     const [path] = binder.paths;
     const [data, variable, key, index] = await binder.compute();
@@ -538,7 +565,6 @@ const eachRender = async function(binder) {
     } else {
         return console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
     }
-    console.time('each render');
     if (binder.meta.currentLength > binder.meta.targetLength) {
         while(binder.meta.currentLength > binder.meta.targetLength){
             let count = binder.meta.templateLength, node;
@@ -591,13 +617,11 @@ const eachRender = async function(binder) {
                 node1 = node1.nextSibling;
             }
         }
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(tasks);
-            binder.owner.appendChild(binder.meta.queueElement.content);
-        }
     }
-    binder.meta.busy = false;
-    console.timeEnd('each render');
+    if (binder.meta.currentLength === binder.meta.targetLength) {
+        await Promise.all(tasks);
+        binder.owner.appendChild(binder.meta.queueElement.content);
+    }
 };
 const eachReset = function(binder) {
     binder.meta.targetLength = 0;
@@ -645,10 +669,12 @@ const BinderCreate = async function(context, binders, rewrites, node, type, name
         compute: Compute(value),
         setup: handler.setup,
         reset: handler.reset,
-        render: handler.render
+        promise: Promise.resolve(),
+        render: function render() {
+            return binder.promise = binder.promise.then(()=>handler.render(binder));
+        }
     };
     binder.reset = binder.reset.bind(null, binder);
-    binder.render = binder.render.bind(null, binder);
     binder.setup = binder?.setup?.bind(null, binder);
     binder.compute = binder.compute.bind(binder.owner, binder.context, binder.instance);
     let path, from, to;
@@ -668,8 +694,14 @@ const BinderCreate = async function(context, binders, rewrites, node, type, name
             ]));
         }
     }
-    binder.owner.x = binder.owner.x ?? {};
-    binder.owner.x[name] = binder;
+    if (!binder.owner.x) {
+        Object.defineProperty(binder.owner, 'x', {
+            value: {}
+        });
+    }
+    Object.defineProperty(binder.owner.x, name, {
+        value: binder
+    });
     binder.setup?.(binder);
     await binder.render(binder);
     return binder;

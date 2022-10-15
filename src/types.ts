@@ -25,6 +25,10 @@ export type BinderType = {
     value: string;
     owner: any;
 
+    promise: Promise<void>;
+
+    // data: any;
+
     meta: Record<string, any>;
     context: Record<string, any>;
     instance: Record<string, any>;

@@ -24,13 +24,10 @@ const eachSetup = function (binder: BinderType) {
 };
 
 const eachRender = async function (binder: BinderType) {
-    if (binder.meta.busy) console.log(binder);
-    if (binder.meta.busy) return;
-    else binder.meta.busy = true;
-
     const tasks = [];
     const [path] = binder.paths;
     const [data, variable, key, index] = await binder.compute();
+    // console.time('each render');
 
     binder.meta.data = data;
     binder.meta.keyName = key;
@@ -46,8 +43,6 @@ const eachRender = async function (binder: BinderType) {
     } else {
         return console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
     }
-
-    console.time('each render');
 
     if (binder.meta.currentLength > binder.meta.targetLength) {
         while (binder.meta.currentLength > binder.meta.targetLength) {
@@ -111,14 +106,14 @@ const eachRender = async function (binder: BinderType) {
                 node = node.nextSibling;
             }
         }
-
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(tasks);
-            binder.owner.appendChild(binder.meta.queueElement.content);
-        }
     }
-    binder.meta.busy = false;
-    console.timeEnd('each render');
+
+    if (binder.meta.currentLength === binder.meta.targetLength) {
+        await Promise.all(tasks);
+        binder.owner.appendChild(binder.meta.queueElement.content);
+    }
+
+    // console.timeEnd('each render');
 };
 
 const eachReset = function (binder: BinderType) {

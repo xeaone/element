@@ -62,11 +62,13 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
         compute: Compute(value),
         setup: handler.setup,
         reset: handler.reset,
-        render: handler.render,
+        promise: Promise.resolve(),
+        render: function render() {
+            return binder.promise = binder.promise.then(() => handler.render(binder));
+        },
     };
 
     binder.reset = binder.reset.bind(null, binder);
-    binder.render = binder.render.bind(null, binder);
     binder.setup = binder?.setup?.bind(null, binder);
     binder.compute = binder.compute.bind(binder.owner, binder.context, binder.instance);
 
