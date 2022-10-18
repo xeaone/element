@@ -2,89 +2,9 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-const Cache = new WeakMap();
-const ContextResolve = async function(item, method) {
-    await Promise.resolve(item).then(method);
-};
-const ContextEvent = async function([binders, path, event]) {
-    const parents = [];
-    const children = [];
-    let key, value, binder;
-    for ([key, value] of binders){
-        if (value) {
-            if (key === path) {
-                for (binder of value){
-                    parents.push(binder);
-                }
-            } else if (key?.startsWith?.(`${path}.`)) {
-                for (binder of value){
-                    children.push(binder);
-                }
-            }
-        }
-    }
-    await Promise.all(parents.map(async (binder)=>await binder[event]?.(binder)));
-    await Promise.all(children.map(async (binder)=>await binder[event]?.(binder)));
-};
-const ContextSet = function(binders, path, target, key, value, receiver) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
-    const from = Reflect.get(target, key, receiver);
-    if (from === value) return true;
-    if (Number.isNaN(from) && Number.isNaN(value)) return true;
-    if (from && typeof from === 'object') {
-        const cache = Cache.get(from);
-        if (cache === value) return true;
-        Cache.delete(from);
-    }
-    Reflect.set(target, key, value, receiver);
-    path = path ? `${path}.${key}` : key;
-    ContextResolve([
-        binders,
-        path,
-        'render'
-    ], ContextEvent);
-    return true;
-};
-const ContextGet = function(binders, path, target, key, receiver) {
-    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-    const value = Reflect.get(target, key, receiver);
-    if (value && typeof value === 'object') {
-        path = path ? `${path}.${key}` : key;
-        const cache = Cache.get(value);
-        if (cache) return cache;
-        const proxy = new Proxy(value, {
-            get: ContextGet.bind(null, binders, path),
-            set: ContextSet.bind(null, binders, path),
-            deleteProperty: ContextDelete.bind(null, binders, path)
-        });
-        Cache.set(value, proxy);
-        return proxy;
-    }
-    return value;
-};
-const ContextDelete = function(binders, path, target, key) {
-    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
-    const from = Reflect.get(target, key);
-    Cache.delete(from);
-    Reflect.deleteProperty(target, key);
-    path = path ? `${path}.${key}` : key;
-    ContextResolve([
-        binders,
-        path,
-        'reset'
-    ], ContextEvent);
-    return true;
-};
-const ContextCreate = function(data, binders, path = '') {
-    return new Proxy(data, {
-        get: ContextGet.bind(null, binders, path),
-        set: ContextSet.bind(null, binders, path),
-        deleteProperty: ContextDelete.bind(null, binders, path)
-    });
-};
-const Cache1 = new Map();
+const Cache = new Map();
 const Compute = function(value) {
-    const cache = Cache1.get(value);
+    const cache = Cache.get(value);
     if (cache) return cache;
     const code = `
     with ($context) {
@@ -94,7 +14,7 @@ const Compute = function(value) {
     }
     `;
     const method = new Function('$context', '$instance', code);
-    Cache1.set(value, method);
+    Cache.set(value, method);
     return method;
 };
 const IgnoreString = `
@@ -124,13 +44,13 @@ const StringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
 const RegularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
 const ArrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
 const ReferenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
-const Cache2 = new Map();
+const Cache1 = new Map();
 const Paths = function(value) {
-    const cache = Cache2.get(value);
+    const cache = Cache1.get(value);
     if (cache) return cache;
     const clean = value.replace(StringPattern, '').replace(ArrowFunctionPattern, '').replace(RegularFunctionPattern, '');
     const paths = clean.replace(IgnorePattern, '').replace(ReferenceNormalize, '.$2$3').match(ReferencePattern) ?? [];
-    Cache2.set(value, paths);
+    Cache1.set(value, paths);
     return paths;
 };
 const parseable = function(value) {
@@ -761,6 +681,86 @@ function navigation(path, file, options = {}) {
     navigate();
     window.navigation.addEventListener('navigate', navigate);
 }
+const Cache2 = new WeakMap();
+const ContextResolve = async function(item, method) {
+    await Promise.resolve(item).then(method);
+};
+const ContextEvent = async function([binders, path, event]) {
+    const parents = [];
+    const children = [];
+    let key, value, binder;
+    for ([key, value] of binders){
+        if (value) {
+            if (key === path) {
+                for (binder of value){
+                    parents.push(binder);
+                }
+            } else if (key?.startsWith?.(`${path}.`)) {
+                for (binder of value){
+                    children.push(binder);
+                }
+            }
+        }
+    }
+    await Promise.all(parents.map(async (binder)=>await binder[event]?.(binder)));
+    await Promise.all(children.map(async (binder)=>await binder[event]?.(binder)));
+};
+const ContextSet = function(binders, path, target, key, value, receiver) {
+    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
+    const from = Reflect.get(target, key, receiver);
+    if (from === value) return true;
+    if (Number.isNaN(from) && Number.isNaN(value)) return true;
+    if (from && typeof from === 'object') {
+        const cache = Cache2.get(from);
+        if (cache === value) return true;
+        Cache2.delete(from);
+    }
+    Reflect.set(target, key, value, receiver);
+    path = path ? `${path}.${key}` : key;
+    ContextResolve([
+        binders,
+        path,
+        'render'
+    ], ContextEvent);
+    return true;
+};
+const ContextGet = function(binders, path, target, key, receiver) {
+    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+    const value = Reflect.get(target, key, receiver);
+    if (value && typeof value === 'object') {
+        path = path ? `${path}.${key}` : key;
+        const cache = Cache2.get(value);
+        if (cache) return cache;
+        const proxy = new Proxy(value, {
+            get: ContextGet.bind(null, binders, path),
+            set: ContextSet.bind(null, binders, path),
+            deleteProperty: ContextDelete.bind(null, binders, path)
+        });
+        Cache2.set(value, proxy);
+        return proxy;
+    }
+    return value;
+};
+const ContextDelete = function(binders, path, target, key) {
+    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
+    const from = Reflect.get(target, key);
+    Cache2.delete(from);
+    Reflect.deleteProperty(target, key);
+    path = path ? `${path}.${key}` : key;
+    ContextResolve([
+        binders,
+        path,
+        'reset'
+    ], ContextEvent);
+    return true;
+};
+const ContextCreate = function(data, binders, path = '') {
+    return new Proxy(data, {
+        get: ContextGet.bind(null, binders, path),
+        set: ContextSet.bind(null, binders, path),
+        deleteProperty: ContextDelete.bind(null, binders, path)
+    });
+};
 class XElement extends HTMLElement {
     static observedProperties;
     static navigation = navigation;
@@ -768,6 +768,8 @@ class XElement extends HTMLElement {
     static syntaxEnd = '}}';
     static syntaxStart = '{{';
     static syntaxMatch = new RegExp('{{.*?}}');
+    static slottedEvent = new Event('slotted');
+    static slottingEvent = new Event('slotting');
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
     static preparedEvent = new Event('prepared');
@@ -810,7 +812,7 @@ class XElement extends HTMLElement {
     }
     async prepare() {
         if (this.#prepared) return;
-        if (this.#preparing) return new Promise((resolve)=>this.addEventListener('preparing', ()=>resolve(undefined)));
+        if (this.#preparing) return new Promise((resolve)=>this.addEventListener('prepared', ()=>resolve(undefined)));
         this.#preparing = true;
         this.dispatchEvent(XElement.preparingEvent);
         const prototype = Object.getPrototypeOf(this);
@@ -823,7 +825,7 @@ class XElement extends HTMLElement {
             Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
         }
         for(const property in descriptors){
-            if ('attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'disconnected' === property || 'constructor' === property || 'attributed' === property || 'connected' === property || 'adopted' === property || property.startsWith('#')) continue;
+            if ('attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'slottedCallback' === property || 'disconnected' === property || 'constructor' === property || 'attributed' === property || 'connected' === property || 'adopted' === property || 'slotted' === property || property.startsWith('#')) continue;
             const descriptor = descriptors[property];
             if (!descriptor.configurable) continue;
             if (descriptor.set) descriptor.set = descriptor.set?.bind(this);
@@ -845,9 +847,28 @@ class XElement extends HTMLElement {
         }
         const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
         for (const slot of slots){
-            const nodes = slot.assignedNodes();
-            for (const node of nodes){
-                promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
+            if (slot.assignedNodes) {
+                const nodes = slot.assignedNodes() ?? [];
+                for (const node of nodes){
+                    promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
+                }
+            } else {
+                const attribute = slot.attributes.getNamedItem('name');
+                if (attribute) {
+                    const element = this.querySelector(`[slot="${attribute.value}"`);
+                    if (element) {
+                        promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, element));
+                        const nodes1 = element.childNodes;
+                        for (const node1 of nodes1){
+                            promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node1));
+                        }
+                    }
+                } else {
+                    const nodes2 = this.childNodes;
+                    for (const node2 of nodes2){
+                        promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node2));
+                    }
+                }
             }
         }
         await Promise.all(promises);
@@ -856,8 +877,10 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.preparedEvent);
     }
     async slottedCallback(event) {
-        console.log('slottedCallback');
+        await this.prepare();
+        this.dispatchEvent(XElement.slottingEvent);
         await this.slotted?.();
+        this.dispatchEvent(XElement.slottedEvent);
     }
     async connectedCallback() {
         await this.prepare();

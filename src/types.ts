@@ -8,6 +8,8 @@ export type SetupType = (binder: BinderType) => Promise<any> | any;
 export type ResetType = (binder: BinderType) => Promise<any> | any;
 export type RenderType = (binder: BinderType) => Promise<any> | any;
 
+export type ObservedProperties = Array<string>;
+
 export type HandlerType = {
     setup?: SetupType;
     reset: ResetType;

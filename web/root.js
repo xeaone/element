@@ -3,8 +3,7 @@ import Highlight from './highlight.js';
 
 export default class XRoot extends XElement {
 
-    #rendered = false;
-    #highlighted = false;
+    // static observedProperties = ['example'];
 
     example = `
         import XElement from '/x-element.js';
@@ -27,6 +26,9 @@ export default class XRoot extends XElement {
 
         MyElement.define();
     `;
+
+    #rendered = false;
+    #highlighted = false;
 
     #html = /*html*/`
     <section>

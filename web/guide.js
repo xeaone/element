@@ -237,6 +237,12 @@ export default class XGuide extends XElement {
         return this.querySelector(query);
     }
 
+    constructor () {
+        super();
+        this.shadowRoot.innerHTML = '<slot></slot>';
+        // this.innerHTML = html;
+    }
+
     async connectedCallback () {
         if (!this.hasChildNodes()) this.innerHTML = html;
         this.shadowRoot.innerHTML = '<slot></slot>';

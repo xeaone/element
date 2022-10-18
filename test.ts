@@ -2,7 +2,7 @@ import { assertEquals } from 'https://deno.land/std@0.152.0/testing/asserts.ts';
 import { delay } from 'https://deno.land/std@0.152.0/async/delay.ts';
 import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
 // import { parseHTML } from 'https://esm.sh/linkedom@0.14.14';
-import { parseHTML } from 'https://esm.sh/linkedom@0.14.16';
+import { parseHTML } from 'https://esm.sh/linkedom@0.14.17';
 
 console.clear();
 
@@ -32,59 +32,60 @@ const XElement = new Function(
     ${file.replace(/\s*export\s+{\s+XElement\s+as\s+default\s+};/, 'return XElement')}`,
 )(window);
 
-const Element = function (name: string, html: string, data: any) {
+const Element = async function (name: string, html: string, data: any) {
     class TestElement extends XElement {
         constructor() {
             super();
             for (const key in data) this[key] = data[key];
         }
-        connectedCallback() {
+        async connectedCallback() {
             this.innerHTML = html;
             this.shadowRoot.innerHTML = '<slot></slot>';
-            this.prepare();
+            await super.connectedCallback();
         }
     }
 
     window.customElements.define(name, TestElement);
     const element = document.createElement(name);
     document.body.appendChild(element);
-    document.toString();
+
+    await element.prepare();
 
     return element;
 };
 
 Deno.test('each-binder: overwrite array', async () => {
-    const element = Element(
+    const element = await Element(
         'each-binder-overwrite',
         `<div each="{{[numbers,'number']}}"><div>{{number}}</div></div>`,
         { numbers: [1, 2] },
     );
 
     await delay(10);
-    assertEquals(element.innerHTML, '<div each=""><div>1</div><div>2</div></div>');
+    assertEquals(element.innerHTML, '<div><div>1</div><div>2</div></div>');
 
     element.numbers = ['one', 'two'];
 
     await delay(10);
-    assertEquals(element.innerHTML, '<div each=""><div>one</div><div>two</div></div>');
+    assertEquals(element.innerHTML, '<div><div>one</div><div>two</div></div>');
 });
 
 Deno.test('each-binder value-binder', async () => {
-    const element = Element(
+    const element = await Element(
         'each-value-binder',
-        `<select value="{{fruit=$value}}" each="{{[fruits,'f']}}"><option value="{{f}}">{{f}}</option></select>`,
+        `<select value="{{fruit=$value??fruit}}" each="{{[fruits,'f']}}"><option value="{{f}}">{{f}}</option></select>`,
         { fruit: 'Orange', fruits: ['Apple', 'Orange', 'Tomato'] },
     );
 
     await delay(10);
     assertEquals(
         element.innerHTML,
-        '<select value="Orange" each=""><option value="Apple">Apple</option><option value="Orange">Orange</option><option value="Tomato">Tomato</option></select>',
+        '<select value="Orange"><option value="Apple">Apple</option><option value="Orange">Orange</option><option value="Tomato">Tomato</option></select>',
     );
 });
 
 Deno.test('text-binder', async () => {
-    const element = Element('text-binder', '{{text}}', { text: '' });
+    const element = await Element('text-binder', '{{text}}', { text: '' });
 
     await delay(10);
     assertEquals(element.innerHTML, '');
@@ -96,7 +97,7 @@ Deno.test('text-binder', async () => {
 });
 
 Deno.test('checked-binder', async () => {
-    const element = Element('checked-binder', '<input checked="{{checked=$checked}}" type="checkbox">', { checked: false });
+    const element = await Element('checked-binder', '<input checked="{{checked=$checked??checked}}" type="checkbox">', { checked: false });
 
     await delay(10);
     assertEquals(element.innerHTML, '<input type="checkbox">');
@@ -108,11 +109,11 @@ Deno.test('checked-binder', async () => {
 });
 
 Deno.test('radio-binder', async () => {
-    const element = Element(
+    const element = await Element(
         'radio-binder',
         [
-            `<input checked="{{radioOne=$checked}}" type="radio" name="radio" value="one">`,
-            `<input checked="{{radioTwo=$checked}}" type="radio" name="radio" value="two">`,
+            `<input checked="{{radioOne=$checked??radioOne}}" type="radio" name="radio" value="one">`,
+            `<input checked="{{radioTwo=$checked??radioTwo}}" type="radio" name="radio" value="two">`,
         ].join(''),
         { radioOne: undefined, radioTwo: undefined },
     );
@@ -139,7 +140,7 @@ Deno.test('radio-binder', async () => {
 });
 
 Deno.test('value-binder', async () => {
-    const element = Element('value-binder', '<input value="{{(text=$value).toUpperCase()}}">', { text: '' });
+    const element = await Element('value-binder', '<input value="{{ text = $value ?? text }}">', { text: '' });
 
     await delay(10);
     assertEquals(element.innerHTML, '<input value="">');
@@ -147,5 +148,5 @@ Deno.test('value-binder', async () => {
     element.text = 'hello world';
 
     await delay(10);
-    assertEquals(element.innerHTML, '<input value="HELLO WORLD">');
+    assertEquals(element.innerHTML, '<input value="hello world">');
 });

@@ -24,6 +24,7 @@
     --layer3: var(--black5);
 
     --shade0: rgba(255, 255, 255, 0.1);
+
 }
 
 /* :defined {
@@ -98,7 +99,8 @@ h4 {
     font-size: 1.5rem;
 }
 
-pre, article {
+pre,
+article {
     tab-size: 4;
     padding: 1rem;
     margin: 0.1rem;
@@ -257,4 +259,27 @@ main > * {
 
 ::-webkit-scrollbar-corner {
     background: transparent
+}
+
+:root {
+    accent-color: var(--accent);
+}
+
+:focus-visible {
+    outline-color: var(--accent);
+}
+
+::selection {
+    background-color: var(--accent);
+}
+
+::marker {
+    color: var(--accent);
+}
+
+::-webkit-calendar-picker-indicator,
+::-webkit-clear-button,
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+    color: var(--accent);
 }
