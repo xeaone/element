@@ -1,5 +1,5 @@
 import { BinderType, RewritesType } from './types.ts';
-import { BinderHandle } from './binder.ts';
+import { BinderAdd, BinderRemove } from './binder.ts';
 
 const eachWhitespace = /\s+/;
 const eachText = Node.TEXT_NODE;
@@ -27,7 +27,6 @@ const eachRender = async function (binder: BinderType) {
     const tasks = [];
     const [path] = binder.paths;
     const [data, variable, key, index] = await binder.compute();
-    // console.time('each render');
 
     binder.meta.data = data;
     binder.meta.keyName = key;
@@ -41,10 +40,19 @@ const eachRender = async function (binder: BinderType) {
         binder.meta.keys = Object.keys(data || {});
         binder.meta.targetLength = binder.meta.keys.length;
     } else {
-        return console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
+        binder.meta.data = [];
+        binder.meta.targetLength = 0;
+        console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
     }
 
     if (binder.meta.currentLength > binder.meta.targetLength) {
+        // const nodes = binder.owner.childNodes;
+        // const replaces = Array.prototype.slice.call(nodes, 0, binder.meta.targetLength);
+        // Element.prototype.replaceChildren.apply(binder.owner, replaces);
+        // for (let i = binder.meta.currentLength - 1; i < nodes.length; i++) {
+        //     tasks.push(BinderRemove(binder.binders, nodes[i]));
+        // }
+
         while (binder.meta.currentLength > binder.meta.targetLength) {
             let count = binder.meta.templateLength, node;
 
@@ -52,15 +60,11 @@ const eachRender = async function (binder: BinderType) {
                 node = binder.owner.lastChild;
                 if (node) {
                     binder.owner.removeChild(node);
-                    // tasks.push(binder.container.release(node));
+                    tasks.push(BinderRemove(binder.binders, node));
                 }
             }
 
             binder.meta.currentLength--;
-        }
-
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            // await Promise.all(tasks);
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
         let clone, context, rewrites: RewritesType;
@@ -94,14 +98,10 @@ const eachRender = async function (binder: BinderType) {
                 },
             });
 
-            // clone = binder.meta.templateElement.cloneNode(true).content;
-            // tasks.push(BinderHandle(context, binder.binders, rewrites, clone));
-            // binder.meta.queueElement.content.appendChild(clone);
-
             let node = binder.meta.templateElement.content.firstChild;
             while (node) {
                 clone = node.cloneNode(true);
-                tasks.push(BinderHandle(context, binder.binders, rewrites, clone));
+                tasks.push(BinderAdd(context, binder.binders, rewrites, clone));
                 binder.meta.queueElement.content.appendChild(clone);
                 node = node.nextSibling;
             }
@@ -112,15 +112,29 @@ const eachRender = async function (binder: BinderType) {
         await Promise.all(tasks);
         binder.owner.appendChild(binder.meta.queueElement.content);
     }
-
-    // console.timeEnd('each render');
 };
 
-const eachReset = function (binder: BinderType) {
+const eachReset = async function (binder: BinderType) {
+    const tasks = [];
+
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
-    // while (binder.owner.lastChild) binder.container.release(binder.owner.removeChild(binder.owner.lastChild));
-    while (binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
+
+    while (binder.owner.lastChild) {
+        tasks.push(BinderRemove(
+            binder.binders,
+            binder.owner.removeChild(binder.owner.lastChild),
+        ));
+    }
+
+    while (binder.meta.queueElement.content.lastChild) {
+        tasks.push(BinderRemove(
+            binder.binders,
+            binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild),
+        ));
+    }
+
+    await Promise.all(tasks);
 };
 
 const eachDefault = { setup: eachSetup, render: eachRender, reset: eachReset };

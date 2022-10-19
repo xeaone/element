@@ -26,6 +26,9 @@ const html = /*html*/`
 <section id="checked">
 <h3>Checked Binder</h3>
     <template id="checked-template">
+        <input type="checkbox" checked="{{ checked = $checked ?? checked }}" value="{{ checked }}" />
+        <span>Checkbox {{ checked ? 'checked' : '' }}</span>
+        <br>
         <input type="checkbox" checked="{{ checked = event ? this.checked : checked }}" value="{{ checked }}" />
         <span>Checkbox {{ checked ? 'checked' : '' }}</span>
     </template>
@@ -34,11 +37,11 @@ const html = /*html*/`
 
     <template id="radio-template">
         <span>Value: {{radioValue}}</span>
-
-        <input type="radio" name="radio" value="{{ radioValue = radioOne ? 'one' : radioValue }}" checked="{{ radioOne = event ? this.checked : radioOne }}" />
+        <br>
+        <input type="radio" name="radio" value="{{ radioValue = radioOne ? 'one' : radioValue }}" checked="{{ radioOne = $checked ?? radioOne }}" />
         <span> Radio One </span>
         <span text="{{radioOne ? 'checked' : ''}}"></span>
-
+        <br>
         <input type="radio" name="radio" value="{{ radioValue = radioTwo ? 'two' : radioValue }}" checked="{{ radioTwo = event ? this.checked : radioTwo }}" />
         <span> Radio Two </span>
         <span text="{{radioTwo ? 'checked' : ''}}"></span>
@@ -240,17 +243,14 @@ export default class XGuide extends XElement {
     constructor () {
         super();
         this.shadowRoot.innerHTML = '<slot></slot>';
-        // this.innerHTML = html;
     }
 
     async connectedCallback () {
         if (!this.hasChildNodes()) this.innerHTML = html;
-        this.shadowRoot.innerHTML = '<slot></slot>';
         await super.connectedCallback();
     }
 
     async disconnectedCallback () {
-        this.shadowRoot.innerHTML = '';
         await super.disconnectedCallback();
     }
 

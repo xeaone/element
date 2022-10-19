@@ -47,11 +47,15 @@ const ReferenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\
 const Cache1 = new Map();
 const Paths = function(value) {
     const cache = Cache1.get(value);
-    if (cache) return cache;
+    if (cache) return [
+        ...cache
+    ];
     const clean = value.replace(StringPattern, '').replace(ArrowFunctionPattern, '').replace(RegularFunctionPattern, '');
     const paths = clean.replace(IgnorePattern, '').replace(ReferenceNormalize, '.$2$3').match(ReferencePattern) ?? [];
     Cache1.set(value, paths);
-    return paths;
+    return [
+        ...paths
+    ];
 };
 const parseable = function(value) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
@@ -135,6 +139,7 @@ const standardRender = async function(binder) {
     }
 };
 const standardReset = function(binder) {
+    console.log('text reset');
     if (binder.name == 'text') {
         binder.owner.textContent = '';
     } else if (binder.meta.boolean) {
@@ -367,9 +372,133 @@ const BinderText = Node.TEXT_NODE;
 const BinderElement = Node.ELEMENT_NODE;
 const BinderAttribute = Node.ATTRIBUTE_NODE;
 const BinderFragment = Node.DOCUMENT_FRAGMENT_NODE;
+const BinderCreate = async function(context, binders, rewrites, node, type, name, value) {
+    name = name ?? '';
+    value = value ?? '';
+    const owner = node.ownerElement ?? node;
+    if (type === BinderAttribute) {
+        node.ownerElement.removeAttributeNode(node);
+        name = name.startsWith('x-') ? name.slice(2) : name;
+    }
+    if (type === BinderText) {
+        node.textContent = '';
+        name = 'text';
+    }
+    if (value.startsWith(BinderSyntaxStart) && value.endsWith(BinderSyntaxEnd)) {
+        value = value.slice(BinderSyntaxLength, -BinderSyntaxLength);
+    }
+    let handler;
+    if (name === 'html') handler = htmlDefault;
+    else if (name === 'each') handler = eachDefault;
+    else if (name === 'value') handler = valueDefault;
+    else if (name === 'text') handler = standardDefault;
+    else if (name === 'checked') handler = checkedDefault;
+    else if (name === 'inherit') handler = inheritDefault;
+    else if (name?.startsWith('on')) handler = onDefault;
+    else handler = standardDefault;
+    const binder = {
+        name,
+        value,
+        owner,
+        binders,
+        context,
+        rewrites,
+        meta: {},
+        instance: {},
+        paths: Paths(value),
+        compute: Compute(value),
+        setup: handler.setup,
+        resets: Promise.resolve(),
+        renders: Promise.resolve(),
+        reset () {
+            return binder.resets = binder.resets.then(()=>handler.reset(binder));
+        },
+        render () {
+            return binder.renders = binder.renders.then(()=>handler.render(binder));
+        }
+    };
+    binder.setup = binder?.setup?.bind(null, binder);
+    binder.compute = binder.compute.bind(binder.owner, binder.context, binder.instance);
+    let path, from, to, i;
+    const l = binder.paths.length;
+    for(i = 0; i < l; i++){
+        path = binder.paths[i];
+        for ([from, to] of rewrites){
+            if (path === from) {
+                binder.paths[i] = path = to;
+            } else if (path.startsWith(from + '.')) {
+                binder.paths[i] = path = to + path.slice(from.length);
+            }
+        }
+        if (binders.has(path)) {
+            binders.get(path)?.add(binder);
+        } else {
+            binders.set(path, new Set([
+                binder
+            ]));
+        }
+    }
+    if (!binder.owner.x) {
+        Object.defineProperty(binder.owner, 'x', {
+            value: {}
+        });
+    }
+    Object.defineProperty(binder.owner.x, name, {
+        value: binder,
+        enumerable: true
+    });
+    await binder.setup?.(binder);
+    await binder.render();
+    return binder;
+};
+const BinderDestroy = async function(binders, node) {
+    await new Promise(function(resolve) {
+        const x = node.x;
+        if (x?.constructor === Object) {
+            let name, binder, path, current;
+            for(name in x){
+                binder = x[name];
+                for (path of binder.paths){
+                    current = binders.get(path);
+                    current?.delete(binder);
+                    if (current?.size === 0) binders.delete(path);
+                }
+            }
+            Reflect.deleteProperty(node, 'x');
+        }
+        resolve(undefined);
+    });
+};
+const BinderRemove = async function(binders, node) {
+    const type = node.nodeType;
+    const promises = [];
+    if (type === BinderFragment) {
+        let child = node.firstChild;
+        while(child){
+            promises.push(BinderRemove(binders, child));
+            child = child.nextSibling;
+        }
+    } else if (type === BinderText) {
+        const x = node.x;
+        if (x) {
+            promises.push(BinderDestroy(binders, node));
+        }
+    } else if (type === BinderElement) {
+        const x1 = node.x;
+        if (x1) {
+            promises.push(BinderDestroy(binders, node));
+        }
+        let child1 = node.firstChild;
+        while(child1){
+            promises.push(BinderRemove(binders, child1));
+            child1 = child1.nextSibling;
+        }
+    }
+    await Promise.all(promises);
+};
 const htmlRender = async function(binder) {
-    const data = await binder.compute();
     const tasks = [];
+    const data = await binder.compute();
     let fragment;
     if (typeof data == 'string') {
         const template = document.createElement('template');
@@ -383,22 +512,26 @@ const htmlRender = async function(binder) {
     let node = binder.owner.lastChild;
     while(node){
         binder.owner.removeChild(node);
+        tasks.push(BinderRemove(binder.binders, node));
         node = binder.owner.lastChild;
     }
     let element = fragment.firstChild;
     while(element){
-        tasks.push(BinderHandle(binder.context, binder.binders, binder.rewrites, element));
+        tasks.push(BinderAdd(binder.context, binder.binders, binder.rewrites, element));
         element = element.nextSibling;
     }
     await Promise.all(tasks);
     binder.owner.appendChild(fragment);
 };
-const htmlReset = function(binder) {
+const htmlReset = async function(binder) {
+    const tasks = [];
     let node = binder.owner.lastChild;
     while(node){
         binder.owner.removeChild(node);
+        tasks.push(BinderRemove(binder.binders, node));
         node = binder.owner.lastChild;
     }
+    await Promise.all(tasks);
 };
 const htmlDefault = {
     render: htmlRender,
@@ -423,14 +556,13 @@ const eachSetup = function(binder) {
         node = binder.owner.firstChild;
     }
 };
-const BinderHandle = async function(context, binders, rewrites, node) {
+const BinderAdd = async function(context, binders, rewrites, node) {
     const type = node.nodeType;
-    const bindings = [];
-    const handles = [];
+    const promises = [];
     if (type === BinderFragment) {
         let child = node.firstChild;
         while(child){
-            handles.push(BinderHandle(context, binders, rewrites, child));
+            promises.push(BinderAdd(context, binders, rewrites, child));
             child = child.nextSibling;
         }
     } else if (type === BinderText) {
@@ -440,10 +572,10 @@ const BinderHandle = async function(context, binders, rewrites, node) {
         const end = node.nodeValue?.indexOf(BinderSyntaxEnd) ?? -1;
         if (end === -1) return;
         if (end + 2 !== node.nodeValue?.length) {
-            handles.push(BinderHandle(context, binders, rewrites, node.splitText(end + 2)));
-            bindings.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''));
+            promises.push(BinderAdd(context, binders, rewrites, node.splitText(end + 2)));
+            promises.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''));
         } else {
-            bindings.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''), type);
+            promises.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''), type);
         }
     } else if (type === BinderElement) {
         let each = false;
@@ -454,19 +586,18 @@ const BinderHandle = async function(context, binders, rewrites, node) {
             const { name , value  } = attribute;
             if (value.startsWith(BinderSyntaxStart) && value.endsWith(BinderSyntaxEnd)) {
                 each = name === 'each' || name === 'x-each';
-                bindings.push(BinderCreate(context, binders, rewrites, attribute, BinderAttribute, name, value));
+                promises.push(BinderCreate(context, binders, rewrites, attribute, BinderAttribute, name, value));
             }
         }
         if (!each) {
             let child1 = node.firstChild;
             while(child1){
-                handles.push(BinderHandle(context, binders, rewrites, child1));
+                promises.push(BinderAdd(context, binders, rewrites, child1));
                 child1 = child1.nextSibling;
             }
         }
     }
-    await Promise.all(bindings);
-    await Promise.all(handles);
+    await Promise.all(promises);
 };
 const eachRender = async function(binder) {
     const tasks = [];
@@ -483,7 +614,9 @@ const eachRender = async function(binder) {
         binder.meta.keys = Object.keys(data || {});
         binder.meta.targetLength = binder.meta.keys.length;
     } else {
-        return console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
+        binder.meta.data = [];
+        binder.meta.targetLength = 0;
+        console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
     }
     if (binder.meta.currentLength > binder.meta.targetLength) {
         while(binder.meta.currentLength > binder.meta.targetLength){
@@ -492,11 +625,11 @@ const eachRender = async function(binder) {
                 node = binder.owner.lastChild;
                 if (node) {
                     binder.owner.removeChild(node);
+                    tasks.push(BinderRemove(binder.binders, node));
                 }
             }
             binder.meta.currentLength--;
         }
-        if (binder.meta.currentLength === binder.meta.targetLength) {}
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
         let clone, context, rewrites;
         while(binder.meta.currentLength < binder.meta.targetLength){
@@ -532,7 +665,7 @@ const eachRender = async function(binder) {
             let node1 = binder.meta.templateElement.content.firstChild;
             while(node1){
                 clone = node1.cloneNode(true);
-                tasks.push(BinderHandle(context, binder.binders, rewrites, clone));
+                tasks.push(BinderAdd(context, binder.binders, rewrites, clone));
                 binder.meta.queueElement.content.appendChild(clone);
                 node1 = node1.nextSibling;
             }
@@ -543,88 +676,22 @@ const eachRender = async function(binder) {
         binder.owner.appendChild(binder.meta.queueElement.content);
     }
 };
-const eachReset = function(binder) {
+const eachReset = async function(binder) {
+    const tasks = [];
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
-    while(binder.meta.queueElement.content.lastChild)binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
+    while(binder.owner.lastChild){
+        tasks.push(BinderRemove(binder.binders, binder.owner.removeChild(binder.owner.lastChild)));
+    }
+    while(binder.meta.queueElement.content.lastChild){
+        tasks.push(BinderRemove(binder.binders, binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild)));
+    }
+    await Promise.all(tasks);
 };
 const eachDefault = {
     setup: eachSetup,
     render: eachRender,
     reset: eachReset
-};
-const BinderCreate = async function(context, binders, rewrites, node, type, name, value) {
-    name = name ?? '';
-    value = value ?? '';
-    const owner = node.ownerElement ?? node;
-    if (type === BinderAttribute) {
-        node.ownerElement.removeAttributeNode(node);
-        name = name.startsWith('x-') ? name.slice(2) : name;
-    }
-    if (type === BinderText) {
-        node.textContent = '';
-    }
-    if (value.startsWith(BinderSyntaxStart) && value.endsWith(BinderSyntaxEnd)) {
-        value = value.slice(BinderSyntaxLength, -BinderSyntaxLength);
-    }
-    let handler;
-    if (name === 'html') handler = htmlDefault;
-    else if (name === 'each') handler = eachDefault;
-    else if (name === 'value') handler = valueDefault;
-    else if (name === 'text') handler = standardDefault;
-    else if (name === 'checked') handler = checkedDefault;
-    else if (name === 'inherit') handler = inheritDefault;
-    else if (name?.startsWith('on')) handler = onDefault;
-    else handler = standardDefault;
-    const binder = {
-        name,
-        value,
-        owner,
-        binders,
-        context,
-        rewrites,
-        meta: {},
-        instance: {},
-        paths: Paths(value),
-        compute: Compute(value),
-        setup: handler.setup,
-        reset: handler.reset,
-        promise: Promise.resolve(),
-        render: function render() {
-            return binder.promise = binder.promise.then(()=>handler.render(binder));
-        }
-    };
-    binder.reset = binder.reset.bind(null, binder);
-    binder.setup = binder?.setup?.bind(null, binder);
-    binder.compute = binder.compute.bind(binder.owner, binder.context, binder.instance);
-    let path, from, to;
-    for (path of binder.paths){
-        for ([from, to] of rewrites){
-            if (path === from) {
-                path = to;
-            } else if (path.startsWith(from + '.')) {
-                path = to + path.slice(from.length);
-            }
-        }
-        if (binders.has(path)) {
-            binders.get(path)?.add(binder);
-        } else {
-            binders.set(path, new Set([
-                binder
-            ]));
-        }
-    }
-    if (!binder.owner.x) {
-        Object.defineProperty(binder.owner, 'x', {
-            value: {}
-        });
-    }
-    Object.defineProperty(binder.owner.x, name, {
-        value: binder
-    });
-    binder.setup?.(binder);
-    await binder.render(binder);
-    return binder;
 };
 const navigators = new Map();
 const transition = async function(options) {
@@ -702,12 +769,25 @@ const ContextEvent = async function([binders, path, event]) {
             }
         }
     }
-    await Promise.all(parents.map(async (binder)=>await binder[event]?.(binder)));
-    await Promise.all(children.map(async (binder)=>await binder[event]?.(binder)));
+    await Promise.all(parents.map(async (binder)=>await binder[event]?.()));
+    await Promise.all(children.map(async (binder)=>await binder[event]?.()));
 };
 const ContextSet = function(binders, path, target, key, value, receiver) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
     const from = Reflect.get(target, key, receiver);
+    if (key === 'length') {
+        ContextResolve([
+            binders,
+            path,
+            'render'
+        ], ContextEvent);
+        ContextResolve([
+            binders,
+            path ? `${path}.${key}` : key,
+            'render'
+        ], ContextEvent);
+        return true;
+    }
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
     if (from && typeof from === 'object') {
@@ -764,10 +844,6 @@ const ContextCreate = function(data, binders, path = '') {
 class XElement extends HTMLElement {
     static observedProperties;
     static navigation = navigation;
-    static syntaxLength = 2;
-    static syntaxEnd = '}}';
-    static syntaxStart = '{{';
-    static syntaxMatch = new RegExp('{{.*?}}');
     static slottedEvent = new Event('slotted');
     static slottingEvent = new Event('slotting');
     static adoptedEvent = new Event('adopted');
@@ -795,6 +871,7 @@ class XElement extends HTMLElement {
     #prepared = false;
     #preparing = false;
     #rewrites = [];
+    #nodes = new Map();
     #binders = new Map();
     #context = ContextCreate({}, this.#binders);
     get b() {
@@ -842,7 +919,7 @@ class XElement extends HTMLElement {
         const promises = [];
         let child = this.shadowRoot?.firstChild;
         while(child){
-            promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, child));
+            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, child));
             child = child.nextSibling;
         }
         const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
@@ -850,23 +927,23 @@ class XElement extends HTMLElement {
             if (slot.assignedNodes) {
                 const nodes = slot.assignedNodes() ?? [];
                 for (const node of nodes){
-                    promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
+                    promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                 }
             } else {
                 const attribute = slot.attributes.getNamedItem('name');
                 if (attribute) {
                     const element = this.querySelector(`[slot="${attribute.value}"`);
                     if (element) {
-                        promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, element));
+                        promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, element));
                         const nodes1 = element.childNodes;
                         for (const node1 of nodes1){
-                            promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node1));
+                            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node1));
                         }
                     }
                 } else {
                     const nodes2 = this.childNodes;
                     for (const node2 of nodes2){
-                        promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node2));
+                        promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node2));
                     }
                 }
             }
@@ -876,13 +953,16 @@ class XElement extends HTMLElement {
         this.#preparing = false;
         this.dispatchEvent(XElement.preparedEvent);
     }
-    async slottedCallback(event) {
-        await this.prepare();
+    async bind() {}
+    async unbind() {}
+    async slottedCallback() {
+        console.log('slottedCallback');
         this.dispatchEvent(XElement.slottingEvent);
         await this.slotted?.();
         this.dispatchEvent(XElement.slottedEvent);
     }
     async connectedCallback() {
+        console.log('connectedCallback');
         await this.prepare();
         this.dispatchEvent(XElement.connectingEvent);
         await this.connected?.();

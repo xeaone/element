@@ -28,8 +28,8 @@ const ContextEvent = async function ([binders, path, event]: [BindersType, PathT
         }
     }
 
-    await Promise.all(parents.map(async (binder) => await binder[event]?.(binder)));
-    await Promise.all(children.map(async (binder) => await binder[event]?.(binder)));
+    await Promise.all(parents.map(async (binder) => await binder[event]?.()));
+    await Promise.all(children.map(async (binder) => await binder[event]?.()));
 };
 
 const ContextSet = function (binders: BindersType, path: PathType, target: any, key: any, value: any, receiver: any) {
@@ -37,6 +37,12 @@ const ContextSet = function (binders: BindersType, path: PathType, target: any, 
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
 
     const from = Reflect.get(target, key, receiver);
+
+    if (key === 'length') {
+        ContextResolve([binders, path, 'render'], ContextEvent);
+        ContextResolve([binders, path ? `${path}.${key}` : key, 'render'], ContextEvent);
+        return true;
+    }
 
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;

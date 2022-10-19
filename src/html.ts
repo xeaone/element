@@ -1,11 +1,9 @@
 import { BinderType } from './types.ts';
-import { BinderHandle } from './binder.ts';
+import { BinderAdd, BinderRemove } from './binder.ts';
 
 const htmlRender = async function (binder: BinderType) {
-    // console.log('html render', binder.owner);
-
-    const data = await binder.compute();
     const tasks = [];
+    const data = await binder.compute();
 
     let fragment: DocumentFragment;
     if (typeof data == 'string') {
@@ -23,13 +21,13 @@ const htmlRender = async function (binder: BinderType) {
     let node = binder.owner.lastChild;
     while (node) {
         binder.owner.removeChild(node);
-        // binder.container.release(node);
+        tasks.push(BinderRemove(binder.binders, node));
         node = binder.owner.lastChild;
     }
 
     let element = fragment.firstChild;
     while (element) {
-        tasks.push(BinderHandle(binder.context, binder.binders, binder.rewrites, element));
+        tasks.push(BinderAdd(binder.context, binder.binders, binder.rewrites, element));
         element = element.nextSibling;
     }
 
@@ -37,15 +35,17 @@ const htmlRender = async function (binder: BinderType) {
     binder.owner.appendChild(fragment);
 };
 
-const htmlReset = function (binder: BinderType) {
-    // console.log('html reset');
+const htmlReset = async function (binder: BinderType) {
+    const tasks = [];
 
     let node = binder.owner.lastChild;
     while (node) {
         binder.owner.removeChild(node);
-        // binder.container.release(node);
+        tasks.push(BinderRemove(binder.binders, node));
         node = binder.owner.lastChild;
     }
+
+    await Promise.all(tasks);
 };
 
 const htmlDefault = { render: htmlRender, reset: htmlReset };

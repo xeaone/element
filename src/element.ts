@@ -1,5 +1,5 @@
-import { BindersType, ContextType, ObservedProperties, RewritesType } from './types.ts';
-import { BinderCreate, BinderHandle } from './binder.ts';
+import { BindersType, ContextType, NodesType, ObservedProperties, RewritesType } from './types.ts';
+import { BinderAdd } from './binder.ts';
 import Navigation from './navigation.ts';
 import Context from './context.ts';
 import { dash } from './tool.ts';
@@ -27,10 +27,6 @@ export default class XElement extends HTMLElement {
     static observedProperties?: ObservedProperties;
 
     static navigation = Navigation;
-    static syntaxLength = 2;
-    static syntaxEnd = '}}';
-    static syntaxStart = '{{';
-    static syntaxMatch = new RegExp('{{.*?}}');
     static slottedEvent = new Event('slotted');
     static slottingEvent = new Event('slotting');
     static adoptedEvent = new Event('adopted');
@@ -62,13 +58,16 @@ export default class XElement extends HTMLElement {
     #prepared = false;
     #preparing = false;
     #rewrites: RewritesType = [];
+    #nodes: NodesType = new Map();
     #binders: BindersType = new Map();
     #context: ContextType = Context({}, this.#binders);
     // #context = Context({}, this.#binders, '', undefined);
     // #context: any = {};
+
     get b() {
         return this.#binders;
     }
+
     get c() {
         return this.#context;
     }
@@ -177,7 +176,7 @@ export default class XElement extends HTMLElement {
 
         let child = this.shadowRoot?.firstChild;
         while (child) {
-            promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, child));
+            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, child));
             child = child.nextSibling;
         }
 
@@ -186,7 +185,7 @@ export default class XElement extends HTMLElement {
             if (slot.assignedNodes) {
                 const nodes = slot.assignedNodes() ?? [];
                 for (const node of nodes) {
-                    promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
+                    promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                 }
             } else {
                 // linkdom work around
@@ -194,16 +193,16 @@ export default class XElement extends HTMLElement {
                 if (attribute) {
                     const element = this.querySelector(`[slot="${attribute.value}"`);
                     if (element) {
-                        promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, element));
+                        promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, element));
                         const nodes = element.childNodes;
                         for (const node of nodes) {
-                            promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
+                            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                         }
                     }
                 } else {
                     const nodes = this.childNodes;
                     for (const node of nodes) {
-                        promises.push(BinderHandle(this.#context, this.#binders, this.#rewrites, node));
+                        promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                     }
                 }
             }
@@ -214,6 +213,12 @@ export default class XElement extends HTMLElement {
         this.#prepared = true;
         this.#preparing = false;
         this.dispatchEvent(XElement.preparedEvent);
+    }
+
+    async bind() {
+    }
+
+    async unbind() {
     }
 
     // async release(node: Node) {
@@ -245,26 +250,16 @@ export default class XElement extends HTMLElement {
     //     await Promise.all(tasks);
     // }
 
-    async slottedCallback(event: Event) {
-        // console.log('slottedCallback');
-        await this.prepare();
+    async slottedCallback() {
+        console.log('slottedCallback');
+        // await this.prepare();
         this.dispatchEvent(XElement.slottingEvent);
-        // console.log(event);
-        // this.dispatchEvent(XElement.slottingEvent);
-        // const promises = [];
-        // const slot = event.target as HTMLSlotElement;
-
-        // const nodes = slot.assignedNodes();
-        // for (const node of nodes) {
-        //     promises.push(BinderHandle(this.#context, this.#binders, node));
-        // }
-
         await (this as any).slotted?.();
         this.dispatchEvent(XElement.slottedEvent);
     }
 
     async connectedCallback() {
-        // console.log('connectedCallback');
+        console.log('connectedCallback');
         await this.prepare();
         this.dispatchEvent(XElement.connectingEvent);
         await (this as any).connected?.();

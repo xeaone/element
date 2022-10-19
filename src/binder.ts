@@ -32,7 +32,7 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
 
     if (type === BinderText) {
         node.textContent = '';
-        // name = 'text';
+        name = 'text';
     }
 
     if (value.startsWith(BinderSyntaxStart) && value.endsWith(BinderSyntaxEnd)) {
@@ -61,24 +61,29 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
         paths: Paths(value),
         compute: Compute(value),
         setup: handler.setup,
-        reset: handler.reset,
-        promise: Promise.resolve(),
-        render: function render() {
-            return binder.promise = binder.promise.then(() => handler.render(binder));
+        resets: Promise.resolve(),
+        renders: Promise.resolve(),
+        reset() {
+            return binder.resets = binder.resets.then(() => handler.reset(binder));
+        },
+        render() {
+            return binder.renders = binder.renders.then(() => handler.render(binder));
         },
     };
 
-    binder.reset = binder.reset.bind(null, binder);
     binder.setup = binder?.setup?.bind(null, binder);
     binder.compute = binder.compute.bind(binder.owner, binder.context, binder.instance);
 
-    let path, from, to;
-    for (path of binder.paths) {
+    let path, from, to, i;
+    const l = binder.paths.length;
+    for (i = 0; i < l; i++) {
+        path = binder.paths[i];
+
         for ([from, to] of rewrites) {
             if (path === from) {
-                path = to;
+                binder.paths[i] = path = to;
             } else if (path.startsWith(from + '.')) {
-                path = to + path.slice(from.length);
+                binder.paths[i] = path = to + path.slice(from.length);
             }
         }
 
@@ -89,29 +94,82 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
         }
     }
 
-    // binder.owner.x = binder.owner.x ?? {};
-    // binder.owner.x[name] = binder;
     if (!binder.owner.x) {
         Object.defineProperty(binder.owner, 'x', { value: {} });
     }
 
-    Object.defineProperty(binder.owner.x, name, { value: binder });
+    Object.defineProperty(binder.owner.x, name, { value: binder, enumerable: true });
 
-    binder.setup?.(binder);
-    await binder.render(binder);
+    await binder.setup?.(binder);
+    await binder.render();
 
     return binder;
 };
 
-export const BinderHandle = async function (context: ContextType, binders: BindersType, rewrites: RewritesType, node: Node) {
+const BinderDestroy = async function (binders: BindersType, node: Node) {
+    await new Promise(function (resolve) {
+        const x: Record<string, BinderType> = (node as any).x;
+
+        if (x?.constructor === Object) {
+            let name, binder, path, current;
+
+            for (name in x) {
+                binder = x[name];
+
+                for (path of binder.paths) {
+                    current = binders.get(path);
+                    current?.delete(binder);
+                    if (current?.size === 0) binders.delete(path);
+                }
+            }
+
+            Reflect.deleteProperty(node, 'x');
+        }
+
+        resolve(undefined);
+    });
+};
+
+export const BinderRemove = async function (binders: BindersType, node: Node) {
     const type = node.nodeType;
-    const bindings = [];
-    const handles = [];
+    const promises = [];
 
     if (type === BinderFragment) {
         let child = node.firstChild;
         while (child) {
-            handles.push(BinderHandle(context, binders, rewrites, child));
+            promises.push(BinderRemove(binders, child));
+            child = child.nextSibling;
+        }
+    } else if (type === BinderText) {
+        const x: Record<string, BinderType> = (node as any).x;
+        if (x) {
+            promises.push(BinderDestroy(binders, node));
+        }
+    } else if (type === BinderElement) {
+        const x: Record<string, BinderType> = (node as any).x;
+
+        if (x) {
+            promises.push(BinderDestroy(binders, node));
+        }
+
+        let child = node.firstChild;
+        while (child) {
+            promises.push(BinderRemove(binders, child));
+            child = child.nextSibling;
+        }
+    }
+
+    await Promise.all(promises);
+};
+
+export const BinderAdd = async function (context: ContextType, binders: BindersType, rewrites: RewritesType, node: Node) {
+    const type = node.nodeType;
+    const promises = [];
+
+    if (type === BinderFragment) {
+        let child = node.firstChild;
+        while (child) {
+            promises.push(BinderAdd(context, binders, rewrites, child));
             child = child.nextSibling;
         }
     } else if (type === BinderText) {
@@ -123,10 +181,10 @@ export const BinderHandle = async function (context: ContextType, binders: Binde
         if (end === -1) return;
 
         if (end + BinderSyntaxLength !== node.nodeValue?.length) {
-            handles.push(BinderHandle(context, binders, rewrites, (node as Text).splitText(end + BinderSyntaxLength)));
-            bindings.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''));
+            promises.push(BinderAdd(context, binders, rewrites, (node as Text).splitText(end + BinderSyntaxLength)));
+            promises.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''));
         } else {
-            bindings.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''), type);
+            promises.push(BinderCreate(context, binders, rewrites, node, BinderText, 'text', node.nodeValue ?? ''), type);
         }
     } else if (type === BinderElement) {
         let each = false;
@@ -136,20 +194,18 @@ export const BinderHandle = async function (context: ContextType, binders: Binde
             const { name, value } = attribute;
             if (value.startsWith(BinderSyntaxStart) && value.endsWith(BinderSyntaxEnd)) {
                 each = name === 'each' || name === 'x-each';
-                bindings.push(BinderCreate(context, binders, rewrites, attribute, BinderAttribute, name, value));
+                promises.push(BinderCreate(context, binders, rewrites, attribute, BinderAttribute, name, value));
             }
         }
 
         if (!each) {
             let child = node.firstChild;
             while (child) {
-                handles.push(BinderHandle(context, binders, rewrites, child));
+                promises.push(BinderAdd(context, binders, rewrites, child));
                 child = child.nextSibling;
             }
         }
     }
 
-    await Promise.all(bindings);
-    // await Promise.all(bindings.map(async (binder) => await binder.render(binder)));
-    await Promise.all(handles);
+    await Promise.all(promises);
 };

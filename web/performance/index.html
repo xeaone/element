@@ -12,7 +12,7 @@
     </template>
 
     <h3><span text="{{count.toLocaleString()}}"></span> bound elements</h3>
-    <input value="{{count = event ? value : count}}" type="number">
+    <input value="{{count = $value ?? count}}" type="number">
     <!-- <input value="{{count = event ? this.valueAsNumber : count}}" type="number"> -->
 
     <br>

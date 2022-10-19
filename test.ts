@@ -1,7 +1,6 @@
 import { assertEquals } from 'https://deno.land/std@0.152.0/testing/asserts.ts';
 import { delay } from 'https://deno.land/std@0.152.0/async/delay.ts';
 import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
-// import { parseHTML } from 'https://esm.sh/linkedom@0.14.14';
 import { parseHTML } from 'https://esm.sh/linkedom@0.14.17';
 
 console.clear();

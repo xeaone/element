@@ -64,13 +64,15 @@ export default class XRoot extends XElement {
     </section>
     `;
 
-    async connectedCallback() {
-        console.log('connected start');
-        if (!this.#rendered && (this.#rendered = true)) this.innerHTML = this.#html;
+    constructor () {
+        super();
         this.shadowRoot.innerHTML = '<slot></slot>';
+    }
+
+    async connectedCallback() {
+        if (!this.hasChildNodes()) this.innerHTML = this.#html;
         await super.connectedCallback();
         if (!this.#highlighted && (this.#highlighted = true)) Highlight();
-        console.log('connected end');
     }
 
     async disconnectedCallback() {

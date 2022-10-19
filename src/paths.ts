@@ -34,7 +34,7 @@ const Cache: Map<string, PathsType> = new Map();
 
 const Paths = function (value: string) {
     const cache = Cache.get(value);
-    if (cache) return cache;
+    if (cache) return [...cache];
 
     const clean = value.replace(StringPattern, '').replace(ArrowFunctionPattern, '').replace(RegularFunctionPattern, '');
     // const assignment = clean.match(AssignmentPattern);
@@ -42,7 +42,7 @@ const Paths = function (value: string) {
 
     Cache.set(value, paths);
 
-    return paths;
+    return [...paths];
 };
 
 export default Paths;

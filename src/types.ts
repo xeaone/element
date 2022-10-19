@@ -4,9 +4,9 @@ export type ComputeType = () => Promise<any> | any;
 
 export type PathType = string;
 export type RewritesType = Array<[string, string]>;
-export type SetupType = (binder: BinderType) => Promise<any> | any;
-export type ResetType = (binder: BinderType) => Promise<any> | any;
-export type RenderType = (binder: BinderType) => Promise<any> | any;
+export type SetupType = (binder: BinderType) => Promise<void> | void;
+export type ResetType = (binder: BinderType) => Promise<void> | void;
+export type RenderType = (binder: BinderType) => Promise<void> | void;
 
 export type ObservedProperties = Array<string>;
 
@@ -27,7 +27,8 @@ export type BinderType = {
     value: string;
     owner: any;
 
-    promise: Promise<void>;
+    resets: Promise<void>;
+    renders: Promise<void>;
 
     // data: any;
 
@@ -36,8 +37,9 @@ export type BinderType = {
     instance: Record<string, any>;
 
     setup?: SetupType;
-    reset: ResetType;
-    render: RenderType;
+    // setup?: () => Promise<void>;
+    reset: () => Promise<void>;
+    render: () => Promise<void>;
 
     paths: PathsType;
     compute: ComputeType;
@@ -46,3 +48,5 @@ export type BinderType = {
 };
 
 export type BindersType = Map<string, Set<BinderType>>;
+
+export type NodesType = Map<Node, Set<BinderType>>;
