@@ -11,8 +11,6 @@ const htmlRender = async function (binder: BinderType) {
         template.innerHTML = data;
         fragment = template.content;
     } else if (data instanceof HTMLTemplateElement) {
-        // const clone = data.cloneNode(true) as HTMLTemplateElement;
-        // fragment = clone.content;
         fragment = data.content.cloneNode(true) as DocumentFragment;
     } else {
         return console.error(`XElement - Html Binder ${binder.name} ${binder.value} requires a string or Template`);
@@ -25,11 +23,13 @@ const htmlRender = async function (binder: BinderType) {
         node = binder.owner.lastChild;
     }
 
-    let element = fragment.firstChild;
-    while (element) {
-        tasks.push(BinderAdd(binder.context, binder.binders, binder.rewrites, element));
-        element = element.nextSibling;
-    }
+    tasks.push(BinderAdd(binder.context, binder.binders, binder.rewrites, fragment));
+
+    // let element = fragment.firstChild;
+    // while (element) {
+    //     tasks.push(BinderAdd(binder.context, binder.binders, binder.rewrites, element));
+    //     element = element.nextSibling;
+    // }
 
     await Promise.all(tasks);
     binder.owner.appendChild(fragment);

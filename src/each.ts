@@ -1,7 +1,7 @@
 import { BinderType, RewritesType } from './types.ts';
 import { BinderAdd, BinderRemove } from './binder.ts';
 
-const eachWhitespace = /\s+/;
+const eachWhitespace = /^\s*$/;
 const eachText = Node.TEXT_NODE;
 
 const eachSetup = function (binder: BinderType) {
@@ -13,7 +13,7 @@ const eachSetup = function (binder: BinderType) {
 
     let node = binder.owner.firstChild;
     while (node) {
-        if (node.nodeType === eachText && eachWhitespace.test(node.nodeValue)) {
+        if (node.nodeType === eachText && node.nodeValue && eachWhitespace.test(node.nodeValue)) {
             binder.owner.removeChild(node);
         } else {
             binder.meta.templateLength++;
@@ -67,7 +67,7 @@ const eachRender = async function (binder: BinderType) {
             binder.meta.currentLength--;
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        let clone, context, rewrites: RewritesType;
+        let clone, first, last, context, rewrites: RewritesType;
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const keyValue = binder.meta.keys?.[binder.meta.currentLength] ?? binder.meta.currentLength;
             const indexValue = binder.meta.currentLength++;
@@ -98,13 +98,19 @@ const eachRender = async function (binder: BinderType) {
                 },
             });
 
-            let node = binder.meta.templateElement.content.firstChild;
-            while (node) {
-                clone = node.cloneNode(true);
-                tasks.push(BinderAdd(context, binder.binders, rewrites, clone));
-                binder.meta.queueElement.content.appendChild(clone);
-                node = node.nextSibling;
-            }
+            clone = binder.meta.templateElement.content.cloneNode(true);
+            first = clone.firstChild;
+            last = clone.lastChild;
+            binder.meta.queueElement.content.appendChild(clone);
+            tasks.push(BinderAdd(context, binder.binders, rewrites, binder.meta.queueElement.content, first, last));
+
+            // let node = binder.meta.templateElement.content.firstChild;
+            // while (node) {
+            //     clone = node.cloneNode(true);
+            //     tasks.push(BinderAdd(context, binder.binders, rewrites, clone));
+            //     binder.meta.queueElement.content.appendChild(clone);
+            //     node = node.nextSibling;
+            // }
         }
     }
 

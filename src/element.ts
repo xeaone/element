@@ -174,39 +174,52 @@ export default class XElement extends HTMLElement {
 
         const promises = [];
 
-        let child = this.shadowRoot?.firstChild;
-        while (child) {
-            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, child));
-            child = child.nextSibling;
-        }
+        if (this.shadowRoot) {
+            const slots = this.shadowRoot.querySelectorAll('slot');
 
-        const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
-        for (const slot of slots) {
-            if (slot.assignedNodes) {
-                const nodes = slot.assignedNodes() ?? [];
+            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, this.shadowRoot));
+
+            for (const slot of slots) {
+                const nodes = slot.assignedNodes();
                 for (const node of nodes) {
                     promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                 }
-            } else {
-                // linkdom work around
-                const attribute = slot.attributes.getNamedItem('name');
-                if (attribute) {
-                    const element = this.querySelector(`[slot="${attribute.value}"`);
-                    if (element) {
-                        promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, element));
-                        const nodes = element.childNodes;
-                        for (const node of nodes) {
-                            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
-                        }
-                    }
-                } else {
-                    const nodes = this.childNodes;
-                    for (const node of nodes) {
-                        promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
-                    }
-                }
             }
         }
+
+        // let child = this.shadowRoot?.firstChild;
+        // while (child) {
+        //     promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, child));
+        //     child = child.nextSibling;
+        // }
+
+        // const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
+        // for (const slot of slots) {
+        //     if (slot.assignedNodes) {
+        //         const nodes = slot.assignedNodes() ?? [];
+        //         for (const node of nodes) {
+        //             promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
+        //         }
+        //     } else {
+        //         // linkdom work around
+        //         const attribute = slot.attributes.getNamedItem('name');
+        //         if (attribute) {
+        //             const element = this.querySelector(`[slot="${attribute.value}"`);
+        //             if (element) {
+        //                 promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, element));
+        //                 const nodes = element.childNodes;
+        //                 for (const node of nodes) {
+        //                     promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
+        //                 }
+        //             }
+        //         } else {
+        //             const nodes = this.childNodes;
+        //             for (const node of nodes) {
+        //                 promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
+        //             }
+        //         }
+        //     }
+        // }
 
         await Promise.all(promises);
 
