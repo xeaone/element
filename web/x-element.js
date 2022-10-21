@@ -433,13 +433,12 @@ const BinderCreate = async function(context, binders, rewrites, node, name, valu
         }
     }
     if (Reflect.has(binder.owner, 'x')) {
-        Reflect.defineProperty(binder.owner.x, name, {
-            value: binder,
-            enumerable: true
-        });
+        Reflect.set(binder.owner.x, name, binder);
     } else {
         Reflect.defineProperty(binder.owner, 'x', {
-            value: {}
+            value: {
+                [name]: binder
+            }
         });
     }
     await binder.setup?.(binder);
@@ -519,7 +518,7 @@ const BinderAdd = async function(context, binders, rewrites, root, first, last) 
     await Promise.all(promises);
 };
 const BinderDestroy = async function(binders, node) {
-    await new Promise(function(resolve) {
+    await Promise.resolve().then(()=>{
         const x = Reflect.get(node, 'x');
         if (x?.constructor === Object) {
             let name, binder, path, current;
@@ -533,7 +532,6 @@ const BinderDestroy = async function(binders, node) {
             }
             Reflect.deleteProperty(node, 'x');
         }
-        resolve(undefined);
     });
 };
 const BinderRemove = async function(binders, root) {

@@ -99,9 +99,10 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
     }
 
     if (Reflect.has(binder.owner, 'x')) {
-        Reflect.defineProperty(binder.owner.x, name, { value: binder, enumerable: true });
+        // Reflect.defineProperty(binder.owner.x, name, { value: binder, enumerable: true });
+        Reflect.set(binder.owner.x, name, binder);
     } else {
-        Reflect.defineProperty(binder.owner, 'x', { value: {} });
+        Reflect.defineProperty(binder.owner, 'x', { value: { [name]: binder } });
     }
 
     await binder.setup?.(binder);
@@ -128,7 +129,6 @@ export const BinderAdd = async function (context: ContextType, binders: BindersT
 
     while (node) {
         if (Reflect.has(node, 'x')) {
-            // console.log(node, (node as any).nodeValue);
             if (first !== last && node === last) break;
             node = walker.nextSibling();
             continue;
@@ -204,7 +204,7 @@ export const BinderAdd = async function (context: ContextType, binders: BindersT
 };
 
 const BinderDestroy = async function (binders: BindersType, node: Node) {
-    await new Promise(function (resolve) {
+    await Promise.resolve().then(() => {
         const x = Reflect.get(node, 'x');
 
         if (x?.constructor === Object) {
@@ -222,8 +222,6 @@ const BinderDestroy = async function (binders: BindersType, node: Node) {
 
             Reflect.deleteProperty(node, 'x');
         }
-
-        resolve(undefined);
     });
 };
 
