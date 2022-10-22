@@ -23,7 +23,6 @@ const standardRender = async function (binder: BinderType) {
 };
 
 const standardReset = function (binder: BinderType) {
-    console.log('text reset');
     if (binder.name == 'text') {
         binder.owner.textContent = '';
     } else if (binder.meta.boolean) {

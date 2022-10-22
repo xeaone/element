@@ -46,22 +46,14 @@ const eachRender = async function (binder: BinderType) {
     }
 
     if (binder.meta.currentLength > binder.meta.targetLength) {
-        // const nodes = binder.owner.childNodes;
-        // const replaces = Array.prototype.slice.call(nodes, 0, binder.meta.targetLength);
-        // Element.prototype.replaceChildren.apply(binder.owner, replaces);
-        // for (let i = binder.meta.currentLength - 1; i < nodes.length; i++) {
-        //     tasks.push(BinderRemove(binder.binders, nodes[i]));
-        // }
-
+        let count, node;
         while (binder.meta.currentLength > binder.meta.targetLength) {
-            let count = binder.meta.templateLength, node;
+            count = binder.meta.templateLength;
 
             while (count--) {
                 node = binder.owner.lastChild;
-                if (node) {
-                    binder.owner.removeChild(node);
-                    tasks.push(BinderRemove(binder.binders, node));
-                }
+                binder.owner.removeChild(node);
+                tasks.push(BinderRemove(binder.binders, node));
             }
 
             binder.meta.currentLength--;
@@ -72,10 +64,7 @@ const eachRender = async function (binder: BinderType) {
             const keyValue = binder.meta.keys?.[binder.meta.currentLength] ?? binder.meta.currentLength;
             const indexValue = binder.meta.currentLength++;
 
-            rewrites = [
-                ...binder.rewrites,
-                [binder.meta.variable, `${binder.meta.path}.${keyValue}`],
-            ];
+            rewrites = [...binder.rewrites, [binder.meta.variable, `${binder.meta.path}.${keyValue}`]];
 
             context = new Proxy(binder.context, {
                 has: function eachHas(target, key) {
@@ -102,15 +91,8 @@ const eachRender = async function (binder: BinderType) {
             first = clone.firstChild;
             last = clone.lastChild;
             binder.meta.queueElement.content.appendChild(clone);
-            tasks.push(BinderAdd(context, binder.binders, rewrites, binder.meta.queueElement.content, first, last));
 
-            // let node = binder.meta.templateElement.content.firstChild;
-            // while (node) {
-            //     clone = node.cloneNode(true);
-            //     tasks.push(BinderAdd(context, binder.binders, rewrites, clone));
-            //     binder.meta.queueElement.content.appendChild(clone);
-            //     node = node.nextSibling;
-            // }
+            tasks.push(BinderAdd(context, binder.binders, rewrites, binder.meta.queueElement.content, first, last));
         }
     }
 

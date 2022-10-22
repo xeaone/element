@@ -2,19 +2,21 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-const Cache = new Map();
-const Compute = function(value) {
-    const cache = Cache.get(value);
+const ComputeNext = Promise.resolve();
+const ComputeCache = new Map();
+const Compute = async function(value) {
+    await ComputeNext;
+    const cache = ComputeCache.get(value);
     if (cache) return cache;
     const code = `
-    with ($context) {
-        with ($instance) {
-            return (${value});
+        with ($context) {
+            with ($instance) {
+                return (${value});
+            }
         }
-    }
-    `;
+        `;
     const method = new Function('$context', '$instance', code);
-    Cache.set(value, method);
+    ComputeCache.set(value, method);
     return method;
 };
 const IgnoreString = `
@@ -44,15 +46,17 @@ const StringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
 const RegularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
 const ArrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
 const ReferenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
-const Cache1 = new Map();
-const Paths = function(value) {
-    const cache = Cache1.get(value);
+const PathsNext = Promise.resolve();
+const PathsCache = new Map();
+const Paths = async function(value) {
+    await PathsNext;
+    const cache = PathsCache.get(value);
     if (cache) return [
         ...cache
     ];
     const clean = value.replace(StringPattern, '').replace(ArrowFunctionPattern, '').replace(RegularFunctionPattern, '');
     const paths = clean.replace(IgnorePattern, '').replace(ReferenceNormalize, '.$2$3').match(ReferencePattern) ?? [];
-    Cache1.set(value, paths);
+    PathsCache.set(value, paths);
     return [
         ...paths
     ];
@@ -139,7 +143,6 @@ const standardRender = async function(binder) {
     }
 };
 const standardReset = function(binder) {
-    console.log('text reset');
     if (binder.name == 'text') {
         binder.owner.textContent = '';
     } else if (binder.meta.boolean) {
@@ -373,7 +376,9 @@ const BinderSyntaxAttribute = 'x-';
 const BinderText = Node.TEXT_NODE;
 const BinderElement = Node.ELEMENT_NODE;
 const BinderFragment = Node.DOCUMENT_FRAGMENT_NODE;
+const BinderNext = Promise.resolve();
 const BinderCreate = async function(context, binders, rewrites, node, name, value) {
+    await BinderNext;
     if (value.startsWith(BinderSyntaxOpen) && value.endsWith(BinderSyntaxClose)) {
         value = value.slice(BinderSyntaxLength, -BinderSyntaxLength);
     }
@@ -386,17 +391,21 @@ const BinderCreate = async function(context, binders, rewrites, node, name, valu
     else if (name === 'inherit') handler = inheritDefault;
     else if (name?.startsWith('on')) handler = onDefault;
     else handler = standardDefault;
+    const [paths, compute] = await Promise.all([
+        Paths(value),
+        Compute(value), 
+    ]);
     const binder = {
         name,
         value,
         binders,
         context,
         rewrites,
+        paths,
+        compute,
         meta: {},
         instance: {},
         owner: node,
-        paths: Paths(value),
-        compute: Compute(value),
         setup: handler.setup,
         resets: Promise.resolve(),
         renders: Promise.resolve(),
@@ -518,21 +527,20 @@ const BinderAdd = async function(context, binders, rewrites, root, first, last) 
     await Promise.all(promises);
 };
 const BinderDestroy = async function(binders, node) {
-    await Promise.resolve().then(()=>{
-        const x = Reflect.get(node, 'x');
-        if (x?.constructor === Object) {
-            let name, binder, path, current;
-            for(name in x){
-                binder = x[name];
-                for (path of binder.paths){
-                    current = binders.get(path);
-                    current?.delete(binder);
-                    if (current?.size === 0) binders.delete(path);
-                }
+    await BinderNext;
+    const x = Reflect.get(node, 'x');
+    if (x?.constructor === Object) {
+        let name, binder, path, current;
+        for(name in x){
+            binder = x[name];
+            for (path of binder.paths){
+                current = binders.get(path);
+                current?.delete(binder);
+                if (current?.size === 0) binders.delete(path);
             }
-            Reflect.deleteProperty(node, 'x');
         }
-    });
+        Reflect.deleteProperty(node, 'x');
+    }
 };
 const BinderRemove = async function(binders, root) {
     let node;
@@ -633,14 +641,13 @@ const eachRender = async function(binder) {
         console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
     }
     if (binder.meta.currentLength > binder.meta.targetLength) {
+        let count, node;
         while(binder.meta.currentLength > binder.meta.targetLength){
-            let count = binder.meta.templateLength, node;
+            count = binder.meta.templateLength;
             while(count--){
                 node = binder.owner.lastChild;
-                if (node) {
-                    binder.owner.removeChild(node);
-                    tasks.push(BinderRemove(binder.binders, node));
-                }
+                binder.owner.removeChild(node);
+                tasks.push(BinderRemove(binder.binders, node));
             }
             binder.meta.currentLength--;
         }
@@ -654,7 +661,7 @@ const eachRender = async function(binder) {
                 [
                     binder.meta.variable,
                     `${binder.meta.path}.${keyValue}`
-                ], 
+                ]
             ];
             context = new Proxy(binder.context, {
                 has: function eachHas(target, key) {
@@ -760,7 +767,7 @@ function navigation(path, file, options = {}) {
     navigate();
     window.navigation.addEventListener('navigate', navigate);
 }
-const Cache2 = new WeakMap();
+const Cache = new WeakMap();
 const ContextResolve = async function(item, method) {
     await Promise.resolve(item).then(method);
 };
@@ -803,9 +810,9 @@ const ContextSet = function(binders, path, target, key, value, receiver) {
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
     if (from && typeof from === 'object') {
-        const cache = Cache2.get(from);
+        const cache = Cache.get(from);
         if (cache === value) return true;
-        Cache2.delete(from);
+        Cache.delete(from);
     }
     Reflect.set(target, key, value, receiver);
     path = path ? `${path}.${key}` : key;
@@ -821,14 +828,14 @@ const ContextGet = function(binders, path, target, key, receiver) {
     const value = Reflect.get(target, key, receiver);
     if (value && typeof value === 'object') {
         path = path ? `${path}.${key}` : key;
-        const cache = Cache2.get(value);
+        const cache = Cache.get(value);
         if (cache) return cache;
         const proxy = new Proxy(value, {
             get: ContextGet.bind(null, binders, path),
             set: ContextSet.bind(null, binders, path),
             deleteProperty: ContextDelete.bind(null, binders, path)
         });
-        Cache2.set(value, proxy);
+        Cache.set(value, proxy);
         return proxy;
     }
     return value;
@@ -836,7 +843,7 @@ const ContextGet = function(binders, path, target, key, receiver) {
 const ContextDelete = function(binders, path, target, key) {
     if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
     const from = Reflect.get(target, key);
-    Cache2.delete(from);
+    Cache.delete(from);
     Reflect.deleteProperty(target, key);
     path = path ? `${path}.${key}` : key;
     ContextResolve([
@@ -852,6 +859,44 @@ const ContextCreate = function(data, binders, path = '') {
         set: ContextSet.bind(null, binders, path),
         deleteProperty: ContextDelete.bind(null, binders, path)
     });
+};
+class VNode {
+    node;
+    name;
+    children = new Set();
+    attributes = new Map();
+    constructor(node){
+        this.node = node;
+        this.name = node.nodeName.toLowerCase();
+        if (node.nodeType === Node.ELEMENT_NODE && node.hasAttributes()) {
+            for (const attribute of node.attributes){
+                this.attributes.set(attribute.name, attribute.value);
+            }
+        }
+    }
+    append(node) {
+        this.children.add(node);
+    }
+}
+const Virtualize = function(root) {
+    let child = root.firstChild;
+    const source = new VNode(root);
+    const target = new VNode(root);
+    while(child){
+        if (child.nodeType === Node.ELEMENT_NODE && child.hasChildNodes()) {
+            const virtual = Virtualize(child);
+            source.append(virtual.source);
+            target.append(virtual.target);
+        } else {
+            source.append(new VNode(child));
+            target.append(new VNode(child));
+        }
+        child = child.nextSibling;
+    }
+    return {
+        source,
+        target
+    };
 };
 class XElement extends HTMLElement {
     static observedProperties;
@@ -931,6 +976,8 @@ class XElement extends HTMLElement {
         const promises = [];
         if (this.shadowRoot) {
             const slots = this.shadowRoot.querySelectorAll('slot');
+            globalThis.virtual = Virtualize(this.shadowRoot);
+            console.log(globalThis.virtual);
             promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, this.shadowRoot));
             for (const slot of slots){
                 const nodes = slot.assignedNodes();

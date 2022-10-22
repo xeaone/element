@@ -30,17 +30,20 @@ const ArrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
 const ReferenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
 // const AssignmentPattern = /(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)/;
 
-const Cache: Map<string, PathsType> = new Map();
+const PathsNext = Promise.resolve();
+const PathsCache: Map<string, PathsType> = new Map();
 
-const Paths = function (value: string) {
-    const cache = Cache.get(value);
+const Paths = async function (value: string) {
+    await PathsNext;
+
+    const cache = PathsCache.get(value);
     if (cache) return [...cache];
 
     const clean = value.replace(StringPattern, '').replace(ArrowFunctionPattern, '').replace(RegularFunctionPattern, '');
     // const assignment = clean.match(AssignmentPattern);
     const paths = clean.replace(IgnorePattern, '').replace(ReferenceNormalize, '.$2$3').match(ReferencePattern) ?? [];
 
-    Cache.set(value, paths);
+    PathsCache.set(value, paths);
 
     return [...paths];
 };

@@ -21,6 +21,8 @@ const BinderElement = Node.ELEMENT_NODE;
 // const BinderAttribute = Node.ATTRIBUTE_NODE;
 const BinderFragment = Node.DOCUMENT_FRAGMENT_NODE;
 
+const BinderNext = Promise.resolve();
+
 // const acceptNode = function (node: Node) {
 //     if (node.nodeType === Node.TEXT_NODE && node.nodeValue && BinderSpace.test(node.nodeValue)) {
 //         return NodeFilter.FILTER_REJECT;
@@ -35,6 +37,8 @@ const BinderFragment = Node.DOCUMENT_FRAGMENT_NODE;
 // };
 
 export const BinderCreate = async function (context: ContextType, binders: BindersType, rewrites: RewritesType, node: Node, name: string, value: string) {
+    await BinderNext;
+
     if (value.startsWith(BinderSyntaxOpen) && value.endsWith(BinderSyntaxClose)) {
         value = value.slice(BinderSyntaxLength, -BinderSyntaxLength);
     }
@@ -49,17 +53,22 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
     else if (name?.startsWith('on')) handler = On;
     else handler = Standard;
 
+    const [paths, compute] = await Promise.all([
+        Paths(value),
+        Compute(value),
+    ]);
+
     const binder: BinderType = {
         name,
         value,
         binders,
         context,
         rewrites,
+        paths,
+        compute,
         meta: {},
         instance: {},
         owner: node,
-        paths: Paths(value),
-        compute: Compute(value),
         setup: handler.setup,
         resets: Promise.resolve(),
         renders: Promise.resolve(),
@@ -112,6 +121,8 @@ export const BinderCreate = async function (context: ContextType, binders: Binde
 };
 
 export const BinderAdd = async function (context: ContextType, binders: BindersType, rewrites: RewritesType, root: Node, first?: Node, last?: Node) {
+    // await BinderNext;
+
     let node: Node | null;
 
     const promises = [];
@@ -204,25 +215,26 @@ export const BinderAdd = async function (context: ContextType, binders: BindersT
 };
 
 const BinderDestroy = async function (binders: BindersType, node: Node) {
-    await Promise.resolve().then(() => {
-        const x = Reflect.get(node, 'x');
+    await BinderNext;
+    // await BinderNext.then(function next() {
+    const x = Reflect.get(node, 'x');
 
-        if (x?.constructor === Object) {
-            let name, binder, path, current;
+    if (x?.constructor === Object) {
+        let name, binder, path, current;
 
-            for (name in x) {
-                binder = x[name];
+        for (name in x) {
+            binder = x[name];
 
-                for (path of binder.paths) {
-                    current = binders.get(path);
-                    current?.delete(binder);
-                    if (current?.size === 0) binders.delete(path);
-                }
+            for (path of binder.paths) {
+                current = binders.get(path);
+                current?.delete(binder);
+                if (current?.size === 0) binders.delete(path);
             }
-
-            Reflect.deleteProperty(node, 'x');
         }
-    });
+
+        Reflect.deleteProperty(node, 'x');
+    }
+    // });
 };
 
 export const BinderRemove = async function (binders: BindersType, root: Node) {

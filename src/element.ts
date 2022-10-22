@@ -3,6 +3,7 @@ import { BinderAdd } from './binder.ts';
 import Navigation from './navigation.ts';
 import Context from './context.ts';
 import { dash } from './tool.ts';
+import { Virtualize } from './virtual.ts';
 
 // const DEFINED = new WeakSet();
 // const CE = window.customElements;
@@ -176,6 +177,9 @@ export default class XElement extends HTMLElement {
 
         if (this.shadowRoot) {
             const slots = this.shadowRoot.querySelectorAll('slot');
+
+            // (globalThis as any).virtual = Virtualize(this.shadowRoot) as any;
+            // console.log((globalThis as any).virtual);
 
             promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, this.shadowRoot));
 
