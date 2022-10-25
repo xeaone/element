@@ -11,9 +11,10 @@
         <slot></slot>
     </template>
 
-    <h3>{{count.toLocaleString()}} bound elements</h3>
-    <input value="{{count = $value ?? count}}" type="number">
-    <!-- <input value="{{count = event ? this.valueAsNumber : count}}" type="number"> -->
+    <h3>{{count.toLocaleString()}}</h3>
+    <!-- <h3>{{count.toLocaleString()}} bound elements</h3> -->
+    <!-- <input value="{{count = $value ?? count}}" type="number"> -->
+    <input value="{{count = event ? this.valueAsNumber : count}}" type="number">
 
     <br>
 
@@ -34,6 +35,7 @@
 
     class OLoop extends XElement {
 
+        item = undefined;
         items = [];
         message = '';
         count = 100000;

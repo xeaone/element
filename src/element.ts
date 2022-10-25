@@ -3,7 +3,7 @@ import { BinderAdd } from './binder.ts';
 import Navigation from './navigation.ts';
 import Context from './context.ts';
 import { dash } from './tool.ts';
-import { Virtualize } from './virtual.ts';
+import { Compile, Patch, Virtualize } from './virtual.ts';
 
 // const DEFINED = new WeakSet();
 // const CE = window.customElements;
@@ -173,22 +173,42 @@ export default class XElement extends HTMLElement {
             });
         }
 
-        const promises = [];
+        const promises = [undefined];
 
         if (this.shadowRoot) {
             const slots = this.shadowRoot.querySelectorAll('slot');
 
-            // (globalThis as any).virtual = Virtualize(this.shadowRoot) as any;
-            // console.log((globalThis as any).virtual);
+            const roots = [];
+            const virtual = [];
 
-            promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, this.shadowRoot));
+            for (const node of this.shadowRoot.childNodes) {
+                virtual.push(Virtualize(node));
+                // virtual.push(...Virtualize(node, `[${roots.length}]`));
+                roots.push(node);
+            }
+
+            // promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, this.shadowRoot));
 
             for (const slot of slots) {
                 const nodes = slot.assignedNodes();
                 for (const node of nodes) {
-                    promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
+                    virtual.push(Virtualize(node));
+                    // virtual.push(...Virtualize(node, `[${roots.length}]`));
+                    roots.push(node);
+                    // promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                 }
             }
+
+            const compiled = Compile(virtual);
+            const sources = compiled(this.#context);
+            const targets = compiled(this.#context);
+
+            const l = roots.length;
+            for (let i = 0; i < l; i++) {
+                Patch(sources[i], targets[i], roots[i]);
+            }
+            // sources = targets;
+            // targets = undefined;
         }
 
         // let child = this.shadowRoot?.firstChild;
