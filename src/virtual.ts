@@ -15,6 +15,25 @@ const handler = function (name: string) {
     // else return 'standard';
 };
 
+const escape = function (name: string, value: string) {
+    if (
+        name.startsWith('on') ||
+        name.startsWith('value') ||
+        name.startsWith('each')
+    ) return `"${value}"`;
+
+    if (value) console.log(value);
+
+    return '"' + value
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/^{{/, '"+(')
+        .replace(/}}$/, ')+"')
+        .replace(/{{/g, '"+(')
+        .replace(/}}/g, ')+"')
+        .concat('"');
+};
+
 type VNode = {
     tag: string;
     attributes: Record<string, string>;
@@ -109,25 +128,6 @@ export const Patch = (source: VNode, target: VNode, node: Node) => {
     }
 };
 
-const escape = function (name: string, value: string) {
-    if (
-        name.startsWith('on') ||
-        name.startsWith('value') ||
-        name.startsWith('each')
-    ) return `"${value}"`;
-
-    if (value) console.log(value);
-
-    return '"' + value
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/^{{/, '"+(')
-        .replace(/}}$/, ')+"')
-        .replace(/{{/g, '"+(')
-        .replace(/}}/g, ')+"')
-        .concat('"');
-};
-
 export const Virtualize = function (node: Node): string {
     const nodeType = node.nodeType;
     const nodeName = node.nodeName.toLowerCase();
@@ -136,14 +136,6 @@ export const Virtualize = function (node: Node): string {
 
     if (nodeType === Node.TEXT_NODE) {
         const value = node.nodeValue ?? '';
-        // const value = (node.nodeValue ?? '').replace(/\n/g, '\\n');
-
-        // if (value && value.startsWith('{{') && value.endsWith('}}')) {
-        //     nodeChildren = `[${escape('text', value)}]`;
-        //     // nodeChildren = `[(${value.slice(2, -2)})]`;
-        // } else {
-        //     // nodeChildren = `["${value}"]`;
-        // }
         nodeChildren = `[${escape('text', value)}]`;
     } else if (node.hasChildNodes?.()) {
         let child = node.firstChild;
@@ -160,57 +152,11 @@ export const Virtualize = function (node: Node): string {
     if ((node as Element).hasAttributes?.()) {
         const attributes = (node as Element).attributes;
         for (const { name, value } of attributes) {
-            // if (
-            //     !name.startsWith('on') &&
-            //     !name.startsWith('each') &&
-            //     value && value.startsWith('{{') && value.endsWith('}}')
-            // ) {
-            //     nodeAttributes += `"${name}":(${value.slice(2, -2)}),`;
-            // } else {
-            //     nodeAttributes += `"${name}":"${value}",`;
-            // }
             nodeAttributes += `"${name}":${escape(name, value)},`;
         }
     }
 
     return `$X.node("${nodeName}",{${nodeAttributes}},${nodeChildren})`;
-
-    // need to escape
-    // if (
-    //     nodeType === Node.ELEMENT_NODE
-    // ) {
-    //     // if ((node as Element).hasAttributes?.()) {
-    //     //     const attributes = (node as Element).attributes;
-    //     //     for (const { name, value } of attributes) {
-    //     //         if (value && value.startsWith('{{') && value.endsWith('}}')) {
-    //     //             // const compute = `function () { return (${value?.slice(2, -2)}) }.bind($X.roots${path})`;
-    //     //             const handle = handler(name);
-    //     //             if (!handle) continue;
-    //     //             const compute = `() => (${value?.slice(2, -2)})`;
-    //     //             result.push(`() => $X.${handle}({ owner: $X.roots${path}, name: '${name}', compute: ${compute} })`);
-    //     //         }
-    //     //     }
-    //     // }
-
-    //     if ((node as Element).hasChildNodes?.()) {
-    //         let child = node.firstChild;
-    //         let i = 0;
-    //         while (child) {
-    //             // result.push(...Virtualize(child, `${path}.childNodes[${i++}]`));
-    //             child = child.nextSibling;
-    //         }
-    //     }
-    // } else if (
-    //     nodeType === Node.TEXT_NODE
-    // ) {
-    //     const value = node.textContent;
-    //     if (value && value.startsWith('{{') && value.endsWith('}}')) {
-    //         // const compute = `() => (${value?.slice(2, -2)})`;
-    //         // result.push(`() => $X.standard({ owner: $X.roots${path}, name: 'text', compute: ${compute} })`);
-    //     }
-    // } else {
-    //     throw new Error('v todo');
-    // }
 };
 
 export const Compile = function (virtual: Array<string>) {
