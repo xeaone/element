@@ -78,26 +78,7 @@ const Cache = new WeakMap();
 const ContextResolve = async function(item, method) {
     await Promise.resolve(item).then(method);
 };
-const ContextEvent = async function([binders, path, event]) {
-    const parents = [];
-    const children = [];
-    let key, value, binder;
-    for ([key, value] of binders){
-        if (value) {
-            if (key === path) {
-                for (binder of value){
-                    parents.push(binder);
-                }
-            } else if (key?.startsWith?.(`${path}.`)) {
-                for (binder of value){
-                    children.push(binder);
-                }
-            }
-        }
-    }
-    await Promise.all(parents.map(async (binder)=>await binder[event]?.()));
-    await Promise.all(children.map(async (binder)=>await binder[event]?.()));
-};
+const ContextEvent = async function([binders, path, event]) {};
 const ContextSet = function(binders, path, target, key, value, receiver) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
     const from = Reflect.get(target, key, receiver);
@@ -167,112 +148,181 @@ const ContextCreate = function(data, binders, path = '') {
         deleteProperty: ContextDelete.bind(null, binders, path)
     });
 };
-const vNode = function(tag = '', attributes = {}, children = []) {
-    if (!tag || tag?.constructor !== String) throw new Error('tag String required');
-    if (attributes?.constructor !== Object) throw new Error('attributes Object required');
-    if (children?.constructor !== Array) throw new Error('children Array required');
+const textType = Node.TEXT_NODE;
+const elementType = Node.ELEMENT_NODE;
+const commentType = Node.COMMENT_NODE;
+const cdataType = Node.CDATA_SECTION_NODE;
+Node.DOCUMENT_FRAGMENT_NODE;
+const escape = function(value) {
+    return value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^\s*{{/, '(').replace(/}}\s*$/, ')').replace(/{{/g, '"+(').replace(/}}/g, ')+"');
+};
+const handle = function(name, value) {
+    if (name === '#text') {
+        if (value.startsWith('{{') && value.endsWith('}}')) {
+            return `""+${escape(value)}+""`;
+        } else {
+            return `"${escape(value)}"`;
+        }
+    } else {
+        if (value.startsWith('{{') && value.endsWith('}}')) {
+            if (name.startsWith('on')) {
+                return `"${name}":function(event){return${escape(value)}},`;
+            } else {
+                return `"${name}":""+${escape(value)}+"",`;
+            }
+        } else {
+            return `"${name}":"${escape(value)}",`;
+        }
+    }
+};
+const create = function(tag, type, attributes = {}, children) {
     return {
         tag,
+        type,
         attributes,
         children
     };
 };
-const Render = function(node) {
-    if (typeof node === 'string') {
-        return document.createTextNode(node);
-    } else if (node.tag === '#text') {
-        return document.createTextNode(node.children[0]);
+const render = function(item) {
+    if (typeof item === 'string') {
+        return document.createTextNode(item);
+    } else if (item.tag === '#text') {
+        return document.createTextNode(item.children);
+    } else if (item.tag === '#comment') {
+        return document.createComment(item.children);
+    } else if (item.tag === '#cdata-section') {
+        return document.createCDATASection(item.children);
     } else {
-        const { tag , attributes , children  } = node;
+        const { tag , attributes , children  } = item;
         const element = document.createElement(tag);
-        for(const name in attributes)element.setAttribute(name, attributes[name]);
-        for (const child of children)element.appendChild(Render(child));
+        for(const name in attributes){
+            const value = attributes[name];
+            if (typeof value === 'string') {
+                element.setAttribute(name, attributes[name]);
+            } else {
+                Reflect.set(element, name, value);
+            }
+        }
+        for (const child of children){
+            element.appendChild(render(child));
+        }
         return element;
     }
 };
-const Patch = (source, target, node)=>{
+const patch = function(source, target, node) {
     if (target === undefined) {
+        console.warn('target undefined');
         node.parentNode?.removeChild(node);
         return;
     } else if (typeof source === 'string' || typeof target === 'string') {
+        console.warn('typeof source or target equal string');
         if (source !== target) {
-            node.parentNode?.replaceChild(Render(target), node);
+            node.parentNode?.replaceChild(render(target), node);
         }
-    } else if (source.tag !== target.tag) {
-        node.parentNode?.replaceChild(Render(target), node);
-    } else if (node instanceof Element) {
+    } else if (source.tag !== target.tag || source.type !== target.type) {
+        node.parentNode?.replaceChild(render(target), node);
+    } else if (source.type === textType || target.type === textType || source.type === cdataType || target.type === cdataType || source.type === commentType || target.type === commentType) {
+        if (source.children !== target.children) {
+            node.parentNode?.replaceChild(render(target), node);
+        }
+    } else {
+        if (node.nodeType !== elementType) {
+            throw new Error('wrong type');
+        }
         for(const name in target.attributes){
             const value = target.attributes[name];
-            node.setAttribute(name, value);
+            if (typeof value === 'string') {
+                node.setAttribute(name, value);
+            } else {
+                Reflect.set(node, name, value);
+            }
         }
         for(const name1 in source.attributes){
-            if (!(name1 in target.attributes)) {
+            const value1 = target.attributes[name1];
+            if (typeof value1 !== 'string') {
                 node.removeAttribute(name1);
             }
         }
-        const sourceLength = source.children.length;
-        const targetLength = target.children.length;
+        const targetChildren = target.children;
+        const sourceChildren = source.children;
+        const sourceLength = sourceChildren.length;
+        const targetLength = targetChildren.length;
         const commonLength = Math.min(sourceLength, targetLength);
         for(let index = 0; index < commonLength; index++){
-            Patch(source.children[index], target.children[index], node.childNodes[index]);
+            patch(sourceChildren[index], targetChildren[index], node.childNodes[index]);
         }
         if (sourceLength > targetLength) {
-            for(let index1 = targetLength; index1 < sourceLength; index1++){
+            for(let index1 = targetLength - 1; index1 < sourceLength; index1++){
                 const child = node.lastChild;
                 if (child) node.removeChild(child);
             }
         } else if (sourceLength < targetLength) {
-            for(let index2 = sourceLength; index2 < targetLength; index2++){
+            for(let index2 = sourceLength - 1; index2 < targetLength; index2++){
                 const child1 = target.children[index2];
-                node.appendChild(Render(child1));
+                node.appendChild(render(child1));
             }
         }
     }
 };
-const escape = function(name, value) {
-    if (name.startsWith('on') || name.startsWith('value') || name.startsWith('each')) return `"${value}"`;
-    if (value) console.log(value);
-    return '"' + value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^{{/, '"+(').replace(/}}$/, ')+"').replace(/{{/g, '"+(').replace(/}}/g, ')+"').concat('"');
-};
-const Virtualize = function(node) {
+const tree = function(node) {
     const nodeType = node.nodeType;
+    const nodeValue = node.nodeValue ?? '';
     const nodeName = node.nodeName.toLowerCase();
-    let nodeChildren = '';
-    if (nodeType === Node.TEXT_NODE) {
+    if (nodeType === textType) {
         const value = node.nodeValue ?? '';
-        nodeChildren = `[${escape('text', value)}]`;
-    } else if (node.hasChildNodes?.()) {
-        let child = node.firstChild;
-        while(child){
-            nodeChildren += `${Virtualize(child)},`;
-            child = child.nextSibling;
+        const sChildren = handle(nodeName, value);
+        return [
+            `$create("${nodeName}",${nodeType},{},${sChildren})`,
+            create(nodeName, nodeType, {}, nodeValue), 
+        ];
+    } else if (nodeType === elementType) {
+        let sChildren1 = '';
+        let sAttributes = '';
+        const pChildren = [];
+        const pAttributes = {};
+        if (node.hasChildNodes()) {
+            let child = node.firstChild;
+            while(child){
+                const [stringified, parsed] = tree(child);
+                sChildren1 += `${stringified},`;
+                pChildren.push(parsed);
+                child = child.nextSibling;
+            }
+            sChildren1 = `${sChildren1}`;
         }
-        nodeChildren = `[${nodeChildren}]`;
-    }
-    let nodeAttributes = '';
-    if (node.hasAttributes?.()) {
-        const attributes = node.attributes;
-        for (const { name , value: value1  } of attributes){
-            nodeAttributes += `"${name}":${escape(name, value1)},`;
+        if (node.hasAttributes?.()) {
+            const attributes = node.attributes;
+            for (const { name , value: value1  } of attributes){
+                pAttributes[name] = value1;
+                sAttributes += handle(name, value1);
+            }
         }
+        return [
+            `$create("${nodeName}",${nodeType},{${sAttributes}},[${sChildren1}])`,
+            create(nodeName, nodeType, pAttributes, pChildren), 
+        ];
+    } else if (commentType || cdataType) {
+        return [
+            `$create("${nodeName}",${nodeType},{},${nodeValue})`,
+            create(nodeName, nodeType, {}, nodeValue), 
+        ];
+    } else {
+        throw new Error('Node type not handled');
     }
-    return `$X.node("${nodeName}",{${nodeAttributes}},${nodeChildren})`;
 };
-const Compile = function(virtual) {
+const compile = function(virtual) {
     const code = [
-        'return function Compiled ($context) {',
-        'console.log($X);',
+        'return function Render ($context) {',
+        'console.log($context.count);',
         'with ($context) {',
         'return [',
-        `\t\t\t${virtual.join(',\n\t\t')}`,
+        `\t${virtual.join(',\n\t')}`,
         '];',
         '}}', 
     ].join('\n');
-    return new Function('$X', code)({
-        node: vNode,
-        patch: Patch
-    });
+    return new Function('$create', code)(create);
 };
+const whitespace = /^\s*$/;
 class XElement extends HTMLElement {
     static observedProperties;
     static navigation = navigation;
@@ -306,6 +356,11 @@ class XElement extends HTMLElement {
     #nodes = new Map();
     #binders = new Map();
     #context = ContextCreate({}, this.#binders);
+    #roots;
+    #virtual;
+    #sources;
+    #targets;
+    #render;
     get b() {
         return this.#binders;
     }
@@ -353,26 +408,47 @@ class XElement extends HTMLElement {
         ];
         if (this.shadowRoot) {
             const slots = this.shadowRoot.querySelectorAll('slot');
-            const roots = [];
-            const virtual = [];
+            this.#roots = [];
+            this.#virtual = [];
+            const parsed = [];
+            const stringified = [];
             for (const node of this.shadowRoot.childNodes){
-                virtual.push(Virtualize(node));
-                roots.push(node);
+                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
+                    this.shadowRoot.removeChild(node);
+                } else {
+                    const [s, p] = tree(node);
+                    parsed.push(p);
+                    stringified.push(s);
+                    this.#roots.push(node);
+                }
             }
             for (const slot of slots){
                 const nodes = slot.assignedNodes();
                 for (const node1 of nodes){
-                    virtual.push(Virtualize(node1));
-                    roots.push(node1);
+                    if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace.test(node1.nodeValue)) {
+                        node1?.parentNode?.removeChild(node1);
+                    } else {
+                        const [s1, p1] = tree(node1);
+                        parsed.push(p1);
+                        stringified.push(s1);
+                        this.#roots.push(node1);
+                    }
                 }
             }
-            const compiled = Compile(virtual);
-            const sources = compiled(this.#context);
-            const targets = compiled(this.#context);
-            const l = roots.length;
-            for(let i = 0; i < l; i++){
-                Patch(sources[i], targets[i], roots[i]);
+            this.#sources = parsed;
+            this.#render = compile(stringified);
+            this.#targets = this.#render(this.#context);
+            for(let i = 0; i < this.#roots.length; i++){
+                patch(this.#sources[i], this.#targets[i], this.#roots[i]);
             }
+            this.#sources = this.#targets;
+            setInterval(()=>{
+                this.#targets = this.#render(this.#context);
+                for(let i = 0; i < this.#roots.length; i++){
+                    patch(this.#sources[i], this.#targets[i], this.#roots[i]);
+                }
+                this.#sources = this.#targets;
+            }, 1000);
         }
         await Promise.all(promises);
         this.#prepared = true;

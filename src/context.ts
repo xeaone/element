@@ -9,27 +9,27 @@ const ContextResolve = async function (item: [BindersType, PathType, EventType],
 };
 
 const ContextEvent = async function ([binders, path, event]: [BindersType, PathType, EventType]) {
-    const parents = [];
-    const children = [];
+    // const parents = [];
+    // const children = [];
 
-    let key, value, binder;
+    // let key, value, binder;
 
-    for ([key, value] of binders) {
-        if (value) {
-            if ((key as string) === path) {
-                for (binder of value) {
-                    parents.push(binder);
-                }
-            } else if ((key as string)?.startsWith?.(`${path}.`)) {
-                for (binder of value) {
-                    children.push(binder);
-                }
-            }
-        }
-    }
+    // for ([key, value] of binders) {
+    //     if (value) {
+    //         if ((key as string) === path) {
+    //             for (binder of value) {
+    //                 parents.push(binder);
+    //             }
+    //         } else if ((key as string)?.startsWith?.(`${path}.`)) {
+    //             for (binder of value) {
+    //                 children.push(binder);
+    //             }
+    //         }
+    //     }
+    // }
 
-    await Promise.all(parents.map(async (binder) => await binder[event]?.()));
-    await Promise.all(children.map(async (binder) => await binder[event]?.()));
+    // await Promise.all(parents.map(async (binder) => await binder[event]?.()));
+    // await Promise.all(children.map(async (binder) => await binder[event]?.()));
 };
 
 const ContextSet = function (binders: BindersType, path: PathType, target: any, key: any, value: any, receiver: any) {

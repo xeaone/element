@@ -3,8 +3,9 @@ import { BinderAdd } from './binder.ts';
 import Navigation from './navigation.ts';
 import Context from './context.ts';
 import { dash } from './tool.ts';
-import { Compile, Patch, Virtualize } from './virtual.ts';
+import { compile, patch, tree } from './virtual.ts';
 
+const whitespace = /^\s*$/;
 // const DEFINED = new WeakSet();
 // const CE = window.customElements;
 // Object.defineProperty(window, 'customElements', {
@@ -62,6 +63,12 @@ export default class XElement extends HTMLElement {
     #nodes: NodesType = new Map();
     #binders: BindersType = new Map();
     #context: ContextType = Context({}, this.#binders);
+
+    #roots: any;
+    #virtual: any;
+    #sources: any;
+    #targets: any;
+    #render: any;
     // #context = Context({}, this.#binders, '', undefined);
     // #context: any = {};
 
@@ -177,14 +184,20 @@ export default class XElement extends HTMLElement {
 
         if (this.shadowRoot) {
             const slots = this.shadowRoot.querySelectorAll('slot');
-
-            const roots = [];
-            const virtual = [];
+            this.#roots = [];
+            this.#virtual = [];
+            const parsed = [];
+            const stringified = [];
 
             for (const node of this.shadowRoot.childNodes) {
-                virtual.push(Virtualize(node));
-                // virtual.push(...Virtualize(node, `[${roots.length}]`));
-                roots.push(node);
+                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
+                    this.shadowRoot.removeChild(node);
+                } else {
+                    const [s, p] = tree(node);
+                    parsed.push(p);
+                    stringified.push(s);
+                    this.#roots.push(node);
+                }
             }
 
             // promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, this.shadowRoot));
@@ -192,21 +205,43 @@ export default class XElement extends HTMLElement {
             for (const slot of slots) {
                 const nodes = slot.assignedNodes();
                 for (const node of nodes) {
-                    virtual.push(Virtualize(node));
-                    // virtual.push(...Virtualize(node, `[${roots.length}]`));
-                    roots.push(node);
+                    if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
+                        node?.parentNode?.removeChild(node);
+                    } else {
+                        const [s, p] = tree(node);
+                        parsed.push(p);
+                        stringified.push(s);
+                        this.#roots.push(node);
+                    }
                     // promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                 }
             }
 
-            const compiled = Compile(virtual);
-            const sources = compiled(this.#context);
-            const targets = compiled(this.#context);
+            this.#sources = parsed;
+            this.#render = compile(stringified);
 
-            const l = roots.length;
-            for (let i = 0; i < l; i++) {
-                Patch(sources[i], targets[i], roots[i]);
+            this.#targets = this.#render(this.#context);
+            for (let i = 0; i < this.#roots.length; i++) {
+                patch(this.#sources[i], this.#targets[i], this.#roots[i]);
             }
+            this.#sources = this.#targets;
+
+            setInterval(() => {
+                // setTimeout(() => {
+                this.#targets = this.#render(this.#context);
+                for (let i = 0; i < this.#roots.length; i++) {
+                    patch(this.#sources[i], this.#targets[i], this.#roots[i]);
+                }
+                this.#sources = this.#targets;
+            }, 1000);
+
+            // sources = targets;
+            // targets = compiled(this.#context);
+
+            // for (let i = 0; i < roots.length; i++) {
+            //     Patch(sources[i], targets[i], roots[i]);
+            // }
+
             // sources = targets;
             // targets = undefined;
         }

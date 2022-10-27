@@ -14,7 +14,8 @@
     <h3>{{count.toLocaleString()}}</h3>
     <!-- <h3>{{count.toLocaleString()}} bound elements</h3> -->
     <!-- <input value="{{count = $value ?? count}}" type="number"> -->
-    <input value="{{count = event ? this.valueAsNumber : count}}" type="number">
+    <!-- <input value="{{count = event ? this.valueAsNumber : count}}" type="number"> -->
+    <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number">
 
     <br>
 

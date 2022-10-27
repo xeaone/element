@@ -1,3 +1,12 @@
+// export const walk = function (node: Node, method: (node: Node, result: any) => void) {
+//     if (node.hasChildNodes()) {
+//         let child = node.firstChild;
+//         while (child) {
+//             method(child, walk(child, method));
+//             child = child.nextSibling;
+//         }
+//     }
+// };
 
 export const parseable = function (value: any) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
