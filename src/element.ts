@@ -62,7 +62,9 @@ export default class XElement extends HTMLElement {
     #rewrites: RewritesType = [];
     #nodes: NodesType = new Map();
     #binders: BindersType = new Map();
-    #context: ContextType = Context({}, this.#binders);
+    #context: ContextType = Context({}, this.#change.bind(this));
+
+    #changing = false;
 
     #roots: any;
     #virtual: any;
@@ -86,48 +88,21 @@ export default class XElement extends HTMLElement {
         this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
 
-    // async #change(reference: string, type: string) {
-    //     const parents = [];
-    //     const children = [];
+    #change() {
+        console.log('change');
+        if (this.#changing) return;
+        this.#changing = true;
 
-    //     let key, binder, binders;
+        this.#targets = this.#render(this.#context);
 
-    //     for ([key, binders] of this.#binders) {
-    //         if (binders) {
-    //             if ((key as string) === reference) {
-    //                 for (binder of binders) {
-    //                     parents.push(binder);
-    //                 }
-    //             } else if ((key as string)?.startsWith?.(`${reference}.`)) {
-    //                 for (binder of binders) {
-    //                     children.push(binder);
-    //                 }
-    //             }
-    //         }
-    //     }
+        for (let i = 0; i < this.#roots.length; i++) {
+            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
+        }
 
-    //     await Promise.all(parents.map(async (binder) => await binder[type]?.(binder)));
-    //     await Promise.all(children.map(async (binder) => await binder[type]?.(binder)));
-    // }
+        this.#sources = this.#targets;
 
-    // #remove(node: Node) {
-    //     const binders = this.#binders.get(node);
-    //     if (!binders) return;
-
-    //     let binder, reference;
-    //     for (binder of binders) {
-    //         for (reference of binder.references) {
-    //             if (this.#binders.has(reference)) {
-    //                 binder.reset = undefined;
-    //                 binder.render = undefined;
-    //                 this.#binders.get(reference)?.delete(binder);
-    //                 if (!this.#binders.get(reference)?.size) this.#binders.delete(reference);
-    //             }
-    //         }
-    //     }
-
-    //     this.#binders.delete(node);
-    // }
+        this.#changing = false;
+    }
 
     async prepare() {
         if (this.#prepared) return;
@@ -226,14 +201,19 @@ export default class XElement extends HTMLElement {
             }
             this.#sources = this.#targets;
 
-            setInterval(() => {
-                // setTimeout(() => {
-                this.#targets = this.#render(this.#context);
-                for (let i = 0; i < this.#roots.length; i++) {
-                    patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-                }
-                this.#sources = this.#targets;
-            }, 1000);
+            // let pending = false;
+            // setInterval(() => {
+            //     // setTimeout(() => {
+            //     console.log(pending);
+            //     if (pending) return;
+            //     else pending = true;
+            //     this.#targets = this.#render(this.#context);
+            //     for (let i = 0; i < this.#roots.length; i++) {
+            //         patch(this.#sources[i], this.#targets[i], this.#roots[i]);
+            //     }
+            //     this.#sources = this.#targets;
+            //     pending = false;
+            // }, 1000);
 
             // sources = targets;
             // targets = compiled(this.#context);

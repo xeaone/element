@@ -3,7 +3,6 @@ import { BinderType } from './types.ts';
 const checkedEvent = new Event('input');
 
 const checkedHandler = async function (binder: BinderType, event?: Event) {
-
     binder.instance.event = event;
     binder.instance.$checked = event ? binder.owner.checked : undefined;
 
@@ -16,7 +15,6 @@ const checkedHandler = async function (binder: BinderType, event?: Event) {
         binder.owner.checked = false;
         binder.owner.removeAttribute('checked');
     }
-
 };
 
 const checkedSetup = function (binder: BinderType) {

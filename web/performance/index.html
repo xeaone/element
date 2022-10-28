@@ -11,11 +11,13 @@
         <slot></slot>
     </template>
 
+    <!-- <input type="checkbox" checked="{{count}}"> -->
+
     <h3>{{count.toLocaleString()}}</h3>
     <!-- <h3>{{count.toLocaleString()}} bound elements</h3> -->
     <!-- <input value="{{count = $value ?? count}}" type="number"> -->
     <!-- <input value="{{count = event ? this.valueAsNumber : count}}" type="number"> -->
-    <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number">
+    <input value="{{count}}" oninput="{{console.log(count = this.valueAsNumber)}}" type="number">
 
     <br>
 
@@ -27,7 +29,7 @@
     <div id="raw"></div>
 
     <div each="{{[items,'item']}}">
-        <div class="box" text="{{item}}"></div>
+        <div class="box">{{item}}</div>
     </div>
 </o-loop>
 

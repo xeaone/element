@@ -5,6 +5,26 @@ import Html from './html.ts';
 import Each from './each.ts';
 import On from './on.ts';
 
+import tool from './tool.ts';
+import booleans from './boolean.ts';
+
+// const standardRender = async function (name, value) {
+
+//     if (binder.name == 'text') {
+//         const data = await binder.compute();
+//         binder.owner.textContent = tool.display(data);
+//     } else if (booleans.includes(binder.name)) {
+//         const data = await binder.compute() ? true : false;
+//         if (data) binder.owner.setAttribute(binder.name, '');
+//         else binder.owner.removeAttribute(binder.name);
+//     } else {
+//         let data = await binder.compute();
+//         data = tool.display(data);
+//         binder.owner[binder.name] = data;
+//         binder.owner.setAttribute(binder.name, data ?? '');
+//     }
+// };
+
 type Item = string | {
     tag: string;
     type: number;
@@ -19,16 +39,10 @@ const textType = Node.TEXT_NODE;
 const elementType = Node.ELEMENT_NODE;
 const commentType = Node.COMMENT_NODE;
 const cdataType = Node.CDATA_SECTION_NODE;
-const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
 
-const handler = function (name: string) {
-    if (name === 'html') return 'html';
-    else if (name === 'each') return 'each';
-    // else if (name === 'value') return 'value';
-    else if (name === 'text') return 'standard';
-    // else if (name === 'checked') return 'checked';
-    // else if (name?.startsWith('on')) return 'on';
-    // else return 'standard';
+const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
+
+const each = function () {
 };
 
 const escape = function (value: string) {
@@ -48,11 +62,10 @@ const handle = function (name: string, value: string): string {
         } else {
             return `"${escape(value)}"`;
         }
+    } else if (booleans.includes(name)) {
+        return `...((${escape(value)}) && {"${name}":""}),`;
     } else {
         if (value.startsWith('{{') && value.endsWith('}}')) {
-            // if (name === 'value') {
-            //     return `"value":function(event){return${escape(value)}},`;
-            // } else
             if (name.startsWith('on')) {
                 return `"${name}":function(event){return${escape(value)}},`;
             } else {
@@ -88,9 +101,16 @@ const render = function (item: Item): Node {
         for (const name in attributes) {
             const value = attributes[name];
             if (typeof value === 'string') {
-                element.setAttribute(name, attributes[name]);
+                element.setAttribute(name, value);
+            } else if (typeof value === 'function' && name.startsWith('on')) {
+                if (Reflect.has(element, `x${name}`)) {
+                    element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
+                } else {
+                    Reflect.set(element, `x${name}`, value);
+                    element.addEventListener(name.slice(2), value);
+                }
             } else {
-                Reflect.set(element, name, value);
+                console.warn('value type might be wrong');
             }
         }
 
@@ -133,8 +153,15 @@ export const patch = function (source: Item, target: Item, node: Node): void {
             const value = target.attributes[name];
             if (typeof value === 'string') {
                 (node as Element).setAttribute(name, value);
+            } else if (typeof value === 'function' && name.startsWith('on')) {
+                if (Reflect.has(node, `x${name}`)) {
+                    node.addEventListener(name.slice(2), Reflect.get(node, `x${name}`));
+                } else {
+                    Reflect.set(node, `x${name}`, value);
+                    node.addEventListener(name.slice(2), value);
+                }
             } else {
-                Reflect.set(node, name, value);
+                console.warn('value type might be wrong');
             }
         }
 
@@ -157,12 +184,13 @@ export const patch = function (source: Item, target: Item, node: Node): void {
         }
 
         if (sourceLength > targetLength) { // remove additional nodes
-            for (let index = targetLength - 1; index < sourceLength; index++) {
+            for (let index = targetLength; index < sourceLength; index++) {
                 const child = node.lastChild;
                 if (child) node.removeChild(child);
             }
         } else if (sourceLength < targetLength) { // append additional nodes
-            for (let index = sourceLength - 1; index < targetLength; index++) {
+            // console.log(`append additional nodes: ${sourceLength}, ${targetLength}`);
+            for (let index = sourceLength; index < targetLength; index++) {
                 const child = target.children[index];
                 node.appendChild(render(child));
             }
@@ -176,15 +204,18 @@ export const tree = function (node: Node): [string, Item] {
     const nodeName = node.nodeName.toLowerCase();
 
     if (nodeType === textType) {
-        const value = node.nodeValue ?? '';
-        // if (whitespace.test(value)) return ['[]'];
-
-        const sChildren = handle(nodeName, value);
-
-        return [
-            `$create("${nodeName}",${nodeType},{},${sChildren})`,
-            create(nodeName, nodeType, {}, nodeValue),
-        ];
+        if (whitespace.test(nodeValue)) {
+            return [
+                '',
+                create(nodeName, nodeType, {}, nodeValue),
+            ];
+        } else {
+            const sChildren = handle(nodeName, nodeValue);
+            return [
+                `$create("${nodeName}",${nodeType},{},${sChildren})`,
+                create(nodeName, nodeType, {}, nodeValue),
+            ];
+        }
     } else if (nodeType === elementType) {
         let sChildren = '';
         let sAttributes = '';
@@ -196,7 +227,7 @@ export const tree = function (node: Node): [string, Item] {
 
             while (child) {
                 const [stringified, parsed] = tree(child);
-                sChildren += `${stringified},`;
+                sChildren += stringified ? `${stringified},` : '';
                 pChildren.push(parsed);
                 child = child.nextSibling;
             }
@@ -204,16 +235,34 @@ export const tree = function (node: Node): [string, Item] {
             sChildren = `${sChildren}`;
         }
 
-        if ((node as Element).hasAttributes?.()) {
-            const attributes = (node as Element).attributes;
-            for (const { name, value } of attributes) {
+        if ((node as Element).hasAttributes()) {
+            let hasEach = false;
+
+            const attributes = (node as Element).getAttributeNames();
+            for (const name of attributes) {
+                const value = (node as Element).getAttribute(name) ?? '';
+
+                if (name === 'each') {
+                    hasEach = true;
+                    const [_, items, item, key, index] = value.match(eachParametersPattern) ?? [];
+                    const parameters = item && key && index ? [item, key, index] : item && key ? [item, key] : item ? [item] : [];
+                    sChildren = `(${items}).map((${parameters.join(',')})=>${sChildren})`;
+                } else {
+                    sAttributes += handle(name, value);
+                }
+
                 pAttributes[name] = value;
-                sAttributes += handle(name, value);
             }
+
+            if (!hasEach) {
+                sChildren = `[${sChildren}]`;
+            }
+        } else {
+            sChildren = `[${sChildren}]`;
         }
 
         return [
-            `$create("${nodeName}",${nodeType},{${sAttributes}},[${sChildren}])`,
+            `$create("${nodeName}",${nodeType},{${sAttributes}},${sChildren})`,
             create(nodeName, nodeType, pAttributes, pChildren),
         ];
     } else if (commentType || cdataType) {
@@ -221,23 +270,23 @@ export const tree = function (node: Node): [string, Item] {
             `$create("${nodeName}",${nodeType},{},${nodeValue})`,
             create(nodeName, nodeType, {}, nodeValue),
         ];
-    } else {
-        throw new Error('Node type not handled');
     }
+
+    throw new Error('Node type not handled');
 };
 
 export const compile = function (virtual: Array<string>): Render {
     const code = [
-        'return function Render ($context) {',
-        'console.log($context.count);',
+        'return function Render ($context, $cache) {',
         'with ($context) {',
+        'console.log(count);',
         'return [',
         `\t${virtual.join(',\n\t')}`,
         '];',
         '}}',
     ].join('\n');
 
-    return new Function('$create', code)(create // {
+    return new Function('$cache', '$create', code)(new WeakMap(), create // {
         //     roots,
         //     standard: Standard.render,
         //     checked: Checked.render,

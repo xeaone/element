@@ -75,24 +75,19 @@ function navigation(path, file, options = {}) {
     window.navigation.addEventListener('navigate', navigate);
 }
 const Cache = new WeakMap();
-const ContextResolve = async function(item, method) {
-    await Promise.resolve(item).then(method);
-};
-const ContextEvent = async function([binders, path, event]) {};
-const ContextSet = function(binders, path, target, key, value, receiver) {
+const ContextSet = function(method, path, target, key, value, receiver) {
+    console.log('set:', path, key);
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
     const from = Reflect.get(target, key, receiver);
     if (key === 'length') {
-        ContextResolve([
-            binders,
+        Promise.resolve([
             path,
-            'render'
-        ], ContextEvent);
-        ContextResolve([
-            binders,
+            'set'
+        ]).then(method);
+        Promise.resolve([
             path ? `${path}.${key}` : key,
-            'render'
-        ], ContextEvent);
+            'set'
+        ]).then(method);
         return true;
     }
     if (from === value) return true;
@@ -104,14 +99,13 @@ const ContextSet = function(binders, path, target, key, value, receiver) {
     }
     Reflect.set(target, key, value, receiver);
     path = path ? `${path}.${key}` : key;
-    ContextResolve([
-        binders,
+    Promise.resolve([
         path,
-        'render'
-    ], ContextEvent);
+        'set'
+    ]).then(method);
     return true;
 };
-const ContextGet = function(binders, path, target, key, receiver) {
+const ContextGet = function(method, path, target, key, receiver) {
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
     const value = Reflect.get(target, key, receiver);
     if (value && typeof value === 'object') {
@@ -119,40 +113,86 @@ const ContextGet = function(binders, path, target, key, receiver) {
         const cache = Cache.get(value);
         if (cache) return cache;
         const proxy = new Proxy(value, {
-            get: ContextGet.bind(null, binders, path),
-            set: ContextSet.bind(null, binders, path),
-            deleteProperty: ContextDelete.bind(null, binders, path)
+            get: ContextGet.bind(null, method, path),
+            set: ContextSet.bind(null, method, path),
+            deleteProperty: ContextDelete.bind(null, method, path)
         });
         Cache.set(value, proxy);
         return proxy;
     }
     return value;
 };
-const ContextDelete = function(binders, path, target, key) {
+const ContextDelete = function(method, path, target, key) {
     if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
     const from = Reflect.get(target, key);
     Cache.delete(from);
     Reflect.deleteProperty(target, key);
     path = path ? `${path}.${key}` : key;
-    ContextResolve([
-        binders,
+    Promise.resolve([
         path,
-        'reset'
-    ], ContextEvent);
+        'delete'
+    ]).then(method);
     return true;
 };
-const ContextCreate = function(data, binders, path = '') {
+const ContextCreate = function(data, method, path = '') {
     return new Proxy(data, {
-        get: ContextGet.bind(null, binders, path),
-        set: ContextSet.bind(null, binders, path),
-        deleteProperty: ContextDelete.bind(null, binders, path)
+        get: ContextGet.bind(null, method, path),
+        set: ContextSet.bind(null, method, path),
+        deleteProperty: ContextDelete.bind(null, method, path)
     });
 };
+const booleanDefault = Object.freeze([
+    'allowfullscreen',
+    'async',
+    'autofocus',
+    'autoplay',
+    'checked',
+    'compact',
+    'controls',
+    'declare',
+    'default',
+    'defaultchecked',
+    'defaultmuted',
+    'defaultselected',
+    'defer',
+    'disabled',
+    'draggable',
+    'enabled',
+    'formnovalidate',
+    'indeterminate',
+    'inert',
+    'ismap',
+    'itemscope',
+    'loop',
+    'multiple',
+    'muted',
+    'nohref',
+    'noresize',
+    'noshade',
+    'hidden',
+    'novalidate',
+    'nowrap',
+    'open',
+    'pauseonexit',
+    'readonly',
+    'required',
+    'reversed',
+    'scoped',
+    'seamless',
+    'selected',
+    'sortable',
+    'spellcheck',
+    'translate',
+    'truespeed',
+    'typemustmatch',
+    'visible'
+]);
+const whitespace = /^\s*$/;
 const textType = Node.TEXT_NODE;
 const elementType = Node.ELEMENT_NODE;
 const commentType = Node.COMMENT_NODE;
 const cdataType = Node.CDATA_SECTION_NODE;
-Node.DOCUMENT_FRAGMENT_NODE;
+const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
 const escape = function(value) {
     return value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^\s*{{/, '(').replace(/}}\s*$/, ')').replace(/{{/g, '"+(').replace(/}}/g, ')+"');
 };
@@ -163,6 +203,8 @@ const handle = function(name, value) {
         } else {
             return `"${escape(value)}"`;
         }
+    } else if (booleanDefault.includes(name)) {
+        return `...((${escape(value)}) && {"${name}":""}),`;
     } else {
         if (value.startsWith('{{') && value.endsWith('}}')) {
             if (name.startsWith('on')) {
@@ -198,9 +240,16 @@ const render = function(item) {
         for(const name in attributes){
             const value = attributes[name];
             if (typeof value === 'string') {
-                element.setAttribute(name, attributes[name]);
+                element.setAttribute(name, value);
+            } else if (typeof value === 'function' && name.startsWith('on')) {
+                if (Reflect.has(element, `x${name}`)) {
+                    element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
+                } else {
+                    Reflect.set(element, `x${name}`, value);
+                    element.addEventListener(name.slice(2), value);
+                }
             } else {
-                Reflect.set(element, name, value);
+                console.warn('value type might be wrong');
             }
         }
         for (const child of children){
@@ -233,8 +282,15 @@ const patch = function(source, target, node) {
             const value = target.attributes[name];
             if (typeof value === 'string') {
                 node.setAttribute(name, value);
+            } else if (typeof value === 'function' && name.startsWith('on')) {
+                if (Reflect.has(node, `x${name}`)) {
+                    node.addEventListener(name.slice(2), Reflect.get(node, `x${name}`));
+                } else {
+                    Reflect.set(node, `x${name}`, value);
+                    node.addEventListener(name.slice(2), value);
+                }
             } else {
-                Reflect.set(node, name, value);
+                console.warn('value type might be wrong');
             }
         }
         for(const name1 in source.attributes){
@@ -252,12 +308,12 @@ const patch = function(source, target, node) {
             patch(sourceChildren[index], targetChildren[index], node.childNodes[index]);
         }
         if (sourceLength > targetLength) {
-            for(let index1 = targetLength - 1; index1 < sourceLength; index1++){
+            for(let index1 = targetLength; index1 < sourceLength; index1++){
                 const child = node.lastChild;
                 if (child) node.removeChild(child);
             }
         } else if (sourceLength < targetLength) {
-            for(let index2 = sourceLength - 1; index2 < targetLength; index2++){
+            for(let index2 = sourceLength; index2 < targetLength; index2++){
                 const child1 = target.children[index2];
                 node.appendChild(render(child1));
             }
@@ -269,12 +325,18 @@ const tree = function(node) {
     const nodeValue = node.nodeValue ?? '';
     const nodeName = node.nodeName.toLowerCase();
     if (nodeType === textType) {
-        const value = node.nodeValue ?? '';
-        const sChildren = handle(nodeName, value);
-        return [
-            `$create("${nodeName}",${nodeType},{},${sChildren})`,
-            create(nodeName, nodeType, {}, nodeValue), 
-        ];
+        if (whitespace.test(nodeValue)) {
+            return [
+                '',
+                create(nodeName, nodeType, {}, nodeValue)
+            ];
+        } else {
+            const sChildren = handle(nodeName, nodeValue);
+            return [
+                `$create("${nodeName}",${nodeType},{},${sChildren})`,
+                create(nodeName, nodeType, {}, nodeValue)
+            ];
+        }
     } else if (nodeType === elementType) {
         let sChildren1 = '';
         let sAttributes = '';
@@ -284,45 +346,67 @@ const tree = function(node) {
             let child = node.firstChild;
             while(child){
                 const [stringified, parsed] = tree(child);
-                sChildren1 += `${stringified},`;
+                sChildren1 += stringified ? `${stringified},` : '';
                 pChildren.push(parsed);
                 child = child.nextSibling;
             }
             sChildren1 = `${sChildren1}`;
         }
-        if (node.hasAttributes?.()) {
-            const attributes = node.attributes;
-            for (const { name , value: value1  } of attributes){
-                pAttributes[name] = value1;
-                sAttributes += handle(name, value1);
+        if (node.hasAttributes()) {
+            let hasEach = false;
+            const attributes = node.getAttributeNames();
+            for (const name of attributes){
+                const value = node.getAttribute(name) ?? '';
+                if (name === 'each') {
+                    hasEach = true;
+                    const [_, items, item, key, index] = value.match(eachParametersPattern) ?? [];
+                    const parameters = item && key && index ? [
+                        item,
+                        key,
+                        index
+                    ] : item && key ? [
+                        item,
+                        key
+                    ] : item ? [
+                        item
+                    ] : [];
+                    sChildren1 = `(${items}).map((${parameters.join(',')})=>${sChildren1})`;
+                } else {
+                    sAttributes += handle(name, value);
+                }
+                pAttributes[name] = value;
             }
+            if (!hasEach) {
+                sChildren1 = `[${sChildren1}]`;
+            }
+        } else {
+            sChildren1 = `[${sChildren1}]`;
         }
         return [
-            `$create("${nodeName}",${nodeType},{${sAttributes}},[${sChildren1}])`,
-            create(nodeName, nodeType, pAttributes, pChildren), 
+            `$create("${nodeName}",${nodeType},{${sAttributes}},${sChildren1})`,
+            create(nodeName, nodeType, pAttributes, pChildren)
         ];
     } else if (commentType || cdataType) {
         return [
             `$create("${nodeName}",${nodeType},{},${nodeValue})`,
-            create(nodeName, nodeType, {}, nodeValue), 
+            create(nodeName, nodeType, {}, nodeValue)
         ];
-    } else {
-        throw new Error('Node type not handled');
     }
+    throw new Error('Node type not handled');
 };
 const compile = function(virtual) {
     const code = [
-        'return function Render ($context) {',
-        'console.log($context.count);',
+        'return function Render ($context, $cache) {',
         'with ($context) {',
+        'console.log(count);',
         'return [',
         `\t${virtual.join(',\n\t')}`,
         '];',
-        '}}', 
+        '}}'
     ].join('\n');
-    return new Function('$create', code)(create);
+    return new Function('$cache', '$create', code)(new WeakMap(), create);
 };
-const whitespace = /^\s*$/;
+const whitespace1 = /^\s*$/;
 class XElement extends HTMLElement {
     static observedProperties;
     static navigation = navigation;
@@ -355,7 +439,8 @@ class XElement extends HTMLElement {
     #rewrites = [];
     #nodes = new Map();
     #binders = new Map();
-    #context = ContextCreate({}, this.#binders);
+    #context = ContextCreate({}, this.#change.bind(this));
+    #changing = false;
     #roots;
     #virtual;
     #sources;
@@ -373,6 +458,17 @@ class XElement extends HTMLElement {
             mode: 'open'
         });
         this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
+    }
+    #change() {
+        console.log('change');
+        if (this.#changing) return;
+        this.#changing = true;
+        this.#targets = this.#render(this.#context);
+        for(let i = 0; i < this.#roots.length; i++){
+            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
+        }
+        this.#sources = this.#targets;
+        this.#changing = false;
     }
     async prepare() {
         if (this.#prepared) return;
@@ -413,7 +509,7 @@ class XElement extends HTMLElement {
             const parsed = [];
             const stringified = [];
             for (const node of this.shadowRoot.childNodes){
-                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
+                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace1.test(node.nodeValue)) {
                     this.shadowRoot.removeChild(node);
                 } else {
                     const [s, p] = tree(node);
@@ -425,7 +521,7 @@ class XElement extends HTMLElement {
             for (const slot of slots){
                 const nodes = slot.assignedNodes();
                 for (const node1 of nodes){
-                    if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace.test(node1.nodeValue)) {
+                    if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace1.test(node1.nodeValue)) {
                         node1?.parentNode?.removeChild(node1);
                     } else {
                         const [s1, p1] = tree(node1);
@@ -442,13 +538,6 @@ class XElement extends HTMLElement {
                 patch(this.#sources[i], this.#targets[i], this.#roots[i]);
             }
             this.#sources = this.#targets;
-            setInterval(()=>{
-                this.#targets = this.#render(this.#context);
-                for(let i = 0; i < this.#roots.length; i++){
-                    patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-                }
-                this.#sources = this.#targets;
-            }, 1000);
         }
         await Promise.all(promises);
         this.#prepared = true;
