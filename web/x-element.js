@@ -406,6 +406,27 @@ const compile = function(virtual) {
     ].join('\n');
     return new Function('$cache', '$create', code)(new WeakMap(), create);
 };
+const DEFINED = new WeakSet();
+const CE = window.customElements;
+Object.defineProperty(window, 'customElements', {
+    get: ()=>({
+            define (name, constructor, options) {
+                if (constructor.prototype instanceof XElement && !DEFINED.has(constructor)) {
+                    constructor = new Proxy(constructor, {
+                        construct (target, args, extender) {
+                            const instance = Reflect.construct(target, args, extender);
+                            instance.upgrade();
+                            return instance;
+                        }
+                    });
+                    DEFINED.add(constructor);
+                }
+                CE.define(name, constructor, options);
+            },
+            get: CE.get,
+            whenDefined: CE.whenDefined
+        })
+});
 class XElement extends HTMLElement {
     static observedProperties;
     static navigation = navigation;
@@ -436,7 +457,7 @@ class XElement extends HTMLElement {
     #upgraded = false;
     #upgrading = false;
     #changing = false;
-    #context = ContextCreate({}, this.#change.bind(this));
+    #context = ContextCreate({}, this.render.bind(this));
     #roots;
     #render;
     #sources;
@@ -448,8 +469,7 @@ class XElement extends HTMLElement {
         });
         this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
-    #change() {
-        console.log('change');
+    render() {
         if (this.#changing) return;
         this.#changing = true;
         this.#targets = this.#render(this.#context);
@@ -557,11 +577,4 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.attributedEvent);
     }
 }
-const __default = new Proxy(XElement, {
-    construct (target, args, extender) {
-        const instance = Reflect.construct(target, args, extender);
-        customElements.whenDefined(instance.localName).then(()=>instance.upgrade());
-        return instance;
-    }
-});
-export { __default as default };
+export { XElement as default };

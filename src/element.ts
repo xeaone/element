@@ -5,84 +5,30 @@ import Context from './context.ts';
 import { compile, patch, tree } from './virtual.ts';
 import { dash, whitespace } from './tool.ts';
 
-// const properties = function (self: any) {
-//     const prototype = Object.getPrototypeOf(self);
-//     const descriptors: Record<string, PropertyDescriptor> = {};
-//     const properties: ObservedProperties = (self.constructor as any).observedProperties;
-
-//     if (properties) {
-//         properties.forEach((property) => descriptors[property] = Object.getOwnPropertyDescriptor(self, property) ?? {});
-//     } else {
-//         Object.assign(descriptors, Object.getOwnPropertyDescriptors(self));
-//         Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
-//     }
-
-//     for (const property in descriptors) {
-//         if (
-//             'attributeChangedCallback' === property ||
-//             'disconnectedCallback' === property ||
-//             'connectedCallback' === property ||
-//             'adoptedCallback' === property ||
-//             'slottedCallback' === property ||
-//             'disconnected' === property ||
-//             'constructor' === property ||
-//             'attributed' === property ||
-//             'connected' === property ||
-//             'context' === property ||
-//             'adopted' === property ||
-//             'slotted' === property ||
-//             property.startsWith('#')
-//         ) continue;
-
-//         const descriptor = descriptors[property];
-
-//         if (!descriptor.configurable) continue;
-//         if (descriptor.set) descriptor.set = descriptor.set?.bind(self);
-//         if (descriptor.get) descriptor.get = descriptor.get?.bind(self);
-//         if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(self);
-
-//         Object.defineProperty(Reflect.get(self, 'context'), property, descriptor);
-
-//         Object.defineProperty(self, property, {
-//             enumerable: descriptor.enumerable,
-//             configurable: descriptor.configurable,
-//             get: () => Reflect.get(self, 'context')[property],
-//             set: (value) => Reflect.get(self, 'context')[property] = value,
-//         });
-//     }
-// };
-
 // const NAMES = new WeakMap();
-// const DEFINED = new WeakSet();
-// const CE = window.customElements;
-// Object.defineProperty(window, 'customElements', {
-//     get: () => ({
-//         define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
-//             if (constructor.prototype instanceof XElement && !DEFINED.has(constructor)) {
-//                 constructor = class XDecorator extends constructor {
-//                     constructor() {
-//                         super();
-//                         properties(this);
-//                     }
-//                 };
+const DEFINED = new WeakSet();
+const CE = window.customElements;
+Object.defineProperty(window, 'customElements', {
+    get: () => ({
+        define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
+            if (constructor.prototype instanceof XElement && !DEFINED.has(constructor)) {
+                constructor = new Proxy(constructor, {
+                    construct(target, args, extender) {
+                        const instance = Reflect.construct(target, args, extender);
+                        instance.upgrade();
+                        return instance;
+                    },
+                });
 
-//                 DEFINED.add(constructor);
-//                 NAMES.set(constructor, name);
-
-//                 // console.log(Object.getOwnPropertyDescriptors(constructor.prototype));
-//                 // Object.defineProperties(constructor.prototype, {
-//                 // connected: { value: constructor.prototype.connectedCallback },
-//                 // connectedCallback: { value: XElement.prototype.connectedCallback },
-//                 // });
-
-//                 // } else if (constructor.prototype instanceof XElement) {
-//             }
-//             CE.define(name, constructor, options);
-//         },
-//         get: CE.get,
-//         whenDefined: CE.whenDefined,
-//     }),
-// });
+                DEFINED.add(constructor);
+                // NAMES.set(constructor, name);
+            }
+            CE.define(name, constructor, options);
+        },
+        get: CE.get,
+        whenDefined: CE.whenDefined,
+    }),
+});
 
 class XElement extends HTMLElement {
     static observedProperties?: ObservedProperties;
@@ -119,7 +65,7 @@ class XElement extends HTMLElement {
     #upgraded = false;
     #upgrading = false;
     #changing = false;
-    #context: ContextType = Context({}, this.#change.bind(this));
+    #context: ContextType = Context({}, this.render.bind(this));
 
     #roots: any;
     #render: any;
@@ -136,8 +82,7 @@ class XElement extends HTMLElement {
         this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
 
-    #change() {
-        console.log('change');
+    render() {
         if (this.#changing) return;
         this.#changing = true;
 
@@ -312,20 +257,20 @@ class XElement extends HTMLElement {
     }
 }
 
-// export default XElement;
+export default XElement;
 
-export default new Proxy(XElement, {
-    construct(target, args, extender: any) {
-        // const name = NAMES.get(extender) || NAMES.get(target);
-        // CE.whenDefined(name).then((c) => {
-        //     console.log(Object.getOwnPropertyNames(instance));
-        // });
+// export default new Proxy(XElement, {
+//     construct(target, args, extender: any) {
+//         // const name = NAMES.get(extender) || NAMES.get(target);
+//         // CE.whenDefined(name).then((c) => {
+//         //     console.log(Object.getOwnPropertyNames(instance));
+//         // });
 
-        const instance = Reflect.construct(target, args, extender);
-        customElements.whenDefined(instance.localName).then(() => instance.upgrade());
+//         const instance = Reflect.construct(target, args, extender);
+//         // customElements.whenDefined('o-loop').then((c) => console.log(c));
+//         // console.log(Object.getOwnPropertyNames(instance));
+//         // customElements.whenDefined(instance.localName).then(() => instance.upgrade());
 
-        // console.log(Object.getOwnPropertyNames(instance));
-
-        return instance;
-    },
-});
+//         return instance;
+//     },
+// });

@@ -57,16 +57,6 @@
     import XElement from '../x-element.js';
 
     class OLoop extends XElement {
-        // static observedProperties = {
-        //     number: Number
-        // }
-
-        constructor() {
-            super();
-            // this.shadowRoot.innerHTML = `<slot></slot>`;
-            // this.innerHTML = `<div style="{{'background:blue'}}">Blue</div>`
-            console.log(Object.getOwnPropertyDescriptors(this));
-        }
 
         number = 1;
         boolean = true;
@@ -80,6 +70,12 @@
         items = [];
         message = '';
         count = 100000;
+
+        constructor() {
+            super();
+            // this.shadowRoot.innerHTML = `<slot></slot>`;
+            // this.innerHTML = `<div style="{{'background:blue'}}">Blue</div>`
+        }
 
         raw() {
             console.time('raw');
@@ -115,12 +111,7 @@
         }
     }
 
-
-    customElements.define('o-loop', OLoop);
-    // new OLoop();
-    // customElements.upgrade(document.querySelector('o-loop'));
-
-    // OLoop.define();
+    OLoop.define();
 
 
 </script>
