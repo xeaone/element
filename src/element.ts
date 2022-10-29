@@ -34,16 +34,25 @@ class XElement extends HTMLElement {
     static observedProperties?: ObservedProperties;
 
     static navigation = Navigation;
+
     static slottedEvent = new Event('slotted');
     static slottingEvent = new Event('slotting');
+
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
+
+    static updatedEvent = new Event('updated');
+    static updatingEvent = new Event('updating');
+
     static upgradedEvent = new Event('upgraded');
-    static preparingEvent = new Event('preparing');
+    static upgradingEvent = new Event('upgrading');
+
     static connectedEvent = new Event('connected');
     static connectingEvent = new Event('connecting');
+
     static attributedEvent = new Event('attributed');
     static attributingEvent = new Event('attributing');
+
     static disconnectedEvent = new Event('disconnected');
     static disconnectingEvent = new Event('disconnecting');
 
@@ -62,10 +71,12 @@ class XElement extends HTMLElement {
         return this.#upgraded;
     }
 
+    #updating = false;
+
     #upgraded = false;
     #upgrading = false;
-    #changing = false;
-    #context: ContextType = Context({}, this.render.bind(this));
+
+    #context: ContextType = Context({}, this.update.bind(this));
 
     #roots: any;
     #render: any;
@@ -82,9 +93,11 @@ class XElement extends HTMLElement {
         this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
 
-    render() {
-        if (this.#changing) return;
-        this.#changing = true;
+    update() {
+        if (this.#updating) return;
+
+        this.#updating = true;
+        this.dispatchEvent(XElement.updatingEvent);
 
         this.#targets = this.#render(this.#context);
 
@@ -94,7 +107,8 @@ class XElement extends HTMLElement {
 
         this.#sources = this.#targets;
 
-        this.#changing = false;
+        this.#updating = false;
+        this.dispatchEvent(XElement.updatedEvent);
     }
 
     upgrade() {
@@ -103,7 +117,7 @@ class XElement extends HTMLElement {
         if (this.#upgrading) return new Promise((resolve) => this.addEventListener('upgraded', () => resolve(undefined)));
 
         this.#upgrading = true;
-        this.dispatchEvent(XElement.preparingEvent);
+        this.dispatchEvent(XElement.upgradingEvent);
 
         const prototype = Object.getPrototypeOf(this);
         const descriptors: Record<string, PropertyDescriptor> = {};
