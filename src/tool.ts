@@ -8,6 +8,12 @@
 //     }
 // };
 
+export const whitespace = /^\s*$/;
+export const textType = Node.TEXT_NODE;
+export const elementType = Node.ELEMENT_NODE;
+export const commentType = Node.COMMENT_NODE;
+export const cdataType = Node.CDATA_SECTION_NODE;
+
 export const parseable = function (value: any) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
 };

@@ -1,22 +1,81 @@
-import { BindersType, ContextType, NodesType, ObservedProperties, RewritesType } from './types.ts';
-import { BinderAdd } from './binder.ts';
+import { ContextType, ObservedProperties } from './types.ts';
 import Navigation from './navigation.ts';
 import Context from './context.ts';
-import { dash } from './tool.ts';
-import { compile, patch, tree } from './virtual.ts';
 
-const whitespace = /^\s*$/;
+import { compile, patch, tree } from './virtual.ts';
+import { dash, whitespace } from './tool.ts';
+
+// const properties = function (self: any) {
+//     const prototype = Object.getPrototypeOf(self);
+//     const descriptors: Record<string, PropertyDescriptor> = {};
+//     const properties: ObservedProperties = (self.constructor as any).observedProperties;
+
+//     if (properties) {
+//         properties.forEach((property) => descriptors[property] = Object.getOwnPropertyDescriptor(self, property) ?? {});
+//     } else {
+//         Object.assign(descriptors, Object.getOwnPropertyDescriptors(self));
+//         Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
+//     }
+
+//     for (const property in descriptors) {
+//         if (
+//             'attributeChangedCallback' === property ||
+//             'disconnectedCallback' === property ||
+//             'connectedCallback' === property ||
+//             'adoptedCallback' === property ||
+//             'slottedCallback' === property ||
+//             'disconnected' === property ||
+//             'constructor' === property ||
+//             'attributed' === property ||
+//             'connected' === property ||
+//             'context' === property ||
+//             'adopted' === property ||
+//             'slotted' === property ||
+//             property.startsWith('#')
+//         ) continue;
+
+//         const descriptor = descriptors[property];
+
+//         if (!descriptor.configurable) continue;
+//         if (descriptor.set) descriptor.set = descriptor.set?.bind(self);
+//         if (descriptor.get) descriptor.get = descriptor.get?.bind(self);
+//         if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(self);
+
+//         Object.defineProperty(Reflect.get(self, 'context'), property, descriptor);
+
+//         Object.defineProperty(self, property, {
+//             enumerable: descriptor.enumerable,
+//             configurable: descriptor.configurable,
+//             get: () => Reflect.get(self, 'context')[property],
+//             set: (value) => Reflect.get(self, 'context')[property] = value,
+//         });
+//     }
+// };
+
+// const NAMES = new WeakMap();
 // const DEFINED = new WeakSet();
 // const CE = window.customElements;
 // Object.defineProperty(window, 'customElements', {
 //     get: () => ({
 //         define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
 //             if (constructor.prototype instanceof XElement && !DEFINED.has(constructor)) {
+//                 constructor = class XDecorator extends constructor {
+//                     constructor() {
+//                         super();
+//                         properties(this);
+//                     }
+//                 };
+
 //                 DEFINED.add(constructor);
-//                 Object.defineProperties(constructor.prototype, {
-//                     connected: { value: constructor.prototype.connectedCallback },
-//                     connectedCallback: { value: XElement.prototype.connectedCallback },
-//                 });
+//                 NAMES.set(constructor, name);
+
+//                 // console.log(Object.getOwnPropertyDescriptors(constructor.prototype));
+//                 // Object.defineProperties(constructor.prototype, {
+//                 // connected: { value: constructor.prototype.connectedCallback },
+//                 // connectedCallback: { value: XElement.prototype.connectedCallback },
+//                 // });
+
+//                 // } else if (constructor.prototype instanceof XElement) {
 //             }
 //             CE.define(name, constructor, options);
 //         },
@@ -25,7 +84,7 @@ const whitespace = /^\s*$/;
 //     }),
 // });
 
-export default class XElement extends HTMLElement {
+class XElement extends HTMLElement {
     static observedProperties?: ObservedProperties;
 
     static navigation = Navigation;
@@ -33,7 +92,7 @@ export default class XElement extends HTMLElement {
     static slottingEvent = new Event('slotting');
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
-    static preparedEvent = new Event('prepared');
+    static upgradedEvent = new Event('upgraded');
     static preparingEvent = new Event('preparing');
     static connectedEvent = new Event('connected');
     static connectingEvent = new Event('connecting');
@@ -53,34 +112,23 @@ export default class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
-    get isPrepared() {
-        return this.#prepared;
+    get isUpgraded() {
+        return this.#upgraded;
     }
 
-    #prepared = false;
-    #preparing = false;
-    #rewrites: RewritesType = [];
-    #nodes: NodesType = new Map();
-    #binders: BindersType = new Map();
+    #upgraded = false;
+    #upgrading = false;
+    #changing = false;
     #context: ContextType = Context({}, this.#change.bind(this));
 
-    #changing = false;
-
     #roots: any;
-    #virtual: any;
+    #render: any;
     #sources: any;
     #targets: any;
-    #render: any;
-    // #context = Context({}, this.#binders, '', undefined);
-    // #context: any = {};
 
-    get b() {
-        return this.#binders;
-    }
-
-    get c() {
-        return this.#context;
-    }
+    // get context() {
+    //     return this.#context;
+    // }
 
     constructor() {
         super();
@@ -104,11 +152,12 @@ export default class XElement extends HTMLElement {
         this.#changing = false;
     }
 
-    async prepare() {
-        if (this.#prepared) return;
-        if (this.#preparing) return new Promise((resolve) => this.addEventListener('prepared', () => resolve(undefined)));
+    upgrade() {
+        console.log('upgraded');
+        if (this.#upgraded) return;
+        if (this.#upgrading) return new Promise((resolve) => this.addEventListener('upgraded', () => resolve(undefined)));
 
-        this.#preparing = true;
+        this.#upgrading = true;
         this.dispatchEvent(XElement.preparingEvent);
 
         const prototype = Object.getPrototypeOf(this);
@@ -155,12 +204,9 @@ export default class XElement extends HTMLElement {
             });
         }
 
-        const promises = [undefined];
-
         if (this.shadowRoot) {
-            const slots = this.shadowRoot.querySelectorAll('slot');
             this.#roots = [];
-            this.#virtual = [];
+
             const parsed = [];
             const stringified = [];
 
@@ -175,8 +221,7 @@ export default class XElement extends HTMLElement {
                 }
             }
 
-            // promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, this.shadowRoot));
-
+            const slots = this.shadowRoot.querySelectorAll('slot');
             for (const slot of slots) {
                 const nodes = slot.assignedNodes();
                 for (const node of nodes) {
@@ -188,51 +233,18 @@ export default class XElement extends HTMLElement {
                         stringified.push(s);
                         this.#roots.push(node);
                     }
-                    // promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
                 }
             }
 
             this.#sources = parsed;
             this.#render = compile(stringified);
-
             this.#targets = this.#render(this.#context);
             for (let i = 0; i < this.#roots.length; i++) {
                 patch(this.#sources[i], this.#targets[i], this.#roots[i]);
             }
             this.#sources = this.#targets;
-
-            // let pending = false;
-            // setInterval(() => {
-            //     // setTimeout(() => {
-            //     console.log(pending);
-            //     if (pending) return;
-            //     else pending = true;
-            //     this.#targets = this.#render(this.#context);
-            //     for (let i = 0; i < this.#roots.length; i++) {
-            //         patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-            //     }
-            //     this.#sources = this.#targets;
-            //     pending = false;
-            // }, 1000);
-
-            // sources = targets;
-            // targets = compiled(this.#context);
-
-            // for (let i = 0; i < roots.length; i++) {
-            //     Patch(sources[i], targets[i], roots[i]);
-            // }
-
-            // sources = targets;
-            // targets = undefined;
         }
 
-        // let child = this.shadowRoot?.firstChild;
-        // while (child) {
-        //     promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, child));
-        //     child = child.nextSibling;
-        // }
-
-        // const slots = this.shadowRoot?.querySelectorAll('slot') ?? [];
         // for (const slot of slots) {
         //     if (slot.assignedNodes) {
         //         const nodes = slot.assignedNodes() ?? [];
@@ -260,51 +272,14 @@ export default class XElement extends HTMLElement {
         //     }
         // }
 
-        await Promise.all(promises);
-
-        this.#prepared = true;
-        this.#preparing = false;
-        this.dispatchEvent(XElement.preparedEvent);
+        this.#upgraded = true;
+        this.#upgrading = false;
+        this.dispatchEvent(XElement.upgradedEvent);
     }
-
-    async bind() {
-    }
-
-    async unbind() {
-    }
-
-    // async release(node: Node) {
-    //     const tasks = [];
-
-    //     if (node.nodeType == Node.TEXT_NODE) {
-    //         tasks.push(this.#remove(node));
-    //     } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-    //         let child = node.firstChild;
-    //         while (child) {
-    //             tasks.push(this.release(child));
-    //             child = child.nextSibling;
-    //         }
-    //     } else if (node.nodeType === Node.ELEMENT_NODE) {
-    //         tasks.push(this.#remove(node));
-
-    //         let attribute;
-    //         for (attribute of (node as Element).attributes) {
-    //             tasks.push(this.#remove(attribute));
-    //         }
-
-    //         let child = node.firstChild;
-    //         while (child) {
-    //             tasks.push(this.release(child));
-    //             child = child.nextSibling;
-    //         }
-    //     }
-
-    //     await Promise.all(tasks);
-    // }
 
     async slottedCallback() {
         console.log('slottedCallback');
-        // await this.prepare();
+        // this.upgrade();
         this.dispatchEvent(XElement.slottingEvent);
         await (this as any).slotted?.();
         this.dispatchEvent(XElement.slottedEvent);
@@ -312,7 +287,7 @@ export default class XElement extends HTMLElement {
 
     async connectedCallback() {
         console.log('connectedCallback');
-        await this.prepare();
+        // this.upgrade();
         this.dispatchEvent(XElement.connectingEvent);
         await (this as any).connected?.();
         this.dispatchEvent(XElement.connectedEvent);
@@ -336,3 +311,21 @@ export default class XElement extends HTMLElement {
         this.dispatchEvent(XElement.attributedEvent);
     }
 }
+
+// export default XElement;
+
+export default new Proxy(XElement, {
+    construct(target, args, extender: any) {
+        // const name = NAMES.get(extender) || NAMES.get(target);
+        // CE.whenDefined(name).then((c) => {
+        //     console.log(Object.getOwnPropertyNames(instance));
+        // });
+
+        const instance = Reflect.construct(target, args, extender);
+        customElements.whenDefined(instance.localName).then(() => instance.upgrade());
+
+        // console.log(Object.getOwnPropertyNames(instance));
+
+        return instance;
+    },
+});

@@ -2,6 +2,11 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
+const whitespace = /^\s*$/;
+const textType = Node.TEXT_NODE;
+const elementType = Node.ELEMENT_NODE;
+const commentType = Node.COMMENT_NODE;
+const cdataType = Node.CDATA_SECTION_NODE;
 const parseable = function(value) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
 };
@@ -76,7 +81,6 @@ function navigation(path, file, options = {}) {
 }
 const Cache = new WeakMap();
 const ContextSet = function(method, path, target, key, value, receiver) {
-    console.log('set:', path, key);
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
     const from = Reflect.get(target, key, receiver);
     if (key === 'length') {
@@ -187,24 +191,34 @@ const booleanDefault = Object.freeze([
     'typemustmatch',
     'visible'
 ]);
-const whitespace = /^\s*$/;
-const textType = Node.TEXT_NODE;
-const elementType = Node.ELEMENT_NODE;
-const commentType = Node.COMMENT_NODE;
-const cdataType = Node.CDATA_SECTION_NODE;
-const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
 const escape = function(value) {
     return value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^\s*{{/, '(').replace(/}}\s*$/, ')').replace(/{{/g, '"+(').replace(/}}/g, ')+"');
 };
-const handle = function(name, value) {
-    if (name === '#text') {
-        if (value.startsWith('{{') && value.endsWith('}}')) {
-            return `""+${escape(value)}+""`;
-        } else {
-            return `"${escape(value)}"`;
-        }
-    } else if (booleanDefault.includes(name)) {
-        return `...((${escape(value)}) && {"${name}":""}),`;
+const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
+const eachCompile = function(children, value) {
+    const [_, items, item, key, index] = value.match(eachParametersPattern) ?? [];
+    const parameters = item && key && index ? [
+        item,
+        key,
+        index
+    ] : item && key ? [
+        item,
+        key
+    ] : item ? [
+        item
+    ] : [];
+    return `(${items}).map((${parameters.join(',')})=>${children}).flat()`;
+};
+const textCompile = function(value) {
+    if (value.startsWith('{{') && value.endsWith('}}')) {
+        return `""+${escape(value)}+""`;
+    } else {
+        return `"${escape(value)}"`;
+    }
+};
+const attributeCompile = function(name, value) {
+    if (booleanDefault.includes(name)) {
+        return `"${name}":(${escape(value)}),`;
     } else {
         if (value.startsWith('{{') && value.endsWith('}}')) {
             if (name.startsWith('on')) {
@@ -214,6 +228,35 @@ const handle = function(name, value) {
             }
         } else {
             return `"${name}":"${escape(value)}",`;
+        }
+    }
+};
+const valueRender = function(element, name, value) {
+    Reflect.set(element, name, value);
+    element.setAttribute(name, value);
+};
+const checkedRender = function(element, name, value) {
+    const result = value ? true : false;
+    Reflect.set(element, name, result);
+    if (result) element.setAttribute(name, '');
+    else element.removeAttribute(name);
+};
+const attributesRender = function(element, attributes) {
+    for(const name in attributes){
+        const value = attributes[name];
+        if (name === 'value') {
+            valueRender(element, name, value);
+        } else if (name === 'checked') {
+            checkedRender(element, name, value);
+        } else if (typeof value === 'function' && name.startsWith('on')) {
+            if (Reflect.has(element, `x${name}`)) {
+                element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
+            } else {
+                Reflect.set(element, `x${name}`, value);
+                element.addEventListener(name.slice(2), value);
+            }
+        } else {
+            element.setAttribute(name, value);
         }
     }
 };
@@ -237,24 +280,10 @@ const render = function(item) {
     } else {
         const { tag , attributes , children  } = item;
         const element = document.createElement(tag);
-        for(const name in attributes){
-            const value = attributes[name];
-            if (typeof value === 'string') {
-                element.setAttribute(name, value);
-            } else if (typeof value === 'function' && name.startsWith('on')) {
-                if (Reflect.has(element, `x${name}`)) {
-                    element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
-                } else {
-                    Reflect.set(element, `x${name}`, value);
-                    element.addEventListener(name.slice(2), value);
-                }
-            } else {
-                console.warn('value type might be wrong');
-            }
-        }
         for (const child of children){
             element.appendChild(render(child));
         }
+        attributesRender(element, attributes);
         return element;
     }
 };
@@ -278,27 +307,6 @@ const patch = function(source, target, node) {
         if (node.nodeType !== elementType) {
             throw new Error('wrong type');
         }
-        for(const name in target.attributes){
-            const value = target.attributes[name];
-            if (typeof value === 'string') {
-                node.setAttribute(name, value);
-            } else if (typeof value === 'function' && name.startsWith('on')) {
-                if (Reflect.has(node, `x${name}`)) {
-                    node.addEventListener(name.slice(2), Reflect.get(node, `x${name}`));
-                } else {
-                    Reflect.set(node, `x${name}`, value);
-                    node.addEventListener(name.slice(2), value);
-                }
-            } else {
-                console.warn('value type might be wrong');
-            }
-        }
-        for(const name1 in source.attributes){
-            const value1 = target.attributes[name1];
-            if (typeof value1 !== 'string') {
-                node.removeAttribute(name1);
-            }
-        }
         const targetChildren = target.children;
         const sourceChildren = source.children;
         const sourceLength = sourceChildren.length;
@@ -318,6 +326,15 @@ const patch = function(source, target, node) {
                 node.appendChild(render(child1));
             }
         }
+        attributesRender(node, target.attributes);
+        for(const name in source.attributes){
+            const value = target.attributes[name];
+            if (name.startsWith('on') && typeof value !== 'string') {
+                node.removeAttribute(name);
+            } else if (!(name in target.attributes)) {
+                node.removeAttribute(name);
+            }
+        }
     }
 };
 const tree = function(node) {
@@ -331,13 +348,14 @@ const tree = function(node) {
                 create(nodeName, nodeType, {}, nodeValue)
             ];
         } else {
-            const sChildren = handle(nodeName, nodeValue);
+            const sChildren = textCompile(nodeValue);
             return [
                 `$create("${nodeName}",${nodeType},{},${sChildren})`,
                 create(nodeName, nodeType, {}, nodeValue)
             ];
         }
-    } else if (nodeType === elementType) {
+    }
+    if (nodeType === elementType) {
         let sChildren1 = '';
         let sAttributes = '';
         const pChildren = [];
@@ -350,43 +368,26 @@ const tree = function(node) {
                 pChildren.push(parsed);
                 child = child.nextSibling;
             }
-            sChildren1 = `${sChildren1}`;
+            sChildren1 = `[${sChildren1}]`;
         }
         if (node.hasAttributes()) {
-            let hasEach = false;
             const attributes = node.getAttributeNames();
             for (const name of attributes){
                 const value = node.getAttribute(name) ?? '';
                 if (name === 'each') {
-                    hasEach = true;
-                    const [_, items, item, key, index] = value.match(eachParametersPattern) ?? [];
-                    const parameters = item && key && index ? [
-                        item,
-                        key,
-                        index
-                    ] : item && key ? [
-                        item,
-                        key
-                    ] : item ? [
-                        item
-                    ] : [];
-                    sChildren1 = `(${items}).map((${parameters.join(',')})=>${sChildren1})`;
+                    sChildren1 = eachCompile(sChildren1, value);
                 } else {
-                    sAttributes += handle(name, value);
+                    sAttributes += attributeCompile(name, value);
                 }
                 pAttributes[name] = value;
             }
-            if (!hasEach) {
-                sChildren1 = `[${sChildren1}]`;
-            }
-        } else {
-            sChildren1 = `[${sChildren1}]`;
         }
         return [
-            `$create("${nodeName}",${nodeType},{${sAttributes}},${sChildren1})`,
+            `$create("${nodeName}",${nodeType},{${sAttributes}},${sChildren1 || '[]'})`,
             create(nodeName, nodeType, pAttributes, pChildren)
         ];
-    } else if (commentType || cdataType) {
+    }
+    if (commentType || cdataType) {
         return [
             `$create("${nodeName}",${nodeType},{},${nodeValue})`,
             create(nodeName, nodeType, {}, nodeValue)
@@ -398,7 +399,6 @@ const compile = function(virtual) {
     const code = [
         'return function Render ($context, $cache) {',
         'with ($context) {',
-        'console.log(count);',
         'return [',
         `\t${virtual.join(',\n\t')}`,
         '];',
@@ -406,7 +406,6 @@ const compile = function(virtual) {
     ].join('\n');
     return new Function('$cache', '$create', code)(new WeakMap(), create);
 };
-const whitespace1 = /^\s*$/;
 class XElement extends HTMLElement {
     static observedProperties;
     static navigation = navigation;
@@ -414,7 +413,7 @@ class XElement extends HTMLElement {
     static slottingEvent = new Event('slotting');
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
-    static preparedEvent = new Event('prepared');
+    static upgradedEvent = new Event('upgraded');
     static preparingEvent = new Event('preparing');
     static connectedEvent = new Event('connected');
     static connectingEvent = new Event('connecting');
@@ -431,27 +430,17 @@ class XElement extends HTMLElement {
         name = name ?? dash(this.name);
         return customElements.whenDefined(name);
     }
-    get isPrepared() {
-        return this.#prepared;
+    get isUpgraded() {
+        return this.#upgraded;
     }
-    #prepared = false;
-    #preparing = false;
-    #rewrites = [];
-    #nodes = new Map();
-    #binders = new Map();
-    #context = ContextCreate({}, this.#change.bind(this));
+    #upgraded = false;
+    #upgrading = false;
     #changing = false;
+    #context = ContextCreate({}, this.#change.bind(this));
     #roots;
-    #virtual;
+    #render;
     #sources;
     #targets;
-    #render;
-    get b() {
-        return this.#binders;
-    }
-    get c() {
-        return this.#context;
-    }
     constructor(){
         super();
         if (!this.shadowRoot) this.attachShadow({
@@ -470,10 +459,11 @@ class XElement extends HTMLElement {
         this.#sources = this.#targets;
         this.#changing = false;
     }
-    async prepare() {
-        if (this.#prepared) return;
-        if (this.#preparing) return new Promise((resolve)=>this.addEventListener('prepared', ()=>resolve(undefined)));
-        this.#preparing = true;
+    upgrade() {
+        console.log('upgraded');
+        if (this.#upgraded) return;
+        if (this.#upgrading) return new Promise((resolve)=>this.addEventListener('upgraded', ()=>resolve(undefined)));
+        this.#upgrading = true;
         this.dispatchEvent(XElement.preparingEvent);
         const prototype = Object.getPrototypeOf(this);
         const descriptors = {};
@@ -499,17 +489,12 @@ class XElement extends HTMLElement {
                 set: (value)=>this.#context[property] = value
             });
         }
-        const promises = [
-            undefined
-        ];
         if (this.shadowRoot) {
-            const slots = this.shadowRoot.querySelectorAll('slot');
             this.#roots = [];
-            this.#virtual = [];
             const parsed = [];
             const stringified = [];
             for (const node of this.shadowRoot.childNodes){
-                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace1.test(node.nodeValue)) {
+                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
                     this.shadowRoot.removeChild(node);
                 } else {
                     const [s, p] = tree(node);
@@ -518,10 +503,11 @@ class XElement extends HTMLElement {
                     this.#roots.push(node);
                 }
             }
+            const slots = this.shadowRoot.querySelectorAll('slot');
             for (const slot of slots){
                 const nodes = slot.assignedNodes();
                 for (const node1 of nodes){
-                    if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace1.test(node1.nodeValue)) {
+                    if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace.test(node1.nodeValue)) {
                         node1?.parentNode?.removeChild(node1);
                     } else {
                         const [s1, p1] = tree(node1);
@@ -539,13 +525,10 @@ class XElement extends HTMLElement {
             }
             this.#sources = this.#targets;
         }
-        await Promise.all(promises);
-        this.#prepared = true;
-        this.#preparing = false;
-        this.dispatchEvent(XElement.preparedEvent);
+        this.#upgraded = true;
+        this.#upgrading = false;
+        this.dispatchEvent(XElement.upgradedEvent);
     }
-    async bind() {}
-    async unbind() {}
     async slottedCallback() {
         console.log('slottedCallback');
         this.dispatchEvent(XElement.slottingEvent);
@@ -554,7 +537,6 @@ class XElement extends HTMLElement {
     }
     async connectedCallback() {
         console.log('connectedCallback');
-        await this.prepare();
         this.dispatchEvent(XElement.connectingEvent);
         await this.connected?.();
         this.dispatchEvent(XElement.connectedEvent);
@@ -575,4 +557,11 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.attributedEvent);
     }
 }
-export { XElement as default };
+const __default = new Proxy(XElement, {
+    construct (target, args, extender) {
+        const instance = Reflect.construct(target, args, extender);
+        customElements.whenDefined(instance.localName).then(()=>instance.upgrade());
+        return instance;
+    }
+});
+export { __default as default };

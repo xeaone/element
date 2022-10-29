@@ -1,29 +1,7 @@
-import Standard from './standard.ts';
-import Checked from './checked.ts';
-import Value from './value.ts';
-import Html from './html.ts';
-import Each from './each.ts';
-import On from './on.ts';
+import { ContextType } from './types.ts';
 
-import tool from './tool.ts';
+import { cdataType, commentType, elementType, textType, whitespace } from './tool.ts';
 import booleans from './boolean.ts';
-
-// const standardRender = async function (name, value) {
-
-//     if (binder.name == 'text') {
-//         const data = await binder.compute();
-//         binder.owner.textContent = tool.display(data);
-//     } else if (booleans.includes(binder.name)) {
-//         const data = await binder.compute() ? true : false;
-//         if (data) binder.owner.setAttribute(binder.name, '');
-//         else binder.owner.removeAttribute(binder.name);
-//     } else {
-//         let data = await binder.compute();
-//         data = tool.display(data);
-//         binder.owner[binder.name] = data;
-//         binder.owner.setAttribute(binder.name, data ?? '');
-//     }
-// };
 
 type Item = string | {
     tag: string;
@@ -32,18 +10,7 @@ type Item = string | {
     children: Array<Item | string> | string;
 };
 
-type Render = (context: Record<string, any>) => Array<Item>;
-
-const whitespace = /^\s*$/;
-const textType = Node.TEXT_NODE;
-const elementType = Node.ELEMENT_NODE;
-const commentType = Node.COMMENT_NODE;
-const cdataType = Node.CDATA_SECTION_NODE;
-
-const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
-
-const each = function () {
-};
+type Render = (context: ContextType) => Array<Item>;
 
 const escape = function (value: string) {
     return value
@@ -55,15 +22,24 @@ const escape = function (value: string) {
         .replace(/}}/g, ')+"');
 };
 
-const handle = function (name: string, value: string): string {
-    if (name === '#text') {
-        if (value.startsWith('{{') && value.endsWith('}}')) {
-            return `""+${escape(value)}+""`;
-        } else {
-            return `"${escape(value)}"`;
-        }
-    } else if (booleans.includes(name)) {
-        return `...((${escape(value)}) && {"${name}":""}),`;
+const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
+const eachCompile = function (children: string, value: string): string {
+    const [_, items, item, key, index] = value.match(eachParametersPattern) ?? [];
+    const parameters = item && key && index ? [item, key, index] : item && key ? [item, key] : item ? [item] : [];
+    return `(${items}).map((${parameters.join(',')})=>${children}).flat()`;
+};
+
+const textCompile = function (value: string): string {
+    if (value.startsWith('{{') && value.endsWith('}}')) {
+        return `""+${escape(value)}+""`;
+    } else {
+        return `"${escape(value)}"`;
+    }
+};
+
+const attributeCompile = function (name: string, value: string): string {
+    if (booleans.includes(name)) {
+        return `"${name}":(${escape(value)}),`;
     } else {
         if (value.startsWith('{{') && value.endsWith('}}')) {
             if (name.startsWith('on')) {
@@ -73,6 +49,40 @@ const handle = function (name: string, value: string): string {
             }
         } else {
             return `"${name}":"${escape(value)}",`;
+        }
+    }
+};
+const valueRender = function (element: Element, name: any, value: any) {
+    // Reflect.set(element, name, `${value}`);
+    // console.log(element, 'stringify:', JSON.stringify(value));
+    // console.log(element, 'raw:', value, typeof value);
+    Reflect.set(element, name, value);
+    element.setAttribute(name, value);
+};
+
+const checkedRender = function (element: Element, name: any, value: any) {
+    const result = value ? true : false;
+    Reflect.set(element, name, result);
+    if (result) element.setAttribute(name, '');
+    else element.removeAttribute(name);
+};
+
+const attributesRender = function (element: Element, attributes: any) {
+    for (const name in attributes) {
+        const value = attributes[name];
+        if (name === 'value') {
+            valueRender(element, name, value);
+        } else if (name === 'checked') {
+            checkedRender(element, name, value);
+        } else if (typeof value === 'function' && name.startsWith('on')) {
+            if (Reflect.has(element, `x${name}`)) {
+                element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
+            } else {
+                Reflect.set(element, `x${name}`, value);
+                element.addEventListener(name.slice(2), value);
+            }
+        } else {
+            element.setAttribute(name, value);
         }
     }
 };
@@ -98,25 +108,11 @@ const render = function (item: Item): Node {
         const { tag, attributes, children } = item;
         const element = document.createElement(tag);
 
-        for (const name in attributes) {
-            const value = attributes[name];
-            if (typeof value === 'string') {
-                element.setAttribute(name, value);
-            } else if (typeof value === 'function' && name.startsWith('on')) {
-                if (Reflect.has(element, `x${name}`)) {
-                    element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
-                } else {
-                    Reflect.set(element, `x${name}`, value);
-                    element.addEventListener(name.slice(2), value);
-                }
-            } else {
-                console.warn('value type might be wrong');
-            }
-        }
-
         for (const child of children) {
             element.appendChild(render(child));
         }
+
+        attributesRender(element, attributes);
 
         return element;
     }
@@ -149,29 +145,6 @@ export const patch = function (source: Item, target: Item, node: Node): void {
             throw new Error('wrong type');
         }
 
-        for (const name in target.attributes) {
-            const value = target.attributes[name];
-            if (typeof value === 'string') {
-                (node as Element).setAttribute(name, value);
-            } else if (typeof value === 'function' && name.startsWith('on')) {
-                if (Reflect.has(node, `x${name}`)) {
-                    node.addEventListener(name.slice(2), Reflect.get(node, `x${name}`));
-                } else {
-                    Reflect.set(node, `x${name}`, value);
-                    node.addEventListener(name.slice(2), value);
-                }
-            } else {
-                console.warn('value type might be wrong');
-            }
-        }
-
-        for (const name in source.attributes) {
-            const value = target.attributes[name];
-            if (typeof value !== 'string') {
-                (node as Element).removeAttribute(name);
-            }
-        }
-
         const targetChildren = target.children;
         const sourceChildren = source.children;
         const sourceLength = sourceChildren.length;
@@ -195,6 +168,17 @@ export const patch = function (source: Item, target: Item, node: Node): void {
                 node.appendChild(render(child));
             }
         }
+
+        attributesRender(node as Element, target.attributes);
+
+        for (const name in source.attributes) {
+            const value = target.attributes[name];
+            if (name.startsWith('on') && typeof value !== 'string') {
+                (node as Element).removeAttribute(name);
+            } else if (!(name in target.attributes)) {
+                (node as Element).removeAttribute(name);
+            }
+        }
     }
 };
 
@@ -210,13 +194,15 @@ export const tree = function (node: Node): [string, Item] {
                 create(nodeName, nodeType, {}, nodeValue),
             ];
         } else {
-            const sChildren = handle(nodeName, nodeValue);
+            const sChildren = textCompile(nodeValue);
             return [
                 `$create("${nodeName}",${nodeType},{},${sChildren})`,
                 create(nodeName, nodeType, {}, nodeValue),
             ];
         }
-    } else if (nodeType === elementType) {
+    }
+
+    if (nodeType === elementType) {
         let sChildren = '';
         let sAttributes = '';
         const pChildren = [];
@@ -232,40 +218,31 @@ export const tree = function (node: Node): [string, Item] {
                 child = child.nextSibling;
             }
 
-            sChildren = `${sChildren}`;
+            sChildren = `[${sChildren}]`;
         }
 
         if ((node as Element).hasAttributes()) {
-            let hasEach = false;
-
             const attributes = (node as Element).getAttributeNames();
             for (const name of attributes) {
                 const value = (node as Element).getAttribute(name) ?? '';
 
                 if (name === 'each') {
-                    hasEach = true;
-                    const [_, items, item, key, index] = value.match(eachParametersPattern) ?? [];
-                    const parameters = item && key && index ? [item, key, index] : item && key ? [item, key] : item ? [item] : [];
-                    sChildren = `(${items}).map((${parameters.join(',')})=>${sChildren})`;
+                    sChildren = eachCompile(sChildren, value);
                 } else {
-                    sAttributes += handle(name, value);
+                    sAttributes += attributeCompile(name, value);
                 }
 
                 pAttributes[name] = value;
             }
-
-            if (!hasEach) {
-                sChildren = `[${sChildren}]`;
-            }
-        } else {
-            sChildren = `[${sChildren}]`;
         }
 
         return [
-            `$create("${nodeName}",${nodeType},{${sAttributes}},${sChildren})`,
+            `$create("${nodeName}",${nodeType},{${sAttributes}},${sChildren || '[]'})`,
             create(nodeName, nodeType, pAttributes, pChildren),
         ];
-    } else if (commentType || cdataType) {
+    }
+
+    if (commentType || cdataType) {
         return [
             `$create("${nodeName}",${nodeType},{},${nodeValue})`,
             create(nodeName, nodeType, {}, nodeValue),
@@ -279,7 +256,7 @@ export const compile = function (virtual: Array<string>): Render {
     const code = [
         'return function Render ($context, $cache) {',
         'with ($context) {',
-        'console.log(count);',
+        // 'console.log("here");',
         'return [',
         `\t${virtual.join(',\n\t')}`,
         '];',

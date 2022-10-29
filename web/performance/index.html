@@ -11,13 +11,33 @@
         <slot></slot>
     </template>
 
-    <!-- <input type="checkbox" checked="{{count}}"> -->
+    <br>
+    <div>{{radioShared}}</div>
+    <input type="radio" name="radio" checked="{{ radioShared === radioOne }}" oninput="{{ radioShared = 'one' }}" />
+    <input type="radio" name="radio" checked="{{ radioShared === radioTwo }}" oninput="{{ radioShared = 'two' }}" />
+    <br>
+
+    <br>
+    <input type="checkbox" checked="{{ count }}" />
+    <input type="checkbox" checked="{{ checked }}" oninput="{{ checked = this.checked }}" />
+    <br>
+
+    <br>
+    <div>{{number}}</div>
+    <select value="{{JSON.stringify(number)}}" oninput="{{number=JSON.parse(this.value)}}">
+        <option value="{{0}}">zero</option>
+        <option value="{{1}}">one</option>
+        <option value="{{2}}">two</option>
+    </select>
+    <div>{{boolean}}</div>
+    <select value="{{boolean}}">
+        <option value="{{true}}">yes</option>
+        <option value="{{false}}">no</option>
+    </select>
+    <br>
 
     <h3>{{count.toLocaleString()}}</h3>
-    <!-- <h3>{{count.toLocaleString()}} bound elements</h3> -->
-    <!-- <input value="{{count = $value ?? count}}" type="number"> -->
-    <!-- <input value="{{count = event ? this.valueAsNumber : count}}" type="number"> -->
-    <input value="{{count}}" oninput="{{console.log(count = this.valueAsNumber)}}" type="number">
+    <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number">
 
     <br>
 
@@ -37,6 +57,24 @@
     import XElement from '../x-element.js';
 
     class OLoop extends XElement {
+        // static observedProperties = {
+        //     number: Number
+        // }
+
+        constructor() {
+            super();
+            // this.shadowRoot.innerHTML = `<slot></slot>`;
+            // this.innerHTML = `<div style="{{'background:blue'}}">Blue</div>`
+            console.log(Object.getOwnPropertyDescriptors(this));
+        }
+
+        number = 1;
+        boolean = true;
+
+        checked = false;
+        radioShared = '';
+        radioOne = 'one';
+        radioTwo = 'two';
 
         item = undefined;
         items = [];
@@ -68,14 +106,21 @@
         clear() {
             this.items = [];
         }
-        // async connected() {
-        // async connectedCallback() {
-        // await super.connectedCallback();
-        // this.shadowRoot.innerHTML = '<slot></slot>';
-        // console.log('child');
-        // }
+        async connected() {
+        }
+        async connectedCallback() {
+            console.log('before connected');
+            await super.connectedCallback();
+            console.log('after connected');
+        }
     }
 
-    OLoop.define();
+
+    customElements.define('o-loop', OLoop);
+    // new OLoop();
+    // customElements.upgrade(document.querySelector('o-loop'));
+
+    // OLoop.define();
+
 
 </script>

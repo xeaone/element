@@ -1,39 +1,9 @@
-import { BindersType, ContextType, PathType } from './types.ts';
-
-// type EventType = 'render' | 'reset';
+import { ChangeType, ContextType, PathType } from './types.ts';
 
 const Cache = new WeakMap();
 
-// const ContextResolve = async function (item: [BindersType, PathType, EventType], method: typeof ContextEvent) {
-//     await Promise.resolve(item).then(method);
-// };
-
-// const ContextEvent = async function ([binders, path, event]: [BindersType, PathType, EventType]) {
-// const parents = [];
-// const children = [];
-
-// let key, value, binder;
-
-// for ([key, value] of binders) {
-//     if (value) {
-//         if ((key as string) === path) {
-//             for (binder of value) {
-//                 parents.push(binder);
-//             }
-//         } else if ((key as string)?.startsWith?.(`${path}.`)) {
-//             for (binder of value) {
-//                 children.push(binder);
-//             }
-//         }
-//     }
-// }
-
-// await Promise.all(parents.map(async (binder) => await binder[event]?.()));
-// await Promise.all(children.map(async (binder) => await binder[event]?.()));
-// };
-
-const ContextSet = function (method: any, path: PathType, target: any, key: any, value: any, receiver: any) {
-    console.log('set:', path, key);
+const ContextSet = function (method: ChangeType, path: PathType, target: any, key: any, value: any, receiver: any) {
+    // console.log('set:', path, key);
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
 
     const from = Reflect.get(target, key, receiver);
@@ -61,7 +31,7 @@ const ContextSet = function (method: any, path: PathType, target: any, key: any,
     return true;
 };
 
-const ContextGet = function (method: any, path: PathType, target: any, key: any, receiver: any): any {
+const ContextGet = function (method: ChangeType, path: PathType, target: any, key: any, receiver: any): any {
     // console.log('get:', path, key);
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
 
@@ -87,7 +57,7 @@ const ContextGet = function (method: any, path: PathType, target: any, key: any,
     return value;
 };
 
-const ContextDelete = function (method: any, path: PathType, target: any, key: any) {
+const ContextDelete = function (method: ChangeType, path: PathType, target: any, key: any) {
     if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
 
     const from = Reflect.get(target, key);
@@ -101,7 +71,7 @@ const ContextDelete = function (method: any, path: PathType, target: any, key: a
     return true;
 };
 
-const ContextCreate = function (data: ContextType, method: any, path: PathType = '') {
+const ContextCreate = function (data: ContextType, method: ChangeType, path: PathType = '') {
     return new Proxy(data, {
         get: ContextGet.bind(null, method, path),
         set: ContextSet.bind(null, method, path),
