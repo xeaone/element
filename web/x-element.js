@@ -112,7 +112,7 @@ const ContextSet = function(method, path, target, key, value, receiver) {
 const ContextGet = function(method, path, target, key, receiver) {
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
     const value = Reflect.get(target, key, receiver);
-    if (value && typeof value === 'object') {
+    if (value && (value.constructor === Array || value.constructor === Object)) {
         path = path ? `${path}.${key}` : key;
         const cache = Cache.get(value);
         if (cache) return cache;
@@ -191,8 +191,60 @@ const booleanDefault = Object.freeze([
     'typemustmatch',
     'visible'
 ]);
+const dateDefault = Object.freeze([
+    'datetime-local',
+    'date',
+    'month',
+    'time',
+    'week'
+]);
 const escape = function(value) {
-    return value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^\s*{{/, '(').replace(/}}\s*$/, ')').replace(/{{/g, '"+(').replace(/}}/g, ')+"');
+    return '(' + value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^\s*{{/, '').replace(/}}\s*$/, '').replace(/{{/g, '"+(').replace(/}}/g, ')+"') + ')';
+};
+const compute = function(name, value) {
+    if (name === 'value') {
+        return function(element) {
+            const type = Reflect.get(element, 'type');
+            if (typeof value === 'number' && dateDefault.includes(type)) {
+                const iso = new Date(value).toLocaleString('default', {
+                    hour12: false,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    fractionalSecondDigits: 3
+                }).replace(/(\d+)\/(\d+)\/(\d+), ([0-9:.]+)/, '$3-$1-$2T$4Z');
+                if (type === 'date') value = iso.slice(0, 10);
+                else if (type === 'time') value = iso.slice(11, -1);
+                else if (type === 'month') value = iso.slice(0, 7);
+                else if (type === 'datetime-local') value = iso.slice(0, -1);
+            }
+            value = `${value == undefined ? '' : value}`;
+            Reflect.set(element, name, value);
+            element.setAttribute(name, value);
+        };
+    } else if (name.startsWith('on')) {
+        return function(element) {
+            if (Reflect.has(element, `x${name}`)) {
+                element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
+            } else {
+                Reflect.set(element, `x${name}`, value);
+                element.addEventListener(name.slice(2), value);
+            }
+            if (element.hasAttribute(name)) element.removeAttribute(name);
+        };
+    } else if (booleanDefault.includes(name)) {
+        return function(element) {
+            const result = value ? true : false;
+            Reflect.set(element, name, result);
+            if (result) element.setAttribute(name, '');
+            else element.removeAttribute(name);
+        };
+    } else {
+        return value;
+    }
 };
 const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
 const eachCompile = function(children, value) {
@@ -213,48 +265,26 @@ const textCompile = function(value) {
     if (value.startsWith('{{') && value.endsWith('}}')) {
         return `""+${escape(value)}+""`;
     } else {
-        return `"${escape(value)}"`;
+        return `"${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
     }
 };
 const attributeCompile = function(name, value) {
-    if (booleanDefault.includes(name)) {
-        return `"${name}":(${escape(value)}),`;
-    } else {
-        if (value.startsWith('{{') && value.endsWith('}}')) {
-            if (name.startsWith('on')) {
-                return `"${name}":function(event){return${escape(value)}},`;
-            } else {
-                return `"${name}":""+${escape(value)}+"",`;
-            }
+    if (name.startsWith('x-') || value.startsWith('{{') && value.endsWith('}}')) {
+        name = name.startsWith('x-') ? name.slice(2) : name;
+        if (name.startsWith('on')) {
+            return `"${name}":$compute("${name}",function(event){return${escape(value)}}),`;
         } else {
-            return `"${name}":"${escape(value)}",`;
+            return `"${name}":$compute("${name}",${escape(value)}),`;
         }
+    } else {
+        return `"${name}":"${value}",`;
     }
-};
-const valueRender = function(element, name, value) {
-    Reflect.set(element, name, value);
-    element.setAttribute(name, value);
-};
-const checkedRender = function(element, name, value) {
-    const result = value ? true : false;
-    Reflect.set(element, name, result);
-    if (result) element.setAttribute(name, '');
-    else element.removeAttribute(name);
 };
 const attributesRender = function(element, attributes) {
     for(const name in attributes){
         const value = attributes[name];
-        if (name === 'value') {
-            valueRender(element, name, value);
-        } else if (name === 'checked') {
-            checkedRender(element, name, value);
-        } else if (typeof value === 'function' && name.startsWith('on')) {
-            if (Reflect.has(element, `x${name}`)) {
-                element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
-            } else {
-                Reflect.set(element, `x${name}`, value);
-                element.addEventListener(name.slice(2), value);
-            }
+        if (typeof value === 'function') {
+            value(element);
         } else {
             element.setAttribute(name, value);
         }
@@ -328,10 +358,7 @@ const patch = function(source, target, node) {
         }
         attributesRender(node, target.attributes);
         for(const name in source.attributes){
-            const value = target.attributes[name];
-            if (name.startsWith('on') && typeof value !== 'string') {
-                node.removeAttribute(name);
-            } else if (!(name in target.attributes)) {
+            if (!(name in target.attributes)) {
                 node.removeAttribute(name);
             }
         }
@@ -374,7 +401,10 @@ const tree = function(node) {
             const attributes = node.getAttributeNames();
             for (const name of attributes){
                 const value = node.getAttribute(name) ?? '';
-                if (name === 'each') {
+                if ([
+                    'each',
+                    'x-each'
+                ].includes(name)) {
                     sChildren1 = eachCompile(sChildren1, value);
                 } else {
                     sAttributes += attributeCompile(name, value);
@@ -399,12 +429,13 @@ const compile = function(virtual) {
     const code = [
         'return function Render ($context, $cache) {',
         'with ($context) {',
+        'console.log("here");',
         'return [',
         `\t${virtual.join(',\n\t')}`,
         '];',
         '}}'
     ].join('\n');
-    return new Function('$cache', '$create', code)(new WeakMap(), create);
+    return new Function('$cache', '$create', '$compute', code)(new WeakMap(), create, compute);
 };
 const DEFINED = new WeakSet();
 const CE = window.customElements;
@@ -475,7 +506,7 @@ class XElement extends HTMLElement {
         if (this.#updating) return;
         this.#updating = true;
         this.dispatchEvent(XElement.updatingEvent);
-        this.#targets = this.#render(this.#context);
+        this.#targets = this.#render?.(this.#context);
         for(let i = 0; i < this.#roots.length; i++){
             patch(this.#sources[i], this.#targets[i], this.#roots[i]);
         }
@@ -484,7 +515,6 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.updatedEvent);
     }
     upgrade() {
-        console.log('upgraded');
         if (this.#upgraded) return;
         if (this.#upgrading) return new Promise((resolve)=>this.addEventListener('upgraded', ()=>resolve(undefined)));
         this.#upgrading = true;
@@ -554,13 +584,11 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.upgradedEvent);
     }
     async slottedCallback() {
-        console.log('slottedCallback');
         this.dispatchEvent(XElement.slottingEvent);
         await this.slotted?.();
         this.dispatchEvent(XElement.slottedEvent);
     }
     async connectedCallback() {
-        console.log('connectedCallback');
         this.dispatchEvent(XElement.connectingEvent);
         await this.connected?.();
         this.dispatchEvent(XElement.connectedEvent);

@@ -18,26 +18,40 @@
     <br>
 
     <br>
-    <input type="checkbox" checked="{{ count }}" />
-    <input type="checkbox" checked="{{ checked }}" oninput="{{ checked = this.checked }}" />
+    <input type="checkbox" value="{{count}}" checked="{{ count }}" />
+    <input type="checkbox" value="{{checked}}" checked="{{ checked }}" oninput="{{ checked = this.checked }}" />
     <br>
 
     <br>
     <div>{{number}}</div>
-    <select value="{{JSON.stringify(number)}}" oninput="{{number=JSON.parse(this.value)}}">
+    <select value="{{number}}" oninput="{{number=JSON.parse(this.value)}}">
         <option value="{{0}}">zero</option>
         <option value="{{1}}">one</option>
         <option value="{{2}}">two</option>
     </select>
     <div>{{boolean}}</div>
-    <select value="{{boolean}}">
+    <select value="{{boolean}}" oninput="{{boolean=JSON.parse(this.value)}}">
         <option value="{{true}}">yes</option>
         <option value="{{false}}">no</option>
     </select>
+    <div>{{string}}</div>
+    <select value="{{string}}" oninput="{{string=this.value}}">
+        <option value="{{'foo'}}">foo</option>
+        <option value="{{'bar'}}">bar</option>
+    </select>
+    <br>
+
+    <br>
+    <div>{{date?.toLocaleString()}}</div>
+    <input value="{{date}}" oninput="{{console.log(date = this.valueAsNumber)}}" type="date" />
+    <div>{{time?.toLocaleString()}}</div>
+    <input value="{{time}}" oninput="{{time = this.valueAsNumber}}" type="time" />
+    <div>{{datetime}}</div>
+    <input x-value="datetime" x-oninput="datetime = this.valueAsNumber" type="datetime-local" />
     <br>
 
     <h3>{{count.toLocaleString()}}</h3>
-    <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number">
+    <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
 
     <br>
 
@@ -58,8 +72,13 @@
 
     class OLoop extends XElement {
 
+        time = Date.now();
+        date = Date.now();
+        datetime = Date.now();
+
         number = 1;
         boolean = true;
+        string = 'foo';
 
         checked = false;
         radioShared = '';
@@ -103,12 +122,13 @@
         clear() {
             this.items = [];
         }
-        async connected() {
-        }
+        // async connected() {
+        //     // console.log('conn')
+        // }
         async connectedCallback() {
-            console.log('before connected');
+            // console.log('before connectedCallback');
             await super.connectedCallback();
-            console.log('after connected');
+            // console.log('after connectedCallback');
         }
     }
 

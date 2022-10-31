@@ -11,6 +11,15 @@ export type PathType = string;
 
 export type ObservedProperties = Array<string>;
 
+export type ItemType = string | {
+    tag: string;
+    type: number;
+    attributes: Record<string, any>;
+    children: Array<ItemType | string> | string;
+};
+
+export type RenderType = (context: ContextType) => Array<ItemType>;
+
 // export type HandlerType = {
 //     setup?: SetupType;
 //     reset: ResetType;

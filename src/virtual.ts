@@ -2,24 +2,79 @@ import { ContextType } from './types.ts';
 
 import { cdataType, commentType, elementType, textType, whitespace } from './tool.ts';
 import booleans from './boolean.ts';
+import date from './date.ts';
+
+type Render = (context: ContextType) => Array<Item>;
+type ComputeElement = (element: Element) => void;
+type Attributes = Record<string, string | ComputeElement>;
 
 type Item = string | {
     tag: string;
     type: number;
-    attributes: Record<string, any>;
+    attributes: Attributes;
     children: Array<Item | string> | string;
 };
 
-type Render = (context: ContextType) => Array<Item>;
-
 const escape = function (value: string) {
-    return value
+    return '(' + value
         .replace(/"/g, '\\"')
         .replace(/\n/g, '\\n')
-        .replace(/^\s*{{/, '(')
-        .replace(/}}\s*$/, ')')
+        // .replace(/^\s*{{/, '(')
+        // .replace(/}}\s*$/, ')')
+        .replace(/^\s*{{/, '')
+        .replace(/}}\s*$/, '')
         .replace(/{{/g, '"+(')
-        .replace(/}}/g, ')+"');
+        .replace(/}}/g, ')+"') +
+        ')';
+};
+
+const compute = function (name: string, value: any) {
+    if (name === 'value') {
+        return function (element: Element) {
+            const type = Reflect.get(element, 'type');
+
+            if (typeof value === 'number' && date.includes(type)) {
+                const iso = new Date(value).toLocaleString('default', {
+                    hour12: false,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    fractionalSecondDigits: 3,
+                }).replace(/(\d+)\/(\d+)\/(\d+), ([0-9:.]+)/, '$3-$1-$2T$4Z');
+
+                if (type === 'date') value = iso.slice(0, 10);
+                else if (type === 'time') value = iso.slice(11, -1);
+                else if (type === 'month') value = iso.slice(0, 7);
+                else if (type === 'datetime-local') value = iso.slice(0, -1);
+            }
+
+            value = `${value == undefined ? '' : value}`;
+            Reflect.set(element, name, value);
+            element.setAttribute(name, value);
+        };
+    } else if (name.startsWith('on')) {
+        return function (element: Element) {
+            if (Reflect.has(element, `x${name}`)) {
+                element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
+            } else {
+                Reflect.set(element, `x${name}`, value);
+                element.addEventListener(name.slice(2), value);
+            }
+            if (element.hasAttribute(name)) element.removeAttribute(name);
+        };
+    } else if (booleans.includes(name)) {
+        return function (element: Element) {
+            const result = value ? true : false;
+            Reflect.set(element, name, result);
+            if (result) element.setAttribute(name, '');
+            else element.removeAttribute(name);
+        };
+    } else {
+        return value;
+    }
 };
 
 const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
@@ -33,54 +88,28 @@ const textCompile = function (value: string): string {
     if (value.startsWith('{{') && value.endsWith('}}')) {
         return `""+${escape(value)}+""`;
     } else {
-        return `"${escape(value)}"`;
+        return `"${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
     }
 };
 
 const attributeCompile = function (name: string, value: string): string {
-    if (booleans.includes(name)) {
-        return `"${name}":(${escape(value)}),`;
-    } else {
-        if (value.startsWith('{{') && value.endsWith('}}')) {
-            if (name.startsWith('on')) {
-                return `"${name}":function(event){return${escape(value)}},`;
-            } else {
-                return `"${name}":""+${escape(value)}+"",`;
-            }
+    if (name.startsWith('x-') || (value.startsWith('{{') && value.endsWith('}}'))) {
+        name = name.startsWith('x-') ? name.slice(2) : name;
+        if (name.startsWith('on')) {
+            return `"${name}":$compute("${name}",function(event){return${escape(value)}}),`;
         } else {
-            return `"${name}":"${escape(value)}",`;
+            return `"${name}":$compute("${name}",${escape(value)}),`;
         }
+    } else {
+        return `"${name}":"${value}",`;
     }
 };
-const valueRender = function (element: Element, name: any, value: any) {
-    // Reflect.set(element, name, `${value}`);
-    // console.log(element, 'stringify:', JSON.stringify(value));
-    // console.log(element, 'raw:', value, typeof value);
-    Reflect.set(element, name, value);
-    element.setAttribute(name, value);
-};
 
-const checkedRender = function (element: Element, name: any, value: any) {
-    const result = value ? true : false;
-    Reflect.set(element, name, result);
-    if (result) element.setAttribute(name, '');
-    else element.removeAttribute(name);
-};
-
-const attributesRender = function (element: Element, attributes: any) {
+const attributesRender = function (element: Element, attributes: Attributes) {
     for (const name in attributes) {
         const value = attributes[name];
-        if (name === 'value') {
-            valueRender(element, name, value);
-        } else if (name === 'checked') {
-            checkedRender(element, name, value);
-        } else if (typeof value === 'function' && name.startsWith('on')) {
-            if (Reflect.has(element, `x${name}`)) {
-                element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
-            } else {
-                Reflect.set(element, `x${name}`, value);
-                element.addEventListener(name.slice(2), value);
-            }
+        if (typeof value === 'function') {
+            value(element);
         } else {
             element.setAttribute(name, value);
         }
@@ -151,8 +180,7 @@ export const patch = function (source: Item, target: Item, node: Node): void {
         const targetLength = targetChildren.length;
         const commonLength = Math.min(sourceLength, targetLength);
 
-        // patch common nodes
-        for (let index = 0; index < commonLength; index++) {
+        for (let index = 0; index < commonLength; index++) { // patch common nodes
             patch(sourceChildren[index], targetChildren[index], node.childNodes[index]);
         }
 
@@ -162,7 +190,6 @@ export const patch = function (source: Item, target: Item, node: Node): void {
                 if (child) node.removeChild(child);
             }
         } else if (sourceLength < targetLength) { // append additional nodes
-            // console.log(`append additional nodes: ${sourceLength}, ${targetLength}`);
             for (let index = sourceLength; index < targetLength; index++) {
                 const child = target.children[index];
                 node.appendChild(render(child));
@@ -172,10 +199,11 @@ export const patch = function (source: Item, target: Item, node: Node): void {
         attributesRender(node as Element, target.attributes);
 
         for (const name in source.attributes) {
-            const value = target.attributes[name];
-            if (name.startsWith('on') && typeof value !== 'string') {
-                (node as Element).removeAttribute(name);
-            } else if (!(name in target.attributes)) {
+            // const value = target.attributes[name];
+            // if (name.startsWith('on') && typeof value !== 'string') {
+            //     (node as Element).removeAttribute(name);
+            // } else
+            if (!(name in target.attributes)) {
                 (node as Element).removeAttribute(name);
             }
         }
@@ -226,7 +254,7 @@ export const tree = function (node: Node): [string, Item] {
             for (const name of attributes) {
                 const value = (node as Element).getAttribute(name) ?? '';
 
-                if (name === 'each') {
+                if (['each', 'x-each'].includes(name)) {
                     sChildren = eachCompile(sChildren, value);
                 } else {
                     sAttributes += attributeCompile(name, value);
@@ -256,14 +284,14 @@ export const compile = function (virtual: Array<string>): Render {
     const code = [
         'return function Render ($context, $cache) {',
         'with ($context) {',
-        // 'console.log("here");',
+        'console.log("here");',
         'return [',
         `\t${virtual.join(',\n\t')}`,
         '];',
         '}}',
     ].join('\n');
 
-    return new Function('$cache', '$create', code)(new WeakMap(), create // {
+    return new Function('$cache', '$create', '$compute', code)(new WeakMap(), create, compute // {
         //     roots,
         //     standard: Standard.render,
         //     checked: Checked.render,

@@ -29,6 +29,19 @@ export const dash = function (data: string) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 };
 
+// const week = function (data: number) {
+//     const date = new Date(data);
+
+//     // find the year of the entered date
+//     const oneJan = new Date(date.getFullYear(), 0, 1);
+
+//     // calculating number of days in given year before the given date
+//     const numberOfDays = Math.floor((date.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+
+//     // adding 1 since to current date and returns value starting from 0
+//     return Math.ceil((date.getDay() + 1 + numberOfDays) / 7);
+// };
+
 const toolDefault = Object.freeze({
     parseable,
     display,

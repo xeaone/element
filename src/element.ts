@@ -1,4 +1,4 @@
-import { ContextType, ObservedProperties } from './types.ts';
+import { ContextType, ItemType, ObservedProperties, RenderType } from './types.ts';
 import Navigation from './navigation.ts';
 import Context from './context.ts';
 
@@ -79,9 +79,9 @@ class XElement extends HTMLElement {
     #context: ContextType = Context({}, this.update.bind(this));
 
     #roots: any;
-    #render: any;
-    #sources: any;
-    #targets: any;
+    #render?: RenderType;
+    #sources?: any;
+    #targets?: any;
 
     // get context() {
     //     return this.#context;
@@ -99,7 +99,7 @@ class XElement extends HTMLElement {
         this.#updating = true;
         this.dispatchEvent(XElement.updatingEvent);
 
-        this.#targets = this.#render(this.#context);
+        this.#targets = this.#render?.(this.#context);
 
         for (let i = 0; i < this.#roots.length; i++) {
             patch(this.#sources[i], this.#targets[i], this.#roots[i]);
@@ -112,7 +112,7 @@ class XElement extends HTMLElement {
     }
 
     upgrade() {
-        console.log('upgraded');
+        // console.log('upgraded');
         if (this.#upgraded) return;
         if (this.#upgrading) return new Promise((resolve) => this.addEventListener('upgraded', () => resolve(undefined)));
 
@@ -237,7 +237,7 @@ class XElement extends HTMLElement {
     }
 
     async slottedCallback() {
-        console.log('slottedCallback');
+        // console.log('slottedCallback');
         // this.upgrade();
         this.dispatchEvent(XElement.slottingEvent);
         await (this as any).slotted?.();
@@ -245,7 +245,7 @@ class XElement extends HTMLElement {
     }
 
     async connectedCallback() {
-        console.log('connectedCallback');
+        // console.log('connectedCallback');
         // this.upgrade();
         this.dispatchEvent(XElement.connectingEvent);
         await (this as any).connected?.();
