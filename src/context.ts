@@ -38,7 +38,6 @@ const ContextGet = function (method: ChangeType, path: PathType, target: any, ke
     const value = Reflect.get(target, key, receiver);
 
     if (value && (value.constructor === Array || value.constructor === Object)) {
-        // if (value && typeof value === 'object') {
         path = path ? `${path}.${key}` : key;
 
         const cache = Cache.get(value);

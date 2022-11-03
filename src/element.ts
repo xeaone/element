@@ -5,7 +5,6 @@ import Context from './context.ts';
 import { compile, patch, tree } from './virtual.ts';
 import { dash, whitespace } from './tool.ts';
 
-// const NAMES = new WeakMap();
 const DEFINED = new WeakSet();
 const CE = window.customElements;
 Object.defineProperty(window, 'customElements', {
@@ -21,7 +20,6 @@ Object.defineProperty(window, 'customElements', {
                 });
 
                 DEFINED.add(constructor);
-                // NAMES.set(constructor, name);
             }
             CE.define(name, constructor, options);
         },
@@ -71,6 +69,10 @@ class XElement extends HTMLElement {
         return this.#upgraded;
     }
 
+    #shadow: ShadowRoot;
+
+    #properties = false;
+
     #updating = false;
 
     #upgraded = false;
@@ -89,8 +91,8 @@ class XElement extends HTMLElement {
 
     constructor() {
         super();
-        if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-        this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
+        this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
+        this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
 
     update() {
@@ -112,7 +114,7 @@ class XElement extends HTMLElement {
     }
 
     upgrade() {
-        // console.log('upgraded');
+        console.log('upgraded');
         if (this.#upgraded) return;
         if (this.#upgrading) return new Promise((resolve) => this.addEventListener('upgraded', () => resolve(undefined)));
 
@@ -163,15 +165,31 @@ class XElement extends HTMLElement {
             });
         }
 
-        if (this.shadowRoot) {
-            this.#roots = [];
+        this.#roots = [];
+        const parsed = [];
+        const stringified = [];
 
-            const parsed = [];
-            const stringified = [];
+        let node = this.#shadow.firstChild;
+        while (node) {
+            if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
+                const remove = node;
+                node = node.nextSibling;
+                this.#shadow.removeChild(remove);
+            } else {
+                const [s, p] = tree(node);
+                parsed.push(p);
+                stringified.push(s);
+                this.#roots.push(node);
+                node = node.nextSibling;
+            }
+        }
 
-            for (const node of this.shadowRoot.childNodes) {
+        const slots = this.#shadow.querySelectorAll('slot');
+        for (const slot of slots) {
+            const nodes = slot.assignedNodes();
+            for (const node of nodes) {
                 if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
-                    this.shadowRoot.removeChild(node);
+                    node?.parentNode?.removeChild(node);
                 } else {
                     const [s, p] = tree(node);
                     parsed.push(p);
@@ -179,30 +197,15 @@ class XElement extends HTMLElement {
                     this.#roots.push(node);
                 }
             }
-
-            const slots = this.shadowRoot.querySelectorAll('slot');
-            for (const slot of slots) {
-                const nodes = slot.assignedNodes();
-                for (const node of nodes) {
-                    if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
-                        node?.parentNode?.removeChild(node);
-                    } else {
-                        const [s, p] = tree(node);
-                        parsed.push(p);
-                        stringified.push(s);
-                        this.#roots.push(node);
-                    }
-                }
-            }
-
-            this.#sources = parsed;
-            this.#render = compile(stringified);
-            this.#targets = this.#render(this.#context);
-            for (let i = 0; i < this.#roots.length; i++) {
-                patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-            }
-            this.#sources = this.#targets;
         }
+
+        this.#sources = parsed;
+        this.#render = compile(stringified);
+        this.#targets = this.#render(this.#context);
+        for (let i = 0; i < this.#roots.length; i++) {
+            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
+        }
+        this.#sources = this.#targets;
 
         // for (const slot of slots) {
         //     if (slot.assignedNodes) {
@@ -237,16 +240,14 @@ class XElement extends HTMLElement {
     }
 
     async slottedCallback() {
-        // console.log('slottedCallback');
-        // this.upgrade();
+        console.log('slottedCallback');
         this.dispatchEvent(XElement.slottingEvent);
         await (this as any).slotted?.();
         this.dispatchEvent(XElement.slottedEvent);
     }
 
     async connectedCallback() {
-        // console.log('connectedCallback');
-        // this.upgrade();
+        console.log('connectedCallback');
         this.dispatchEvent(XElement.connectingEvent);
         await (this as any).connected?.();
         this.dispatchEvent(XElement.connectedEvent);

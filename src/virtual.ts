@@ -1,8 +1,9 @@
 import { ContextType } from './types.ts';
 
-import { cdataType, commentType, elementType, textType, whitespace } from './tool.ts';
+import { cdataType, commentType, elementType, fragmentType, textType, whitespace } from './tool.ts';
 import booleans from './boolean.ts';
 import date from './date.ts';
+import XElement from './element.ts';
 
 type Render = (context: ContextType) => Array<Item>;
 type ComputeElement = (element: Element) => void;
@@ -15,12 +16,18 @@ type Item = string | {
     children: Array<Item | string> | string;
 };
 
+const quotes = function (value: string) {
+    return value.replace(/"/g, '\\"');
+};
+
+const lines = function (value: string) {
+    return value.replace(/\n/g, '\\n');
+};
+
 const escape = function (value: string) {
     return '(' + value
         .replace(/"/g, '\\"')
         .replace(/\n/g, '\\n')
-        // .replace(/^\s*{{/, '(')
-        // .replace(/}}\s*$/, ')')
         .replace(/^\s*{{/, '')
         .replace(/}}\s*$/, '')
         .replace(/{{/g, '"+(')
@@ -85,10 +92,12 @@ const eachCompile = function (children: string, value: string): string {
 };
 
 const textCompile = function (value: string): string {
-    if (value.startsWith('{{') && value.endsWith('}}')) {
-        return `""+${escape(value)}+""`;
+    value = quotes(lines(value));
+    if (value.includes('{{') && value.includes('}}')) {
+        value = value.replace(/{{/g, '"+(').replace(/}}/g, ')+"');
+        return `("${value}")`;
     } else {
-        return `"${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+        return `"${value}"`;
     }
 };
 
@@ -160,6 +169,7 @@ export const patch = function (source: Item, target: Item, node: Node): void {
     } else if (
         source.tag !== target.tag || source.type !== target.type
     ) {
+        console.log('tag or type', target, source.tag, target.tag, source.type, target.type);
         node.parentNode?.replaceChild(render(target), node);
     } else if (
         source.type === textType || target.type === textType ||
@@ -199,10 +209,6 @@ export const patch = function (source: Item, target: Item, node: Node): void {
         attributesRender(node as Element, target.attributes);
 
         for (const name in source.attributes) {
-            // const value = target.attributes[name];
-            // if (name.startsWith('on') && typeof value !== 'string') {
-            //     (node as Element).removeAttribute(name);
-            // } else
             if (!(name in target.attributes)) {
                 (node as Element).removeAttribute(name);
             }
@@ -214,6 +220,9 @@ export const tree = function (node: Node): [string, Item] {
     const nodeType = node.nodeType;
     const nodeValue = node.nodeValue ?? '';
     const nodeName = node.nodeName.toLowerCase();
+
+    // if (nodeType === fragmentType) {
+    // }
 
     if (nodeType === textType) {
         if (whitespace.test(nodeValue)) {
@@ -233,6 +242,7 @@ export const tree = function (node: Node): [string, Item] {
     if (nodeType === elementType) {
         let sChildren = '';
         let sAttributes = '';
+
         const pChildren = [];
         const pAttributes: Record<string, string> = {};
 
@@ -271,8 +281,9 @@ export const tree = function (node: Node): [string, Item] {
     }
 
     if (commentType || cdataType) {
+        const children = quotes(lines(nodeValue));
         return [
-            `$create("${nodeName}",${nodeType},{},${nodeValue})`,
+            `$create("${nodeName}",${nodeType},{},"${children}")`,
             create(nodeName, nodeType, {}, nodeValue),
         ];
     }

@@ -8,10 +8,8 @@
 <lit-test></lit-test>
 
 <script type="module">
-    // import { LitElement, html } from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
-    import { LitElement, html } from 'https://cdn.jsdelivr.net/npm/lit@2.4.0/index.js';
-
-
+    import { LitElement, html } from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
+    // import { LitElement, html } from 'https://cdn.jsdelivr.net/npm/lit@2.4.0/index.js';
 
     class LitTest extends LitElement {
 
@@ -27,7 +25,7 @@
         render() {
             return html`
                 <span>${this.text}</span>
-                <input value=${this.text.toUpperCase()} />
+                <input value=${this.text.toUpperCase()} oninput=${this.text = event.value} />
                 <input value=${this.text.toLowerCase()} />
             `;
         }

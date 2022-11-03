@@ -3,6 +3,7 @@ import Highlight from './highlight.js';
 import Color from './modules/color.js';
 
 const html = /*html*/`
+<link href="./index.css" rel="stylesheet">
 
 <style>
     .default {
@@ -23,6 +24,7 @@ const html = /*html*/`
     <article html="{{result('#text-template')}}"></article>
 </section>
 
+<!--
 <section id="checked">
 <h3>Checked Binder</h3>
     <template id="checked-template">
@@ -140,7 +142,6 @@ const html = /*html*/`
     <article html="{{result('#html-template')}}"></article>
 </section>
 
-<!--
 <section id="submit">
 <h3>Submit Binder</h3>
 <template id="submit-template">
@@ -242,11 +243,13 @@ export default class XGuide extends XElement {
 
     constructor () {
         super();
-        this.shadowRoot.innerHTML = '<slot></slot>';
+        this.shadowRoot.innerHTML = html;
+        // this.shadowRoot.innerHTML = `<slot></slot>`;
+        // this.innerHTML = html;
     }
 
     async connectedCallback () {
-        if (!this.hasChildNodes()) this.innerHTML = html;
+        // if (!this.hasChildNodes()) this.innerHTML = html;
         await super.connectedCallback();
     }
 

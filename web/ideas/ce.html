@@ -1,0 +1,213 @@
+<x-context>
+    <template shadowroot="open">
+        <style>
+            x-div {
+                margin: 1px;
+                padding: 1px;
+                display: inline-block;
+                background-color: lightgray;
+            }
+        </style>
+        <x-map x-context="[items, 'item']">
+            <x-div>{{item}}</x-div>
+        </x-map>
+        <!-- <slot></slot> -->
+    </template>
+    <!-- <x-div>{{test}}</x-div> -->
+    <!--
+    <strong>Slotted Span:</strong>
+    <span text="{{obj.text.toUpperCase()}}"></span>
+    <br>
+
+    <strong>Slotted Input:</strong>
+    <input value="{{obj.text = event?.target?.value ?? obj.text}}">
+    <br>
+
+    <strong>Slotted Each One Input:</strong>
+    <input value="{{items[0] = event?.target?.value ?? items[0]}}">
+    <br>
+
+    <span text="{{`${count?.toLocaleString()} bound elements`}}"></span>
+    <input value="{{count = event?.target?.valueAsNumber ?? count}}" type="number">
+    <br>
+
+    <button onclick="{{overwrite()}}">overwrite</button>
+
+    <div each="{{[items,'item']}}">
+        <span class="box" text="{{item}}"></span>
+    </div> -->
+
+</x-context>
+
+<script type="module">
+
+    const Computes = new Map();
+
+    const Compute = function (code) {
+        const cache = Computes.get(code);
+        if (cache) return cache;
+
+        const method = new Function('$context', `with ($context) { return (${code}); }`);
+
+        Computes.set(code, method);
+        return method;
+    };
+
+    class XMap extends HTMLElement {
+        #root;
+        #host;
+        #slot;
+        #template;
+        #context;
+        constructor() {
+            super();
+            console.log('x-map constructor')
+
+            this.attachShadow({ mode: 'open' });
+
+            this.#root = this.getRootNode();
+            this.#host = this.#root.host;
+            this.#slot = document.createElement('slot');
+            this.#template = document.createElement('template');
+
+            this.shadowRoot.appendChild(this.#slot);
+            this.#slot.assignedNodes().forEach((node) => this.#template.appendChild(node));
+
+            customElements.whenDefined(this.#host.localName).then(() => { this.upgrade(); });
+
+        }
+        upgrade() {
+            const template = this.#template;
+
+            const context = this.parentNode.context ?? this.parentNode.host.context;
+            const [iterable, variable] = Compute(this.getAttribute('x-context'))(context);
+
+            const source = this.source ?? [];
+            const target = iterable;
+
+            const sourceLength = source.length;
+            const targetLength = target.length;
+
+            if (sourceLength > targetLength) {
+                for (let index = sourceLength; index > targetLength; index--) {
+                    console.log(index);
+
+                }
+            }
+
+            if (sourceLength < targetLength) {
+                for (let index = sourceLength; index < targetLength; index++) {
+                    const clone = template.firstElementChild.cloneNode(true);
+                    customElements.whenDefined(clone.localName).then(function (clone, context) {
+                        clone.context = context;
+                    }.bind(null, clone, {
+                        ...context,
+                        $index: index,
+                        get [variable]() {
+                            return iterable[this.$index];
+                        }
+                    }));
+                    this.appendChild(clone);
+                }
+            }
+
+
+            // const nodes = slot.assignedNodes();
+            // const node = nodes[0];
+            // node.textContent = Compute(node.textContent.slice(2, -2))(host.context);
+
+            // for (const attribute of this.attributes) {
+            //     if (attribute.name.startsWith('x-')) {
+            //         element.setAttribute(attribute.name.slice(2), Compute(attribute.value)(host.context));
+            //         // this.setAttribute(attribute.name.slice(2), Compute(attribute.value)(host.context));
+            //         this.removeAttributeNode(attribute);
+            //     }
+            // }
+        }
+        connectedCallback() {
+            console.log('x-map connected');
+        }
+    }
+
+    class XDiv extends HTMLElement {
+        #root;
+        #host;
+        #slot;
+        #element;
+        #context;
+        constructor() {
+            super();
+            // console.log('x-div constructor');
+
+            this.attachShadow({ mode: 'open' });
+
+            this.#root = this.getRootNode();
+            this.#host = this.#root.host;
+
+            this.#slot = document.createElement('slot');
+            this.#element = document.createElement('div');
+
+            this.#element.appendChild(this.#slot);
+            this.shadowRoot.appendChild(this.#element);
+
+            // console.log(this.parentNode);
+            // console.log(this?.parentNode?.context, this?.parentNode?.host?.context)
+            // const context = this?.parentNode?.context ?? this?.parentNode?.host?.context;
+            // if (!context) return;
+
+            // customElements.whenDefined(this.#host.localName).then(() => {
+            // this.upgrade(context);
+            // });
+
+        }
+        get context() { this.#context; }
+        set context(context) {
+            this.#context = context;
+            this.upgrade();
+        }
+        upgrade() {
+            const slot = this.#slot;
+            const context = this.#context;
+            const element = this.#element;
+            const nodes = slot.assignedNodes();
+            const node = nodes[0];
+            node.textContent = Compute(node.textContent.slice(2, -2))(context);
+            for (const attribute of this.attributes) {
+                if (attribute.name.startsWith('x-')) {
+                    element.setAttribute(attribute.name.slice(2), Compute(attribute.value)(context));
+                    this.removeAttributeNode(attribute);
+                }
+            }
+        }
+        // connectedCallback() {
+        // this.upgrade();
+        // console.log('x-div connected');
+        // }
+    }
+
+    class XContext extends HTMLElement {
+
+        context = {
+            color: 'blue',
+            test: 'hello world',
+            items: Array.from({ length: 10_000 }, (v, i) => i)
+        };
+
+        constructor() {
+            super();
+            console.log('x-context constructor');
+        }
+
+        connectedCallback() {
+            console.log('x-context connected');
+        }
+
+    }
+
+    customElements.define('x-map', XMap);
+    customElements.define('x-div', XDiv);
+    setTimeout(() => {
+
+        customElements.define('x-context', XContext);
+    }, 5000)
+</script>

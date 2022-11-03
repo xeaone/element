@@ -12,7 +12,9 @@ export const whitespace = /^\s*$/;
 export const textType = Node.TEXT_NODE;
 export const elementType = Node.ELEMENT_NODE;
 export const commentType = Node.COMMENT_NODE;
+export const documentType = Node.DOCUMENT_NODE;
 export const cdataType = Node.CDATA_SECTION_NODE;
+export const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
 
 export const parseable = function (value: any) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
@@ -41,6 +43,16 @@ export const dash = function (data: string) {
 //     // adding 1 since to current date and returns value starting from 0
 //     return Math.ceil((date.getDay() + 1 + numberOfDays) / 7);
 // };
+
+export const walk = function (node: Node, method: (node: Node) => void) {
+    let next;
+    let current = node.firstChild;
+    while (current) {
+        next = current.nextSibling;
+        method(current);
+        current = next;
+    }
+};
 
 const toolDefault = Object.freeze({
     parseable,

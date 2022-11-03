@@ -6,7 +6,9 @@ const whitespace = /^\s*$/;
 const textType = Node.TEXT_NODE;
 const elementType = Node.ELEMENT_NODE;
 const commentType = Node.COMMENT_NODE;
+Node.DOCUMENT_NODE;
 const cdataType = Node.CDATA_SECTION_NODE;
+Node.DOCUMENT_FRAGMENT_NODE;
 const parseable = function(value) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
 };
@@ -36,6 +38,7 @@ const transition = async function(options) {
     options.name = options.name ?? dash(options.construct.name);
     if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
     if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
+    await customElements.whenDefined(options.name);
     options.instance = document.createElement(options.name);
     options.target.replaceChildren(options.instance);
     options.navigating = false;
@@ -198,6 +201,12 @@ const dateDefault = Object.freeze([
     'time',
     'week'
 ]);
+const quotes = function(value) {
+    return value.replace(/"/g, '\\"');
+};
+const lines = function(value) {
+    return value.replace(/\n/g, '\\n');
+};
 const escape = function(value) {
     return '(' + value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^\s*{{/, '').replace(/}}\s*$/, '').replace(/{{/g, '"+(').replace(/}}/g, ')+"') + ')';
 };
@@ -262,10 +271,12 @@ const eachCompile = function(children, value) {
     return `(${items}).map((${parameters.join(',')})=>${children}).flat()`;
 };
 const textCompile = function(value) {
-    if (value.startsWith('{{') && value.endsWith('}}')) {
-        return `""+${escape(value)}+""`;
+    value = quotes(lines(value));
+    if (value.includes('{{') && value.includes('}}')) {
+        value = value.replace(/{{/g, '"+(').replace(/}}/g, ')+"');
+        return `("${value}")`;
     } else {
-        return `"${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+        return `"${value}"`;
     }
 };
 const attributeCompile = function(name, value) {
@@ -328,6 +339,7 @@ const patch = function(source, target, node) {
             node.parentNode?.replaceChild(render(target), node);
         }
     } else if (source.tag !== target.tag || source.type !== target.type) {
+        console.log('tag or type', target, source.tag, target.tag, source.type, target.type);
         node.parentNode?.replaceChild(render(target), node);
     } else if (source.type === textType || target.type === textType || source.type === cdataType || target.type === cdataType || source.type === commentType || target.type === commentType) {
         if (source.children !== target.children) {
@@ -418,8 +430,9 @@ const tree = function(node) {
         ];
     }
     if (commentType || cdataType) {
+        const children = quotes(lines(nodeValue));
         return [
-            `$create("${nodeName}",${nodeType},{},${nodeValue})`,
+            `$create("${nodeName}",${nodeType},{},"${children}")`,
             create(nodeName, nodeType, {}, nodeValue)
         ];
     }
@@ -487,6 +500,8 @@ class XElement extends HTMLElement {
     get isUpgraded() {
         return this.#upgraded;
     }
+    #shadow;
+    #properties = false;
     #updating = false;
     #upgraded = false;
     #upgrading = false;
@@ -497,10 +512,10 @@ class XElement extends HTMLElement {
     #targets;
     constructor(){
         super();
-        if (!this.shadowRoot) this.attachShadow({
+        this.#shadow = this.shadowRoot ?? this.attachShadow({
             mode: 'open'
         });
-        this.shadowRoot?.addEventListener('slotchange', this.slottedCallback.bind(this));
+        this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
     }
     update() {
         if (this.#updating) return;
@@ -515,6 +530,7 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.updatedEvent);
     }
     upgrade() {
+        console.log('upgraded');
         if (this.#upgraded) return;
         if (this.#upgrading) return new Promise((resolve)=>this.addEventListener('upgraded', ()=>resolve(undefined)));
         this.#upgrading = true;
@@ -543,52 +559,56 @@ class XElement extends HTMLElement {
                 set: (value)=>this.#context[property] = value
             });
         }
-        if (this.shadowRoot) {
-            this.#roots = [];
-            const parsed = [];
-            const stringified = [];
-            for (const node of this.shadowRoot.childNodes){
-                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
-                    this.shadowRoot.removeChild(node);
-                } else {
-                    const [s, p] = tree(node);
-                    parsed.push(p);
-                    stringified.push(s);
-                    this.#roots.push(node);
-                }
+        this.#roots = [];
+        const parsed = [];
+        const stringified = [];
+        let node = this.#shadow.firstChild;
+        while(node){
+            if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
+                const remove = node;
+                node = node.nextSibling;
+                this.#shadow.removeChild(remove);
+            } else {
+                const [s, p] = tree(node);
+                parsed.push(p);
+                stringified.push(s);
+                this.#roots.push(node);
+                node = node.nextSibling;
             }
-            const slots = this.shadowRoot.querySelectorAll('slot');
-            for (const slot of slots){
-                const nodes = slot.assignedNodes();
-                for (const node1 of nodes){
-                    if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace.test(node1.nodeValue)) {
-                        node1?.parentNode?.removeChild(node1);
-                    } else {
-                        const [s1, p1] = tree(node1);
-                        parsed.push(p1);
-                        stringified.push(s1);
-                        this.#roots.push(node1);
-                    }
-                }
-            }
-            this.#sources = parsed;
-            this.#render = compile(stringified);
-            this.#targets = this.#render(this.#context);
-            for(let i = 0; i < this.#roots.length; i++){
-                patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-            }
-            this.#sources = this.#targets;
         }
+        const slots = this.#shadow.querySelectorAll('slot');
+        for (const slot of slots){
+            const nodes = slot.assignedNodes();
+            for (const node1 of nodes){
+                if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace.test(node1.nodeValue)) {
+                    node1?.parentNode?.removeChild(node1);
+                } else {
+                    const [s1, p1] = tree(node1);
+                    parsed.push(p1);
+                    stringified.push(s1);
+                    this.#roots.push(node1);
+                }
+            }
+        }
+        this.#sources = parsed;
+        this.#render = compile(stringified);
+        this.#targets = this.#render(this.#context);
+        for(let i = 0; i < this.#roots.length; i++){
+            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
+        }
+        this.#sources = this.#targets;
         this.#upgraded = true;
         this.#upgrading = false;
         this.dispatchEvent(XElement.upgradedEvent);
     }
     async slottedCallback() {
+        console.log('slottedCallback');
         this.dispatchEvent(XElement.slottingEvent);
         await this.slotted?.();
         this.dispatchEvent(XElement.slottedEvent);
     }
     async connectedCallback() {
+        console.log('connectedCallback');
         this.dispatchEvent(XElement.connectingEvent);
         await this.connected?.();
         this.dispatchEvent(XElement.connectedEvent);

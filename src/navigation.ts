@@ -30,7 +30,8 @@ const transition = async function (options: Options) {
     options.name = options.name ?? dash(options.construct.name);
 
     if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
-    if (!customElements.get(options.name)) customElements.define(options.name, options.construct as any);
+    if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
+    await customElements.whenDefined(options.name);
 
     options.instance = document.createElement(options.name);
     options.target.replaceChildren(options.instance);

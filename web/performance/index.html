@@ -7,19 +7,32 @@
 
 <o-loop>
     <template shadowroot="open">
-        <span text="{{count.toLocaleString()}}"></span>
+        <!--
+        <link rel="stylesheet" href="./index.css">
+        <h3>test {{count.toLocaleString()}}</h3>
+        <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
+        <br>
+        <button onclick="{{push()}}">push</button>
+        <button onclick="{{overwrite()}}">overwrite</button>
+        <button onclick="{{raw()}}">raw</button>
+        <button onclick="{{clear()}}">clear</button>
+        <div id="raw"></div>
+        <div each="{{[items,'item']}}">
+            <div class="box">{{item}}</div>
+        </div>
+        -->
         <slot></slot>
     </template>
 
-    <br>
+    <!-- <br>
     <div>{{radioShared}}</div>
     <input type="radio" name="radio" checked="{{ radioShared === radioOne }}" oninput="{{ radioShared = 'one' }}" />
     <input type="radio" name="radio" checked="{{ radioShared === radioTwo }}" oninput="{{ radioShared = 'two' }}" />
     <br>
 
     <br>
-    <input type="checkbox" value="{{count}}" checked="{{ count }}" />
-    <input type="checkbox" value="{{checked}}" checked="{{ checked }}" oninput="{{ checked = this.checked }}" />
+    <input type="checkbox" value="{{count}}" x-checked="{{ count }}" />
+    <input type="checkbox" value="{{checked}}" x-checked="{{ checked }}" oninput="{{ checked = this.checked }}" />
     <br>
 
     <br>
@@ -43,15 +56,15 @@
 
     <br>
     <div>{{date?.toLocaleString()}}</div>
-    <input value="{{date}}" oninput="{{console.log(date = this.valueAsNumber)}}" type="date" />
+    <input value="{{date}}" oninput="{{date=this.valueAsNumber}}" type="date" />
     <div>{{time?.toLocaleString()}}</div>
-    <input value="{{time}}" oninput="{{time = this.valueAsNumber}}" type="time" />
+    <input x-value="{{time}}" oninput="{{time=this.valueAsNumber}}" type="time" />
     <div>{{datetime}}</div>
-    <input x-value="datetime" x-oninput="datetime = this.valueAsNumber" type="datetime-local" />
-    <br>
+    <input x-value="datetime" oninput="{{datetime = this.valueAsNumber}}" type="datetime-local" />
+    <br> -->
 
-    <h3>{{count.toLocaleString()}}</h3>
-    <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
+    <h3>test {{count.toLocaleString()}}</h3>
+    <input x-value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
 
     <br>
 
@@ -68,6 +81,27 @@
 </o-loop>
 
 <script type="module">
+
+    // const get = function () {
+    //     console.log(arguments);
+    //     return Reflect.get(...arguments);
+    // };
+    // const construct = function () {
+    //     const i = Reflect.construct(...arguments);
+    //     console.log(Object.getOwnPropertyDescriptors(i));
+    //     return i;
+    // }
+
+    // const proxy = function (thing) {
+    //     return new Proxy(thing, { get, construct })
+    // }
+
+    // customElements.define('o-loop',
+    //     proxy(class OLoop extends HTMLElement {
+    //         f = 'test'
+    //     })
+    // )
+
     import XElement from '../x-element.js';
 
     class OLoop extends XElement {
@@ -127,8 +161,10 @@
         // }
         async connectedCallback() {
             // console.log('before connectedCallback');
-            await super.connectedCallback();
+            super.connectedCallback();
+            // await super.connectedCallback();
             // console.log('after connectedCallback');
+            // this.appendChild(this.querySelector('template[root]').cloneNode(true).content);
         }
     }
 
