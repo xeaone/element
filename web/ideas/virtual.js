@@ -7,32 +7,33 @@ const documentType = Node.DOCUMENT_NODE;
 const cdataType = Node.CDATA_SECTION_NODE;
 const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
 
-const create = (item) => {
-    const { name, attributes = {}, children = [] } = item;
-    const element = document.createElement(name);
+const elementSymbol = Symbol('element');
 
-    for (const [key, value] of Object.entries(attributes)) {
-        if (key.startsWith('on')) {
-            element.addEventListener(key.substring(2).toLowerCase(), (e) => value(e));
-            // element.addEventListener(key.substring(2).toLowerCase(), value);
+const create = function (item) {
+    const element = document.createElement(item.name);
+
+    for (const name in item.attributes) {
+        const value = item.attributes[name];
+        if (name.startsWith('on')) {
+            Reflect.set(element, `x${name}`, value);
+            element.addEventListener(name.slice(2), value);
         } else {
-            element.setAttribute(key, value);
+            element.setAttribute(name, value);
         }
     }
 
-    for (const child of children) {
-        if (typeof child === 'string') {
-            const text = document.createTextNode(child);
-            element.appendChild(text);
-        } else {
+    for (const child of item.children) {
+        if (child?.symbol === elementSymbol) {
             element.appendChild(child);
+        } else {
+            element.appendChild(document.createTextNode(child));
         }
     }
 
     return element;
 };
 
-const patch = (source, target) => {
+const patch = function (source, target)  {
     if (target instanceof Array) {
         const targetChildren = target;
         const sourceChildren = source.childNodes ?? [];
@@ -85,20 +86,18 @@ const patch = (source, target) => {
             const targetLength = targetChildren.length;
             const commonLength = Math.min(sourceLength, targetLength);
 
-            for (let index = 0; index < commonLength; index++) { // patch common nodes
-                patch(sourceChildren[index], targetChildren[index]);
-            }
-
-            if (sourceLength > targetLength) { // remove additional nodes
-                for (let index = targetLength; index < sourceLength; index++) {
-                    const child = source.lastChild;
-                    if (child) source.removeChild(child);
-                }
-            } else if (sourceLength < targetLength) { // append additional nodes
-                for (let index = sourceLength; index < targetLength; index++) {
-                    const child = targetChildren[index];
-                    // console.log(source);
-                    source.appendChild(create(child));
+           for (const name in target.attributes) {
+                const value = target.attributes[name];
+                if (name.startsWith('on')) {
+                    if (Reflect.has(source, `x${name}`)) {
+                        source.addEventListener(name.slice(2), Reflect.get(source, `x${name}`));
+                    } else {
+                        Reflect.set(source, `x${name}`, value);
+                        source.addEventListener(name.slice(2), value);
+                    }
+                    if (source.hasAttribute(name)) source.removeAttribute(name);
+                } else if (source.getAttribute(name) !== `${value}`){
+                    source.setAttribute(name, value);
                 }
             }
 
@@ -107,58 +106,123 @@ const patch = (source, target) => {
                     source.removeAttribute(name);
                 }
             }
+
+            for (let index = 0; index < commonLength; index++) { // patch common nodes
+                patch(sourceChildren[index], targetChildren[index]);
+            }
+
+            if (sourceLength > targetLength) { // remove additional nodes
+                let child;
+                for (let index = targetLength; index < sourceLength; index++) {
+                    child = source.lastChild;
+                    if (child) source.removeChild(child);
+                }
+            } else if (sourceLength < targetLength) { // append additional nodes
+                let child;
+                for (let index = sourceLength; index < targetLength; index++) {
+                    child = targetChildren[index];
+                    source.appendChild(create(child));
+                }
+            }
+
         }
     }
 };
 
-const proxy = (data, event) => {
+export const Context = function (data, event){
     return new Proxy(data, {
-        get: (target, key, receiver) => {
+        get(target, key, receiver) {
             let value = Reflect.get(target, key, receiver);
             if (typeof value === 'function') value = value.bind(receiver);
-            // console.log(value)
             return value;
         },
-        set: (target, key, value, receiver) => {
+        set(target, key, value, receiver) {
             Reflect.set(target, key, value, receiver);
             next.then(event);
             return true;
         },
-        apply: (...args) => {
-            // console.log(args)
+        apply(...args) {
             return Reflect.apply(...args);
         }
     });
 };
 
-const element = new Proxy({}, {
-    get(target, name) {
-        return (attributes = [], ...children) => {
-            const element = { name, attributes, children, type: Node.ELEMENT_NODE };
-            return element;
+export const elements = new Proxy({}, {
+    get(_, name) {
+        return (attributes, ...children) => {
+            if (
+                attributes?.constructor !== Object ||
+                attributes?.symbol === elementSymbol
+            ) {
+                if (attributes !== undefined) {
+                    children.unshift(attributes);
+                }
+                attributes = {};
+            } else {
+                attributes = attributes ?? {};
+            }
+
+           return {
+                name, attributes, children,
+                symbol: elementSymbol,
+                type: Node.ELEMENT_NODE,
+            };
         }
-    }
+    },
 });
 
-export default class Virtual {
-    #root;
-    #context;
-    #render;
-    #patching = 0;
-    #request = false;
+export class XElement extends HTMLElement {
 
-    constructor(root, context, render) {
-        this.#root = root;
-        this.#render = render;
-        this.#context = proxy(context(), () => this.render());
+    #root;
+    #shadow;
+    #context;
+    #template;
+    #patching = 0;
+    #created = false;
+
+    constructor() {
+        super();
+        this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
+
+        const options = this.constructor.options ?? {};
+
+        if (options.root === 'this') this.#root = this;
+        else if (options.root === 'shadow') this.#root = this.shadowRoot;
+        else this.#root = this.shadowRoot;
+
+        if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
+
+        this.#context = Context(this.constructor.context(), this.#change.bind(this));
+        this.#template = this.constructor.template.bind(this.#context, this.#context, elements);
+
+        if (this.#root !== this) {
+            this.#created = true;
+            this.#patching = 1;
+            patch(this.#root, this.#template());
+            this.#patching = 0;
+        }
+
     }
 
-    render() {
-        clearTimeout(this.#patching);
-        this.#patching = setTimeout(() => {
-            patch(this.#root(), this.#render(this.#context, element));
+    #frame () {
+        patch(this.#root, this.#template());
+        this.#patching = 0;
+    }
+
+    #change() {
+        // clearTimeout(this.#patching);
+        // this.#patching = setTimeout(, 200);
+        cancelAnimationFrame(this.#patching);
+        this.#patching = requestAnimationFrame(this.#frame.bind(this));
+    }
+
+    connectedCallback() {
+        if (!this.#created) {
+            this.#created = true;
+            this.#patching = 1;
+            patch(this.#root, this.#template());
             this.#patching = 0;
-        }, 200);
+        }
     }
 
 }
