@@ -1,160 +1,119 @@
 <main></main>
 
-<script>
-
-    const whitespace = /^\s*$/;
-    const textType = Node.TEXT_NODE;
-    const elementType = Node.ELEMENT_NODE;
-    const commentType = Node.COMMENT_NODE;
-    const documentType = Node.DOCUMENT_NODE;
-    const cdataType = Node.CDATA_SECTION_NODE;
-    const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
-
-    const create = (item) => {
-        const { name, attributes = {}, children = [] } = item;
-        const element = document.createElement(name);
-
-        for (const [key, value] of Object.entries(attributes)) {
-            if (key.startsWith('on')) {
-                element.addEventListener(key.substring(2).toLowerCase(), value);
-            } else {
-                element.setAttribute(key, value);
-            }
-        }
-
-        for (const child of children) {
-            if (typeof child === 'string') {
-                const text = document.createTextNode(child);
-                element.appendChild(text);
-            } else {
-                element.appendChild(child);
-            }
-        }
-
-        return element;
-    };
-
-    const patch = (source, target) => {
-        if (target instanceof Array) {
-            const targetChildren = target;
-            const sourceChildren = source.childNodes ?? [];
-            const sourceLength = sourceChildren.length;
-            const targetLength = targetChildren.length;
-            const commonLength = Math.min(sourceLength, targetLength);
-
-            for (let index = 0; index < commonLength; index++) { // patch common nodes
-                patch(sourceChildren[index], targetChildren[index]);
-            }
-
-            if (sourceLength > targetLength) { // remove additional nodes
-                for (let index = targetLength; index < sourceLength; index++) {
-                    const child = source.lastChild;
-                    if (child) source.removeChild(child);
-                }
-            } else if (sourceLength < targetLength) { // append additional nodes
-                for (let index = sourceLength; index < targetLength; index++) {
-                    const child = targetChildren[index];
-                    source.appendChild(create(child));
-                }
-            }
-        } else {
-            const targetType = target.type;
-            const targetName = target.name;
-            const sourceType = source.nodeType;
-            const sourceName = source.nodeName.toLowerCase();
-
-            // console.log(source, target)
-
-            if (typeof source === 'string' || typeof target === 'string') {
-                // console.warn('typeof source or target equal string');
-                if (source !== target) {
-                    source.parentNode?.replaceChild(document.createTextNode(target), source);
-                }
-            } else if (
-                sourceName !== targetName || sourceType !== targetType
-            ) {
-                source.parentNode?.replaceChild(create(target), source);
-            } else if (
-                sourceType === textType || targetType === textType ||
-                sourceType === cdataType || targetType === cdataType ||
-                sourceType === commentType || targetType === commentType
-            ) {
-                if (source.children !== target.children) {
-                    source.parentNode.replaceChild(create(target), source);
-                }
-            } else {
-
-                const targetChildren = target.children;
-                const sourceChildren = source.childNodes;
-                const sourceLength = sourceChildren.length;
-                const targetLength = targetChildren.length;
-                const commonLength = Math.min(sourceLength, targetLength);
-
-                for (let index = 0; index < commonLength; index++) { // patch common nodes
-                    patch(sourceChildren[index], targetChildren[index]);
-                }
-
-                if (sourceLength > targetLength) { // remove additional nodes
-                    for (let index = targetLength; index < sourceLength; index++) {
-                        const child = source.lastChild;
-                        if (child) source.removeChild(child);
-                    }
-                } else if (sourceLength < targetLength) { // append additional nodes
-                    for (let index = sourceLength; index < targetLength; index++) {
-                        const child = targetChildren[index];
-                        console.log(source);
-                        source.appendChild(create(child));
-                    }
-                }
-
-                for (const name in source.attributes) {
-                    if (!(name in target.attributes)) {
-                        source.removeAttribute(name);
-                    }
-                }
-            }
-        }
-    };
-
-    const element = new Proxy({}, {
-        get(target, name) {
-            return (attributes = [], ...children) => {
-                const element = { name, attributes, children, type: Node.ELEMENT_NODE };
-                return element;
-            }
-        }
-    });
-
-    const render = (root, context, virtual) => {
-        root = root();
-
-        context = new Proxy(context(), {
-            get(target, key, receiver) {
-                return Reflect.get(target, key, receiver);
-            },
-            set(target, key, value, receiver) {
-                Reflect.set(target, key, value, receiver);
-                Promise.resolve().then(() => patch(root, virtual(element, context)));
-                return true;
-            }
-        });
-
-        patch(root, virtual(element, context));
-    }
-
-    const root = () => document.querySelector('main');
+<script type="module">
+    import Virtual from './virtual.js';
 
     const context = () => ({
         count: 0,
+        list: [],
         message: 'hello world',
+        overwrite() {
+            this.list = [1, 2, 3, 4, 5];
+        },
+        increment() {
+            this.count++;
+        }
     });
 
-    const virtual = (e, c) => [
-        e.h1({ id: 'red' }, c.message),
-        e.p({ class: 'blue' }, `Count: ${c.count}`),
-        e.button({ onclick: () => c.count++ }, 'click me')
-    ];
+    const render = (
+        { message, count, list, increment, overwrite },
+        { h1, div, span, button }
+    ) => [
+            h1({ style: 'background:red' }, message),
 
-    render(root, context, virtual);
+            ...list.map(i => span({}, `${i}`)),
+
+            div({}, `List: ${list}`),
+            button({ onclick: overwrite }, 'Overwrite List'),
+
+            div({}, `Count: ${count}`),
+            button({ onclick: increment }, 'Increment Count'),
+
+        ];
+
+    const root = () => document.querySelector('main')
+    const virtual = new Virtual(root, context, render);
+
+    virtual.render();
+
+
+
+
+    // class CustomElement extends XVirtual {
+
+    //     users = [];
+    //     count = 0;
+    //     message = 'hello world';
+    //     onclick() { this.count++; }
+    //     message() { return 'hello world'; }
+
+    //     virtual = ({ h1, p, button }, { message, count, onclick })[
+    //         h1({}, 'one two'),
+    //         h1({ id: 'red' }, message()),
+    //         p({ class: 'blue' }, `Count: ${count}`),
+    //         button({ created, onclick: () => count++ }, 'click me')
+    //     ];
+
+    //     constructor() {
+    //         // render(root, this, virtual);
+    //     }
+
+    //     connectedCallback() {
+    //         this.users = fetch();
+    //     }
+
+    // }
+
+
+    // const Primitive = function (value) {
+    //     function Primitive(data) {
+    //         return data === undefined ? value : value = data;
+    //     }
+    //     Primitive[Symbol.toPrimitive] = function () { return value; }
+    //     // Primitive[Symbol.toStringTag] = function () { return 'Validator'; }
+    //     Primitive[Symbol.hasInstance] = function (instance) {
+    //         console.log(instance);
+    //         return value instanceof instance;
+    //     }
+    //     return Primitive
+    // }
+
+    // let o = new Proxy({
+    //     count: Primitive(10),
+    //     string: Primitive('hello')
+    // }, {
+    //     construct(...args) {
+    //         console.log(args)
+    //         return Reflect.construct(...args);
+    //     },
+    //     get(target, key, receiver) {
+    //         console.log('get', key)
+    //         return Reflect.get(target, key, receiver);
+    //     },
+    //     set(target, key, value, receiver) {
+    //         console.log('set', key)
+    //         return Reflect.set(target, key, value, receiver);
+    //     },
+    //     apply(...args) {
+    //         console.log(args);
+    //         return Reflect.apply(...args);
+    //     }
+    // });
+
+    // let { count, string } = o;
+
+    // console.log(count());
+    // console.log(count++)
+    // console.log(count);
+    // console.log(typeof count);
+    // console.log(count instanceof Number)
+    // console.log(Object.prototype.toString.call(count));
+
+    // console.log(string());
+    // console.log(string += ' world');
+    // console.log(string);
+    // console.log(typeof string);
+    // console.log(string instanceof String)
+    // console.log(Object.prototype.toString.call(string));
 
 </script>
