@@ -218,7 +218,7 @@ export class XElement extends HTMLElement {
   #shadow;
   #context;
   #template;
-  #patching = 0;
+//   #patching = 0;
   #created = false;
 
   constructor() {
@@ -236,8 +236,9 @@ export class XElement extends HTMLElement {
 
     this.#context = Context(
       this.constructor.context(),
-      this.#change.bind(this)
+      this.#update.bind(this)
     );
+
     this.#template = this.constructor.template.bind(
       this.#context,
       this.#context,
@@ -246,30 +247,31 @@ export class XElement extends HTMLElement {
 
     if (this.#root !== this) {
       this.#created = true;
-      this.#patching = 1;
-      patch(this.#root, this.#template());
-      this.#patching = 0;
+      this.#update();
+    //   this.#patching = 1;
+    //   patch(this.#root, this.#template());
+    //   this.#patching = 0;
     }
   }
 
-  #frame() {
-    patch(this.#root, this.#template());
-    this.#patching = 0;
-  }
+//   #frame() {
+//     patch(this.#root, this.#template());
+//     this.#patching = 0;
+//   }
 
-  #change() {
-    // clearTimeout(this.#patching);
-    // this.#patching = setTimeout(, 200);
-    cancelAnimationFrame(this.#patching);
-    this.#patching = requestAnimationFrame(this.#frame.bind(this));
+  #update() {
+    // cancelAnimationFrame(this.#patching);
+    // this.#patching = requestAnimationFrame(this.#frame.bind(this));
+    schedule(() => patch(this.#root, this.#template()));
   }
 
   connectedCallback() {
     if (!this.#created) {
       this.#created = true;
-      this.#patching = 1;
-      patch(this.#root, this.#template());
-      this.#patching = 0;
+      this.#update();
+    //   this.#patching = 1;
+    //   patch(this.#root, this.#template());
+    //   this.#patching = 0;
     }
   }
 }
