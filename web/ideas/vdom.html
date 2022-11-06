@@ -39,7 +39,8 @@
 <main></main>
 
 <script type="module">
-    import { XElement } from './virtual.js';
+    // import { XElement } from './virtual.js';
+    import { render } from './virtual.js';
 
     const context = () => ({
         count: 0,
@@ -53,91 +54,24 @@
         }
     });
 
-    const template = (
-        { message, count, list, increment, overwrite },
-        { h1, div, br, button }
-    ) => [
-            h1({ style: 'background:red' }, message),
-            div(`Count: ${count}`),
-            button({ onclick: increment }, 'Increment Count'),
-            button({ onclick: overwrite }, 'Overwrite List'),
-            div(...list.map(i => div({ class: 'box' }, `${i}`)))
-        ];
+    const component = ({ h1, div, br, button }, { message, count, list, increment, overwrite }) => [
+        h1({ style: 'background:red' }, message),
+        div(`Count: ${count}`),
+        button({ onclick: increment }, 'Increment Count'),
+        button({ onclick: overwrite }, 'Overwrite List'),
+        div(...list.map((i) => div({ class: 'box' }, `${i}`)))
+    ];
 
-    // const root = () => document.querySelector('main')
-    // const virtual = new Virtual(root, context, template);
-    // virtual.render();
+    const root = () => document.querySelector('main');
 
-    class XE extends XElement {
+    render(root, context, component);
 
-        static context = context;
-        static template = template;
-        static options = { root: 'this', slot: 'default' };
-
-        // static options = { shadow: true, }
-        // static root() { return this; }
-        // static root() { return this.shadowRoot; }
-
-        // constructor() {
-        //     super();
-        //     this.shadowRoot.appendChild(document.createElement('slot'));
-        // }
-
+    /*
+    class XE extends XElement {
+      static context = context;
+      static template = template;
+      static options = { root: 'this', slot: 'default' };
     }
-
-    document.querySelector('main').appendChild(document.createElement('x-e'));
-    customElements.define('x-e', XE);
-
-
-    // const Primitive = function (value) {
-    //     function Primitive(data) {
-    //         return data === undefined ? value : value = data;
-    //     }
-    //     Primitive[Symbol.toPrimitive] = function () { return value; }
-    //     // Primitive[Symbol.toStringTag] = function () { return 'Validator'; }
-    //     Primitive[Symbol.hasInstance] = function (instance) {
-    //         console.log(instance);
-    //         return value instanceof instance;
-    //     }
-    //     return Primitive
-    // }
-
-    // let o = new Proxy({
-    //     count: Primitive(10),
-    //     string: Primitive('hello')
-    // }, {
-    //     construct(...args) {
-    //         console.log(args)
-    //         return Reflect.construct(...args);
-    //     },
-    //     get(target, key, receiver) {
-    //         console.log('get', key)
-    //         return Reflect.get(target, key, receiver);
-    //     },
-    //     set(target, key, value, receiver) {
-    //         console.log('set', key)
-    //         return Reflect.set(target, key, value, receiver);
-    //     },
-    //     apply(...args) {
-    //         console.log(args);
-    //         return Reflect.apply(...args);
-    //     }
-    // });
-
-    // let { count, string } = o;
-
-    // console.log(count());
-    // console.log(count++)
-    // console.log(count);
-    // console.log(typeof count);
-    // console.log(count instanceof Number)
-    // console.log(Object.prototype.toString.call(count));
-
-    // console.log(string());
-    // console.log(string += ' world');
-    // console.log(string);
-    // console.log(typeof string);
-    // console.log(string instanceof String)
-    // console.log(Object.prototype.toString.call(string));
-
+     document.querySelector('main').appendChild(document.createElement('x-e'));
+    */
 </script>

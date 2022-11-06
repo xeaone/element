@@ -1,13 +1,51 @@
-const whitespace = /^\s*$/;
+let patching = 0;
+const updates = [];
+// const whitespace = /^\s*$/;
 const next = Promise.resolve();
 const textType = Node.TEXT_NODE;
-const elementType = Node.ELEMENT_NODE;
+// const elementType = Node.ELEMENT_NODE;
 const commentType = Node.COMMENT_NODE;
-const documentType = Node.DOCUMENT_NODE;
+// const documentType = Node.DOCUMENT_NODE;
 const cdataType = Node.CDATA_SECTION_NODE;
-const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
+// const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
 
 const elementSymbol = Symbol('element');
+
+export const elements = new Proxy({}, {
+    get(_, name) {
+        return (attributes, ...children) => {
+            if (attributes?.constructor !== Object || attributes?.symbol === elementSymbol) {
+                if (attributes !== undefined) {
+                    children.unshift(attributes);
+                }
+                attributes = {};
+            } else {
+                attributes = attributes ?? {};
+            }
+
+            return {
+                name,
+                attributes,
+                children,
+                symbol: elementSymbol,
+                type: Node.ELEMENT_NODE
+            };
+        };
+    }
+});
+
+const frame = function () {
+    for (let i = 0; i < updates.length; i++) {
+        updates.shift()();
+        patching = 0;
+    }
+};
+
+const schedule = function (update) {
+    updates.push(update);
+    cancelAnimationFrame(patching);
+    patching = requestAnimationFrame(frame);
+};
 
 const create = function (item) {
     const element = document.createElement(item.name);
@@ -33,7 +71,7 @@ const create = function (item) {
     return element;
 };
 
-const patch = function (source, target)  {
+export const patch = function (source, target) {
     if (target instanceof Array) {
         const targetChildren = target;
         const sourceChildren = source.childNodes ?? [];
@@ -41,16 +79,19 @@ const patch = function (source, target)  {
         const targetLength = targetChildren.length;
         const commonLength = Math.min(sourceLength, targetLength);
 
-        for (let index = 0; index < commonLength; index++) { // patch common nodes
+        for (let index = 0; index < commonLength; index++) {
+            // patch common nodes
             patch(sourceChildren[index], targetChildren[index]);
         }
 
-        if (sourceLength > targetLength) { // remove additional nodes
+        if (sourceLength > targetLength) {
+            // remove additional nodes
             for (let index = targetLength; index < sourceLength; index++) {
                 const child = source.lastChild;
                 if (child) source.removeChild(child);
             }
-        } else if (sourceLength < targetLength) { // append additional nodes
+        } else if (sourceLength < targetLength) {
+            // append additional nodes
             for (let index = sourceLength; index < targetLength; index++) {
                 const child = targetChildren[index];
                 source.appendChild(create(child));
@@ -64,29 +105,29 @@ const patch = function (source, target)  {
 
         if (typeof source === 'string' || typeof target === 'string') {
             if (source.textContent !== target) {
-                source.parentNode?.replaceChild(document.createTextNode(target), source);
+                source.parentNode.replaceChild(document.createTextNode(target), source);
             }
+        } else if (sourceName !== targetName || sourceType !== targetType) {
+            source.parentNode.replaceChild(create(target), source);
         } else if (
-            sourceName !== targetName || sourceType !== targetType
-        ) {
-            source.parentNode?.replaceChild(create(target), source);
-        } else if (
-            sourceType === textType || targetType === textType ||
-            sourceType === cdataType || targetType === cdataType ||
-            sourceType === commentType || targetType === commentType
+            sourceType === textType ||
+            targetType === textType ||
+            sourceType === cdataType ||
+            targetType === cdataType ||
+            sourceType === commentType ||
+            targetType === commentType
         ) {
             if (source.children !== target.children) {
-                source.parentNode?.replaceChild(create(target), source);
+                source.parentNode.replaceChild(create(target), source);
             }
         } else {
-
             const targetChildren = target.children;
             const sourceChildren = source.childNodes;
             const sourceLength = sourceChildren.length;
             const targetLength = targetChildren.length;
             const commonLength = Math.min(sourceLength, targetLength);
 
-           for (const name in target.attributes) {
+            for (const name in target.attributes) {
                 const value = target.attributes[name];
                 if (name.startsWith('on')) {
                     if (Reflect.has(source, `x${name}`)) {
@@ -96,7 +137,7 @@ const patch = function (source, target)  {
                         source.addEventListener(name.slice(2), value);
                     }
                     if (source.hasAttribute(name)) source.removeAttribute(name);
-                } else if (source.getAttribute(name) !== `${value}`){
+                } else if (source.getAttribute(name) !== `${value}`) {
                     source.setAttribute(name, value);
                 }
             }
@@ -107,29 +148,31 @@ const patch = function (source, target)  {
                 }
             }
 
-            for (let index = 0; index < commonLength; index++) { // patch common nodes
+            for (let index = 0; index < commonLength; index++) {
+                // patch common nodes
                 patch(sourceChildren[index], targetChildren[index]);
             }
 
-            if (sourceLength > targetLength) { // remove additional nodes
+            if (sourceLength > targetLength) {
+                // remove additional nodes
                 let child;
                 for (let index = targetLength; index < sourceLength; index++) {
                     child = source.lastChild;
                     if (child) source.removeChild(child);
                 }
-            } else if (sourceLength < targetLength) { // append additional nodes
+            } else if (sourceLength < targetLength) {
+                // append additional nodes
                 let child;
                 for (let index = sourceLength; index < targetLength; index++) {
                     child = targetChildren[index];
                     source.appendChild(create(child));
                 }
             }
-
         }
     }
 };
 
-export const Context = function (data, event){
+export const proxy = function (data, event) {
     return new Proxy(data, {
         get(target, key, receiver) {
             let value = Reflect.get(target, key, receiver);
@@ -147,82 +190,86 @@ export const Context = function (data, event){
     });
 };
 
-export const elements = new Proxy({}, {
-    get(_, name) {
-        return (attributes, ...children) => {
-            if (
-                attributes?.constructor !== Object ||
-                attributes?.symbol === elementSymbol
-            ) {
-                if (attributes !== undefined) {
-                    children.unshift(attributes);
-                }
-                attributes = {};
-            } else {
-                attributes = attributes ?? {};
-            }
+export const render = function (root, context, component) {
+    // let patching = 0;
 
-           return {
-                name, attributes, children,
-                symbol: elementSymbol,
-                type: Node.ELEMENT_NODE,
-            };
-        }
-    },
-});
+    // const frame = function () {
+    //     patch(root(), component());
+    //     patching = 0;
+    // };
+
+    const update = function () {
+        // cancelAnimationFrame(patching);
+        // patching = requestAnimationFrame(frame);
+        schedule(() => patch(root(), component()));
+    };
+
+    context = proxy(context(), update);
+    component = component.bind(null, elements, context);
+
+    // patching = 1;
+    // patch(root(), component());
+    // patching = 0;
+    update();
+};
 
 export class XElement extends HTMLElement {
+  #root;
+  #shadow;
+  #context;
+  #template;
+  #patching = 0;
+  #created = false;
 
-    #root;
-    #shadow;
-    #context;
-    #template;
-    #patching = 0;
-    #created = false;
+  constructor() {
+    super();
+    this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
 
-    constructor() {
-        super();
-        this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
+    const options = this.constructor.options ?? {};
 
-        const options = this.constructor.options ?? {};
+    if (options.root === 'this') this.#root = this;
+    else if (options.root === 'shadow') this.#root = this.shadowRoot;
+    else this.#root = this.shadowRoot;
 
-        if (options.root === 'this') this.#root = this;
-        else if (options.root === 'shadow') this.#root = this.shadowRoot;
-        else this.#root = this.shadowRoot;
+    if (options.slot === 'default')
+      this.#shadow.appendChild(document.createElement('slot'));
 
-        if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
+    this.#context = Context(
+      this.constructor.context(),
+      this.#change.bind(this)
+    );
+    this.#template = this.constructor.template.bind(
+      this.#context,
+      this.#context,
+      elements
+    );
 
-        this.#context = Context(this.constructor.context(), this.#change.bind(this));
-        this.#template = this.constructor.template.bind(this.#context, this.#context, elements);
-
-        if (this.#root !== this) {
-            this.#created = true;
-            this.#patching = 1;
-            patch(this.#root, this.#template());
-            this.#patching = 0;
-        }
-
+    if (this.#root !== this) {
+      this.#created = true;
+      this.#patching = 1;
+      patch(this.#root, this.#template());
+      this.#patching = 0;
     }
+  }
 
-    #frame () {
-        patch(this.#root, this.#template());
-        this.#patching = 0;
+  #frame() {
+    patch(this.#root, this.#template());
+    this.#patching = 0;
+  }
+
+  #change() {
+    // clearTimeout(this.#patching);
+    // this.#patching = setTimeout(, 200);
+    cancelAnimationFrame(this.#patching);
+    this.#patching = requestAnimationFrame(this.#frame.bind(this));
+  }
+
+  connectedCallback() {
+    if (!this.#created) {
+      this.#created = true;
+      this.#patching = 1;
+      patch(this.#root, this.#template());
+      this.#patching = 0;
     }
-
-    #change() {
-        // clearTimeout(this.#patching);
-        // this.#patching = setTimeout(, 200);
-        cancelAnimationFrame(this.#patching);
-        this.#patching = requestAnimationFrame(this.#frame.bind(this));
-    }
-
-    connectedCallback() {
-        if (!this.#created) {
-            this.#created = true;
-            this.#patching = 1;
-            patch(this.#root, this.#template());
-            this.#patching = 0;
-        }
-    }
-
+  }
 }
