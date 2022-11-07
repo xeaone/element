@@ -191,25 +191,14 @@ export const proxy = function (data, event) {
 };
 
 export const render = function (root, context, component) {
-    // let patching = 0;
-
-    // const frame = function () {
-    //     patch(root(), component());
-    //     patching = 0;
-    // };
 
     const update = function () {
-        // cancelAnimationFrame(patching);
-        // patching = requestAnimationFrame(frame);
         schedule(() => patch(root(), component()));
     };
 
     context = proxy(context(), update);
     component = component.bind(null, elements, context);
 
-    // patching = 1;
-    // patch(root(), component());
-    // patching = 0;
     update();
 };
 
@@ -218,7 +207,6 @@ export class XElement extends HTMLElement {
   #shadow;
   #context;
   #component;
-//   #patching = 0;
   #created = false;
 
   constructor() {
