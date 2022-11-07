@@ -35,16 +35,16 @@ export const elements = new Proxy({}, {
 });
 
 const frame = function () {
-    for (let i = 0; i < updates.length; i++) {
-        updates.shift()();
-        patching = 0;
-    }
+    while (updates.length) updates.shift()();
+    patching = 0;
 };
 
 const schedule = function (update) {
     updates.push(update);
     cancelAnimationFrame(patching);
     patching = requestAnimationFrame(frame);
+    // clearTimeout(patching);
+    // patching = setTimeout(frame, 100);
 };
 
 const create = function (item) {
@@ -217,7 +217,7 @@ export class XElement extends HTMLElement {
   #root;
   #shadow;
   #context;
-  #template;
+  #component;
 //   #patching = 0;
   #created = false;
 
@@ -231,47 +231,25 @@ export class XElement extends HTMLElement {
     else if (options.root === 'shadow') this.#root = this.shadowRoot;
     else this.#root = this.shadowRoot;
 
-    if (options.slot === 'default')
-      this.#shadow.appendChild(document.createElement('slot'));
+    if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
-    this.#context = Context(
-      this.constructor.context(),
-      this.#update.bind(this)
-    );
-
-    this.#template = this.constructor.template.bind(
-      this.#context,
-      this.#context,
-      elements
-    );
+    this.#context = proxy(this.constructor.context(), this.#update.bind(this));
+    this.#component = this.constructor.component.bind(this.#context, elements, this.#context);
 
     if (this.#root !== this) {
       this.#created = true;
       this.#update();
-    //   this.#patching = 1;
-    //   patch(this.#root, this.#template());
-    //   this.#patching = 0;
     }
   }
 
-//   #frame() {
-//     patch(this.#root, this.#template());
-//     this.#patching = 0;
-//   }
-
   #update() {
-    // cancelAnimationFrame(this.#patching);
-    // this.#patching = requestAnimationFrame(this.#frame.bind(this));
-    schedule(() => patch(this.#root, this.#template()));
+    schedule(() => patch(this.#root, this.#component()));
   }
 
   connectedCallback() {
     if (!this.#created) {
       this.#created = true;
       this.#update();
-    //   this.#patching = 1;
-    //   patch(this.#root, this.#template());
-    //   this.#patching = 0;
     }
   }
 }
