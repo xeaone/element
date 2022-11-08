@@ -2,13 +2,16 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-const whitespace = /^\s*$/;
-const textType = Node.TEXT_NODE;
-const elementType = Node.ELEMENT_NODE;
-const commentType = Node.COMMENT_NODE;
+Node.TEXT_NODE;
+Node.ELEMENT_NODE;
+Node.COMMENT_NODE;
 Node.DOCUMENT_NODE;
-const cdataType = Node.CDATA_SECTION_NODE;
+Node.CDATA_SECTION_NODE;
 Node.DOCUMENT_FRAGMENT_NODE;
+const TypeSymbol = Symbol('type');
+const ElementSymbol = Symbol('element');
+const ChildrenSymbol = Symbol('children');
+const AttributesSymbol = Symbol('attributes');
 const parseable = function(value) {
     return !isNaN(value) && value !== undefined && typeof value !== 'string';
 };
@@ -80,75 +83,115 @@ function navigation(path, file, options = {}) {
     options.file = new URL(file, base.href).href;
     navigators.set(path, options);
     navigate();
-    window.navigation.addEventListener('navigate', navigate);
+    Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
-const Cache = new WeakMap();
-const ContextSet = function(method, path, target, key, value, receiver) {
+const __default = new Proxy({}, {
+    get (_, name) {
+        return (attributes, ...children)=>{
+            if (attributes?.constructor !== Object || attributes?.[TypeSymbol] === ElementSymbol) {
+                if (attributes !== undefined) {
+                    children.unshift(attributes);
+                }
+                attributes = {};
+            } else {
+                attributes = attributes ?? {};
+            }
+            children[TypeSymbol] = ChildrenSymbol;
+            attributes[TypeSymbol] = AttributesSymbol;
+            return new Proxy({
+                name,
+                children,
+                attributes,
+                [TypeSymbol]: ElementSymbol
+            }, {
+                get (target, key, receiver) {
+                    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+                    if (key === 'name') return Reflect.get(target, key, receiver);
+                    if (key === 'children') return Reflect.get(target, key, receiver);
+                    if (key === 'attributes') return Reflect.get(target, key, receiver);
+                    return (value)=>{
+                        Reflect.set(target.attributes, key, value);
+                        return receiver;
+                    };
+                }
+            });
+        };
+    }
+});
+const updates = [];
+let patching;
+let request;
+const frame = function() {
+    patching = 1;
+    while(updates.length)updates.shift()?.();
+    patching = 0;
+    request = 0;
+};
+function Schedule(update) {
+    updates.push(update);
+    if (patching) return;
+    cancelAnimationFrame(request);
+    request = requestAnimationFrame(frame);
+}
+const ContextCache = new WeakMap();
+const ContextNext = Promise.resolve();
+const ContextSet = function(method, target, key, value, receiver) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
     const from = Reflect.get(target, key, receiver);
-    if (key === 'length') {
-        Promise.resolve([
-            path,
-            'set'
-        ]).then(method);
-        Promise.resolve([
-            path ? `${path}.${key}` : key,
-            'set'
-        ]).then(method);
-        return true;
-    }
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
-    if (from && typeof from === 'object') {
-        const cache = Cache.get(from);
+    if (from && from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function') {
+        const cache = ContextCache.get(from);
         if (cache === value) return true;
-        Cache.delete(from);
+        ContextCache.delete(from);
     }
     Reflect.set(target, key, value, receiver);
-    path = path ? `${path}.${key}` : key;
-    Promise.resolve([
-        path,
-        'set'
-    ]).then(method);
+    ContextNext.then(method);
     return true;
 };
-const ContextGet = function(method, path, target, key, receiver) {
+const ContextGet = function(method, target, key, receiver) {
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
     const value = Reflect.get(target, key, receiver);
-    if (value && (value.constructor === Array || value.constructor === Object)) {
-        path = path ? `${path}.${key}` : key;
-        const cache = Cache.get(value);
+    if (value && value.constructor.name === 'Object' || value.constructor.name === 'Array') {
+        const cache = ContextCache.get(value);
         if (cache) return cache;
         const proxy = new Proxy(value, {
-            get: ContextGet.bind(null, method, path),
-            set: ContextSet.bind(null, method, path),
-            deleteProperty: ContextDelete.bind(null, method, path)
+            get: ContextGet.bind(null, method),
+            set: ContextSet.bind(null, method),
+            deleteProperty: ContextDelete.bind(null, method)
         });
-        Cache.set(value, proxy);
+        ContextCache.set(value, proxy);
         return proxy;
+    }
+    if (value && target.constructor.name === 'Object' && value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction') {
+        const cache1 = ContextCache.get(value);
+        if (cache1) return cache1;
+        const proxy1 = new Proxy(value, {
+            apply (t, _, a) {
+                return Reflect.apply(t, receiver, a);
+            }
+        });
+        ContextCache.set(value, proxy1);
+        return proxy1;
     }
     return value;
 };
-const ContextDelete = function(method, path, target, key) {
+const ContextDelete = function(method, target, key) {
     if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
     const from = Reflect.get(target, key);
-    Cache.delete(from);
+    ContextCache.delete(from);
     Reflect.deleteProperty(target, key);
-    path = path ? `${path}.${key}` : key;
-    Promise.resolve([
-        path,
-        'delete'
-    ]).then(method);
+    ContextNext.then(method);
     return true;
 };
-const ContextCreate = function(data, method, path = '') {
+const ContextCreate = function(data, method) {
     return new Proxy(data, {
-        get: ContextGet.bind(null, method, path),
-        set: ContextSet.bind(null, method, path),
-        deleteProperty: ContextDelete.bind(null, method, path)
+        get: ContextGet.bind(null, method),
+        set: ContextSet.bind(null, method),
+        deleteProperty: ContextDelete.bind(null, method)
     });
 };
-const booleanDefault = Object.freeze([
+const booleansDefault = Object.freeze([
     'allowfullscreen',
     'async',
     'autofocus',
@@ -201,255 +244,140 @@ const dateDefault = Object.freeze([
     'time',
     'week'
 ]);
-const quotes = function(value) {
-    return value.replace(/"/g, '\\"');
-};
-const lines = function(value) {
-    return value.replace(/\n/g, '\\n');
-};
-const escape = function(value) {
-    return '(' + value.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/^\s*{{/, '').replace(/}}\s*$/, '').replace(/{{/g, '"+(').replace(/}}/g, ')+"') + ')';
-};
-const compute = function(name, value) {
+function Attribute(element, name, value) {
     if (name === 'value') {
-        return function(element) {
-            const type = Reflect.get(element, 'type');
-            if (typeof value === 'number' && dateDefault.includes(type)) {
-                const iso = new Date(value).toLocaleString('default', {
-                    hour12: false,
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    fractionalSecondDigits: 3
-                }).replace(/(\d+)\/(\d+)\/(\d+), ([0-9:.]+)/, '$3-$1-$2T$4Z');
-                if (type === 'date') value = iso.slice(0, 10);
-                else if (type === 'time') value = iso.slice(11, -1);
-                else if (type === 'month') value = iso.slice(0, 7);
-                else if (type === 'datetime-local') value = iso.slice(0, -1);
-            }
-            value = `${value == undefined ? '' : value}`;
-            Reflect.set(element, name, value);
-            element.setAttribute(name, value);
-        };
+        const type = Reflect.get(element, 'type');
+        if (typeof value === 'number' && dateDefault.includes(type)) {
+            const iso = new Date(value).toLocaleString('default', {
+                hour12: false,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                fractionalSecondDigits: 3
+            }).replace(/(\d+)\/(\d+)\/(\d+), ([0-9:.]+)/, '$3-$1-$2T$4Z');
+            if (type === 'date') value = iso.slice(0, 10);
+            else if (type === 'time') value = iso.slice(11, -1);
+            else if (type === 'month') value = iso.slice(0, 7);
+            else if (type === 'datetime-local') value = iso.slice(0, -1);
+        }
+        value = `${value == undefined ? '' : value}`;
+        Reflect.set(element, name, value);
+        element.setAttribute(name, value);
     } else if (name.startsWith('on')) {
-        return function(element) {
-            if (Reflect.has(element, `x${name}`)) {
-                element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
-            } else {
-                Reflect.set(element, `x${name}`, value);
-                element.addEventListener(name.slice(2), value);
-            }
-            if (element.hasAttribute(name)) element.removeAttribute(name);
-        };
-    } else if (booleanDefault.includes(name)) {
-        return function(element) {
-            const result = value ? true : false;
-            Reflect.set(element, name, result);
-            if (result) element.setAttribute(name, '');
-            else element.removeAttribute(name);
-        };
-    } else {
-        return value;
-    }
-};
-const eachParametersPattern = /^\s*{{\s*\[\s*(.*?)(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?(?:\s*,\s*[`'"]([^`'"]+)[`'"])?\s*\]\s*}}\s*$/;
-const eachCompile = function(children, value) {
-    const [_, items, item, key, index] = value.match(eachParametersPattern) ?? [];
-    const parameters = item && key && index ? [
-        item,
-        key,
-        index
-    ] : item && key ? [
-        item,
-        key
-    ] : item ? [
-        item
-    ] : [];
-    return `(${items}).map((${parameters.join(',')})=>${children}).flat()`;
-};
-const textCompile = function(value) {
-    value = quotes(lines(value));
-    if (value.includes('{{') && value.includes('}}')) {
-        value = value.replace(/{{/g, '"+(').replace(/}}/g, ')+"');
-        return `("${value}")`;
-    } else {
-        return `"${value}"`;
-    }
-};
-const attributeCompile = function(name, value) {
-    if (name.startsWith('x-') || value.startsWith('{{') && value.endsWith('}}')) {
-        name = name.startsWith('x-') ? name.slice(2) : name;
-        if (name.startsWith('on')) {
-            return `"${name}":$compute("${name}",function(event){return${escape(value)}}),`;
+        if (Reflect.has(element, `x${name}`)) {
+            element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
         } else {
-            return `"${name}":$compute("${name}",${escape(value)}),`;
+            Reflect.set(element, `x${name}`, value);
+            element.addEventListener(name.slice(2), value);
         }
-    } else {
-        return `"${name}":"${value}",`;
+        if (element.hasAttribute(name)) element.removeAttribute(name);
+    } else if (booleansDefault.includes(name)) {
+        const result = value ? true : false;
+        Reflect.set(element, name, result);
+        if (result) element.setAttribute(name, '');
+        else element.removeAttribute(name);
+    } else if (element.getAttribute(name) !== `${value}`) {
+        element.setAttribute(name, value);
     }
-};
-const attributesRender = function(element, attributes) {
-    for(const name in attributes){
-        const value = attributes[name];
-        if (typeof value === 'function') {
-            value(element);
+}
+function Create(item) {
+    const element = document.createElement(item.name);
+    for(const name in item.attributes){
+        const value = item.attributes[name];
+        Attribute(element, name, value);
+    }
+    for (const child of item.children){
+        if (typeof child === 'string') {
+            element.appendChild(document.createTextNode(child));
         } else {
-            element.setAttribute(name, value);
+            element.appendChild(Create(child));
         }
     }
-};
-const create = function(tag, type, attributes = {}, children) {
-    return {
-        tag,
-        type,
-        attributes,
-        children
-    };
-};
-const render = function(item) {
-    if (typeof item === 'string') {
-        return document.createTextNode(item);
-    } else if (item.tag === '#text') {
-        return document.createTextNode(item.children);
-    } else if (item.tag === '#comment') {
-        return document.createComment(item.children);
-    } else if (item.tag === '#cdata-section') {
-        return document.createCDATASection(item.children);
-    } else {
-        const { tag , attributes , children  } = item;
-        const element = document.createElement(tag);
-        for (const child of children){
-            element.appendChild(render(child));
-        }
-        attributesRender(element, attributes);
-        return element;
-    }
-};
-const patch = function(source, target, node) {
-    if (target === undefined) {
-        console.warn('target undefined');
-        node.parentNode?.removeChild(node);
+    return element;
+}
+function Text(child) {
+    return `${child}`;
+}
+const PatchNode = function(source, target) {
+    if (target?.[TypeSymbol] !== ElementSymbol) {
+        const value = Text(target);
+        if (source.textContent !== value) source.textContent = value;
         return;
-    } else if (typeof source === 'string' || typeof target === 'string') {
-        console.warn('typeof source or target equal string');
-        if (source !== target) {
-            node.parentNode?.replaceChild(render(target), node);
-        }
-    } else if (source.tag !== target.tag || source.type !== target.type) {
-        console.log('tag or type', target, source.tag, target.tag, source.type, target.type);
-        node.parentNode?.replaceChild(render(target), node);
-    } else if (source.type === textType || target.type === textType || source.type === cdataType || target.type === cdataType || source.type === commentType || target.type === commentType) {
-        if (source.children !== target.children) {
-            node.parentNode?.replaceChild(render(target), node);
-        }
-    } else {
-        if (node.nodeType !== elementType) {
-            throw new Error('wrong type');
-        }
-        const targetChildren = target.children;
-        const sourceChildren = source.children;
-        const sourceLength = sourceChildren.length;
-        const targetLength = targetChildren.length;
-        const commonLength = Math.min(sourceLength, targetLength);
-        for(let index = 0; index < commonLength; index++){
-            patch(sourceChildren[index], targetChildren[index], node.childNodes[index]);
-        }
-        if (sourceLength > targetLength) {
-            for(let index1 = targetLength; index1 < sourceLength; index1++){
-                const child = node.lastChild;
-                if (child) node.removeChild(child);
-            }
-        } else if (sourceLength < targetLength) {
-            for(let index2 = sourceLength; index2 < targetLength; index2++){
-                const child1 = target.children[index2];
-                node.appendChild(render(child1));
+    }
+    if (source.nodeName !== target.name.toUpperCase()) {
+        source.parentNode?.replaceChild(Create(target), source);
+        return;
+    }
+    if (!(source instanceof Element)) throw new Error('Patch - source type not handled');
+    for(const name in target.attributes){
+        const value1 = target.attributes[name];
+        Attribute(source, name, value1);
+    }
+    if (source.hasAttributes()) {
+        const names = source.getAttributeNames();
+        for (const name1 of names){
+            if (!(name1 in target.attributes)) {
+                source.removeAttribute(name1);
             }
         }
-        attributesRender(node, target.attributes);
-        for(const name in source.attributes){
-            if (!(name in target.attributes)) {
-                node.removeAttribute(name);
+    }
+    const targetChildren = target.children;
+    const sourceChildren = source.childNodes;
+    const sourceLength = sourceChildren.length;
+    const targetLength = targetChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    for(let index = 0; index < commonLength; index++){
+        PatchNode(sourceChildren[index], targetChildren[index]);
+    }
+    if (sourceLength > targetLength) {
+        let child;
+        for(let index1 = targetLength; index1 < sourceLength; index1++){
+            child = source.lastChild;
+            if (child) source.removeChild(child);
+        }
+    } else if (sourceLength < targetLength) {
+        let child1;
+        for(let index2 = sourceLength; index2 < targetLength; index2++){
+            child1 = targetChildren[index2];
+            if (child1 && child1[TypeSymbol] === ElementSymbol) {
+                source.appendChild(Create(child1));
+            } else {
+                source.appendChild(document.createTextNode(Text(child1)));
             }
         }
     }
 };
-const tree = function(node) {
-    const nodeType = node.nodeType;
-    const nodeValue = node.nodeValue ?? '';
-    const nodeName = node.nodeName.toLowerCase();
-    if (nodeType === textType) {
-        if (whitespace.test(nodeValue)) {
-            return [
-                '',
-                create(nodeName, nodeType, {}, nodeValue)
-            ];
-        } else {
-            const sChildren = textCompile(nodeValue);
-            return [
-                `$create("${nodeName}",${nodeType},{},${sChildren})`,
-                create(nodeName, nodeType, {}, nodeValue)
-            ];
-        }
+function Patch(source, fragment) {
+    const targetChildren = fragment;
+    const sourceChildren = source.childNodes;
+    const sourceLength = sourceChildren.length;
+    const targetLength = targetChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    for(let index = 0; index < commonLength; index++){
+        PatchNode(sourceChildren[index], targetChildren[index]);
     }
-    if (nodeType === elementType) {
-        let sChildren1 = '';
-        let sAttributes = '';
-        const pChildren = [];
-        const pAttributes = {};
-        if (node.hasChildNodes()) {
-            let child = node.firstChild;
-            while(child){
-                const [stringified, parsed] = tree(child);
-                sChildren1 += stringified ? `${stringified},` : '';
-                pChildren.push(parsed);
-                child = child.nextSibling;
-            }
-            sChildren1 = `[${sChildren1}]`;
+    if (sourceLength > targetLength) {
+        let child;
+        for(let index1 = targetLength; index1 < sourceLength; index1++){
+            child = source.lastChild;
+            if (child) source.removeChild(child);
         }
-        if (node.hasAttributes()) {
-            const attributes = node.getAttributeNames();
-            for (const name of attributes){
-                const value = node.getAttribute(name) ?? '';
-                if ([
-                    'each',
-                    'x-each'
-                ].includes(name)) {
-                    sChildren1 = eachCompile(sChildren1, value);
-                } else {
-                    sAttributes += attributeCompile(name, value);
-                }
-                pAttributes[name] = value;
+    } else if (sourceLength < targetLength) {
+        let child1;
+        for(let index2 = sourceLength; index2 < targetLength; index2++){
+            child1 = targetChildren[index2];
+            if (child1 && child1[TypeSymbol] === ElementSymbol) {
+                source.appendChild(Create(child1));
+            } else {
+                source.appendChild(document.createTextNode(Text(child1)));
             }
         }
-        return [
-            `$create("${nodeName}",${nodeType},{${sAttributes}},${sChildren1 || '[]'})`,
-            create(nodeName, nodeType, pAttributes, pChildren)
-        ];
     }
-    if (commentType || cdataType) {
-        const children = quotes(lines(nodeValue));
-        return [
-            `$create("${nodeName}",${nodeType},{},"${children}")`,
-            create(nodeName, nodeType, {}, nodeValue)
-        ];
-    }
-    throw new Error('Node type not handled');
-};
-const compile = function(virtual) {
-    const code = [
-        'return function Render ($context, $cache) {',
-        'with ($context) {',
-        'console.log("here");',
-        'return [',
-        `\t${virtual.join(',\n\t')}`,
-        '];',
-        '}}'
-    ].join('\n');
-    return new Function('$cache', '$create', '$compute', code)(new WeakMap(), create, compute);
-};
+}
+const upgrade = Symbol('upgrade');
 const DEFINED = new WeakSet();
 const CE = window.customElements;
 Object.defineProperty(window, 'customElements', {
@@ -459,7 +387,7 @@ Object.defineProperty(window, 'customElements', {
                     constructor = new Proxy(constructor, {
                         construct (target, args, extender) {
                             const instance = Reflect.construct(target, args, extender);
-                            instance.upgrade();
+                            instance[upgrade]();
                             return instance;
                         }
                     });
@@ -472,7 +400,6 @@ Object.defineProperty(window, 'customElements', {
         })
 });
 class XElement extends HTMLElement {
-    static observedProperties;
     static navigation = navigation;
     static slottedEvent = new Event('slotted');
     static slottingEvent = new Event('slotting');
@@ -497,135 +424,64 @@ class XElement extends HTMLElement {
         name = name ?? dash(this.name);
         return customElements.whenDefined(name);
     }
-    get isUpgraded() {
-        return this.#upgraded;
-    }
-    #shadow;
-    #properties = false;
+    #root;
+    #context;
+    #component;
     #updating = false;
-    #upgraded = false;
-    #upgrading = false;
-    #context = ContextCreate({}, this.update.bind(this));
-    #roots;
-    #render;
-    #sources;
-    #targets;
+    #shadow;
     constructor(){
         super();
         this.#shadow = this.shadowRoot ?? this.attachShadow({
             mode: 'open'
         });
         this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
+        const options = Reflect.get(this.constructor, 'options') ?? {};
+        const context = Reflect.get(this.constructor, 'context');
+        const component = Reflect.get(this.constructor, 'component');
+        if (options.root === 'this') this.#root = this;
+        else if (options.root === 'shadow') this.#root = this.shadowRoot;
+        else this.#root = this.shadowRoot;
+        if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
+        this.#context = ContextCreate(context(), this.#update.bind(this));
+        this.#component = component.bind(this.#context, __default, this.#context);
+        if (this.#root !== this) this[upgrade]();
     }
-    update() {
+    [upgrade]() {
+        this.dispatchEvent(XElement.upgradingEvent);
+        Patch(this.#root, this.#component());
+        this.dispatchEvent(XElement.upgradedEvent);
+    }
+    #update() {
+        this.dispatchEvent(XElement.updatingEvent);
         if (this.#updating) return;
         this.#updating = true;
-        this.dispatchEvent(XElement.updatingEvent);
-        this.#targets = this.#render?.(this.#context);
-        for(let i = 0; i < this.#roots.length; i++){
-            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-        }
-        this.#sources = this.#targets;
+        Schedule(()=>Patch(this.#root, this.#component()));
         this.#updating = false;
         this.dispatchEvent(XElement.updatedEvent);
     }
-    upgrade() {
-        console.log('upgraded');
-        if (this.#upgraded) return;
-        if (this.#upgrading) return new Promise((resolve)=>this.addEventListener('upgraded', ()=>resolve(undefined)));
-        this.#upgrading = true;
-        this.dispatchEvent(XElement.upgradingEvent);
-        const prototype = Object.getPrototypeOf(this);
-        const descriptors = {};
-        const properties = this.constructor.observedProperties;
-        if (properties) {
-            properties.forEach((property)=>descriptors[property] = Object.getOwnPropertyDescriptor(this, property) ?? {});
-        } else {
-            Object.assign(descriptors, Object.getOwnPropertyDescriptors(this));
-            Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
-        }
-        for(const property in descriptors){
-            if ('attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'slottedCallback' === property || 'disconnected' === property || 'constructor' === property || 'attributed' === property || 'connected' === property || 'adopted' === property || 'slotted' === property || property.startsWith('#')) continue;
-            const descriptor = descriptors[property];
-            if (!descriptor.configurable) continue;
-            if (descriptor.set) descriptor.set = descriptor.set?.bind(this);
-            if (descriptor.get) descriptor.get = descriptor.get?.bind(this);
-            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
-            Object.defineProperty(this.#context, property, descriptor);
-            Object.defineProperty(this, property, {
-                enumerable: descriptor.enumerable,
-                configurable: descriptor.configurable,
-                get: ()=>this.#context[property],
-                set: (value)=>this.#context[property] = value
-            });
-        }
-        this.#roots = [];
-        const parsed = [];
-        const stringified = [];
-        let node = this.#shadow.firstChild;
-        while(node){
-            if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
-                const remove = node;
-                node = node.nextSibling;
-                this.#shadow.removeChild(remove);
-            } else {
-                const [s, p] = tree(node);
-                parsed.push(p);
-                stringified.push(s);
-                this.#roots.push(node);
-                node = node.nextSibling;
-            }
-        }
-        const slots = this.#shadow.querySelectorAll('slot');
-        for (const slot of slots){
-            const nodes = slot.assignedNodes();
-            for (const node1 of nodes){
-                if (node1.nodeType === Node.TEXT_NODE && node1.nodeValue && whitespace.test(node1.nodeValue)) {
-                    node1?.parentNode?.removeChild(node1);
-                } else {
-                    const [s1, p1] = tree(node1);
-                    parsed.push(p1);
-                    stringified.push(s1);
-                    this.#roots.push(node1);
-                }
-            }
-        }
-        this.#sources = parsed;
-        this.#render = compile(stringified);
-        this.#targets = this.#render(this.#context);
-        for(let i = 0; i < this.#roots.length; i++){
-            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-        }
-        this.#sources = this.#targets;
-        this.#upgraded = true;
-        this.#upgrading = false;
-        this.dispatchEvent(XElement.upgradedEvent);
-    }
     async slottedCallback() {
-        console.log('slottedCallback');
         this.dispatchEvent(XElement.slottingEvent);
-        await this.slotted?.();
+        await Reflect.get(this, 'slotted')?.();
         this.dispatchEvent(XElement.slottedEvent);
     }
     async connectedCallback() {
-        console.log('connectedCallback');
         this.dispatchEvent(XElement.connectingEvent);
-        await this.connected?.();
+        await Reflect.get(this, 'connected')?.();
         this.dispatchEvent(XElement.connectedEvent);
     }
     async disconnectedCallback() {
         this.dispatchEvent(XElement.disconnectingEvent);
-        await this.disconnected?.();
+        await Reflect.get(this, 'disconnected')?.();
         this.dispatchEvent(XElement.disconnectedEvent);
     }
     async adoptedCallback() {
         this.dispatchEvent(XElement.adoptingEvent);
-        await this.adopted?.();
+        await Reflect.get(this, 'adopted')?.();
         this.dispatchEvent(XElement.adoptedEvent);
     }
     async attributeChangedCallback(name, from, to) {
         this.dispatchEvent(XElement.attributingEvent);
-        await this.attributed?.(name, from, to);
+        await Reflect.get(this, 'attributed')?.(name, from, to);
         this.dispatchEvent(XElement.attributedEvent);
     }
 }

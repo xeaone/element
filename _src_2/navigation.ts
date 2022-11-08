@@ -84,6 +84,5 @@ export default function navigation(path: string, file: string, options: Options 
 
     navigate();
 
-    Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
-    // (window as any).navigation.addEventListener('navigate', navigate);
+    (window as any).navigation.addEventListener('navigate', navigate);
 }

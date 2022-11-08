@@ -1,9 +1,12 @@
-import { ContextType, ItemType, ObservedProperties, RenderType } from './types.ts';
 import Navigation from './navigation.ts';
+import Elements from './elements.ts';
+import Schedule from './schedule.ts';
 import Context from './context.ts';
+import Patch from './patch.ts';
 
-import { compile, patch, tree } from './virtual.ts';
-import { dash, whitespace } from './tool.ts';
+import { dash } from './tool.ts';
+
+const upgrade = Symbol('upgrade');
 
 const DEFINED = new WeakSet();
 const CE = window.customElements;
@@ -14,7 +17,7 @@ Object.defineProperty(window, 'customElements', {
                 constructor = new Proxy(constructor, {
                     construct(target, args, extender) {
                         const instance = Reflect.construct(target, args, extender);
-                        instance.upgrade();
+                        instance[upgrade]();
                         return instance;
                     },
                 });
@@ -28,9 +31,7 @@ Object.defineProperty(window, 'customElements', {
     }),
 });
 
-class XElement extends HTMLElement {
-    static observedProperties?: ObservedProperties;
-
+export default class XElement extends HTMLElement {
     static navigation = Navigation;
 
     static slottedEvent = new Event('slotted');
@@ -65,227 +66,77 @@ class XElement extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
-    get isUpgraded() {
-        return this.#upgraded;
-    }
-
-    #shadow: ShadowRoot;
-
-    #properties = false;
-
+    #root: any;
+    #context;
+    #component;
     #updating = false;
-
-    #upgraded = false;
-    #upgrading = false;
-
-    #context: ContextType = Context({}, this.update.bind(this));
-
-    #roots: any;
-    #render?: RenderType;
-    #sources?: any;
-    #targets?: any;
-
-    // get context() {
-    //     return this.#context;
-    // }
+    #shadow: ShadowRoot;
 
     constructor() {
         super();
         this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
         this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
+
+        const options = Reflect.get(this.constructor, 'options') ?? {};
+        const context = Reflect.get(this.constructor, 'context');
+        const component = Reflect.get(this.constructor, 'component');
+
+        if (options.root === 'this') this.#root = this;
+        else if (options.root === 'shadow') this.#root = this.shadowRoot;
+        else this.#root = this.shadowRoot;
+
+        if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
+
+        this.#context = Context(context(), this.#update.bind(this));
+        this.#component = component.bind(this.#context, Elements, this.#context);
+
+        if (this.#root !== this) this[upgrade]();
     }
 
-    update() {
-        if (this.#updating) return;
+    [upgrade]() {
+        this.dispatchEvent(XElement.upgradingEvent);
+        Patch(this.#root, this.#component());
+        this.dispatchEvent(XElement.upgradedEvent);
+    }
 
-        this.#updating = true;
+    #update() {
         this.dispatchEvent(XElement.updatingEvent);
+        if (this.#updating) return;
+        this.#updating = true;
 
-        this.#targets = this.#render?.(this.#context);
-
-        for (let i = 0; i < this.#roots.length; i++) {
-            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-        }
-
-        this.#sources = this.#targets;
+        Schedule(() => Patch(this.#root, this.#component()));
 
         this.#updating = false;
         this.dispatchEvent(XElement.updatedEvent);
     }
 
-    upgrade() {
-        console.log('upgraded');
-        if (this.#upgraded) return;
-        if (this.#upgrading) return new Promise((resolve) => this.addEventListener('upgraded', () => resolve(undefined)));
-
-        this.#upgrading = true;
-        this.dispatchEvent(XElement.upgradingEvent);
-
-        const prototype = Object.getPrototypeOf(this);
-        const descriptors: Record<string, PropertyDescriptor> = {};
-        const properties: ObservedProperties = (this.constructor as any).observedProperties;
-
-        if (properties) {
-            properties.forEach((property) => descriptors[property] = Object.getOwnPropertyDescriptor(this, property) ?? {});
-        } else {
-            Object.assign(descriptors, Object.getOwnPropertyDescriptors(this));
-            Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
-        }
-
-        for (const property in descriptors) {
-            if (
-                'attributeChangedCallback' === property ||
-                'disconnectedCallback' === property ||
-                'connectedCallback' === property ||
-                'adoptedCallback' === property ||
-                'slottedCallback' === property ||
-                'disconnected' === property ||
-                'constructor' === property ||
-                'attributed' === property ||
-                'connected' === property ||
-                'adopted' === property ||
-                'slotted' === property ||
-                property.startsWith('#')
-            ) continue;
-
-            const descriptor = descriptors[property];
-
-            if (!descriptor.configurable) continue;
-            if (descriptor.set) descriptor.set = descriptor.set?.bind(this);
-            if (descriptor.get) descriptor.get = descriptor.get?.bind(this);
-            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
-
-            Object.defineProperty(this.#context, property, descriptor);
-
-            Object.defineProperty(this, property, {
-                enumerable: descriptor.enumerable,
-                configurable: descriptor.configurable,
-                get: () => this.#context[property],
-                set: (value) => this.#context[property] = value,
-            });
-        }
-
-        this.#roots = [];
-        const parsed = [];
-        const stringified = [];
-
-        let node = this.#shadow.firstChild;
-        while (node) {
-            if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
-                const remove = node;
-                node = node.nextSibling;
-                this.#shadow.removeChild(remove);
-            } else {
-                const [s, p] = tree(node);
-                parsed.push(p);
-                stringified.push(s);
-                this.#roots.push(node);
-                node = node.nextSibling;
-            }
-        }
-
-        const slots = this.#shadow.querySelectorAll('slot');
-        for (const slot of slots) {
-            const nodes = slot.assignedNodes();
-            for (const node of nodes) {
-                if (node.nodeType === Node.TEXT_NODE && node.nodeValue && whitespace.test(node.nodeValue)) {
-                    node?.parentNode?.removeChild(node);
-                } else {
-                    const [s, p] = tree(node);
-                    parsed.push(p);
-                    stringified.push(s);
-                    this.#roots.push(node);
-                }
-            }
-        }
-
-        this.#sources = parsed;
-        this.#render = compile(stringified);
-        this.#targets = this.#render(this.#context);
-        for (let i = 0; i < this.#roots.length; i++) {
-            patch(this.#sources[i], this.#targets[i], this.#roots[i]);
-        }
-        this.#sources = this.#targets;
-
-        // for (const slot of slots) {
-        //     if (slot.assignedNodes) {
-        //         const nodes = slot.assignedNodes() ?? [];
-        //         for (const node of nodes) {
-        //             promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
-        //         }
-        //     } else {
-        //         // linkdom work around
-        //         const attribute = slot.attributes.getNamedItem('name');
-        //         if (attribute) {
-        //             const element = this.querySelector(`[slot="${attribute.value}"`);
-        //             if (element) {
-        //                 promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, element));
-        //                 const nodes = element.childNodes;
-        //                 for (const node of nodes) {
-        //                     promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
-        //                 }
-        //             }
-        //         } else {
-        //             const nodes = this.childNodes;
-        //             for (const node of nodes) {
-        //                 promises.push(BinderAdd(this.#context, this.#binders, this.#rewrites, node));
-        //             }
-        //         }
-        //     }
-        // }
-
-        this.#upgraded = true;
-        this.#upgrading = false;
-        this.dispatchEvent(XElement.upgradedEvent);
-    }
-
     async slottedCallback() {
-        console.log('slottedCallback');
         this.dispatchEvent(XElement.slottingEvent);
-        await (this as any).slotted?.();
+        await Reflect.get(this, 'slotted')?.();
         this.dispatchEvent(XElement.slottedEvent);
     }
 
     async connectedCallback() {
-        console.log('connectedCallback');
         this.dispatchEvent(XElement.connectingEvent);
-        await (this as any).connected?.();
+        await Reflect.get(this, 'connected')?.();
         this.dispatchEvent(XElement.connectedEvent);
     }
 
     async disconnectedCallback() {
         this.dispatchEvent(XElement.disconnectingEvent);
-        await (this as any).disconnected?.();
+        await Reflect.get(this, 'disconnected')?.();
         this.dispatchEvent(XElement.disconnectedEvent);
     }
 
     async adoptedCallback() {
         this.dispatchEvent(XElement.adoptingEvent);
-        await (this as any).adopted?.();
+        await Reflect.get(this, 'adopted')?.();
         this.dispatchEvent(XElement.adoptedEvent);
     }
 
     async attributeChangedCallback(name: string, from: string, to: string) {
         this.dispatchEvent(XElement.attributingEvent);
-        await (this as any).attributed?.(name, from, to);
+        await Reflect.get(this, 'attributed')?.(name, from, to);
         this.dispatchEvent(XElement.attributedEvent);
     }
 }
-
-export default XElement;
-
-// export default new Proxy(XElement, {
-//     construct(target, args, extender: any) {
-//         // const name = NAMES.get(extender) || NAMES.get(target);
-//         // CE.whenDefined(name).then((c) => {
-//         //     console.log(Object.getOwnPropertyNames(instance));
-//         // });
-
-//         const instance = Reflect.construct(target, args, extender);
-//         // customElements.whenDefined('o-loop').then((c) => console.log(c));
-//         // console.log(Object.getOwnPropertyNames(instance));
-//         // customElements.whenDefined(instance.localName).then(() => instance.upgrade());
-
-//         return instance;
-//     },
-// });

@@ -35,7 +35,7 @@ export const elements = new Proxy({}, {
 });
 
 const frame = function () {
-    while (updates.length) updates.shift()();
+    while (updates.length) updates.shift()?.();
     patching = 0;
 };
 
@@ -148,8 +148,7 @@ export const patch = function (source, target) {
                 }
             }
 
-            for (let index = 0; index < commonLength; index++) {
-                // patch common nodes
+            for (let index = 0; index < commonLength; index++) { // patch common nodes
                 patch(sourceChildren[index], targetChildren[index]);
             }
 
@@ -214,6 +213,8 @@ export class XElement extends HTMLElement {
     this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
 
     const options = this.constructor.options ?? {};
+    const context = this.constructor.context;
+    const component = this.constructor.component;
 
     if (options.root === 'this') this.#root = this;
     else if (options.root === 'shadow') this.#root = this.shadowRoot;
@@ -221,8 +222,8 @@ export class XElement extends HTMLElement {
 
     if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
-    this.#context = proxy(this.constructor.context(), this.#update.bind(this));
-    this.#component = this.constructor.component.bind(this.#context, elements, this.#context);
+    this.#context = proxy(context(), this.#update.bind(this));
+    this.#component = component.bind(this.#context, elements, this.#context);
 
     if (this.#root !== this) {
       this.#created = true;

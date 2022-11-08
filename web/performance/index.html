@@ -4,10 +4,11 @@
 <link rel="stylesheet" href="./index.css">
 
 <h1>XElement Performance</h1>
+<o-loop></o-loop>
 
+<!--
 <o-loop>
     <template shadowroot="open">
-        <!--
         <link rel="stylesheet" href="./index.css">
         <h3>test {{count.toLocaleString()}}</h3>
         <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
@@ -20,11 +21,10 @@
         <div each="{{[items,'item']}}">
             <div class="box">{{item}}</div>
         </div>
-        -->
         <slot></slot>
     </template>
 
-    <!-- <br>
+    <br>
     <div>{{radioShared}}</div>
     <input type="radio" name="radio" checked="{{ radioShared === radioOne }}" oninput="{{ radioShared = 'one' }}" />
     <input type="radio" name="radio" checked="{{ radioShared === radioTwo }}" oninput="{{ radioShared = 'two' }}" />
@@ -61,7 +61,7 @@
     <input x-value="{{time}}" oninput="{{time=this.valueAsNumber}}" type="time" />
     <div>{{datetime}}</div>
     <input x-value="datetime" oninput="{{datetime = this.valueAsNumber}}" type="datetime-local" />
-    <br> -->
+    <br>
 
     <h3>test {{count.toLocaleString()}}</h3>
     <input x-value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
@@ -79,96 +79,82 @@
         <div class="box">{{item}}</div>
     </div>
 </o-loop>
+-->
 
 <script type="module">
-
-    // const get = function () {
-    //     console.log(arguments);
-    //     return Reflect.get(...arguments);
-    // };
-    // const construct = function () {
-    //     const i = Reflect.construct(...arguments);
-    //     console.log(Object.getOwnPropertyDescriptors(i));
-    //     return i;
-    // }
-
-    // const proxy = function (thing) {
-    //     return new Proxy(thing, { get, construct })
-    // }
-
-    // customElements.define('o-loop',
-    //     proxy(class OLoop extends HTMLElement {
-    //         f = 'test'
-    //     })
-    // )
-
     import XElement from '../x-element.js';
 
-    class OLoop extends XElement {
+    const context = () => ({
 
-        time = Date.now();
-        date = Date.now();
-        datetime = Date.now();
+        time: Date.now(),
+        date: Date.now(),
+        datetime: Date.now(),
 
-        number = 1;
-        boolean = true;
-        string = 'foo';
+        number: 1,
+        boolean: true,
+        string: 'foo',
 
-        checked = false;
-        radioShared = '';
-        radioOne = 'one';
-        radioTwo = 'two';
+        checked: false,
+        radioShared: '',
+        radioOne: 'one',
+        radioTwo: 'two',
 
-        item = undefined;
-        items = [];
-        message = '';
-        count = 100000;
+        item: undefined,
+        items: [],
+        message: '',
+        count: 100000,
 
-        constructor() {
-            super();
-            this.number = 1;
-            // this.shadowRoot.innerHTML = `<slot></slot>`;
-            // this.innerHTML = `<div style="{{'background:blue'}}">Blue</div>`
-        }
+        oninput(e) {
+            this.count = e.target.valueAsNumber;
+        },
 
-        raw() {
-            console.time('raw');
-            const template = document.createElement('template');
-            let html = '';
-            const count = this.count;
-            for (var i = 0; i < count; i++) html += `<div class="box"><div>${i}</div></div>`;
-            template.innerHTML = html;
-            raw.appendChild(template.content);
-            console.timeEnd('raw');
-        }
         push() {
             console.time('push');
             for (var i = 0; i < this.count; i++) this.items.push(i);
             console.timeEnd('push');
-        }
+        },
+
         overwrite() {
             console.time('overwrite');
             var items = [];
             for (var i = 0; i < this.count; i++) items.push(i);
             this.items = items;
             console.timeEnd('overwrite');
-        }
+        },
+
         clear() {
             this.items = [];
-        }
-        // async connected() {
-        //     // console.log('conn')
-        // }
-        async connectedCallback() {
-            // console.log('before connectedCallback');
-            super.connectedCallback();
-            // await super.connectedCallback();
-            // console.log('after connectedCallback');
-            // this.appendChild(this.querySelector('template[root]').cloneNode(true).content);
-        }
+        },
+
+    });
+
+    const component = (
+        { h3, input, br, button, div },
+        { count, oninput, push, overwrite, clear, items }
+    ) => [
+            h3(`test ${count}`),
+            input({ oninput, value: count, type: 'number' }),
+            br(),
+            button({ onclick: push }, 'push'),
+            button({ onclick: overwrite }, 'overwrite'),
+            button({ onclick: clear }, 'clear'),
+            div(...items.map(item => div({ class: 'box' }, `${item}`)))
+
+            // h3(`test ${count}`),
+            // input().oninput(oninput).value(count).type('number'),
+            // br(),
+            // button('push').onclick(push),
+            // button('overwrite').onclick(overwrite),
+            // button('clear').onclick(clear),
+            // div(...items.map(item => div(`${item}`).class('box')))
+        ]
+
+    class OLoop extends XElement {
+        static context = context;
+        static component = component;
+        static options = { root: 'this', slot: 'default' };
     }
 
     OLoop.define();
-
 
 </script>
