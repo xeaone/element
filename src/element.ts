@@ -1,10 +1,9 @@
 import Navigation from './navigation.ts';
-import Elements from './elements.ts';
 import Schedule from './schedule.ts';
+import Virtual from './virtual.ts';
 import Context from './context.ts';
 import Patch from './patch.ts';
-
-import { dash } from './tool.ts';
+import Dash from './dash.ts';
 
 const upgrade = Symbol('upgrade');
 
@@ -40,11 +39,11 @@ export default class XElement extends HTMLElement {
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
 
-    static updatedEvent = new Event('updated');
-    static updatingEvent = new Event('updating');
+    // static updatedEvent = new Event('updated');
+    // static updatingEvent = new Event('updating');
 
-    static upgradedEvent = new Event('upgraded');
-    static upgradingEvent = new Event('upgrading');
+    // static upgradedEvent = new Event('upgraded');
+    // static upgradingEvent = new Event('upgrading');
 
     static connectedEvent = new Event('connected');
     static connectingEvent = new Event('connecting');
@@ -57,23 +56,24 @@ export default class XElement extends HTMLElement {
 
     static define(name?: string, constructor?: typeof XElement) {
         constructor = constructor ?? this;
-        name = name ?? dash(this.name);
+        name = name ?? Dash(this.name);
         customElements.define(name, constructor);
     }
 
     static defined(name: string) {
-        name = name ?? dash(this.name);
+        name = name ?? Dash(this.name);
         return customElements.whenDefined(name);
     }
 
     #root: any;
     #context;
     #component;
-    #updating = false;
+    // #updating = false;
     #shadow: ShadowRoot;
 
     constructor() {
         super();
+
         this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
         this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
 
@@ -87,27 +87,19 @@ export default class XElement extends HTMLElement {
 
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
-        this.#context = Context(context(), this.#update.bind(this));
-        this.#component = component.bind(this.#context, Elements, this.#context);
+        const update = () => Patch(this.#root, this.#component());
+        const change = () => Schedule(update);
+        this.#context = Context(context(), change);
+
+        this.#component = component.bind(this.#context, Virtual, this.#context);
 
         if (this.#root !== this) this[upgrade]();
     }
 
     [upgrade]() {
-        this.dispatchEvent(XElement.upgradingEvent);
+        // this.dispatchEvent(XElement.upgradingEvent);
         Patch(this.#root, this.#component());
-        this.dispatchEvent(XElement.upgradedEvent);
-    }
-
-    #update() {
-        this.dispatchEvent(XElement.updatingEvent);
-        if (this.#updating) return;
-        this.#updating = true;
-
-        Schedule(() => Patch(this.#root, this.#component()));
-
-        this.#updating = false;
-        this.dispatchEvent(XElement.updatedEvent);
+        // this.dispatchEvent(XElement.upgradedEvent);
     }
 
     async slottedCallback() {

@@ -25,14 +25,7 @@
     </template>
 
     <br>
-    <div>{{radioShared}}</div>
-    <input type="radio" name="radio" checked="{{ radioShared === radioOne }}" oninput="{{ radioShared = 'one' }}" />
-    <input type="radio" name="radio" checked="{{ radioShared === radioTwo }}" oninput="{{ radioShared = 'two' }}" />
-    <br>
 
-    <br>
-    <input type="checkbox" value="{{count}}" x-checked="{{ count }}" />
-    <input type="checkbox" value="{{checked}}" x-checked="{{ checked }}" oninput="{{ checked = this.checked }}" />
     <br>
 
     <br>
@@ -82,7 +75,7 @@
 -->
 
 <script type="module">
-    import XElement from '../x-element.js';
+    import { XElement } from '../x-element.js';
 
     const context = () => ({
 
@@ -129,24 +122,29 @@
     });
 
     const component = (
-        { h3, input, br, button, div },
-        { count, oninput, push, overwrite, clear, items }
+        { h2, input, button, div, br },
+        // { count, oninput, push, overwrite, clear, items }
+        c
     ) => [
-            h3(`test ${count}`),
-            input({ oninput, value: count, type: 'number' }),
-            br(),
-            button({ onclick: push }, 'push'),
-            button({ onclick: overwrite }, 'overwrite'),
-            button({ onclick: clear }, 'clear'),
-            div(...items.map(item => div({ class: 'box' }, `${item}`)))
+            // h2(`Count ${count}`),
+            // input({ oninput, value: count, type: 'number' }),
+            // button({ onclick: push }, 'push'),
+            // button({ onclick: overwrite }, 'overwrite'),
+            // button({ onclick: clear }, 'clear'),
+            // div(...items.map(item => div({ class: 'box' }, `${item}`)))
 
-            // h3(`test ${count}`),
-            // input().oninput(oninput).value(count).type('number'),
-            // br(),
-            // button('push').onclick(push),
-            // button('overwrite').onclick(overwrite),
-            // button('clear').onclick(clear),
-            // div(...items.map(item => div(`${item}`).class('box')))
+            br(),
+            div(c.radioShared),
+            input().type('radio').name('radio').checked(() => c.radioShared === radioOne).oninput(() => c.radioShared = 'one'),
+            input().type('radio').name('radio').checked(() => c.radioShared === radioTwo).oninput(() => c.radioShared = 'two'),
+            br(),
+
+            h2(`Count: ${c.count.toLocaleString()}`),
+            input().oninput(c.oninput).value(c.count).type('number'),
+            button('push').onclick(c.push),
+            button('overwrite').onclick(c.overwrite),
+            button('clear').onclick(c.clear),
+            div(...c.items.map(item => div(`${c.item}`).class('box')))
         ]
 
     class OLoop extends XElement {

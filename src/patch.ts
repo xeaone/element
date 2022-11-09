@@ -1,94 +1,150 @@
-import { Item } from './types.ts';
 import Attribute from './attribute.ts';
-import Create from './create.ts';
-import Text from './text.ts';
-import { ChildrenSymbol, ElementSymbol, TypeSymbol } from './tool.ts';
+import Display from './display.ts';
 
-const PatchNode = function (source: Node, target: any) {
-    //
+import { Item, Items } from './types.ts';
+import { CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, TypeSymbol } from './tool.ts';
+
+const PatchCreateElement = function (owner: Document, item: Item): Element {
+    const element = owner.createElement(item.name);
+
+    for (const name in item.attributes) {
+        const value = item.attributes[name];
+        Attribute(element, name, value);
+    }
+
+    for (const child of item.children) {
+        PatchAppend(element, child);
+    }
+
+    return element;
+};
+
+const PatchAppend = function (parent: Element, child: any) {
+    const owner = parent.ownerDocument as Document;
+    if (child?.[TypeSymbol] === ElementSymbol) {
+        parent.appendChild(PatchCreateElement(owner, child));
+    } else if (child?.[TypeSymbol] === CommentSymbol) {
+        parent.appendChild(owner.createComment(child.value));
+    } else if (child?.[TypeSymbol] === CdataSymbol) {
+        parent.appendChild(owner.createCDATASection(child.value));
+    } else {
+        parent.appendChild(owner.createTextNode(Display(child)));
+    }
+};
+
+const PatchRemove = function (parent: Element) {
+    const child = parent.lastChild;
+    if (child) parent.removeChild(child);
+};
+
+const PatchCommon = function (node: Node, target: any) {
+    const owner = node.ownerDocument as Document;
+
+    if (target?.[TypeSymbol] === CommentSymbol) {
+        const value = Display(target);
+
+        if (node.nodeName != '#comment') {
+            node.parentNode?.replaceChild(owner?.createComment(value) as Comment, node);
+        } else if (node.nodeValue != value) {
+            node.nodeValue = value;
+        }
+
+        return;
+    }
+
+    if (target?.[TypeSymbol] === CdataSymbol) {
+        const value = Display(target);
+
+        if (node.nodeName != '#cdata-section') {
+            node.parentNode?.replaceChild(owner?.createCDATASection(value) as CDATASection, node);
+        } else if (node.nodeValue != value) {
+            node.nodeValue = value;
+        }
+
+        return;
+    }
 
     if (target?.[TypeSymbol] !== ElementSymbol) {
-        const value = Text(target);
-        if (source.textContent !== value) source.textContent = value;
+        const value = Display(target);
+
+        if (node.nodeName != '#text') {
+            node.parentNode?.replaceChild(owner?.createTextNode(value) as Text, node);
+        } else if (node.nodeValue != value) {
+            node.nodeValue = value;
+        }
+
         return;
     }
 
-    if (source.nodeName !== target.name.toUpperCase()) {
-        source.parentNode?.replaceChild(Create(target), source);
+    if (node.nodeName !== target.name.toUpperCase()) {
+        node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
     }
 
-    if (!(source instanceof Element)) throw new Error('Patch - source type not handled');
+    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
 
     for (const name in target.attributes) {
         const value = target.attributes[name];
-        Attribute(source as Element, name, value);
+        Attribute(node as Element, name, value);
     }
 
-    if (source.hasAttributes()) {
-        const names = source.getAttributeNames();
+    if (node.hasAttributes()) {
+        const names = node.getAttributeNames();
         for (const name of names) {
             if (!(name in target.attributes)) {
-                source.removeAttribute(name);
+                node.removeAttribute(name);
             }
         }
     }
+
+    let index;
 
     const targetChildren = target.children;
-    const sourceChildren = source.childNodes;
-    const sourceLength = sourceChildren.length;
     const targetLength = targetChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
 
-    for (let index = 0; index < commonLength; index++) { // patch common nodes
-        PatchNode(sourceChildren[index], targetChildren[index]);
+    const nodeChildren = node.childNodes;
+    const nodeLength = nodeChildren.length;
+
+    const commonLength = Math.min(nodeLength, targetLength);
+
+    for (index = 0; index < commonLength; index++) {
+        PatchCommon(nodeChildren[index], targetChildren[index]);
     }
 
-    if (sourceLength > targetLength) { // remove additional nodes
-        let child;
-        for (let index = targetLength; index < sourceLength; index++) {
-            child = source.lastChild;
-            if (child) source.removeChild(child);
+    if (nodeLength > targetLength) {
+        for (index = targetLength; index < nodeLength; index++) {
+            PatchRemove(node);
         }
-    } else if (sourceLength < targetLength) { // append additional nodes
-        let child;
-        for (let index = sourceLength; index < targetLength; index++) {
-            child = targetChildren[index];
-            if (child && child[TypeSymbol] === ElementSymbol) {
-                source.appendChild(Create(child));
-            } else {
-                source.appendChild(document.createTextNode(Text(child)));
-            }
+    } else if (nodeLength < targetLength) {
+        for (index = nodeLength; index < targetLength; index++) {
+            PatchAppend(node, targetChildren[index]);
         }
     }
 };
 
-export default function Patch(source: Element, fragment: Array<Item>) {
-    const targetChildren = fragment;
-    const sourceChildren = source.childNodes;
-    const sourceLength = sourceChildren.length;
-    const targetLength = targetChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
+export default function Patch(root: Element, fragment: Items) {
+    let index;
 
-    for (let index = 0; index < commonLength; index++) { // patch common nodes
-        PatchNode(sourceChildren[index], targetChildren[index]);
+    const virtualChildren = fragment;
+    const virtualLength = virtualChildren.length;
+
+    const rootChildren = root.childNodes;
+    const rootLength = rootChildren.length;
+
+    // const owner = root.ownerDocument;
+    const commonLength = Math.min(rootLength, virtualLength);
+
+    for (index = 0; index < commonLength; index++) {
+        PatchCommon(rootChildren[index], virtualChildren[index]);
     }
 
-    if (sourceLength > targetLength) { // remove additional nodes
-        let child;
-        for (let index = targetLength; index < sourceLength; index++) {
-            child = source.lastChild;
-            if (child) source.removeChild(child);
+    if (rootLength > virtualLength) {
+        for (index = virtualLength; index < rootLength; index++) {
+            PatchRemove(root);
         }
-    } else if (sourceLength < targetLength) { // append additional nodes
-        let child;
-        for (let index = sourceLength; index < targetLength; index++) {
-            child = targetChildren[index];
-            if (child && child[TypeSymbol] === ElementSymbol) {
-                source.appendChild(Create(child));
-            } else {
-                source.appendChild(document.createTextNode(Text(child)));
-            }
+    } else if (rootLength < virtualLength) {
+        for (index = rootLength; index < virtualLength; index++) {
+            PatchAppend(root, virtualChildren[index]);
         }
     }
 }

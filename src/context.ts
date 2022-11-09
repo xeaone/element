@@ -1,9 +1,4 @@
-type ContextValue = any;
-type ContextTarget = any;
-type ContextReceiver = any;
-type ContextMethod = () => void;
-type ContextKey = symbol | string;
-type ContextData = Record<string, any>;
+import { ContextData, ContextKey, ContextMethod, ContextReceiver, ContextTarget, ContextValue } from './types.ts';
 
 const ContextCache = new WeakMap();
 const ContextNext = Promise.resolve();
@@ -17,7 +12,7 @@ const ContextSet = function (method: ContextMethod, target: ContextTarget, key: 
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
 
-    if (from && from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function') {
+    if (from && (from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function')) {
         const cache = ContextCache.get(from);
         if (cache === value) return true;
         ContextCache.delete(from);
@@ -35,7 +30,7 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
 
     const value = Reflect.get(target, key, receiver);
 
-    if (value && value.constructor.name === 'Object' || value.constructor.name === 'Array') {
+    if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
         const cache = ContextCache.get(value);
         if (cache) return cache;
 
@@ -49,7 +44,7 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
         return proxy;
     }
 
-    if (value && target.constructor.name === 'Object' && value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction') {
+    if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
         const cache = ContextCache.get(value);
         if (cache) return cache;
 

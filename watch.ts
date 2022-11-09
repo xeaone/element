@@ -6,7 +6,7 @@ import { Cors, File, Handler, Normalize, Router, Server } from 'https://deno.lan
 // Deno.run({ cmd: ['npx', 'tsc', '--watch'] }).status();
 // Deno.run({ cmd: ['npx', 'rollup', 'tmp/element.js', '--file', 'web/x-element.js', '--format', 'esm', '--watch'] }).status();
 
-Deno.run({ cmd: ['deno', 'bundle', 'src/element.ts', 'web/x-element.js', '--watch'] }).status();
+Deno.run({ cmd: ['deno', 'bundle', 'src/index.ts', 'web/x-element.js', '--watch'] }).status();
 
 // const entry = 'src/element.ts';
 // const entry = 'tmp/element.js';

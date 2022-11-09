@@ -2,33 +2,9 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-Node.TEXT_NODE;
-Node.ELEMENT_NODE;
-Node.COMMENT_NODE;
-Node.DOCUMENT_NODE;
-Node.CDATA_SECTION_NODE;
-Node.DOCUMENT_FRAGMENT_NODE;
-const TypeSymbol = Symbol('type');
-const ElementSymbol = Symbol('element');
-const ChildrenSymbol = Symbol('children');
-const AttributesSymbol = Symbol('attributes');
-const parseable = function(value) {
-    return !isNaN(value) && value !== undefined && typeof value !== 'string';
-};
-const display = function(data) {
-    if (typeof data == 'string') return data;
-    if (typeof data == 'undefined') return '';
-    if (typeof data == 'object') return JSON.stringify(data);
-    return data;
-};
-const dash = function(data) {
+function Dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
-};
-Object.freeze({
-    parseable,
-    display,
-    dash
-});
+}
 const navigators = new Map();
 const transition = async function(options) {
     if (!options.target) throw new Error('XElement - navigation target option required');
@@ -38,7 +14,7 @@ const transition = async function(options) {
     if (!options.file) throw new Error('XElement - navigation file option required');
     options.construct = options.construct ?? (await import(options.file)).default;
     if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
-    options.name = options.name ?? dash(options.construct.name);
+    options.name = options.name ?? Dash(options.construct.name);
     if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
     if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
     await customElements.whenDefined(options.name);
@@ -85,113 +61,33 @@ function navigation(path, file, options = {}) {
     navigate();
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
-const __default = new Proxy({}, {
-    get (_, name) {
-        return (attributes, ...children)=>{
-            if (attributes?.constructor !== Object || attributes?.[TypeSymbol] === ElementSymbol) {
-                if (attributes !== undefined) {
-                    children.unshift(attributes);
-                }
-                attributes = {};
-            } else {
-                attributes = attributes ?? {};
-            }
-            children[TypeSymbol] = ChildrenSymbol;
-            attributes[TypeSymbol] = AttributesSymbol;
-            return new Proxy({
-                name,
-                children,
-                attributes,
-                [TypeSymbol]: ElementSymbol
-            }, {
-                get (target, key, receiver) {
-                    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-                    if (key === 'name') return Reflect.get(target, key, receiver);
-                    if (key === 'children') return Reflect.get(target, key, receiver);
-                    if (key === 'attributes') return Reflect.get(target, key, receiver);
-                    return (value)=>{
-                        Reflect.set(target.attributes, key, value);
-                        return receiver;
-                    };
-                }
-            });
-        };
-    }
-});
+const tick = Promise.resolve();
 const updates = [];
 let patching;
-let request;
 const frame = function() {
-    patching = 1;
     while(updates.length)updates.shift()?.();
     patching = 0;
-    request = 0;
 };
 function Schedule(update) {
     updates.push(update);
     if (patching) return;
-    cancelAnimationFrame(request);
-    request = requestAnimationFrame(frame);
+    patching = 1;
+    tick.then(frame);
 }
-const ContextCache = new WeakMap();
-const ContextNext = Promise.resolve();
-const ContextSet = function(method, target, key, value, receiver) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
-    const from = Reflect.get(target, key, receiver);
-    if (from === value) return true;
-    if (Number.isNaN(from) && Number.isNaN(value)) return true;
-    if (from && from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function') {
-        const cache = ContextCache.get(from);
-        if (cache === value) return true;
-        ContextCache.delete(from);
-    }
-    Reflect.set(target, key, value, receiver);
-    ContextNext.then(method);
-    return true;
-};
-const ContextGet = function(method, target, key, receiver) {
-    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-    const value = Reflect.get(target, key, receiver);
-    if (value && value.constructor.name === 'Object' || value.constructor.name === 'Array') {
-        const cache = ContextCache.get(value);
-        if (cache) return cache;
-        const proxy = new Proxy(value, {
-            get: ContextGet.bind(null, method),
-            set: ContextSet.bind(null, method),
-            deleteProperty: ContextDelete.bind(null, method)
-        });
-        ContextCache.set(value, proxy);
-        return proxy;
-    }
-    if (value && target.constructor.name === 'Object' && value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction') {
-        const cache1 = ContextCache.get(value);
-        if (cache1) return cache1;
-        const proxy1 = new Proxy(value, {
-            apply (t, _, a) {
-                return Reflect.apply(t, receiver, a);
-            }
-        });
-        ContextCache.set(value, proxy1);
-        return proxy1;
-    }
-    return value;
-};
-const ContextDelete = function(method, target, key) {
-    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
-    const from = Reflect.get(target, key);
-    ContextCache.delete(from);
-    Reflect.deleteProperty(target, key);
-    ContextNext.then(method);
-    return true;
-};
-const ContextCreate = function(data, method) {
-    return new Proxy(data, {
-        get: ContextGet.bind(null, method),
-        set: ContextSet.bind(null, method),
-        deleteProperty: ContextDelete.bind(null, method)
-    });
-};
-const booleansDefault = Object.freeze([
+const TypeSymbol = Symbol('type');
+const ElementSymbol = Symbol('element');
+const ChildrenSymbol = Symbol('children');
+const AttributesSymbol = Symbol('attributes');
+const CdataSymbol = Symbol('cdata');
+const CommentSymbol = Symbol('comment');
+const DateAttributes = [
+    'datetime-local',
+    'date',
+    'month',
+    'time',
+    'week'
+];
+const BooleanAttributes = [
     'allowfullscreen',
     'async',
     'autofocus',
@@ -236,18 +132,144 @@ const booleansDefault = Object.freeze([
     'truespeed',
     'typemustmatch',
     'visible'
-]);
-const dateDefault = Object.freeze([
-    'datetime-local',
-    'date',
-    'month',
-    'time',
-    'week'
-]);
+];
+const __default = new Proxy({}, {
+    get (eTarget, eName, eReceiver) {
+        if (typeof eName === 'symbol') return Reflect.get(eTarget, eName, eReceiver);
+        if (eName === 'comment') {
+            return function CommentProxy(...value) {
+                return {
+                    name: 'comment',
+                    value: value.join(''),
+                    [TypeSymbol]: CommentSymbol
+                };
+            };
+        }
+        if (eName === 'cdata') {
+            return function CommentProxy(...value) {
+                return {
+                    name: 'cdata',
+                    value: value.join(''),
+                    [TypeSymbol]: CdataSymbol
+                };
+            };
+        }
+        return function ElementProxy(attributes, ...children) {
+            if (attributes?.[TypeSymbol] === CommentSymbol || attributes?.[TypeSymbol] === ElementSymbol || attributes?.[TypeSymbol] === CdataSymbol || attributes?.constructor !== Object) {
+                if (attributes !== undefined) {
+                    children.unshift(attributes);
+                }
+                attributes = {};
+            } else {
+                attributes = attributes ?? {};
+            }
+            children[TypeSymbol] = ChildrenSymbol;
+            attributes[TypeSymbol] = AttributesSymbol;
+            return new Proxy({
+                children,
+                attributes,
+                name: Dash(eName),
+                [TypeSymbol]: ElementSymbol
+            }, {
+                get (aTarget, aName, aReceiver) {
+                    if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
+                    if (aName === 'name') return Reflect.get(aTarget, aName, aReceiver);
+                    if (aName === 'children') return Reflect.get(aTarget, aName, aReceiver);
+                    if (aName === 'attributes') return Reflect.get(aTarget, aName, aReceiver);
+                    console.log(aReceiver, aName);
+                    return function AttributeProxy(aValue) {
+                        Reflect.set(aTarget.attributes, aName, aValue);
+                        return aReceiver;
+                    };
+                }
+            });
+        };
+    }
+});
+const ContextCache = new WeakMap();
+const ContextNext = Promise.resolve();
+const ContextSet = function(method, target, key, value, receiver) {
+    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
+    const from = Reflect.get(target, key, receiver);
+    if (from === value) return true;
+    if (Number.isNaN(from) && Number.isNaN(value)) return true;
+    if (from && (from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function')) {
+        const cache = ContextCache.get(from);
+        if (cache === value) return true;
+        ContextCache.delete(from);
+    }
+    Reflect.set(target, key, value, receiver);
+    ContextNext.then(method);
+    return true;
+};
+const ContextGet = function(method, target, key, receiver) {
+    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+    const value = Reflect.get(target, key, receiver);
+    if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
+        const cache = ContextCache.get(value);
+        if (cache) return cache;
+        const proxy = new Proxy(value, {
+            get: ContextGet.bind(null, method),
+            set: ContextSet.bind(null, method),
+            deleteProperty: ContextDelete.bind(null, method)
+        });
+        ContextCache.set(value, proxy);
+        return proxy;
+    }
+    if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
+        const cache1 = ContextCache.get(value);
+        if (cache1) return cache1;
+        const proxy1 = new Proxy(value, {
+            apply (t, _, a) {
+                return Reflect.apply(t, receiver, a);
+            }
+        });
+        ContextCache.set(value, proxy1);
+        return proxy1;
+    }
+    return value;
+};
+const ContextDelete = function(method, target, key) {
+    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
+    const from = Reflect.get(target, key);
+    ContextCache.delete(from);
+    Reflect.deleteProperty(target, key);
+    ContextNext.then(method);
+    return true;
+};
+const ContextCreate = function(data, method) {
+    return new Proxy(data, {
+        get: ContextGet.bind(null, method),
+        set: ContextSet.bind(null, method),
+        deleteProperty: ContextDelete.bind(null, method)
+    });
+};
+function Display(data) {
+    switch(typeof data){
+        case 'undefined':
+            return '';
+        case 'string':
+            return data;
+        case 'number':
+            return `${data}`;
+        case 'bigint':
+            return `${data}`;
+        case 'boolean':
+            return `${data}`;
+        case 'function':
+            return `${data()}`;
+        case 'symbol':
+            return String(data);
+        case 'object':
+            return JSON.stringify(data);
+        default:
+            throw new Error('Display - type not handled');
+    }
+}
 function Attribute(element, name, value) {
     if (name === 'value') {
         const type = Reflect.get(element, 'type');
-        if (typeof value === 'number' && dateDefault.includes(type)) {
+        if (typeof value === 'number' && DateAttributes.includes(type)) {
             const iso = new Date(value).toLocaleString('default', {
                 hour12: false,
                 year: 'numeric',
@@ -274,106 +296,127 @@ function Attribute(element, name, value) {
             element.addEventListener(name.slice(2), value);
         }
         if (element.hasAttribute(name)) element.removeAttribute(name);
-    } else if (booleansDefault.includes(name)) {
+    } else if (BooleanAttributes.includes(name)) {
         const result = value ? true : false;
         Reflect.set(element, name, result);
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
-    } else if (element.getAttribute(name) !== `${value}`) {
-        element.setAttribute(name, value);
+    } else {
+        const display = Display(value);
+        if (element.getAttribute(name) !== display) {
+            element.setAttribute(name, display);
+        }
     }
 }
-function Create(item) {
-    const element = document.createElement(item.name);
+const PatchCreateElement = function(owner, item) {
+    const element = owner.createElement(item.name);
     for(const name in item.attributes){
         const value = item.attributes[name];
         Attribute(element, name, value);
     }
     for (const child of item.children){
-        if (typeof child === 'string') {
-            element.appendChild(document.createTextNode(child));
-        } else {
-            element.appendChild(Create(child));
-        }
+        PatchAppend(element, child);
     }
     return element;
-}
-function Text(child) {
-    return `${child}`;
-}
-const PatchNode = function(source, target) {
+};
+const PatchAppend = function(parent, child) {
+    const owner = parent.ownerDocument;
+    if (child?.[TypeSymbol] === ElementSymbol) {
+        parent.appendChild(PatchCreateElement(owner, child));
+    } else if (child?.[TypeSymbol] === CommentSymbol) {
+        parent.appendChild(owner.createComment(child.value));
+    } else if (child?.[TypeSymbol] === CdataSymbol) {
+        parent.appendChild(owner.createCDATASection(child.value));
+    } else {
+        parent.appendChild(owner.createTextNode(Display(child)));
+    }
+};
+const PatchRemove = function(parent) {
+    const child = parent.lastChild;
+    if (child) parent.removeChild(child);
+};
+const PatchCommon = function(node, target) {
+    const owner = node.ownerDocument;
+    if (target?.[TypeSymbol] === CommentSymbol) {
+        const value = Display(target);
+        if (node.nodeName != '#comment') {
+            node.parentNode?.replaceChild(owner?.createComment(value), node);
+        } else if (node.nodeValue != value) {
+            node.nodeValue = value;
+        }
+        return;
+    }
+    if (target?.[TypeSymbol] === CdataSymbol) {
+        const value1 = Display(target);
+        if (node.nodeName != '#cdata-section') {
+            node.parentNode?.replaceChild(owner?.createCDATASection(value1), node);
+        } else if (node.nodeValue != value1) {
+            node.nodeValue = value1;
+        }
+        return;
+    }
     if (target?.[TypeSymbol] !== ElementSymbol) {
-        const value = Text(target);
-        if (source.textContent !== value) source.textContent = value;
+        const value2 = Display(target);
+        if (node.nodeName != '#text') {
+            node.parentNode?.replaceChild(owner?.createTextNode(value2), node);
+        } else if (node.nodeValue != value2) {
+            node.nodeValue = value2;
+        }
         return;
     }
-    if (source.nodeName !== target.name.toUpperCase()) {
-        source.parentNode?.replaceChild(Create(target), source);
+    if (node.nodeName !== target.name.toUpperCase()) {
+        node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
     }
-    if (!(source instanceof Element)) throw new Error('Patch - source type not handled');
+    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
     for(const name in target.attributes){
-        const value1 = target.attributes[name];
-        Attribute(source, name, value1);
+        const value3 = target.attributes[name];
+        Attribute(node, name, value3);
     }
-    if (source.hasAttributes()) {
-        const names = source.getAttributeNames();
+    if (node.hasAttributes()) {
+        const names = node.getAttributeNames();
         for (const name1 of names){
             if (!(name1 in target.attributes)) {
-                source.removeAttribute(name1);
+                node.removeAttribute(name1);
             }
         }
     }
+    let index;
     const targetChildren = target.children;
-    const sourceChildren = source.childNodes;
-    const sourceLength = sourceChildren.length;
     const targetLength = targetChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    for(let index = 0; index < commonLength; index++){
-        PatchNode(sourceChildren[index], targetChildren[index]);
+    const nodeChildren = node.childNodes;
+    const nodeLength = nodeChildren.length;
+    const commonLength = Math.min(nodeLength, targetLength);
+    for(index = 0; index < commonLength; index++){
+        PatchCommon(nodeChildren[index], targetChildren[index]);
     }
-    if (sourceLength > targetLength) {
-        let child;
-        for(let index1 = targetLength; index1 < sourceLength; index1++){
-            child = source.lastChild;
-            if (child) source.removeChild(child);
+    if (nodeLength > targetLength) {
+        for(index = targetLength; index < nodeLength; index++){
+            PatchRemove(node);
         }
-    } else if (sourceLength < targetLength) {
-        let child1;
-        for(let index2 = sourceLength; index2 < targetLength; index2++){
-            child1 = targetChildren[index2];
-            if (child1 && child1[TypeSymbol] === ElementSymbol) {
-                source.appendChild(Create(child1));
-            } else {
-                source.appendChild(document.createTextNode(Text(child1)));
-            }
+    } else if (nodeLength < targetLength) {
+        for(index = nodeLength; index < targetLength; index++){
+            PatchAppend(node, targetChildren[index]);
         }
     }
 };
-function Patch(source, fragment) {
-    const targetChildren = fragment;
-    const sourceChildren = source.childNodes;
-    const sourceLength = sourceChildren.length;
-    const targetLength = targetChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    for(let index = 0; index < commonLength; index++){
-        PatchNode(sourceChildren[index], targetChildren[index]);
+function Patch(root, fragment) {
+    let index;
+    const virtualChildren = fragment;
+    const virtualLength = virtualChildren.length;
+    const rootChildren = root.childNodes;
+    const rootLength = rootChildren.length;
+    const commonLength = Math.min(rootLength, virtualLength);
+    for(index = 0; index < commonLength; index++){
+        PatchCommon(rootChildren[index], virtualChildren[index]);
     }
-    if (sourceLength > targetLength) {
-        let child;
-        for(let index1 = targetLength; index1 < sourceLength; index1++){
-            child = source.lastChild;
-            if (child) source.removeChild(child);
+    if (rootLength > virtualLength) {
+        for(index = virtualLength; index < rootLength; index++){
+            PatchRemove(root);
         }
-    } else if (sourceLength < targetLength) {
-        let child1;
-        for(let index2 = sourceLength; index2 < targetLength; index2++){
-            child1 = targetChildren[index2];
-            if (child1 && child1[TypeSymbol] === ElementSymbol) {
-                source.appendChild(Create(child1));
-            } else {
-                source.appendChild(document.createTextNode(Text(child1)));
-            }
+    } else if (rootLength < virtualLength) {
+        for(index = rootLength; index < virtualLength; index++){
+            PatchAppend(root, virtualChildren[index]);
         }
     }
 }
@@ -405,10 +448,6 @@ class XElement extends HTMLElement {
     static slottingEvent = new Event('slotting');
     static adoptedEvent = new Event('adopted');
     static adoptingEvent = new Event('adopting');
-    static updatedEvent = new Event('updated');
-    static updatingEvent = new Event('updating');
-    static upgradedEvent = new Event('upgraded');
-    static upgradingEvent = new Event('upgrading');
     static connectedEvent = new Event('connected');
     static connectingEvent = new Event('connecting');
     static attributedEvent = new Event('attributed');
@@ -417,17 +456,16 @@ class XElement extends HTMLElement {
     static disconnectingEvent = new Event('disconnecting');
     static define(name, constructor) {
         constructor = constructor ?? this;
-        name = name ?? dash(this.name);
+        name = name ?? Dash(this.name);
         customElements.define(name, constructor);
     }
     static defined(name) {
-        name = name ?? dash(this.name);
+        name = name ?? Dash(this.name);
         return customElements.whenDefined(name);
     }
     #root;
     #context;
     #component;
-    #updating = false;
     #shadow;
     constructor(){
         super();
@@ -442,22 +480,14 @@ class XElement extends HTMLElement {
         else if (options.root === 'shadow') this.#root = this.shadowRoot;
         else this.#root = this.shadowRoot;
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
-        this.#context = ContextCreate(context(), this.#update.bind(this));
+        const update = ()=>Patch(this.#root, this.#component());
+        const change = ()=>Schedule(update);
+        this.#context = ContextCreate(context(), change);
         this.#component = component.bind(this.#context, __default, this.#context);
         if (this.#root !== this) this[upgrade]();
     }
     [upgrade]() {
-        this.dispatchEvent(XElement.upgradingEvent);
         Patch(this.#root, this.#component());
-        this.dispatchEvent(XElement.upgradedEvent);
-    }
-    #update() {
-        this.dispatchEvent(XElement.updatingEvent);
-        if (this.#updating) return;
-        this.#updating = true;
-        Schedule(()=>Patch(this.#root, this.#component()));
-        this.#updating = false;
-        this.dispatchEvent(XElement.updatedEvent);
     }
     async slottedCallback() {
         this.dispatchEvent(XElement.slottingEvent);
@@ -485,4 +515,36 @@ class XElement extends HTMLElement {
         this.dispatchEvent(XElement.attributedEvent);
     }
 }
-export { XElement as default };
+function Render(root, context, component) {
+    const update = function() {
+        Schedule(()=>Patch(root(), component()));
+    };
+    context = ContextCreate(context(), update);
+    component = component.bind(null, __default, context);
+    update();
+}
+export { navigation as Navigation };
+export { navigation as navigation };
+export { navigation as xnavigation };
+export { navigation as XNavigation };
+export { __default as Virtual };
+export { __default as virtual };
+export { __default as xvirtual };
+export { __default as XVirtual };
+export { ContextCreate as Context };
+export { ContextCreate as context };
+export { ContextCreate as xcontext };
+export { ContextCreate as XContext };
+export { Render as Render };
+export { Render as render };
+export { Render as xrender };
+export { Render as XRender };
+export { Schedule as Schedule };
+export { Schedule as schedule };
+export { Schedule as xschedule };
+export { Schedule as XSchedule };
+export { Patch as Patch };
+export { Patch as patch };
+export { Patch as xpatch };
+export { Patch as XPatch };
+export { XElement as XElement };

@@ -1,5 +1,5 @@
-import { dash } from './tool.ts';
 import XElement from './element.ts';
+import Dash from './dash.ts';
 
 type Options = {
     path?: string;
@@ -27,7 +27,7 @@ const transition = async function (options: Options) {
     options.construct = options.construct ?? (await import(options.file)).default;
     if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
 
-    options.name = options.name ?? dash(options.construct.name);
+    options.name = options.name ?? Dash(options.construct.name);
 
     if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
     if (!customElements.get(options.name)) customElements.define(options.name, options.construct);

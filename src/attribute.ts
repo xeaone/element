@@ -1,11 +1,11 @@
-import booleans from './booleans.ts';
-import dates from './dates.ts';
+import { BooleanAttributes, DateAttributes } from './tool.ts';
+import Display from './display.ts';
 
 export default function Attribute(element: Element, name: string, value: any) {
     if (name === 'value') {
         const type = Reflect.get(element, 'type');
 
-        if (typeof value === 'number' && dates.includes(type)) {
+        if (typeof value === 'number' && DateAttributes.includes(type)) {
             const iso = new Date(value).toLocaleString('default', {
                 hour12: false,
                 year: 'numeric',
@@ -35,12 +35,15 @@ export default function Attribute(element: Element, name: string, value: any) {
         }
 
         if (element.hasAttribute(name)) element.removeAttribute(name);
-    } else if (booleans.includes(name)) {
+    } else if (BooleanAttributes.includes(name)) {
         const result = value ? true : false;
         Reflect.set(element, name, result);
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
-    } else if (element.getAttribute(name) !== `${value}`) {
-        element.setAttribute(name, value);
+    } else {
+        const display = Display(value);
+        if (element.getAttribute(name) !== display) {
+            element.setAttribute(name, display);
+        }
     }
 }
