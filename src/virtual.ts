@@ -1,5 +1,5 @@
 import Dash from './dash.ts';
-import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, TypeSymbol } from './tool.ts';
+import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol, ValueSymbol } from './tool.ts';
 
 export default new Proxy({}, {
     get(eTarget, eName, eReceiver) {
@@ -38,15 +38,14 @@ export default new Proxy({}, {
             return new Proxy({
                 children,
                 attributes,
-                name: Dash(eName as string),
                 [TypeSymbol]: ElementSymbol,
+                [NameSymbol]: Dash(eName as string),
             }, {
                 get(aTarget, aName, aReceiver) {
                     if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
-                    if (aName === 'name') return Reflect.get(aTarget, aName, aReceiver);
+                    // if (aName === 'name') return Reflect.get(aTarget, aName, aReceiver);
                     if (aName === 'children') return Reflect.get(aTarget, aName, aReceiver);
                     if (aName === 'attributes') return Reflect.get(aTarget, aName, aReceiver);
-                    console.log(aReceiver, aName);
                     return function AttributeProxy(aValue: any) {
                         Reflect.set(aTarget.attributes, aName, aValue);
                         return aReceiver;

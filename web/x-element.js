@@ -74,6 +74,8 @@ function Schedule(update) {
     patching = 1;
     tick.then(frame);
 }
+const NameSymbol = Symbol('name');
+Symbol('value');
 const TypeSymbol = Symbol('type');
 const ElementSymbol = Symbol('element');
 const ChildrenSymbol = Symbol('children');
@@ -168,15 +170,13 @@ const __default = new Proxy({}, {
             return new Proxy({
                 children,
                 attributes,
-                name: Dash(eName),
-                [TypeSymbol]: ElementSymbol
+                [TypeSymbol]: ElementSymbol,
+                [NameSymbol]: Dash(eName)
             }, {
                 get (aTarget, aName, aReceiver) {
                     if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
-                    if (aName === 'name') return Reflect.get(aTarget, aName, aReceiver);
                     if (aName === 'children') return Reflect.get(aTarget, aName, aReceiver);
                     if (aName === 'attributes') return Reflect.get(aTarget, aName, aReceiver);
-                    console.log(aReceiver, aName);
                     return function AttributeProxy(aValue) {
                         Reflect.set(aTarget.attributes, aName, aValue);
                         return aReceiver;
@@ -309,7 +309,7 @@ function Attribute(element, name, value) {
     }
 }
 const PatchCreateElement = function(owner, item) {
-    const element = owner.createElement(item.name);
+    const element = owner.createElement(item[NameSymbol]);
     for(const name in item.attributes){
         const value = item.attributes[name];
         Attribute(element, name, value);
@@ -337,7 +337,9 @@ const PatchRemove = function(parent) {
 };
 const PatchCommon = function(node, target) {
     const owner = node.ownerDocument;
-    if (target?.[TypeSymbol] === CommentSymbol) {
+    const virtualType = target?.[TypeSymbol];
+    const virtualName = target?.[NameSymbol];
+    if (virtualType === CommentSymbol) {
         const value = Display(target);
         if (node.nodeName != '#comment') {
             node.parentNode?.replaceChild(owner?.createComment(value), node);
@@ -346,7 +348,7 @@ const PatchCommon = function(node, target) {
         }
         return;
     }
-    if (target?.[TypeSymbol] === CdataSymbol) {
+    if (virtualType === CdataSymbol) {
         const value1 = Display(target);
         if (node.nodeName != '#cdata-section') {
             node.parentNode?.replaceChild(owner?.createCDATASection(value1), node);
@@ -355,7 +357,7 @@ const PatchCommon = function(node, target) {
         }
         return;
     }
-    if (target?.[TypeSymbol] !== ElementSymbol) {
+    if (virtualType !== ElementSymbol) {
         const value2 = Display(target);
         if (node.nodeName != '#text') {
             node.parentNode?.replaceChild(owner?.createTextNode(value2), node);
@@ -364,11 +366,11 @@ const PatchCommon = function(node, target) {
         }
         return;
     }
-    if (node.nodeName !== target.name.toUpperCase()) {
+    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
+    if (node.localName !== virtualName) {
         node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
     }
-    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
     for(const name in target.attributes){
         const value3 = target.attributes[name];
         Attribute(node, name, value3);

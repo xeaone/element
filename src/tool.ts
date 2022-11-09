@@ -6,6 +6,9 @@
 // export const cdataType = Node.CDATA_SECTION_NODE;
 // export const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
 
+export const NameSymbol = Symbol('name');
+export const ValueSymbol = Symbol('value');
+
 export const TypeSymbol = Symbol('type');
 export const ElementSymbol = Symbol('element');
 export const ChildrenSymbol = Symbol('children');

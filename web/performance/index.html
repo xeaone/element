@@ -144,7 +144,7 @@
             button('push').onclick(c.push),
             button('overwrite').onclick(c.overwrite),
             button('clear').onclick(c.clear),
-            div(...c.items.map(item => div(`${c.item}`).class('box')))
+            div(...c.items.map(item => div(`${item}`).class('box')))
         ]
 
     class OLoop extends XElement {

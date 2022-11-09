@@ -2,10 +2,10 @@ import Attribute from './attribute.ts';
 import Display from './display.ts';
 
 import { Item, Items } from './types.ts';
-import { CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, TypeSymbol } from './tool.ts';
+import { CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol } from './tool.ts';
 
 const PatchCreateElement = function (owner: Document, item: Item): Element {
-    const element = owner.createElement(item.name);
+    const element = owner.createElement(item[NameSymbol]);
 
     for (const name in item.attributes) {
         const value = item.attributes[name];
@@ -39,8 +39,10 @@ const PatchRemove = function (parent: Element) {
 
 const PatchCommon = function (node: Node, target: any) {
     const owner = node.ownerDocument as Document;
+    const virtualType = target?.[TypeSymbol];
+    const virtualName = target?.[NameSymbol];
 
-    if (target?.[TypeSymbol] === CommentSymbol) {
+    if (virtualType === CommentSymbol) {
         const value = Display(target);
 
         if (node.nodeName != '#comment') {
@@ -52,7 +54,7 @@ const PatchCommon = function (node: Node, target: any) {
         return;
     }
 
-    if (target?.[TypeSymbol] === CdataSymbol) {
+    if (virtualType === CdataSymbol) {
         const value = Display(target);
 
         if (node.nodeName != '#cdata-section') {
@@ -64,7 +66,7 @@ const PatchCommon = function (node: Node, target: any) {
         return;
     }
 
-    if (target?.[TypeSymbol] !== ElementSymbol) {
+    if (virtualType !== ElementSymbol) {
         const value = Display(target);
 
         if (node.nodeName != '#text') {
@@ -76,12 +78,12 @@ const PatchCommon = function (node: Node, target: any) {
         return;
     }
 
-    if (node.nodeName !== target.name.toUpperCase()) {
+    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
+
+    if (node.localName !== virtualName) {
         node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
     }
-
-    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
 
     for (const name in target.attributes) {
         const value = target.attributes[name];
