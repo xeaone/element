@@ -36,6 +36,7 @@ export default function Attribute(element: Element, name: string, value: any) {
 
         if (element.hasAttribute(name)) element.removeAttribute(name);
     } else if (BooleanAttributes.includes(name)) {
+        value = typeof value === 'function' ? value() : value;
         const result = value ? true : false;
         Reflect.set(element, name, result);
         if (result) element.setAttribute(name, '');

@@ -7,13 +7,13 @@ import { CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, 
 const PatchCreateElement = function (owner: Document, item: Item): Element {
     const element = owner.createElement(item[NameSymbol]);
 
+    for (const child of item.children) {
+        PatchAppend(element, child);
+    }
+
     for (const name in item.attributes) {
         const value = item.attributes[name];
         Attribute(element, name, value);
-    }
-
-    for (const child of item.children) {
-        PatchAppend(element, child);
     }
 
     return element;
@@ -85,20 +85,6 @@ const PatchCommon = function (node: Node, target: any) {
         return;
     }
 
-    for (const name in target.attributes) {
-        const value = target.attributes[name];
-        Attribute(node as Element, name, value);
-    }
-
-    if (node.hasAttributes()) {
-        const names = node.getAttributeNames();
-        for (const name of names) {
-            if (!(name in target.attributes)) {
-                node.removeAttribute(name);
-            }
-        }
-    }
-
     let index;
 
     const targetChildren = target.children;
@@ -120,6 +106,20 @@ const PatchCommon = function (node: Node, target: any) {
     } else if (nodeLength < targetLength) {
         for (index = nodeLength; index < targetLength; index++) {
             PatchAppend(node, targetChildren[index]);
+        }
+    }
+
+    for (const name in target.attributes) {
+        const value = target.attributes[name];
+        Attribute(node as Element, name, value);
+    }
+
+    if (node.hasAttributes()) {
+        const names = node.getAttributeNames();
+        for (const name of names) {
+            if (!(name in target.attributes)) {
+                node.removeAttribute(name);
+            }
         }
     }
 };

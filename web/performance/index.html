@@ -24,22 +24,6 @@
         <slot></slot>
     </template>
 
-    <br>
-
-    <br>
-
-    <br>
-    <div>{{number}}</div>
-    <select value="{{number}}" oninput="{{number=JSON.parse(this.value)}}">
-        <option value="{{0}}">zero</option>
-        <option value="{{1}}">one</option>
-        <option value="{{2}}">two</option>
-    </select>
-    <div>{{boolean}}</div>
-    <select value="{{boolean}}" oninput="{{boolean=JSON.parse(this.value)}}">
-        <option value="{{true}}">yes</option>
-        <option value="{{false}}">no</option>
-    </select>
     <div>{{string}}</div>
     <select value="{{string}}" oninput="{{string=this.value}}">
         <option value="{{'foo'}}">foo</option>
@@ -88,7 +72,7 @@
         string: 'foo',
 
         checked: false,
-        radioShared: '',
+        radioShared: 'two',
         radioOne: 'one',
         radioTwo: 'two',
 
@@ -122,7 +106,7 @@
     });
 
     const component = (
-        { h2, input, button, div, br },
+        { h2, input, button, div, br, select, option },
         // { count, oninput, push, overwrite, clear, items }
         c
     ) => [
@@ -134,17 +118,45 @@
             // div(...items.map(item => div({ class: 'box' }, `${item}`)))
 
             br(),
-            div(c.radioShared),
-            input().type('radio').name('radio').checked(() => c.radioShared === radioOne).oninput(() => c.radioShared = 'one'),
-            input().type('radio').name('radio').checked(() => c.radioShared === radioTwo).oninput(() => c.radioShared = 'two'),
+            div(c.string),
+            select(
+                option('foo').value('foo'),
+                option('bar').value('bar'),
+            ).value(c.string).oninput((e) => c.string = e.target.value),
             br(),
 
+            br(),
+            div(c.boolean),
+            select(
+                option('yes').value(true),
+                option('no').value(false),
+            ).value(c.boolean).oninput((e) => c.boolean = JSON.parse(e.target.value)),
+            br(),
+
+            br(),
+            div(c.number),
+            select(
+                option('zero').value(0),
+                option('one').value(1),
+                option('two').value(2),
+            ).value(c.number).oninput((e) => c.number = JSON.parse(e.target.value)),
+            br(),
+
+            br(),
+            div(c.radioShared),
+            input().type('radio').name('radio').checked(() => c.radioShared === c.radioOne).oninput(() => c.radioShared = 'one'),
+            input().type('radio').name('radio').checked(() => c.radioShared === c.radioTwo).oninput(() => c.radioShared = 'two'),
+            br(),
+
+            br(),
             h2(`Count: ${c.count.toLocaleString()}`),
             input().oninput(c.oninput).value(c.count).type('number'),
             button('push').onclick(c.push),
             button('overwrite').onclick(c.overwrite),
             button('clear').onclick(c.clear),
-            div(...c.items.map(item => div(`${item}`).class('box')))
+            div(...c.items.map(item => div(`${item}`).class('box'))),
+            br(),
+
         ]
 
     class OLoop extends XElement {

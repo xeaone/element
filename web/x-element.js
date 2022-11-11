@@ -297,6 +297,7 @@ function Attribute(element, name, value) {
         }
         if (element.hasAttribute(name)) element.removeAttribute(name);
     } else if (BooleanAttributes.includes(name)) {
+        value = typeof value === 'function' ? value() : value;
         const result = value ? true : false;
         Reflect.set(element, name, result);
         if (result) element.setAttribute(name, '');
@@ -310,12 +311,12 @@ function Attribute(element, name, value) {
 }
 const PatchCreateElement = function(owner, item) {
     const element = owner.createElement(item[NameSymbol]);
+    for (const child of item.children){
+        PatchAppend(element, child);
+    }
     for(const name in item.attributes){
         const value = item.attributes[name];
         Attribute(element, name, value);
-    }
-    for (const child of item.children){
-        PatchAppend(element, child);
     }
     return element;
 };
@@ -371,18 +372,6 @@ const PatchCommon = function(node, target) {
         node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
     }
-    for(const name in target.attributes){
-        const value3 = target.attributes[name];
-        Attribute(node, name, value3);
-    }
-    if (node.hasAttributes()) {
-        const names = node.getAttributeNames();
-        for (const name1 of names){
-            if (!(name1 in target.attributes)) {
-                node.removeAttribute(name1);
-            }
-        }
-    }
     let index;
     const targetChildren = target.children;
     const targetLength = targetChildren.length;
@@ -399,6 +388,18 @@ const PatchCommon = function(node, target) {
     } else if (nodeLength < targetLength) {
         for(index = nodeLength; index < targetLength; index++){
             PatchAppend(node, targetChildren[index]);
+        }
+    }
+    for(const name in target.attributes){
+        const value3 = target.attributes[name];
+        Attribute(node, name, value3);
+    }
+    if (node.hasAttributes()) {
+        const names = node.getAttributeNames();
+        for (const name1 of names){
+            if (!(name1 in target.attributes)) {
+                node.removeAttribute(name1);
+            }
         }
     }
 };
