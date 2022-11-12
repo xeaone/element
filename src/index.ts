@@ -1,5 +1,5 @@
 import Navigation from './navigation.ts';
-import XElement from './element.ts';
+import Component from './component.ts';
 import Schedule from './schedule.ts';
 import Virtual from './virtual.ts';
 import Context from './context.ts';
@@ -36,4 +36,25 @@ export { Patch as patch };
 export { Patch as xpatch };
 export { Patch as XPatch };
 
-export { XElement };
+export { Component };
+export { Component as component };
+export { Component as xcomponent };
+export { Component as XComponent };
+
+export default {
+    Navigation,
+    Component,
+    Schedule,
+    Virtual,
+    Context,
+    Render,
+    Patch,
+
+    navigation: Navigation,
+    component: Component,
+    schedule: Schedule,
+    virtual: Virtual,
+    context: Context,
+    render: Render,
+    patch: Patch,
+};

@@ -1,4 +1,3 @@
-import Navigation from './navigation.ts';
 import Schedule from './schedule.ts';
 import Virtual from './virtual.ts';
 import Context from './context.ts';
@@ -12,7 +11,7 @@ const CE = window.customElements;
 Object.defineProperty(window, 'customElements', {
     get: () => ({
         define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
-            if (constructor.prototype instanceof XElement && !DEFINED.has(constructor)) {
+            if (constructor.prototype instanceof Component && !DEFINED.has(constructor)) {
                 constructor = new Proxy(constructor, {
                     construct(target, args, extender) {
                         const instance = Reflect.construct(target, args, extender);
@@ -30,14 +29,13 @@ Object.defineProperty(window, 'customElements', {
     }),
 });
 
-export default class XElement extends HTMLElement {
-    static navigation = Navigation;
+export default class Component extends HTMLElement {
 
-    static slottedEvent = new Event('slotted');
-    static slottingEvent = new Event('slotting');
+    // static slottedEvent = new Event('slotted');
+    // static slottingEvent = new Event('slotting');
 
-    static adoptedEvent = new Event('adopted');
-    static adoptingEvent = new Event('adopting');
+    // static adoptedEvent = new Event('adopted');
+    // static adoptingEvent = new Event('adopting');
 
     // static updatedEvent = new Event('updated');
     // static updatingEvent = new Event('updating');
@@ -45,16 +43,16 @@ export default class XElement extends HTMLElement {
     // static upgradedEvent = new Event('upgraded');
     // static upgradingEvent = new Event('upgrading');
 
-    static connectedEvent = new Event('connected');
-    static connectingEvent = new Event('connecting');
+    // static connectedEvent = new Event('connected');
+    // static connectingEvent = new Event('connecting');
 
-    static attributedEvent = new Event('attributed');
-    static attributingEvent = new Event('attributing');
+    // static attributedEvent = new Event('attributed');
+    // static attributingEvent = new Event('attributing');
 
-    static disconnectedEvent = new Event('disconnected');
-    static disconnectingEvent = new Event('disconnecting');
+    // static disconnectedEvent = new Event('disconnected');
+    // static disconnectingEvent = new Event('disconnecting');
 
-    static define(name?: string, constructor?: typeof XElement) {
+    static define(name?: string, constructor?: typeof Component) {
         constructor = constructor ?? this;
         name = name ?? Dash(this.name);
         customElements.define(name, constructor);
@@ -68,14 +66,13 @@ export default class XElement extends HTMLElement {
     #root: any;
     #context;
     #component;
-    // #updating = false;
     #shadow: ShadowRoot;
 
     constructor() {
         super();
 
         this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
-        this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
+        // this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
 
         const options = Reflect.get(this.constructor, 'options') ?? {};
         const context = Reflect.get(this.constructor, 'context');
@@ -97,38 +94,38 @@ export default class XElement extends HTMLElement {
     }
 
     [upgrade]() {
-        // this.dispatchEvent(XElement.upgradingEvent);
+        // this.dispatchEvent(Component.upgradingEvent);
         Patch(this.#root, this.#component());
-        // this.dispatchEvent(XElement.upgradedEvent);
+        // this.dispatchEvent(Component.upgradedEvent);
     }
 
-    async slottedCallback() {
-        this.dispatchEvent(XElement.slottingEvent);
-        await Reflect.get(this, 'slotted')?.();
-        this.dispatchEvent(XElement.slottedEvent);
-    }
+    // async slottedCallback() {
+    //     this.dispatchEvent(Component.slottingEvent);
+    //     await Reflect.get(this, 'slotted')?.();
+    //     this.dispatchEvent(Component.slottedEvent);
+    // }
 
-    async connectedCallback() {
-        this.dispatchEvent(XElement.connectingEvent);
-        await Reflect.get(this, 'connected')?.();
-        this.dispatchEvent(XElement.connectedEvent);
-    }
+    // async connectedCallback() {
+    //     this.dispatchEvent(Component.connectingEvent);
+    //     await Reflect.get(this, 'connected')?.();
+    //     this.dispatchEvent(Component.connectedEvent);
+    // }
 
-    async disconnectedCallback() {
-        this.dispatchEvent(XElement.disconnectingEvent);
-        await Reflect.get(this, 'disconnected')?.();
-        this.dispatchEvent(XElement.disconnectedEvent);
-    }
+    // async disconnectedCallback() {
+    //     this.dispatchEvent(Component.disconnectingEvent);
+    //     await Reflect.get(this, 'disconnected')?.();
+    //     this.dispatchEvent(Component.disconnectedEvent);
+    // }
 
-    async adoptedCallback() {
-        this.dispatchEvent(XElement.adoptingEvent);
-        await Reflect.get(this, 'adopted')?.();
-        this.dispatchEvent(XElement.adoptedEvent);
-    }
+    // async adoptedCallback() {
+    //     this.dispatchEvent(Component.adoptingEvent);
+    //     await Reflect.get(this, 'adopted')?.();
+    //     this.dispatchEvent(Component.adoptedEvent);
+    // }
 
-    async attributeChangedCallback(name: string, from: string, to: string) {
-        this.dispatchEvent(XElement.attributingEvent);
-        await Reflect.get(this, 'attributed')?.(name, from, to);
-        this.dispatchEvent(XElement.attributedEvent);
-    }
+    // async attributeChangedCallback(name: string, from: string, to: string) {
+    //     this.dispatchEvent(Component.attributingEvent);
+    //     await Reflect.get(this, 'attributed')?.(name, from, to);
+    //     this.dispatchEvent(Component.attributedEvent);
+    // }
 }

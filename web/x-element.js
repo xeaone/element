@@ -2,65 +2,6 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-function Dash(data) {
-    return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
-}
-const navigators = new Map();
-const transition = async function(options) {
-    if (!options.target) throw new Error('XElement - navigation target option required');
-    if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
-    if (options.navigating) return;
-    else options.navigating = true;
-    if (!options.file) throw new Error('XElement - navigation file option required');
-    options.construct = options.construct ?? (await import(options.file)).default;
-    if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
-    options.name = options.name ?? Dash(options.construct.name);
-    if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
-    if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
-    await customElements.whenDefined(options.name);
-    options.instance = document.createElement(options.name);
-    options.target.replaceChildren(options.instance);
-    options.navigating = false;
-};
-const navigate = function(event) {
-    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
-    const destination = new URL(event?.destination.url ?? location.href);
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    destination.hash = '';
-    destination.search = '';
-    const pathname = destination.href.replace(base.href, '/');
-    const options = navigators.get(pathname) ?? navigators.get('/*');
-    if (!options) return;
-    options.target = options.target ?? document.querySelector(options.query);
-    if (!options.target) throw new Error('XElement - navigation target not found');
-    if (event?.intercept) {
-        if (options.instance === options.target.lastElementChild) return event.intercept();
-        return event.intercept({
-            handler: ()=>transition(options)
-        });
-    } else if (event?.transitionWhile) {
-        if (options.instance === options.target.lastElementChild) return event.transitionWhile((()=>undefined)());
-        return event.transitionWhile(transition(options));
-    } else {
-        transition(options);
-    }
-};
-function navigation(path, file, options = {}) {
-    if (!path) throw new Error('XElement - navigation path required');
-    if (!file) throw new Error('XElement - navigation file required');
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    options.path = path;
-    options.cache = options.cache ?? true;
-    options.query = options.query ?? 'main';
-    options.file = new URL(file, base.href).href;
-    navigators.set(path, options);
-    navigate();
-    Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
-}
 const tick = Promise.resolve();
 const updates = [];
 let patching;
@@ -73,6 +14,9 @@ function Schedule(update) {
     if (patching) return;
     patching = 1;
     tick.then(frame);
+}
+function Dash(data) {
+    return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
 const NameSymbol = Symbol('name');
 Symbol('value');
@@ -302,6 +246,8 @@ function Attribute(element, name, value) {
         Reflect.set(element, name, result);
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
+    } else if (name === 'html') {
+        Reflect.set(element, 'innerHTML', value);
     } else {
         const display = Display(value);
         if (element.getAttribute(name) !== display) {
@@ -429,7 +375,7 @@ const CE = window.customElements;
 Object.defineProperty(window, 'customElements', {
     get: ()=>({
             define (name, constructor, options) {
-                if (constructor.prototype instanceof XElement && !DEFINED.has(constructor)) {
+                if (constructor.prototype instanceof Component && !DEFINED.has(constructor)) {
                     constructor = new Proxy(constructor, {
                         construct (target, args, extender) {
                             const instance = Reflect.construct(target, args, extender);
@@ -445,18 +391,7 @@ Object.defineProperty(window, 'customElements', {
             whenDefined: CE.whenDefined
         })
 });
-class XElement extends HTMLElement {
-    static navigation = navigation;
-    static slottedEvent = new Event('slotted');
-    static slottingEvent = new Event('slotting');
-    static adoptedEvent = new Event('adopted');
-    static adoptingEvent = new Event('adopting');
-    static connectedEvent = new Event('connected');
-    static connectingEvent = new Event('connecting');
-    static attributedEvent = new Event('attributed');
-    static attributingEvent = new Event('attributing');
-    static disconnectedEvent = new Event('disconnected');
-    static disconnectingEvent = new Event('disconnecting');
+class Component extends HTMLElement {
     static define(name, constructor) {
         constructor = constructor ?? this;
         name = name ?? Dash(this.name);
@@ -475,7 +410,6 @@ class XElement extends HTMLElement {
         this.#shadow = this.shadowRoot ?? this.attachShadow({
             mode: 'open'
         });
-        this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
         const options = Reflect.get(this.constructor, 'options') ?? {};
         const context = Reflect.get(this.constructor, 'context');
         const component = Reflect.get(this.constructor, 'component');
@@ -492,39 +426,82 @@ class XElement extends HTMLElement {
     [upgrade]() {
         Patch(this.#root, this.#component());
     }
-    async slottedCallback() {
-        this.dispatchEvent(XElement.slottingEvent);
-        await Reflect.get(this, 'slotted')?.();
-        this.dispatchEvent(XElement.slottedEvent);
-    }
-    async connectedCallback() {
-        this.dispatchEvent(XElement.connectingEvent);
-        await Reflect.get(this, 'connected')?.();
-        this.dispatchEvent(XElement.connectedEvent);
-    }
-    async disconnectedCallback() {
-        this.dispatchEvent(XElement.disconnectingEvent);
-        await Reflect.get(this, 'disconnected')?.();
-        this.dispatchEvent(XElement.disconnectedEvent);
-    }
-    async adoptedCallback() {
-        this.dispatchEvent(XElement.adoptingEvent);
-        await Reflect.get(this, 'adopted')?.();
-        this.dispatchEvent(XElement.adoptedEvent);
-    }
-    async attributeChangedCallback(name, from, to) {
-        this.dispatchEvent(XElement.attributingEvent);
-        await Reflect.get(this, 'attributed')?.(name, from, to);
-        this.dispatchEvent(XElement.attributedEvent);
-    }
 }
-function Render(root, context, component) {
+function Render(target, context, component) {
     const update = function() {
-        Schedule(()=>Patch(root(), component()));
+        Schedule(()=>Patch(target(), component()));
     };
+    console.log(component);
     context = ContextCreate(context(), update);
     component = component.bind(null, __default, context);
     update();
+}
+const navigators = new Map();
+const transition = async function(options) {
+    if (!options.target) throw new Error('XElement - navigation target option required');
+    if (options.cache && options.instance) {
+        if (options.instance instanceof Component) {
+            return options.target.replaceChildren(options.instance);
+        } else {
+            return options.target.replaceChildren(...options.instance);
+        }
+    }
+    if (options.navigating) return;
+    else options.navigating = true;
+    if (options.component instanceof Component) {
+        options.name = options.name ?? Dash(options.construct.name);
+        if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
+        if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
+        await customElements.whenDefined(options.name);
+        options.instance = document.createElement(options.name);
+        options.target.replaceChildren(options.instance);
+    } else {
+        options.target.replaceChildren();
+        Render(()=>options.target, options.context, options.component);
+        options.instance = [
+            ...options.target.childNodes
+        ];
+    }
+    options.navigating = false;
+};
+const navigate = function(event) {
+    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
+    const destination = new URL(event?.destination.url ?? location.href);
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    destination.hash = '';
+    destination.search = '';
+    const pathname = destination.href.replace(base.href, '/');
+    const options = navigators.get(pathname) ?? navigators.get('/*');
+    if (!options) return;
+    if (!options.target) throw new Error('XElement - navigation target not found');
+    if (event?.intercept) {
+        return event.intercept({
+            handler: ()=>transition(options)
+        });
+    } else if (event?.transitionWhile) {
+        return event.transitionWhile(transition(options));
+    } else {
+        transition(options);
+    }
+};
+function navigation(path, target, component, context, options = {}) {
+    if (!path) throw new Error('XElement - navigation path required');
+    if (!target) throw new Error('XElement - navigation target required');
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    options.path = path;
+    options.target = target;
+    options.cache = options.cache ?? true;
+    if (!component) throw new Error('XElement - navigation component required');
+    if (!(component instanceof Component) && !context) throw new Error('XElement - navigation context required');
+    options.context = context;
+    options.component = component;
+    navigators.set(path, options);
+    navigate();
+    Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
 export { navigation as Navigation };
 export { navigation as navigation };
@@ -550,4 +527,24 @@ export { Patch as Patch };
 export { Patch as patch };
 export { Patch as xpatch };
 export { Patch as XPatch };
-export { XElement as XElement };
+export { Component as Component };
+export { Component as component };
+export { Component as xcomponent };
+export { Component as XComponent };
+const __default1 = {
+    Navigation: navigation,
+    Component,
+    Schedule,
+    Virtual: __default,
+    Context: ContextCreate,
+    Render,
+    Patch,
+    navigation: navigation,
+    component: Component,
+    schedule: Schedule,
+    virtual: __default,
+    context: ContextCreate,
+    render: Render,
+    patch: Patch
+};
+export { __default1 as default };

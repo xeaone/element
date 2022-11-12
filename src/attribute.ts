@@ -41,6 +41,8 @@ export default function Attribute(element: Element, name: string, value: any) {
         Reflect.set(element, name, result);
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
+    } else if (name === 'html') {
+        Reflect.set(element, 'innerHTML', value);
     } else {
         const display = Display(value);
         if (element.getAttribute(name) !== display) {

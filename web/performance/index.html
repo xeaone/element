@@ -59,7 +59,7 @@
 -->
 
 <script type="module">
-    import { XElement } from '../x-element.js';
+    import { Component } from '../x-element.js';
 
     const context = () => ({
 
@@ -159,7 +159,7 @@
 
         ]
 
-    class OLoop extends XElement {
+    class OLoop extends Component {
         static context = context;
         static component = component;
         static options = { root: 'this', slot: 'default' };

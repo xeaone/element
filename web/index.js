@@ -1,23 +1,15 @@
-// import XPoly from './x-poly.js';
-import XElement from './x-element.js';
+import { Navigation } from './x-element.js';
+// import * as Guide  from './guide.js';
+import * as Root  from './root.js';
+// import * as All from './all.js';
 
-// await XPoly();
 
-// navigation.addEventListener('navigate', (event) => {
-//     const { pathname } = new URL(event.destination.url);
-//     if (pathname !== '/') {
-//         event.preventDefault();
-//         event.stopImmediatePropagation();
-//         return navigation.navigate('/');
-//     }
-// });
+const main = document.querySelector('main');
 
 navigation.addEventListener('navigate', () => console.log('nav before'));
 
-XElement.navigation('/', './root.js');
-XElement.navigation('/guide', './guide.js');
-XElement.navigation('/*', './all.js');
+Navigation('/', main, Root.component, Root.context);
+// Navigation('/guide', main, Guide.component, Guide.context);
+// Navigation('/*', main, All.component, All.context);
 
 navigation.addEventListener('navigate', () => console.log('nav after'));
-
-// navigation.navigate(location.href, { history: 'replace' });
