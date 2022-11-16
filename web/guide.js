@@ -1,8 +1,29 @@
-import XElement from './x-element.js';
+// import {Render} from './x-element.js';
 import Highlight from './highlight.js';
-import Color from './modules/color.js';
+// import Color from './modules/color.js';
 
-const html = /*html*/`
+
+const html = Highlight(`
+const component = ({
+    div
+}) => [
+    div().html('&#x26A0; This is HTML')
+]
+`, 'js');
+
+export const context = () => ({})
+
+export const component = ({
+    section, h3, pre,
+}) => [
+   section(
+        h3('HTML'),
+        pre().html(html),
+    ),
+]
+
+/*
+const html = `
 <link href="./index.css" rel="stylesheet">
 
 <style>
@@ -259,3 +280,4 @@ export default class XGuide extends XElement {
 
 }
 
+*/

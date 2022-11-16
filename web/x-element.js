@@ -439,6 +439,9 @@ function Render(target, context, component) {
 const navigators = new Map();
 const transition = async function(options) {
     if (!options.target) throw new Error('XElement - navigation target option required');
+    if (options.navigating) return;
+    else options.navigating = true;
+    console.log(options);
     if (options.cache && options.instance) {
         if (options.instance instanceof Component) {
             return options.target.replaceChildren(options.instance);
@@ -446,8 +449,6 @@ const transition = async function(options) {
             return options.target.replaceChildren(...options.instance);
         }
     }
-    if (options.navigating) return;
-    else options.navigating = true;
     if (options.component instanceof Component) {
         options.name = options.name ?? Dash(options.construct.name);
         if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
@@ -487,6 +488,7 @@ const navigate = function(event) {
     }
 };
 function navigation(path, target, component, context, options = {}) {
+    console.log('nav');
     if (!path) throw new Error('XElement - navigation path required');
     if (!target) throw new Error('XElement - navigation target required');
     const base = new URL(document.querySelector('base')?.href ?? location.origin);

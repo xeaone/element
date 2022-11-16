@@ -23,6 +23,11 @@ const navigators = new Map();
 const transition = async function (options: Options) {
     if (!options.target) throw new Error('XElement - navigation target option required');
 
+    if (options.navigating) return;
+    else options.navigating = true;
+
+    console.log(options);
+
     if (options.cache && options.instance) {
         if (options.instance instanceof Component) {
             return options.target.replaceChildren(options.instance);
@@ -30,9 +35,6 @@ const transition = async function (options: Options) {
             return options.target.replaceChildren(...options.instance);
         }
     }
-
-    if (options.navigating) return;
-    else options.navigating = true;
 
     // if (!options.file) throw new Error('XElement - navigation file option required');
     // options.construct = options.construct ?? (await import(options.file)).default;
@@ -87,6 +89,7 @@ const navigate = function (event?: any) {
 };
 
 export default function navigation(path: string, target: Element, component: any, context: any, options: Options = {}) {
+    console.log('nav');
     if (!path) throw new Error('XElement - navigation path required');
     if (!target) throw new Error('XElement - navigation target required');
 

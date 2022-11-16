@@ -62,6 +62,7 @@ body {
 a {
     cursor: pointer;
     text-decoration: none;
+    color: var(--accent);
 }
 
 i {
@@ -131,7 +132,6 @@ label {
 button,
 input[type="submit"],
 input[type="button"] {
-    border: none;
     cursor: pointer;
     font-size: 1rem;
     font-weight: 100;
@@ -153,7 +153,6 @@ input[type="button"]:hover {
 
 select,
 input:not([type="button"], [type="submit"]) {
-    border: none;
     outline: none;
     margin: 0.5rem;
     padding: 0.5rem;
@@ -171,6 +170,7 @@ input:not([type="button"], [type="submit"]) {
 main {
     display: flex;
     padding: 5vh 5vw;
+    flex-direction: column;
 }
 
 main > * {
@@ -237,11 +237,28 @@ main > * {
     margin: 0.25rem;
     padding: 0.25rem;
     flex-direction: column;
-    width: calc(50% - 1rem);
+    max-width: calc(50% - 1rem);
+    min-width: calc(50% - 1rem);
 }
 
 .tile span {
     color: var(--layer2);
+}
+
+:root {
+    accent-color: var(--accent);
+}
+
+:focus-visible {
+    outline-color: var(--accent);
+}
+
+::selection {
+    background-color: var(--accent);
+}
+
+::marker {
+    color: var(--accent);
 }
 
 ::-webkit-scrollbar {
@@ -259,22 +276,6 @@ main > * {
 
 ::-webkit-scrollbar-corner {
     background: transparent
-}
-
-:root {
-    accent-color: var(--accent);
-}
-
-:focus-visible {
-    outline-color: var(--accent);
-}
-
-::selection {
-    background-color: var(--accent);
-}
-
-::marker {
-    color: var(--accent);
 }
 
 ::-webkit-calendar-picker-indicator,
