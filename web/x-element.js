@@ -5,15 +5,17 @@
 const tick = Promise.resolve();
 const updates = [];
 let patching;
-const frame = function() {
-    while(updates.length)updates.shift()?.();
+const frame = async function() {
+    const tasks = [];
+    while(updates.length)tasks.push(updates.shift()?.());
+    await Promise.all(tasks);
     patching = 0;
 };
-function Schedule(update) {
+async function Schedule(update) {
     updates.push(update);
     if (patching) return;
     patching = 1;
-    tick.then(frame);
+    await tick.then(frame);
 }
 function Dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
@@ -428,24 +430,24 @@ class Component extends HTMLElement {
     }
 }
 function Render(target, context, component) {
-    const update = function() {
-        Schedule(()=>Patch(target(), component()));
+    const update = async function() {
+        await Schedule(()=>Patch(target(), component()));
     };
-    console.log(component);
     context = ContextCreate(context(), update);
     component = component.bind(null, __default, context);
-    update();
+    Patch(target(), component());
 }
 const navigators = new Map();
 const transition = async function(options) {
     if (!options.target) throw new Error('XElement - navigation target option required');
     if (options.navigating) return;
     else options.navigating = true;
-    console.log(options);
     if (options.cache && options.instance) {
         if (options.instance instanceof Component) {
+            options.navigating = false;
             return options.target.replaceChildren(options.instance);
         } else {
+            options.navigating = false;
             return options.target.replaceChildren(...options.instance);
         }
     }
@@ -459,14 +461,13 @@ const transition = async function(options) {
     } else {
         options.target.replaceChildren();
         Render(()=>options.target, options.context, options.component);
-        options.instance = [
-            ...options.target.childNodes
-        ];
+        options.instance = Array.from(options.target.childNodes);
     }
     options.navigating = false;
 };
 const navigate = function(event) {
-    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
+    if (event && 'canIntercept' in event && event.canIntercept === false) return;
+    if (event && 'canTransition' in event && event.canTransition === false) return;
     const destination = new URL(event?.destination.url ?? location.href);
     const base = new URL(document.querySelector('base')?.href ?? location.origin);
     base.hash = '';
@@ -476,7 +477,6 @@ const navigate = function(event) {
     const pathname = destination.href.replace(base.href, '/');
     const options = navigators.get(pathname) ?? navigators.get('/*');
     if (!options) return;
-    if (!options.target) throw new Error('XElement - navigation target not found');
     if (event?.intercept) {
         return event.intercept({
             handler: ()=>transition(options)
@@ -487,8 +487,7 @@ const navigate = function(event) {
         transition(options);
     }
 };
-function navigation(path, target, component, context, options = {}) {
-    console.log('nav');
+function router(path, target, component, context, options = {}) {
     if (!path) throw new Error('XElement - navigation path required');
     if (!target) throw new Error('XElement - navigation target required');
     const base = new URL(document.querySelector('base')?.href ?? location.origin);
@@ -505,47 +504,33 @@ function navigation(path, target, component, context, options = {}) {
     navigate();
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
-export { navigation as Navigation };
-export { navigation as navigation };
-export { navigation as xnavigation };
-export { navigation as XNavigation };
 export { __default as Virtual };
 export { __default as virtual };
-export { __default as xvirtual };
-export { __default as XVirtual };
 export { ContextCreate as Context };
 export { ContextCreate as context };
-export { ContextCreate as xcontext };
-export { ContextCreate as XContext };
+export { router as Router };
+export { router as router };
 export { Render as Render };
 export { Render as render };
-export { Render as xrender };
-export { Render as XRender };
 export { Schedule as Schedule };
 export { Schedule as schedule };
-export { Schedule as xschedule };
-export { Schedule as XSchedule };
 export { Patch as Patch };
 export { Patch as patch };
-export { Patch as xpatch };
-export { Patch as XPatch };
 export { Component as Component };
 export { Component as component };
-export { Component as xcomponent };
-export { Component as XComponent };
 const __default1 = {
-    Navigation: navigation,
     Component,
     Schedule,
     Virtual: __default,
     Context: ContextCreate,
+    Router: router,
     Render,
     Patch,
-    navigation: navigation,
     component: Component,
     schedule: Schedule,
     virtual: __default,
     context: ContextCreate,
+    router: router,
     render: Render,
     patch: Patch
 };

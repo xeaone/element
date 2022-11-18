@@ -26,12 +26,12 @@ const transition = async function (options: Options) {
     if (options.navigating) return;
     else options.navigating = true;
 
-    console.log(options);
-
     if (options.cache && options.instance) {
         if (options.instance instanceof Component) {
+            options.navigating = false;
             return options.target.replaceChildren(options.instance);
         } else {
+            options.navigating = false;
             return options.target.replaceChildren(...options.instance);
         }
     }
@@ -53,14 +53,16 @@ const transition = async function (options: Options) {
     } else {
         options.target.replaceChildren();
         Render(() => options.target as any, options.context, options.component);
-        options.instance = [...options.target.childNodes];
+        options.instance = Array.from(options.target.childNodes);
     }
 
     options.navigating = false;
 };
 
 const navigate = function (event?: any) {
-    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
+    if (event && 'canIntercept' in event && event.canIntercept === false) return;
+    if (event && 'canTransition' in event && event.canTransition === false) return;
+
     const destination = new URL(event?.destination.url ?? location.href);
     const base = new URL(document.querySelector('base')?.href ?? location.origin);
 
@@ -74,22 +76,16 @@ const navigate = function (event?: any) {
 
     if (!options) return;
 
-    // options.target = options.target ?? document.querySelector(options.query);
-    if (!options.target) throw new Error('XElement - navigation target not found');
-
     if (event?.intercept) {
-        // if (options.instance === options.target.lastElementChild) return event.intercept();
         return event.intercept({ handler: () => transition(options) });
     } else if (event?.transitionWhile) {
-        // if (options.instance === options.target.lastElementChild) return event.transitionWhile((() => undefined)());
         return event.transitionWhile(transition(options));
     } else {
         transition(options);
     }
 };
 
-export default function navigation(path: string, target: Element, component: any, context: any, options: Options = {}) {
-    console.log('nav');
+export default function router(path: string, target: Element, component: any, context: any, options: Options = {}) {
     if (!path) throw new Error('XElement - navigation path required');
     if (!target) throw new Error('XElement - navigation target required');
 

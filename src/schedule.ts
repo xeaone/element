@@ -4,23 +4,22 @@ const tick = Promise.resolve();
 const updates: Array<Update> = [];
 
 let patching: number;
-// let request: number;
 
-const frame = function () {
-    // patching = 1;
-    while (updates.length) updates.shift()?.();
+// const frame = function () {
+//     while (updates.length) updates.shift()?.();
+//     patching = 0;
+// };
+
+const frame = async function () {
+    const tasks = [];
+    while (updates.length) tasks.push(updates.shift()?.());
+    await Promise.all(tasks);
     patching = 0;
-    // request = 0;
 };
 
-export default function Schedule(update: Update) {
+export default async function Schedule(update: Update) {
     updates.push(update);
     if (patching) return;
     patching = 1;
-    tick.then(frame);
-
-    // cancelAnimationFrame(request);
-    // request = requestAnimationFrame(frame);
-    // clearTimeout(request);
-    // request = setTimeout(frame, 50);
+    await tick.then(frame);
 }

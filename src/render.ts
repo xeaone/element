@@ -5,13 +5,13 @@ import Context from './context.ts';
 import Patch from './patch.ts';
 
 export default function Render(target: () => Element, context: () => ContextData, component: () => Items) {
-    const update = function () {
-        Schedule(() => Patch(target(), component()));
+    const update = async function () {
+        await Schedule(() => Patch(target(), component()));
     };
 
-    console.log(component);
     context = Context(context(), update);
     component = component.bind(null, Virtual, context);
 
-    update();
+    // await update();
+    Patch(target(), component());
 }
