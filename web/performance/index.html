@@ -4,79 +4,14 @@
 <link rel="stylesheet" href="./index.css">
 
 <h1>XElement Performance</h1>
+
 <o-loop></o-loop>
-
-<!--
-<o-loop>
-    <template shadowroot="open">
-        <link rel="stylesheet" href="./index.css">
-        <h3>test {{count.toLocaleString()}}</h3>
-        <input value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
-        <br>
-        <button onclick="{{push()}}">push</button>
-        <button onclick="{{overwrite()}}">overwrite</button>
-        <button onclick="{{raw()}}">raw</button>
-        <button onclick="{{clear()}}">clear</button>
-        <div id="raw"></div>
-        <div each="{{[items,'item']}}">
-            <div class="box">{{item}}</div>
-        </div>
-        <slot></slot>
-    </template>
-
-    <div>{{string}}</div>
-    <select value="{{string}}" oninput="{{string=this.value}}">
-        <option value="{{'foo'}}">foo</option>
-        <option value="{{'bar'}}">bar</option>
-    </select>
-    <br>
-
-    <br>
-    <div>{{date?.toLocaleString()}}</div>
-    <input value="{{date}}" oninput="{{date=this.valueAsNumber}}" type="date" />
-    <div>{{time?.toLocaleString()}}</div>
-    <input x-value="{{time}}" oninput="{{time=this.valueAsNumber}}" type="time" />
-    <div>{{datetime}}</div>
-    <input x-value="datetime" oninput="{{datetime = this.valueAsNumber}}" type="datetime-local" />
-    <br>
-
-    <h3>test {{count.toLocaleString()}}</h3>
-    <input x-value="{{count}}" oninput="{{count = this.valueAsNumber}}" type="number" />
-
-    <br>
-
-    <button onclick="{{push()}}">push</button>
-    <button onclick="{{overwrite()}}">overwrite</button>
-    <button onclick="{{raw()}}">raw</button>
-    <button onclick="{{clear()}}">clear</button>
-
-    <div id="raw"></div>
-
-    <div each="{{[items,'item']}}">
-        <div class="box">{{item}}</div>
-    </div>
-</o-loop>
--->
 
 <script type="module">
     import { Component } from '../x-element.js';
 
     const context = () => ({
 
-        time: Date.now(),
-        date: Date.now(),
-        datetime: Date.now(),
-
-        number: 1,
-        boolean: true,
-        string: 'foo',
-
-        checked: false,
-        radioShared: 'two',
-        radioOne: 'one',
-        radioTwo: 'two',
-
-        item: undefined,
         items: [],
         message: '',
         count: 100000,
@@ -105,59 +40,16 @@
 
     });
 
-    const component = (
-        { h2, input, button, div, br, select, option },
-        // { count, oninput, push, overwrite, clear, items }
-        c
-    ) => [
-            // h2(`Count ${count}`),
-            // input({ oninput, value: count, type: 'number' }),
-            // button({ onclick: push }, 'push'),
-            // button({ onclick: overwrite }, 'overwrite'),
-            // button({ onclick: clear }, 'clear'),
-            // div(...items.map(item => div({ class: 'box' }, `${item}`)))
+    const component = ({ h2, input, button, div, br, select, option }, c) => [
 
-            br(),
-            div(c.string),
-            select(
-                option('foo').value('foo'),
-                option('bar').value('bar'),
-            ).value(c.string).oninput((e) => c.string = e.target.value),
-            br(),
+        h2(`Count: ${c.count.toLocaleString()}`),
+        input().oninput(c.oninput).value(c.count).type('number'),
+        button('push').onclick(c.push),
+        button('overwrite').onclick(c.overwrite),
+        button('clear').onclick(c.clear),
+        div(...c.items.map(item => div(`${item}`).class('box'))),
 
-            br(),
-            div(c.boolean),
-            select(
-                option('yes').value(true),
-                option('no').value(false),
-            ).value(c.boolean).oninput((e) => c.boolean = JSON.parse(e.target.value)),
-            br(),
-
-            br(),
-            div(c.number),
-            select(
-                option('zero').value(0),
-                option('one').value(1),
-                option('two').value(2),
-            ).value(c.number).oninput((e) => c.number = JSON.parse(e.target.value)),
-            br(),
-
-            br(),
-            div(c.radioShared),
-            input().type('radio').name('radio').checked(() => c.radioShared === c.radioOne).oninput(() => c.radioShared = 'one'),
-            input().type('radio').name('radio').checked(() => c.radioShared === c.radioTwo).oninput(() => c.radioShared = 'two'),
-            br(),
-
-            br(),
-            h2(`Count: ${c.count.toLocaleString()}`),
-            input().oninput(c.oninput).value(c.count).type('number'),
-            button('push').onclick(c.push),
-            button('overwrite').onclick(c.overwrite),
-            button('clear').onclick(c.clear),
-            div(...c.items.map(item => div(`${item}`).class('box'))),
-            br(),
-
-        ]
+    ];
 
     class OLoop extends Component {
         static context = context;

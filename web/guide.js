@@ -1,25 +1,115 @@
-// import {Render} from './x-element.js';
-import Highlight from './highlight.js';
+import { Virtual } from './x-element.js';
+import Highlight from './modules/highlight.js';
 // import Color from './modules/color.js';
 
+const {
+    section, h3, pre, div, select, option, br, input
+} = Virtual;
 
-const html = Highlight(`
-const component = ({
-    div
-}) => [
-    div().html('&#x26A0; This is HTML')
-]
-`, 'js');
+const inputComponenet = (v, c) => [
+    div(c.input),
+    input().value(c.input).oninput((e) => c.input = e.target.value),
+];
+const inputCode = Highlight(`${inputComponenet.toString()}`);
 
-export const context = () => ({})
+const radioComponenet = (v, c) => [
+    div(c.radioShared),
+    input().type('radio').name('radio').checked(() => c.radioShared === c.radioOne).oninput(() => c.radioShared = 'one'),
+    input().type('radio').name('radio').checked(() => c.radioShared === c.radioTwo).oninput(() => c.radioShared = 'two'),
+];
+const radioCode = Highlight(`${radioComponenet.toString()}`);
 
-export const component = ({
-    section, h3, pre,
-}) => [
+const fruitsComponenet = (v, c) => [
+    div(c.fruit),
+    select(
+        ...c.fruits.map((fruit) =>
+            option(fruit).value(fruit)
+        )
+    ).value(c.fruit).oninput((e) => c.fruit = e.target.value),
+];
+const fruitsCode = Highlight(`${fruitsComponenet.toString()}`);
+
+const selectBooleanComponenet = (v, c) => [
+    div(c.boolean),
+    select(
+        option('yes').value(true),
+        option('no').value(false),
+    ).value(c.boolean).oninput((e) => c.boolean = JSON.parse(e.target.value)),
+];
+const selectBooleanCode = Highlight(`${selectBooleanComponenet.toString()}`);
+
+const selectNumberComponenet = (v, c) => [
+    div(c.number),
+    select(
+        option('zero').value(0),
+        option('one').value(1),
+        option('two').value(2),
+    ).value(c.number).oninput((e) => c.number = JSON.parse(e.target.value)),
+];
+const selectNumberCode = Highlight(`${selectNumberComponenet.toString()}`);
+
+const htmlComponent = () => [
+    div().html('&#x1F480; This is HTML')
+];
+const htmlCode = Highlight(`${htmlComponent.toString()}`);
+
+export const context = () => ({
+
+    time: Date.now(),
+    date: Date.now(),
+    datetime: Date.now(),
+
+    input: 'hello world',
+
+    radioShared: 'two',
+    radioOne: 'one',
+    radioTwo: 'two',
+
+    boolean: true,
+    number: 1,
+
+    fruit: 'Orange',
+    fruits: ['Apple', 'Orange', 'Tomato']
+
+})
+
+export const component = (v, c) => [
+
+    section(
+        h3('Input'),
+        pre().html(inputCode),
+        pre(...inputComponenet(v, c)),
+    ),
+
+    section(
+        h3('Radio'),
+        pre().html(radioCode),
+        pre(...radioComponenet(v, c)),
+    ),
+
+    section(
+        h3('Select'),
+
+        pre().html(fruitsCode),
+        pre(...fruitsComponenet(v, c)),
+
+        br(),
+
+        pre().html(selectBooleanCode),
+        pre(...selectBooleanComponenet(v, c)),
+
+        br(),
+
+        pre().html(selectNumberCode),
+        pre(...selectNumberComponenet(v, c)),
+    ),
+
    section(
         h3('HTML'),
-        pre().html(html),
+        pre().html(htmlCode),
+        pre(...htmlComponent(v, c)),
     ),
+
 ]
 
 /*

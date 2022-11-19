@@ -1,4 +1,4 @@
-import Highlight from './highlight.js';
+import Highlight from './modules/highlight.js';
 
 const virtualExample = Highlight(`
 export const context = () => ({
@@ -13,7 +13,7 @@ export const component = (
     h1(title),
     button('Greet').onclick(greet)
 ]
-`, 'js');
+`);
 
 const elementExample = Highlight(`
 import { Component } from '/x-element.js';
@@ -36,7 +36,7 @@ export MyGreeting extends Component {
 }
 
 MyGreeting.define();
-`, 'js');
+`);
 
 export const context = () => ({})
 
@@ -74,7 +74,6 @@ export const component = ({
                 ),
             ).class('tile'),
         ).class('tiles'),
-
 
         h2('Virtual Example'),
         pre(code().class('language-js').html(virtualExample)),

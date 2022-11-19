@@ -15,7 +15,6 @@ export const ChildrenSymbol = Symbol('children');
 export const AttributesSymbol = Symbol('attributes');
 export const CdataSymbol = Symbol('cdata');
 export const CommentSymbol = Symbol('comment');
-// export const TextSymbol = Symbol('comment');
 
 // export const parseable = function (value: any) {
 //     return !isNaN(value) && value !== undefined && typeof value !== 'string';

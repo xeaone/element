@@ -249,6 +249,9 @@ function Attribute(element, name, value) {
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
     } else if (name === 'html') {
+        const html = Reflect.get(element, 'xhtml');
+        if (html === value) return;
+        Reflect.set(element, 'xhtml', value);
         Reflect.set(element, 'innerHTML', value);
     } else {
         const display = Display(value);
@@ -257,6 +260,20 @@ function Attribute(element, name, value) {
         }
     }
 }
+const PatchAttributes = function(element, item) {
+    for(const name in item.attributes){
+        const value = item.attributes[name];
+        Attribute(element, name, value);
+    }
+    if (element.hasAttributes()) {
+        const names = element.getAttributeNames();
+        for (const name1 of names){
+            if (!(name1 in item.attributes)) {
+                element.removeAttribute(name1);
+            }
+        }
+    }
+};
 const PatchCreateElement = function(owner, item) {
     const element = owner.createElement(item[NameSymbol]);
     for (const child of item.children){
@@ -320,12 +337,16 @@ const PatchCommon = function(node, target) {
         node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
     }
-    let index;
+    if (target.attributes['html']) {
+        PatchAttributes(node, target);
+        return;
+    }
     const targetChildren = target.children;
     const targetLength = targetChildren.length;
     const nodeChildren = node.childNodes;
     const nodeLength = nodeChildren.length;
     const commonLength = Math.min(nodeLength, targetLength);
+    let index;
     for(index = 0; index < commonLength; index++){
         PatchCommon(nodeChildren[index], targetChildren[index]);
     }
@@ -338,18 +359,7 @@ const PatchCommon = function(node, target) {
             PatchAppend(node, targetChildren[index]);
         }
     }
-    for(const name in target.attributes){
-        const value3 = target.attributes[name];
-        Attribute(node, name, value3);
-    }
-    if (node.hasAttributes()) {
-        const names = node.getAttributeNames();
-        for (const name1 of names){
-            if (!(name1 in target.attributes)) {
-                node.removeAttribute(name1);
-            }
-        }
-    }
+    PatchAttributes(node, target);
 };
 function Patch(root, fragment) {
     let index;

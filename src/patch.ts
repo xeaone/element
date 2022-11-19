@@ -2,7 +2,23 @@ import Attribute from './attribute.ts';
 import Display from './display.ts';
 
 import { Item, Items } from './types.ts';
-import { CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol } from './tool.ts';
+import { CdataSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol } from './tool.ts';
+
+const PatchAttributes = function (element: Element, item: Item) {
+    for (const name in item.attributes) {
+        const value = item.attributes[name];
+        Attribute(element, name, value);
+    }
+
+    if (element.hasAttributes()) {
+        const names = element.getAttributeNames();
+        for (const name of names) {
+            if (!(name in item.attributes)) {
+                element.removeAttribute(name);
+            }
+        }
+    }
+};
 
 const PatchCreateElement = function (owner: Document, item: Item): Element {
     const element = owner.createElement(item[NameSymbol]);
@@ -85,7 +101,10 @@ const PatchCommon = function (node: Node, target: any) {
         return;
     }
 
-    let index;
+    if (target.attributes['html']) {
+        PatchAttributes(node, target);
+        return;
+    }
 
     const targetChildren = target.children;
     const targetLength = targetChildren.length;
@@ -94,6 +113,8 @@ const PatchCommon = function (node: Node, target: any) {
     const nodeLength = nodeChildren.length;
 
     const commonLength = Math.min(nodeLength, targetLength);
+
+    let index;
 
     for (index = 0; index < commonLength; index++) {
         PatchCommon(nodeChildren[index], targetChildren[index]);
@@ -109,19 +130,7 @@ const PatchCommon = function (node: Node, target: any) {
         }
     }
 
-    for (const name in target.attributes) {
-        const value = target.attributes[name];
-        Attribute(node as Element, name, value);
-    }
-
-    if (node.hasAttributes()) {
-        const names = node.getAttributeNames();
-        for (const name of names) {
-            if (!(name in target.attributes)) {
-                node.removeAttribute(name);
-            }
-        }
-    }
+    PatchAttributes(node, target);
 };
 
 export default function Patch(root: Element, fragment: Items) {
@@ -133,7 +142,6 @@ export default function Patch(root: Element, fragment: Items) {
     const rootChildren = root.childNodes;
     const rootLength = rootChildren.length;
 
-    // const owner = root.ownerDocument;
     const commonLength = Math.min(rootLength, virtualLength);
 
     for (index = 0; index < commonLength; index++) {
