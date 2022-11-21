@@ -176,7 +176,6 @@ main {
 main > * {
     width: 100%;
     margin: auto;
-    display: block;
     max-width: 1200px;
 }
 

@@ -1,5 +1,5 @@
 import Dash from './dash.ts';
-import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol,  NameSymbol, TypeSymbol } from './tool.ts';
+import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol,  TypeSymbol } from './tool.ts';
 
 export default new Proxy({}, {
     get(eTarget, eName, eReceiver) {
@@ -7,23 +7,18 @@ export default new Proxy({}, {
 
         if (eName === 'comment') {
             return function CommentProxy(...value: any) {
-                return { name: 'comment', value: value.join(''), [TypeSymbol]: CommentSymbol };
+                return { name: eName, value: value.join(''), [TypeSymbol]: CommentSymbol };
             };
         }
 
         if (eName === 'cdata') {
-            return function CommentProxy(...value: any) {
-                return { name: 'cdata', value: value.join(''), [TypeSymbol]: CdataSymbol };
+            return function CdataProxy(...value: any) {
+                return { name: eName, value: value.join(''), [TypeSymbol]: CdataSymbol };
             };
         }
 
         return function ElementProxy(attributes: any, ...children: any) {
-            if (
-                attributes?.[TypeSymbol] === CommentSymbol ||
-                attributes?.[TypeSymbol] === ElementSymbol ||
-                attributes?.[TypeSymbol] === CdataSymbol ||
-                attributes?.constructor !== Object
-            ) {
+            if (attributes?.[TypeSymbol] || attributes?.constructor !== Object) {
                 if (attributes !== undefined) {
                     children.unshift(attributes);
                 }

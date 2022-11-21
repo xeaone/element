@@ -1,23 +1,56 @@
 import { Virtual } from './x-element.js';
 import Highlight from './modules/highlight.js';
-// import Color from './modules/color.js';
+import Color from './modules/color.js';
 
 const {
-    section, h3, pre, div, select, option, br, input
+    style, button,
+    section, h3, p, pre, div, select, option, br, input
 } = Virtual;
 
 const inputComponenet = (v, c) => [
     div(c.input),
     input().value(c.input).oninput((e) => c.input = e.target.value),
 ];
-const inputCode = Highlight(`${inputComponenet.toString()}`);
+const inputCode = Highlight(inputComponenet.toString());
+
+// const dateComponenet = (v, c) => [
+//     div(c.stamp),
+//     input().type('time').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+//     input().type('date').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+//     input().type('month').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+//     input().type('datetime-local').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+// ];
+// const dateCode = Highlight(dateComponenet.toString());
+
+const mapComponenet = (v, c) => [
+    ...c.fruits.map((fruit, index) => div(`${index}: ${fruit}`))
+];
+const mapCode = Highlight(mapComponenet.toString());
+
+const checkComponent = (v, c) => [
+    div(c.checked ? 'Is Checked' : 'Is Not Checked'),
+    input().type('checkbox').checked(c.checked).oninput((e) => c.checked = e.target.checked),
+];
+const checkCode = Highlight(checkComponent.toString());
 
 const radioComponenet = (v, c) => [
     div(c.radioShared),
-    input().type('radio').name('radio').checked(() => c.radioShared === c.radioOne).oninput(() => c.radioShared = 'one'),
-    input().type('radio').name('radio').checked(() => c.radioShared === c.radioTwo).oninput(() => c.radioShared = 'two'),
+    input().type('radio').name('radio').checked(c.radioShared === c.radioOne).oninput(() => c.radioShared = 'one'),
+    input().type('radio').name('radio').checked( c.radioShared === c.radioTwo).oninput(() => c.radioShared = 'two'),
 ];
-const radioCode = Highlight(`${radioComponenet.toString()}`);
+const radioCode = Highlight(radioComponenet.toString());
+
+const styleComponenet = (v, c) => [
+    div('Look at my style').style(`color: ${c.color}`),
+    button('Change Color').onclick(() => c.color = Color()),
+];
+const styleCode = Highlight(styleComponenet.toString());
+
+const classComponenet = (v, c) => [
+    div('Look at my class').class(c.active ? 'default class-color' : 'default'),
+    button('Toggle Class').onclick(() => c.active = !c.active),
+];
+const classCode = Highlight(classComponenet.toString());
 
 const fruitsComponenet = (v, c) => [
     div(c.fruit),
@@ -27,7 +60,7 @@ const fruitsComponenet = (v, c) => [
         )
     ).value(c.fruit).oninput((e) => c.fruit = e.target.value),
 ];
-const fruitsCode = Highlight(`${fruitsComponenet.toString()}`);
+const fruitsCode = Highlight(fruitsComponenet.toString());
 
 const selectBooleanComponenet = (v, c) => [
     div(c.boolean),
@@ -36,7 +69,7 @@ const selectBooleanComponenet = (v, c) => [
         option('no').value(false),
     ).value(c.boolean).oninput((e) => c.boolean = JSON.parse(e.target.value)),
 ];
-const selectBooleanCode = Highlight(`${selectBooleanComponenet.toString()}`);
+const selectBooleanCode = Highlight(selectBooleanComponenet.toString());
 
 const selectNumberComponenet = (v, c) => [
     div(c.number),
@@ -46,20 +79,40 @@ const selectNumberComponenet = (v, c) => [
         option('two').value(2),
     ).value(c.number).oninput((e) => c.number = JSON.parse(e.target.value)),
 ];
-const selectNumberCode = Highlight(`${selectNumberComponenet.toString()}`);
+const selectNumberCode = Highlight(selectNumberComponenet.toString());
 
 const htmlComponent = () => [
     div().html('&#x1F480; This is HTML')
 ];
-const htmlCode = Highlight(`${htmlComponent.toString()}`);
+const htmlCode = Highlight(htmlComponent.toString());
+
+const routeCode = Highlight(`
+import { Router } from './x-element.js';
+
+const main = document.querySelector('main');
+
+const RootContext = () => ({
+    title: 'Root Route'
+})
+
+const RootComponent = ({ h1 }, { title }) => [
+    h1(title)
+];
+
+Router('/', main, RootComponent, RootContext);
+`);
 
 export const context = () => ({
 
-    time: Date.now(),
-    date: Date.now(),
-    datetime: Date.now(),
+    stamp: Date.now(),
 
     input: 'hello world',
+
+    checked: true,
+
+    color: Color(),
+
+    active: true,
 
     radioShared: 'two',
     radioOne: 'one',
@@ -69,23 +122,68 @@ export const context = () => ({
     number: 1,
 
     fruit: 'Orange',
-    fruits: ['Apple', 'Orange', 'Tomato']
+    fruits: ['Apple', 'Orange', 'Tomato'],
+
+    inputHtml: '',
 
 })
 
 export const component = (v, c) => [
 
+    style(`
+    .default {
+        border: solid 5px transparent;
+    }
+    .class-color {
+        border-color: var(--accent);
+    }
+    `),
+
     section(
         h3('Input'),
         pre().html(inputCode),
-        pre(...inputComponenet(v, c)),
-    ),
+        pre(...inputComponenet(v, c)).onframe((t) => c.inputHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.inputHtml),
+    ).id('input'),
+
+    section(
+        h3('Map'),
+        pre().html(mapCode),
+        pre(...mapComponenet(v, c)),
+    ).id('map'),
+
+    section(
+        h3('Check'),
+        p('Boolean html attributes will treated as Boolean paramters and toggle the attribute.'),
+        pre().html(checkCode),
+        pre(...checkComponent(v, c))
+    ).id('check'),
 
     section(
         h3('Radio'),
+        p('Boolean html attributes will treated as Boolean paramters and toggle the attribute.'),
         pre().html(radioCode),
         pre(...radioComponenet(v, c)),
-    ),
+    ).id('radio'),
+
+    // section(
+    //     h3('Date'),
+    //     p('Inputs with type "date", "month", "time", "datetime-local", and a value attribute with paramater of type Number will be converted to ISO Local time format.'),
+    //     pre().html(dateCode),
+    //     pre(...dateComponenet(v, c)),
+    // ).id('date'),
+
+    section(
+        h3('Class'),
+        pre().html(classCode),
+        pre(...classComponenet(v, c)),
+    ).id('class'),
+
+    section(
+        h3('Style'),
+        pre().html(styleCode),
+        pre(...styleComponenet(v, c)),
+    ).id('style'),
 
     section(
         h3('Select'),
@@ -102,112 +200,23 @@ export const component = (v, c) => [
 
         pre().html(selectNumberCode),
         pre(...selectNumberComponenet(v, c)),
-    ),
+    ).id('select'),
 
    section(
         h3('HTML'),
         pre().html(htmlCode),
         pre(...htmlComponent(v, c)),
-    ),
+    ).id('html'),
+
+    section(
+        h3('Routing'),
+        pre().html(routeCode),
+    ).id('routing')
 
 ]
 
 /*
-const html = `
-<link href="./index.css" rel="stylesheet">
 
-<style>
-    .default {
-        border: solid 5px transparent;
-    }
-    .class-color {
-        border-color: var(--accent);
-    }
-</style>
-
-<section id="text">
-    <h3>Text Binder</h3>
-    <template id="text-template">
-        <span text="{{text}}"></span>
-        <span>One: {{text}} Two: {{text}}</span>
-    </template>
-    <pre html="{{highlight('#text-template')}}"></pre>
-    <article html="{{result('#text-template')}}"></article>
-</section>
-
-<!--
-<section id="checked">
-<h3>Checked Binder</h3>
-    <template id="checked-template">
-        <input type="checkbox" checked="{{ checked = $checked ?? checked }}" value="{{ checked }}" />
-        <span>Checkbox {{ checked ? 'checked' : '' }}</span>
-        <br>
-        <input type="checkbox" checked="{{ checked = event ? this.checked : checked }}" value="{{ checked }}" />
-        <span>Checkbox {{ checked ? 'checked' : '' }}</span>
-    </template>
-    <pre html="{{highlight('#checked-template')}}"></pre>
-    <article html="{{result('#checked-template')}}"></article>
-
-    <template id="radio-template">
-        <span>Value: {{radioValue}}</span>
-        <br>
-        <input type="radio" name="radio" value="{{ radioValue = radioOne ? 'one' : radioValue }}" checked="{{ radioOne = $checked ?? radioOne }}" />
-        <span> Radio One </span>
-        <span text="{{radioOne ? 'checked' : ''}}"></span>
-        <br>
-        <input type="radio" name="radio" value="{{ radioValue = radioTwo ? 'two' : radioValue }}" checked="{{ radioTwo = event ? this.checked : radioTwo }}" />
-        <span> Radio Two </span>
-        <span text="{{radioTwo ? 'checked' : ''}}"></span>
-    </template>
-    <pre html="{{highlight('#radio-template')}}"></pre>
-    <article html="{{result('#radio-template')}}"></article>
-</section>
-
-<section id="style">
-    <h3>Style Binder</h3>
-    <template id="style-template">
-        <span style="{{ 'color:' + color }}">Look at my style</span>
-        <button onclick="{{colorChange()}}">Change Color</button>
-    </template>
-    <pre html="{{highlight('#style-template')}}"></pre>
-    <article html="{{result('#style-template')}}"></article>
-</section>
-
-<section id="class">
-    <h3>Class Binder</h3>
-    <template id="class-template">
-        <span class="{{ active ? 'default class-color' : 'default' }}">Look at my class</span>
-        <button onclick="{{classToggle()}}">Toggle Active</button>
-    </template>
-    <pre html="{{highlight('#class-template')}}"></pre>
-    <article html="{{result('#class-template')}}"></article>
-</section>
-
-<section id="value">
-    <h3>Value Binder</h3>
-    <template id="value-template">
-        <input value="{{ value.text = $value ?? value.text }}" >
-        <input value="{{ value.text = event ? this.value : value.text }}" >
-        <span>{{value.text}}</span>
-    </template>
-    <pre html="{{highlight('#value-template')}}"></pre>
-    <article html="{{result('#value-template')}}"></article>
-</section>
-
-<section id="each">
-    <h3>Each Binder</h3>
-    <template id="each-template">
-        <div each="{{[ fruits, 'value', 'key', 'index' ]}}">
-            <div id="{{fruit}}">
-                <strong>Key: </strong>{{key}},
-                <strong>Index: </strong>{{index}},
-                <strong>Value: </strong>{{value}}
-            </div>
-        </div>
-    </template>
-    <pre html="{{highlight('#each-template')}}"></pre>
-    <article html="{{result('#each-template')}}"></article>
-</section>
 
 <section id="select">
     <h3>Select Binder</h3>
@@ -243,131 +252,5 @@ const html = `
     <pre html="{{highlight('#cars-template')}}"></pre>
     <article html="{{result('#cars-template')}}"></article>
 </section>
-
-<section id="html">
-    <h3>HTML Binder</h3>
-        <template id="html-template">
-        <div html="{{'<strong>Hyper Text Markup Language</strong>'}}"></div>
-    </template>
-    <pre html="{{highlight('#html-template')}}"></pre>
-    <article html="{{result('#html-template')}}"></article>
-</section>
-
-<section id="submit">
-<h3>Submit Binder</h3>
-<template id="submit-template">
-    <form onsubmit="{{submit($form)}}">
-        <div>{{firstName}}</div>
-        <input disabled="{{disabled}}" name="name.first" value="{{firstName = $value}}" placeholder="first name">
-        <div>{{lastName}}</div>
-        <input name="name.last" value="{{$value ?? lastName}}" placeholder="last name">
-        <br>
-        <input type="checkbox" name="agree" value="{{agree ? 'yes' : 'no'}}" checked="{{agree = $checked}}">Agree? {{agree ? 'yes': 'no'}}
-        <br>
-        <strong>Animal:</strong>
-        <input type="radio" name="animal" value="{{'dogs'}}" checked="{{$checked}}">Dogs
-        <input type="radio" name="animal" value="cats" checked="{{$checked}}">Cats
-        <br>
-        <div>{{favoriteNumber}}</div>
-        <input name="favoriteNumber" type="number" value="{{favoriteNumber = $value}}">
-        <br>
-        <input type="submit" value="submit">
-    </form>
-</template>
-<pre html="{{highlight('#submit-template')}}"></pre>
-<div html="{{result('#submit-template')}}"></div>
-<pre>{{form}}</pre>
-</section>
-
-<section id="routing">
-<h3>Routing</h3>
-<template id="routing-template">
-    import XElement from './x-element.js';
-
-    window.navigation.addEventListener('navigate', function () { console.log('nav before'); });
-
-    XElement.navigation('/', './root.js');
-    XElement.navigation('/guide', './guide.js');
-    XElement.navigation('/*', './all.js');
-
-    window.navigation.addEventListener('navigate', function () { console.log('nav after'); });
-</template>
-<pre html="{{highlight('#routing-template', 'js')}}"></pre>
-</section>
--->
-`;
-
-export default class XGuide extends XElement {
-
-    title = 'Guide';
-    text = 'Hello World';
-
-    checked = true;
-
-    radioOne = undefined;
-    radioTwo = undefined;
-    radioValue = undefined;
-
-    color = Color();
-    colorChange () { this.color = Color(); }
-
-    active = true;
-    lightblue = active => active ? 'lightblue' : '';
-    classToggle () { this.active = !this.active; }
-
-    value = { text: 'hello world' };
-
-    fruit = 'Orange';
-    fruits = [ 'Apple', 'Orange', 'Tomato' ];
-
-    plant = undefined;
-    cars = [];
-    test = [];
-
-    form = '';
-    agree = true;
-    disabled = false;
-    lastName = 'bond';
-    firstName = 'james';
-    favoriteNumber = undefined;
-    submit (form) {
-        this.form = JSON.stringify(form, null, '\t');
-        console.log(form);
-        console.log(this);
-    }
-
-    highlight (query, type) {
-        type = type ?? 'html';
-        let result = this.querySelector(query).innerHTML;
-        result = result.replace(/\s*\n+$/gm, '');
-        result = result.replace(/^\s*\n+/gm, '');
-        result = result.replace(/^[ ]{4}/gm,'');
-        result = Highlight(result, type);
-        if (type === 'html') result = result.replace(/{{/g, '{&zwnj;{').replace(/}}/g, '}&zwnj;}');
-        return result;
-    }
-
-    result (query) {
-        // console.log('result', this);
-        return this.querySelector(query);
-    }
-
-    constructor () {
-        super();
-        this.shadowRoot.innerHTML = html;
-        // this.shadowRoot.innerHTML = `<slot></slot>`;
-        // this.innerHTML = html;
-    }
-
-    async connectedCallback () {
-        // if (!this.hasChildNodes()) this.innerHTML = html;
-        await super.connectedCallback();
-    }
-
-    async disconnectedCallback () {
-        await super.disconnectedCallback();
-    }
-
-}
 
 */

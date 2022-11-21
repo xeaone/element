@@ -1,6 +1,6 @@
 import Component from './component.ts';
-import Dash from './dash.ts';
 import Render from './render.ts';
+import Dash from './dash.ts';
 
 type Options = {
     path?: string;

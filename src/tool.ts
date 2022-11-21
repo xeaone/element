@@ -9,12 +9,13 @@
 export const NameSymbol = Symbol('name');
 export const ValueSymbol = Symbol('value');
 
+export const CdataSymbol = Symbol('cdata');
+export const CommentSymbol = Symbol('comment');
+
 export const TypeSymbol = Symbol('type');
 export const ElementSymbol = Symbol('element');
 export const ChildrenSymbol = Symbol('children');
 export const AttributesSymbol = Symbol('attributes');
-export const CdataSymbol = Symbol('cdata');
-export const CommentSymbol = Symbol('comment');
 
 // export const parseable = function (value: any) {
 //     return !isNaN(value) && value !== undefined && typeof value !== 'string';
