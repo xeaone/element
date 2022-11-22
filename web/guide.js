@@ -13,15 +13,6 @@ const inputComponenet = (v, c) => [
 ];
 const inputCode = Highlight(inputComponenet.toString());
 
-// const dateComponenet = (v, c) => [
-//     div(c.stamp),
-//     input().type('time').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
-//     input().type('date').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
-//     input().type('month').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
-//     input().type('datetime-local').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
-// ];
-// const dateCode = Highlight(dateComponenet.toString());
-
 const mapComponenet = (v, c) => [
     ...c.fruits.map((fruit, index) => div(`${index}: ${fruit}`))
 ];
@@ -102,9 +93,18 @@ const RootComponent = ({ h1 }, { title }) => [
 Router('/', main, RootComponent, RootContext);
 `);
 
+// const dateComponenet = (v, c) => [
+//     div(c.stamp),
+//     input().type('time').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+//     input().type('date').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+//     input().type('month').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+//     input().type('datetime-local').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
+// ];
+// const dateCode = Highlight(dateComponenet.toString());
+
 export const context = () => ({
 
-    stamp: Date.now(),
+    // stamp: Date.now(),
 
     input: 'hello world',
 
@@ -149,21 +149,24 @@ export const component = (v, c) => [
     section(
         h3('Map'),
         pre().html(mapCode),
-        pre(...mapComponenet(v, c)),
+        pre(...mapComponenet(v, c)).onframe((t) => c.mapHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.mapHtml),
     ).id('map'),
 
     section(
         h3('Check'),
         p('Boolean html attributes will treated as Boolean paramters and toggle the attribute.'),
         pre().html(checkCode),
-        pre(...checkComponent(v, c))
+        pre(...checkComponent(v, c)).onframe((t) => c.checkHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.checkHtml),
     ).id('check'),
 
     section(
         h3('Radio'),
         p('Boolean html attributes will treated as Boolean paramters and toggle the attribute.'),
         pre().html(radioCode),
-        pre(...radioComponenet(v, c)),
+        pre(...radioComponenet(v, c)).onframe((t) => c.radioHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.radioHtml),
     ).id('radio'),
 
     // section(
@@ -176,36 +179,43 @@ export const component = (v, c) => [
     section(
         h3('Class'),
         pre().html(classCode),
-        pre(...classComponenet(v, c)),
+        pre(...classComponenet(v, c)).onframe((t) => c.classHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.classHtml),
     ).id('class'),
 
     section(
         h3('Style'),
         pre().html(styleCode),
-        pre(...styleComponenet(v, c)),
+        pre(...styleComponenet(v, c)).onframe((t) => c.styleHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.styleHtml),
     ).id('style'),
 
     section(
         h3('Select'),
 
         pre().html(fruitsCode),
-        pre(...fruitsComponenet(v, c)),
+        pre(...fruitsComponenet(v, c)).onframe((t) => c.fruitsHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.fruitsHtml),
 
         br(),
 
         pre().html(selectBooleanCode),
-        pre(...selectBooleanComponenet(v, c)),
+        pre(...selectBooleanComponenet(v, c)).onframe((t) => c.selectBooleanHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.selectBooleanHtml),
 
         br(),
 
         pre().html(selectNumberCode),
-        pre(...selectNumberComponenet(v, c)),
+        pre(...selectNumberComponenet(v, c)).onframe((t) => c.selectNumberHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.selectNumberHtml),
+
     ).id('select'),
 
    section(
         h3('HTML'),
         pre().html(htmlCode),
-        pre(...htmlComponent(v, c)),
+        pre(...htmlComponent(v, c)).onframe((t) => c.htmlHtml = Highlight(t.innerHTML, 'html')),
+        pre().html(c.htmlHtml),
     ).id('html'),
 
     section(
@@ -214,43 +224,3 @@ export const component = (v, c) => [
     ).id('routing')
 
 ]
-
-/*
-
-
-<section id="select">
-    <h3>Select Binder</h3>
-
-    <template id="plant-template">
-        <select value="{{plant = $value ?? plant}}">
-            <option value="tree">Tree</option>
-            <option value="cactus">Cactus</option>
-        </select>
-        <span>{{plant}}</span>
-    </template>
-    <pre html="{{highlight('#plant-template')}}"></pre>
-    <article html="{{result('#plant-template')}}"></article>
-
-    <template id="fruit-template">
-        <select value="{{fruit = $value ?? fruit}}" each="{{[ fruits, 'value' ]}}">
-            <option value="{{value}}">{{value}}</option>
-        </select>
-        <span>{{fruit}}</span>
-    </template>
-    <pre html="{{highlight('#fruit-template')}}"></pre>
-    <article html="{{result('#fruit-template')}}"></article>
-
-    <template id="cars-template">
-        <select value="{{cars = $value ?? cars}}" multiple>
-            <option value="volvo">Volvo</option>
-            <option value="saab">Saab</option>
-            <option value="opel">Opel</option>
-            <option value="audi">Audi</option>
-        </select>
-        <span>{{cars}}</span>
-    </template>
-    <pre html="{{highlight('#cars-template')}}"></pre>
-    <article html="{{result('#cars-template')}}"></article>
-</section>
-
-*/

@@ -108,10 +108,8 @@ const PatchCommon = function (node: Node, target: any) {
 
     const targetChildren = target.children;
     const targetLength = targetChildren.length;
-
     const nodeChildren = node.childNodes;
     const nodeLength = nodeChildren.length;
-
     const commonLength = Math.min(nodeLength, targetLength);
 
     let index;

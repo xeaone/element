@@ -29,7 +29,7 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/`;
 
-await run({ cmd: ['deno', 'bundle', 'src/element.ts', 'tmp/x-element.js'] }).status();
+await run({ cmd: ['deno', 'bundle', 'src/index.ts', 'tmp/x-element.js'] }).status();
 
 const bundle = await readTextFile('tmp/x-element.js');
 

@@ -427,33 +427,59 @@ function Render(target, context, component) {
     component = component.bind(null, __default, context);
     Patch(target(), component());
 }
-const navigators = new Map();
-const transition = async function(options) {
-    if (!options.target) throw new Error('XElement - navigation target option required');
-    if (options.navigating) return;
-    else options.navigating = true;
-    if (options.cache && options.instance) {
-        if (options.instance instanceof Component) {
-            options.navigating = false;
-            return options.target.replaceChildren(options.instance);
+const alls = [];
+const routes = [];
+const transition = async function(route) {
+    if (!route.target) throw new Error('XElement - transition target option required');
+    if (route.busy) return;
+    else route.busy = true;
+    if (route.cache && route.instance) {
+        route.busy = false;
+        if (route.instance instanceof Component) {
+            if (route.target.firstChild !== route.instance) {
+                route.target.replaceChildren(route.instance);
+            }
         } else {
-            options.navigating = false;
-            return options.target.replaceChildren(...options.instance);
+            let index;
+            const parent = route.target;
+            const targetNodes = route.instance;
+            const sourceNodes = route.target.childNodes;
+            const sourceLength = sourceNodes.length;
+            const targetLength = targetNodes.length;
+            const commonLength = Math.min(sourceLength, targetLength);
+            for(index = 0; index < commonLength; index++){
+                const sourceNode = sourceNodes[index];
+                const targetNode = targetNodes[index];
+                if (sourceNode !== targetNode) {
+                    parent.replaceChild(targetNode, sourceNode);
+                }
+            }
+            if (sourceLength > targetLength) {
+                for(index = targetLength; index < sourceLength; index++){
+                    parent.removeChild(parent.lastChild);
+                }
+            } else if (sourceLength < targetLength) {
+                for(index = sourceLength; index < targetLength; index++){
+                    const child = targetNodes[index];
+                    parent.appendChild(child);
+                }
+            }
         }
+        return;
     }
-    if (options.component instanceof Component) {
-        options.name = options.name ?? Dash(options.construct.name);
-        if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
-        if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
-        await customElements.whenDefined(options.name);
-        options.instance = document.createElement(options.name);
-        options.target.replaceChildren(options.instance);
+    if (route.component instanceof Component) {
+        route.name = route.name ?? Dash(route.construct.name);
+        if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
+        if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
+        await customElements.whenDefined(route.name);
+        route.instance = document.createElement(route.name);
+        route.target.replaceChildren(route.instance);
     } else {
-        options.target.replaceChildren();
-        Render(()=>options.target, options.context, options.component);
-        options.instance = Array.from(options.target.childNodes);
+        route.target.replaceChildren();
+        Render(()=>route.target, route.context, route.component);
+        route.instance = Array.from(route.target.childNodes);
     }
-    options.navigating = false;
+    route.busy = false;
 };
 const navigate = function(event) {
     if (event && 'canIntercept' in event && event.canIntercept === false) return;
@@ -465,32 +491,66 @@ const navigate = function(event) {
     destination.hash = '';
     destination.search = '';
     const pathname = destination.href.replace(base.href, '/');
-    const options = navigators.get(pathname) ?? navigators.get('/*');
-    if (!options) return;
+    const transitions = [];
+    for (const route of routes){
+        if (route.path === pathname) {
+            transitions.push(route);
+        }
+    }
+    for (const all of alls){
+        let has = false;
+        for (const transition1 of transitions){
+            if (transition1.target === all.target) {
+                has = true;
+                break;
+            }
+        }
+        if (has) continue;
+        transitions.push(all);
+    }
+    if (!transitions.length) return;
     if (event?.intercept) {
         return event.intercept({
-            handler: ()=>transition(options)
+            handler: ()=>transitions.map((route)=>transition(route))
         });
     } else if (event?.transitionWhile) {
-        return event.transitionWhile(transition(options));
+        return event.transitionWhile(transitions.map((route)=>transition(route)));
     } else {
-        transition(options);
+        transitions.map((route)=>transition(route));
     }
 };
-function router(path, target, component, context, options = {}) {
-    if (!path) throw new Error('XElement - navigation path required');
-    if (!target) throw new Error('XElement - navigation target required');
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    options.path = path;
-    options.target = target;
-    options.cache = options.cache ?? true;
-    if (!component) throw new Error('XElement - navigation component required');
-    if (!(component instanceof Component) && !context) throw new Error('XElement - navigation context required');
-    options.context = context;
-    options.component = component;
-    navigators.set(path, options);
+function router(path, target, component, context, cache) {
+    if (!path) throw new Error('XElement - router path required');
+    if (!target) throw new Error('XElement - router target required');
+    if (!component) throw new Error('XElement - router component required');
+    if (!(component instanceof Component) && !context) throw new Error('XElement - router context required');
+    if (path === '/*') {
+        for (const all of alls){
+            if (all.path === path && all.target === target) {
+                throw new Error('XElement - router duplicate path and target');
+            }
+        }
+        alls.push({
+            path,
+            target,
+            context,
+            component,
+            cache: cache ?? true
+        });
+    } else {
+        for (const route of routes){
+            if (route.path === path && route.target === target) {
+                throw new Error('XElement - router duplicate path and target');
+            }
+        }
+        routes.push({
+            path,
+            target,
+            context,
+            component,
+            cache: cache ?? true
+        });
+    }
     navigate();
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
