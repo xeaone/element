@@ -219,6 +219,13 @@ function Attribute(element, name, value, parameters) {
             requestAnimationFrame(()=>value(element, name, value));
             return;
         }
+        if (name === 'oncreate') {
+            Reflect.get(element, `xCreate`);
+            if (Reflect.has(element, 'xCreate')) return;
+            else Reflect.set(element, 'xCreate', true);
+            value(element, name, value);
+            return;
+        }
         const original = Reflect.get(element, `xRaw${name}`);
         if (original !== value) {
             const wrapped = Reflect.get(element, `xWrap${name}`);
@@ -504,7 +511,6 @@ const navigate = function(event) {
     destination.search = '';
     const pathname = destination.href.replace(base.href, '/');
     const transitions = [];
-    console.log(pathname);
     for (const route of routes){
         if (route.path === pathname) {
             transitions.push(route);
@@ -521,7 +527,6 @@ const navigate = function(event) {
         if (has) continue;
         transitions.push(all);
     }
-    console.log(transitions);
     if (!transitions.length) return;
     if (event?.intercept) {
         return event.intercept({
