@@ -98,6 +98,8 @@ const navigate = function (event?: any) {
     const pathname = destination.href.replace(base.href, '/');
     const transitions: Array<Route> = [];
 
+    console.log(pathname);
+
     for (const route of routes) {
         if (route.path === pathname) {
             transitions.push(route);
@@ -118,6 +120,8 @@ const navigate = function (event?: any) {
 
         transitions.push(all);
     }
+
+    // console.log(transitions)
 
     if (!transitions.length) return;
 

@@ -35,7 +35,6 @@ export default {
     Router,
     Render,
     Patch,
-
     component: Component,
     schedule: Schedule,
     virtual: Virtual,

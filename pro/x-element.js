@@ -521,7 +521,6 @@ const navigate = function(event) {
         if (has) continue;
         transitions.push(all);
     }
-    console.log(transitions);
     if (!transitions.length) return;
     if (event?.intercept) {
         return event.intercept({

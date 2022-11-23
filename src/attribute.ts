@@ -1,7 +1,7 @@
 import { BooleanAttributes, DateAttributes, ValueSymbol } from './tool.ts';
 import Display from './display.ts';
 
-export default function Attribute(element: Element, name: string, value: any) {
+export default function Attribute(element: Element, name: string, value: any, parameters: any) {
     if (name === 'value') {
         // const type = Reflect.get(element, 'type');
 
@@ -35,11 +35,22 @@ export default function Attribute(element: Element, name: string, value: any) {
             return;
         }
 
-        if (Reflect.has(element, `x${name}`)) {
-            element.addEventListener(name.slice(2), Reflect.get(element, `x${name}`));
-        } else {
-            Reflect.set(element, `x${name}`, value);
-            element.addEventListener(name.slice(2), value);
+        const original = Reflect.get(element, `xRaw${name}`);
+
+        if (original !== value) {
+            const wrapped = Reflect.get(element, `xWrap${name}`);
+
+            const wrap = function (e: Event) {
+                if (parameters[0]?.prevent) e.preventDefault();
+                if (parameters[0]?.stop) e.stopPropagation();
+                return value(e);
+            };
+
+            Reflect.set(element, `xRaw${name}`, value);
+            Reflect.set(element, `xWrap${name}`, wrap);
+
+            element.addEventListener(name.slice(2), wrap, parameters?.[0] as any);
+            element.removeEventListener(name.slice(2), wrapped);
         }
 
         if (element.hasAttribute(name)) element.removeAttribute(name);

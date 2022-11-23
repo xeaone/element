@@ -8,6 +8,7 @@ export type Item = {
     [NameSymbol]: string;
     [TypeSymbol]: symbol;
     children: Array<Item | string>;
+    parameters: Record<string, any>;
     attributes: Record<string, any>;
 };
 

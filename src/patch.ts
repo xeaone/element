@@ -7,7 +7,8 @@ import { CdataSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol } fro
 const PatchAttributes = function (element: Element, item: Item) {
     for (const name in item.attributes) {
         const value = item.attributes[name];
-        Attribute(element, name, value);
+        const parameters = item.parameters[name];
+        Attribute(element, name, value, parameters);
     }
 
     if (element.hasAttributes()) {
@@ -29,7 +30,8 @@ const PatchCreateElement = function (owner: Document, item: Item): Element {
 
     for (const name in item.attributes) {
         const value = item.attributes[name];
-        Attribute(element, name, value);
+        const parameters = item.parameters[name];
+        Attribute(element, name, value, parameters);
     }
 
     return element;
