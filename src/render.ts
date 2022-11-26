@@ -3,6 +3,7 @@ import Virtual from './virtual.ts';
 import Schedule from './schedule.ts';
 import Context from './context.ts';
 import Patch from './patch.ts';
+import Cycle from './cycle.ts';
 
 export default function Render(target: () => Element, context: () => ContextData, component: () => Items) {
     const update = async function () {
@@ -14,4 +15,7 @@ export default function Render(target: () => Element, context: () => ContextData
 
     // await update();
     Patch(target(), component());
+    Cycle(target(), context);
+
+    return { context, component };
 }

@@ -2,7 +2,7 @@ import Attribute from './attribute.ts';
 import Display from './display.ts';
 
 import { Item, Items } from './types.ts';
-import { CdataSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol } from './tool.ts';
+import { CdataSymbol, CommentSymbol, ElementSymbol, NameSymbol, SelfSymbol, TypeSymbol } from './tool.ts';
 
 const PatchAttributes = function (element: Element, item: Item) {
     for (const name in item.attributes) {
@@ -45,6 +45,9 @@ const PatchAppend = function (parent: Element, child: any) {
         parent.appendChild(owner.createComment(child.value));
     } else if (child?.[TypeSymbol] === CdataSymbol) {
         parent.appendChild(owner.createCDATASection(child.value));
+    } else if (child?.[TypeSymbol] === SelfSymbol) {
+        console.log('self replace');
+        parent.appendChild(owner.createTextNode(''));
     } else {
         parent.appendChild(owner.createTextNode(Display(child)));
     }
@@ -59,6 +62,20 @@ const PatchCommon = function (node: Node, target: any) {
     const owner = node.ownerDocument as Document;
     const virtualType = target?.[TypeSymbol];
     const virtualName = target?.[NameSymbol];
+
+    if (virtualType === SelfSymbol) {
+        console.log('self patch common');
+
+        if (node.nodeName != '#text') {
+            console.log('self replace');
+            node.parentNode?.replaceChild(owner?.createTextNode('') as Text, node);
+        } else if (node.nodeValue != '') {
+            console.log('self mod');
+            node.nodeValue = '';
+        }
+
+        return;
+    }
 
     if (virtualType === CommentSymbol) {
         const value = Display(target);

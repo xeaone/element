@@ -8,6 +8,7 @@
 
 export const NameSymbol = Symbol('name');
 export const ValueSymbol = Symbol('value');
+export const SelfSymbol = Symbol('self');
 
 export const CdataSymbol = Symbol('cdata');
 export const CommentSymbol = Symbol('comment');

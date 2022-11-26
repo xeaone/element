@@ -1,9 +1,15 @@
 import Dash from './dash.ts';
-import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol } from './tool.ts';
+import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, SelfSymbol, TypeSymbol } from './tool.ts';
 
 export default new Proxy({}, {
     get(eTarget, eName, eReceiver) {
         if (typeof eName === 'symbol') return Reflect.get(eTarget, eName, eReceiver);
+
+        if (eName === 'self') {
+            return function SelfProxy(...value: any) {
+                return { name: eName, value, [TypeSymbol]: SelfSymbol };
+            };
+        }
 
         if (eName === 'comment') {
             return function CommentProxy(...value: any) {
@@ -51,4 +57,8 @@ export default new Proxy({}, {
             });
         };
     },
+    // apply(t, s, a) {
+    //     console.log(t, s, a);
+    //     return Reflect.apply(t as any, s, a);
+    // },
 });

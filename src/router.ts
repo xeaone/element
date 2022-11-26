@@ -1,5 +1,6 @@
 import Component from './component.ts';
 import Render from './render.ts';
+import Cycle from './cycle.ts';
 import Dash from './dash.ts';
 
 type Route = {
@@ -23,44 +24,54 @@ const transition = async function (route: Route) {
     if (!route.target) throw new Error('XElement - transition target option required');
 
     if (route.busy) return;
-    else route.busy = true;
+
+    const current = Reflect.get(route.target, 'xRouterCurrent');
+    if (current === route) return;
+
+    if (current) {
+        if (!(current.instance instanceof Component)) {
+            current.instance.childNodes = Array.from(current.target.childNodes);
+        }
+    }
+
+    route.busy = true;
+    Reflect.set(route.target, 'xRouterCurrent', route);
 
     if (route.cache && route.instance) {
-        route.busy = false;
-
         if (route.instance instanceof Component) {
-            if (route.target.firstChild !== route.instance) {
-                route.target.replaceChildren(route.instance);
-            }
-        } else {
-            let index;
-            const parent = route.target;
-            const targetNodes = route.instance;
-            const sourceNodes = route.target.childNodes;
-            const sourceLength = sourceNodes.length;
-            const targetLength = targetNodes.length;
-            const commonLength = Math.min(sourceLength, targetLength);
+            route.target.replaceChildren(route.instance);
+            Cycle(route.target, route.instance.context);
+        }
 
-            for (index = 0; index < commonLength; index++) {
-                const sourceNode = sourceNodes[index];
-                const targetNode = targetNodes[index];
-                if (sourceNode !== targetNode) {
-                    parent.replaceChild(targetNode, sourceNode);
-                }
-            }
+        let index;
+        const parent = route.target;
+        const targetNodes = route.instance.childNodes;
+        const sourceNodes = route.target.childNodes;
+        const sourceLength = sourceNodes.length;
+        const targetLength = targetNodes.length;
+        const commonLength = Math.min(sourceLength, targetLength);
 
-            if (sourceLength > targetLength) {
-                for (index = targetLength; index < sourceLength; index++) {
-                    parent.removeChild(parent.lastChild as Node);
-                }
-            } else if (sourceLength < targetLength) {
-                for (index = sourceLength; index < targetLength; index++) {
-                    const child = targetNodes[index];
-                    parent.appendChild(child);
-                }
+        for (index = 0; index < commonLength; index++) {
+            const sourceNode = sourceNodes[index];
+            const targetNode = targetNodes[index];
+            if (sourceNode !== targetNode) {
+                parent.replaceChild(targetNode, sourceNode);
             }
         }
 
+        if (sourceLength > targetLength) {
+            for (index = targetLength; index < sourceLength; index++) {
+                parent.removeChild(parent.lastChild as Node);
+            }
+        } else if (sourceLength < targetLength) {
+            for (index = sourceLength; index < targetLength; index++) {
+                parent.appendChild(targetNodes[index]);
+            }
+        }
+
+        Cycle(route.target, route.instance.context);
+
+        route.busy = false;
         return;
     }
 
@@ -74,10 +85,11 @@ const transition = async function (route: Route) {
 
         route.instance = document.createElement(route.name);
         route.target.replaceChildren(route.instance);
+        Cycle(route.target, route.instance.context);
     } else {
         route.target.replaceChildren();
-        Render(() => route.target as any, route.context, route.component);
-        route.instance = Array.from(route.target.childNodes);
+        route.instance = Render(() => route.target as any, route.context, route.component);
+        route.instance.childNodes = Array.from(route.target.childNodes);
     }
 
     route.busy = false;

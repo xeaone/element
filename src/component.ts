@@ -63,9 +63,10 @@ export default class Component extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
+    context;
+    component;
+
     #root: any;
-    #context;
-    #component;
     #shadow: ShadowRoot;
 
     constructor() {
@@ -84,18 +85,18 @@ export default class Component extends HTMLElement {
 
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
-        const update = () => Patch(this.#root, this.#component());
+        const update = () => Patch(this.#root, this.component());
         const change = () => Schedule(update);
-        this.#context = Context(context(), change);
+        this.context = Context(context(), change);
 
-        this.#component = component.bind(this.#context, Virtual, this.#context);
+        this.component = component.bind(this.context, Virtual, this.context);
 
         if (this.#root !== this) this[upgrade]();
     }
 
     [upgrade]() {
         // this.dispatchEvent(Component.upgradingEvent);
-        Patch(this.#root, this.#component());
+        Patch(this.#root, this.component());
         // this.dispatchEvent(Component.upgradedEvent);
     }
 
