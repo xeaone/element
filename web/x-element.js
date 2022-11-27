@@ -487,62 +487,30 @@ const alls = [];
 const routes = [];
 const transition = async function(route) {
     if (!route.target) throw new Error('XElement - transition target option required');
-    if (route.busy) return;
-    const current = Reflect.get(route.target, 'xRouterCurrent');
-    if (current === route) return;
-    if (current) {
-        if (!(current.instance instanceof Component)) {
-            current.instance.childNodes = Array.from(current.target.childNodes);
-        }
-    }
-    route.busy = true;
-    Reflect.set(route.target, 'xRouterCurrent', route);
     if (route.cache && route.instance) {
         if (route.instance instanceof Component) {
             route.target.replaceChildren(route.instance);
-            cycle(route.target, route.instance.context);
+        } else {
+            route.target.replaceChildren(...route.instance.childNodes);
         }
-        let index;
-        const parent = route.target;
-        const targetNodes = route.instance.childNodes;
-        const sourceNodes = route.target.childNodes;
-        const sourceLength = sourceNodes.length;
-        const targetLength = targetNodes.length;
-        const commonLength = Math.min(sourceLength, targetLength);
-        for(index = 0; index < commonLength; index++){
-            const sourceNode = sourceNodes[index];
-            const targetNode = targetNodes[index];
-            if (sourceNode !== targetNode) {
-                parent.replaceChild(targetNode, sourceNode);
-            }
-        }
-        if (sourceLength > targetLength) {
-            for(index = targetLength; index < sourceLength; index++){
-                parent.removeChild(parent.lastChild);
-            }
-        } else if (sourceLength < targetLength) {
-            for(index = sourceLength; index < targetLength; index++){
-                parent.appendChild(targetNodes[index]);
-            }
-        }
-        cycle(route.target, route.instance.context);
-        route.busy = false;
-        return;
-    }
-    if (route.component instanceof Component) {
-        route.name = route.name ?? Dash(route.construct.name);
-        if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
-        if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
-        await customElements.whenDefined(route.name);
-        route.instance = document.createElement(route.name);
-        route.target.replaceChildren(route.instance);
         cycle(route.target, route.instance.context);
     } else {
-        route.target.replaceChildren();
-        route.instance = Render(()=>route.target, route.context, route.component);
-        route.instance.childNodes = Array.from(route.target.childNodes);
+        if (route.component instanceof Component) {
+            route.name = route.name ?? Dash(route.construct.name);
+            if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
+            if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
+            await customElements.whenDefined(route.name);
+            route.instance = document.createElement(route.name);
+            route.target.replaceChildren(route.instance);
+            cycle(route.target, route.instance.context);
+        } else {
+            route.target.replaceChildren();
+            route.instance = Render(()=>route.target, route.context, route.component);
+            route.instance.childNodes = Array.from(route.target.childNodes);
+        }
     }
-    route.busy = false;
+    Reflect.set(route.target, 'xRouterBusy', false);
+    Reflect.set(route.target, 'xRouterCurrent', route);
 };
 const navigate = function(event) {
     if (event && 'canIntercept' in event && event.canIntercept === false) return;
@@ -557,21 +525,15 @@ const navigate = function(event) {
     const transitions = [];
     for (const route of routes){
         if (route.path === pathname) {
+            if (route.target) {
+                const current = Reflect.get(route.target, 'xRouterCurrent');
+                if (current === route) continue;
+                if (current) current.instance.childNodes = Array.from(current.target.childNodes);
+                Reflect.set(route.target, 'xRouterBusy', true);
+            }
             transitions.push(route);
         }
     }
-    for (const all of alls){
-        let has = false;
-        for (const transition1 of transitions){
-            if (transition1.target === all.target) {
-                has = true;
-                break;
-            }
-        }
-        if (has) continue;
-        transitions.push(all);
-    }
-    if (!transitions.length) return;
     if (event?.intercept) {
         return event.intercept({
             handler: ()=>transitions.map((route)=>transition(route))
