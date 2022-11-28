@@ -140,14 +140,14 @@ const navigate = function (event?: any) {
         }
 
         if (has) continue;
-        if (Reflect.get(all.target, 'xRouterPath') === all.path) continue;
+        if (Reflect.get(all.target, 'xRouterPath') === pathname) continue;
         // if (all.target && Reflect.get(all.target, 'xRouterBusy')) continue;
         // if (all.target) Reflect.set(all.target, 'xRouterBusy', true);
 
         transitions.push(all);
     }
 
-    if (!transitions.length) return;
+    // if (!transitions.length) return;
 
     if (event?.intercept) {
         return event.intercept({ handler: () => transitions.map((route) => transition(route)) });

@@ -552,10 +552,9 @@ const navigate = function(event) {
             }
         }
         if (has) continue;
-        if (Reflect.get(all.target, 'xRouterPath') === all.path) continue;
+        if (Reflect.get(all.target, 'xRouterPath') === pathname) continue;
         transitions.push(all);
     }
-    if (!transitions.length) return;
     if (event?.intercept) {
         return event.intercept({
             handler: ()=>transitions.map((route)=>transition(route))
