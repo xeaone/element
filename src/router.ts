@@ -1,6 +1,9 @@
+import { Connect, Connected } from './cycle.ts';
 import Component from './component.ts';
-import Render from './render.ts';
-import Cycle from './cycle.ts';
+import Schedule from './schedule.ts';
+import Context from './context.ts';
+import Virtual from './virtual.ts';
+import Patch from './patch.ts';
 import Dash from './dash.ts';
 
 type Route = {
@@ -22,16 +25,31 @@ const routes: Array<Route> = [];
 const transition = async function (route: Route) {
     if (!route.target) throw new Error('XElement - transition target option required');
 
+    // const current = Reflect.get(route.target, 'xRouterCurrent');
+    // if (current) current.instance.childNodes = Array.from(current.target.childNodes);
+
     if (route.cache && route.instance) {
+        try {
+            await Connect(route.target, route.instance.context);
+        } catch (error) {
+            console.error(error);
+        }
+
         if (route.instance instanceof Component) {
             route.target.replaceChildren(route.instance);
         } else {
-            route.target.replaceChildren(...route.instance.childNodes);
+            Patch(route.target as any, route.instance.component());
         }
 
-        Cycle(route.target, route.instance.context);
+        try {
+            await Connected(route.target, route.instance.context);
+        } catch (error) {
+            console.error(error);
+        }
     } else {
         if (route.component instanceof Component) {
+            await Connect(route.target, route.instance.context);
+
             route.name = route.name ?? Dash(route.construct.name);
 
             if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
@@ -41,16 +59,38 @@ const transition = async function (route: Route) {
 
             route.instance = document.createElement(route.name);
             route.target.replaceChildren(route.instance);
-            Cycle(route.target, route.instance.context);
+
+            await Connected(route.target, route.instance.context);
         } else {
-            route.target.replaceChildren();
-            route.instance = Render(() => route.target as any, route.context, route.component);
-            route.instance.childNodes = Array.from(route.target.childNodes);
+            const update = async function (route: any) {
+                await Schedule(() => Patch(route.target, route.instance.component()));
+            }.bind(null, route);
+
+            const context = Context(route.context(), update);
+
+            route.instance = {
+                context,
+                component: route.component.bind(null, Virtual, context),
+            };
+
+            try {
+                await Connect(route.target, route.instance.context);
+            } catch (error) {
+                console.error(error);
+            }
+
+            Patch(route.target as any, route.instance.component());
+
+            try {
+                await Connected(route.target, route.instance.context);
+            } catch (error) {
+                console.error(error);
+            }
         }
     }
 
-    Reflect.set(route.target, 'xRouterBusy', false);
-    Reflect.set(route.target, 'xRouterCurrent', route);
+    // Reflect.set(route.target, 'xRouterBusy', false);
+    // Reflect.set(route.target, 'xRouterCurrent', route);
 };
 
 const navigate = function (event?: any) {
@@ -69,35 +109,45 @@ const navigate = function (event?: any) {
     const transitions: Array<Route> = [];
 
     for (const route of routes) {
-        if (route.path === pathname) {
-            if (route.target) {
-                const current = Reflect.get(route.target, 'xRouterCurrent');
-                if (current === route) continue;
-                if (current) current.instance.childNodes = Array.from(current.target.childNodes);
-                Reflect.set(route.target, 'xRouterBusy', true);
-            }
-            transitions.push(route);
-        }
+        if (route.path !== pathname) continue;
+        if (!route.target) continue;
+
+        // const current = Reflect.get(route.target, 'xRouterCurrent');
+        // if (current === route) continue;
+
+        // const busy = Reflect.get(route.target, 'xRouterBusy');
+        // if (busy) continue;
+
+        if (Reflect.get(route.target, 'xRouterPath') === route.path) continue;
+
+        // const current = Reflect.get(route.target, 'xRouterCurrent');
+        // if (current) current.instance.childNodes = Array.from(current.target.childNodes);
+
+        // Reflect.set(route.target, 'xRouterBusy', true);
+        Reflect.set(route.target, 'xRouterPath', route.path);
+        transitions.push(route);
     }
 
-    // for (const all of alls) {
-    //     let has = false;
+    for (const all of alls) {
+        if (!all.target) continue;
+        let has = false;
 
-    //     for (const transition of transitions) {
-    //         if (transition.target === all.target) {
-    //             has = true;
-    //             break;
-    //         }
-    //     }
+        for (const transition of transitions) {
+            if (transition.target === all.target) {
+                has = true;
+                break;
+            }
+        }
 
-    //     if (has) continue;
-    //     // if (all.target && Reflect.get(all.target, 'xRouterBusy')) continue;
-    //     if (all.target) Reflect.set(all.target, 'xRouterBusy', true);
+        if (has) continue;
+        if (Reflect.get(all.target, 'xRouterPath') === all.path) continue;
+        // if (all.target && Reflect.get(all.target, 'xRouterBusy')) continue;
+        // if (all.target) Reflect.set(all.target, 'xRouterBusy', true);
 
-    //     transitions.push(all);
-    // }
+        transitions.push(all);
+    }
 
-    // if (!transitions.length) return;
+    if (!transitions.length) return;
 
     if (event?.intercept) {
         return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
@@ -120,6 +170,7 @@ export default function router(path: string, target: Element, component: any, co
                 throw new Error('XElement - router duplicate path and target');
             }
         }
+
         alls.push({ path, target, context, component, cache: cache ?? true });
     } else {
         for (const route of routes) {
@@ -127,6 +178,7 @@ export default function router(path: string, target: Element, component: any, co
                 throw new Error('XElement - router duplicate path and target');
             }
         }
+
         routes.push({ path, target, context, component, cache: cache ?? true });
     }
 

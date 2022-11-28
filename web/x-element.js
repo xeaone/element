@@ -229,13 +229,6 @@ function Attribute(element, name, value, parameters) {
             requestAnimationFrame(()=>value(element, name, value));
             return;
         }
-        if (name === 'oncreate') {
-            Reflect.get(element, `xCreate`);
-            if (Reflect.has(element, 'xCreate')) return;
-            else Reflect.set(element, 'xCreate', true);
-            value(element, name, value);
-            return;
-        }
         const original = Reflect.get(element, `xRaw${name}`);
         if (original !== value) {
             const wrapped = Reflect.get(element, `xWrap${name}`);
@@ -462,55 +455,74 @@ class Component extends HTMLElement {
         Patch(this.#root, this.component());
     }
 }
-function cycle(target, context) {
+async function Connect(target, context) {
+    const disconnect = Reflect.get(target, 'xDisconnect');
+    Reflect.set(target, 'xConnect', context.connect);
+    Reflect.set(target, 'xDisconnect', context.disconnect);
+    const connect = Reflect.get(target, 'xConnect');
+    if (disconnect) await disconnect();
+    if (connect) await connect();
+}
+async function Connected(target, context) {
     const disconnected = Reflect.get(target, 'xDisconnected');
     Reflect.set(target, 'xConnected', context.connected);
     Reflect.set(target, 'xDisconnected', context.disconnected);
     const connected = Reflect.get(target, 'xConnected');
-    if (disconnected) disconnected();
-    if (connected) connected();
-}
-function Render(target, context, component) {
-    const update = async function() {
-        await Schedule(()=>Patch(target(), component()));
-    };
-    context = ContextCreate(context(), update);
-    component = component.bind(null, __default, context);
-    Patch(target(), component());
-    cycle(target(), context);
-    return {
-        context,
-        component
-    };
+    if (disconnected) await disconnected();
+    if (connected) await connected();
 }
 const alls = [];
 const routes = [];
 const transition = async function(route) {
     if (!route.target) throw new Error('XElement - transition target option required');
     if (route.cache && route.instance) {
+        try {
+            await Connect(route.target, route.instance.context);
+        } catch (error) {
+            console.error(error);
+        }
         if (route.instance instanceof Component) {
             route.target.replaceChildren(route.instance);
         } else {
-            route.target.replaceChildren(...route.instance.childNodes);
+            Patch(route.target, route.instance.component());
         }
-        cycle(route.target, route.instance.context);
+        try {
+            await Connected(route.target, route.instance.context);
+        } catch (error1) {
+            console.error(error1);
+        }
     } else {
         if (route.component instanceof Component) {
+            await Connect(route.target, route.instance.context);
             route.name = route.name ?? Dash(route.construct.name);
             if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
             if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
             await customElements.whenDefined(route.name);
             route.instance = document.createElement(route.name);
             route.target.replaceChildren(route.instance);
-            cycle(route.target, route.instance.context);
+            await Connected(route.target, route.instance.context);
         } else {
-            route.target.replaceChildren();
-            route.instance = Render(()=>route.target, route.context, route.component);
-            route.instance.childNodes = Array.from(route.target.childNodes);
+            const update = (async function(route) {
+                await Schedule(()=>Patch(route.target, route.instance.component()));
+            }).bind(null, route);
+            const context = ContextCreate(route.context(), update);
+            route.instance = {
+                context,
+                component: route.component.bind(null, __default, context)
+            };
+            try {
+                await Connect(route.target, route.instance.context);
+            } catch (error2) {
+                console.error(error2);
+            }
+            Patch(route.target, route.instance.component());
+            try {
+                await Connected(route.target, route.instance.context);
+            } catch (error3) {
+                console.error(error3);
+            }
         }
     }
-    Reflect.set(route.target, 'xRouterBusy', false);
-    Reflect.set(route.target, 'xRouterCurrent', route);
 };
 const navigate = function(event) {
     if (event && 'canIntercept' in event && event.canIntercept === false) return;
@@ -524,16 +536,26 @@ const navigate = function(event) {
     const pathname = destination.href.replace(base.href, '/');
     const transitions = [];
     for (const route of routes){
-        if (route.path === pathname) {
-            if (route.target) {
-                const current = Reflect.get(route.target, 'xRouterCurrent');
-                if (current === route) continue;
-                if (current) current.instance.childNodes = Array.from(current.target.childNodes);
-                Reflect.set(route.target, 'xRouterBusy', true);
-            }
-            transitions.push(route);
-        }
+        if (route.path !== pathname) continue;
+        if (!route.target) continue;
+        if (Reflect.get(route.target, 'xRouterPath') === route.path) continue;
+        Reflect.set(route.target, 'xRouterPath', route.path);
+        transitions.push(route);
     }
+    for (const all of alls){
+        if (!all.target) continue;
+        let has = false;
+        for (const transition1 of transitions){
+            if (transition1.target === all.target) {
+                has = true;
+                break;
+            }
+        }
+        if (has) continue;
+        if (Reflect.get(all.target, 'xRouterPath') === all.path) continue;
+        transitions.push(all);
+    }
+    if (!transitions.length) return;
     if (event?.intercept) {
         return event.intercept({
             handler: ()=>transitions.map((route)=>transition(route))
@@ -578,6 +600,20 @@ function router(path, target, component, context, cache) {
     }
     navigate();
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
+}
+function Render(target, context, component) {
+    const update = async function() {
+        await Schedule(()=>Patch(target(), component()));
+    };
+    context = ContextCreate(context(), update);
+    component = component.bind(null, __default, context);
+    Connect(target(), context);
+    Patch(target(), component());
+    Connected(target(), context);
+    return {
+        context,
+        component
+    };
 }
 export { __default as Virtual };
 export { __default as virtual };

@@ -30,18 +30,9 @@ export default function Attribute(element: Element, name: string, value: any, pa
         Reflect.set(element, name, value);
         element.setAttribute(name, value);
     } else if (name.startsWith('on')) {
-        // need connected
 
         if (name === 'onframe') {
             requestAnimationFrame(() => value(element, name, value));
-            return;
-        }
-
-        if (name === 'oncreate') {
-            Reflect.get(element, `xCreate`);
-            if (Reflect.has(element, 'xCreate')) return;
-            else Reflect.set(element, 'xCreate', true);
-            value(element, name, value);
             return;
         }
 

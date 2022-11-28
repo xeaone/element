@@ -1,9 +1,9 @@
 import { ContextData, Items } from './types.ts';
+import { Connect, Connected } from './cycle.ts';
 import Virtual from './virtual.ts';
 import Schedule from './schedule.ts';
 import Context from './context.ts';
 import Patch from './patch.ts';
-import Cycle from './cycle.ts';
 
 export default function Render(target: () => Element, context: () => ContextData, component: () => Items) {
     const update = async function () {
@@ -13,9 +13,9 @@ export default function Render(target: () => Element, context: () => ContextData
     context = Context(context(), update);
     component = component.bind(null, Virtual, context);
 
-    // await update();
+    Connect(target(), context);
     Patch(target(), component());
-    Cycle(target(), context);
+    Connected(target(), context);
 
     return { context, component };
 }

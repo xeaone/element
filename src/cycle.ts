@@ -1,6 +1,18 @@
 //
 
-export default function cycle(target: Element, context: any) {
+export async function Connect(target: Element, context: any) {
+    const disconnect = Reflect.get(target, 'xDisconnect');
+
+    Reflect.set(target, 'xConnect', context.connect);
+    Reflect.set(target, 'xDisconnect', context.disconnect);
+
+    const connect = Reflect.get(target, 'xConnect');
+
+    if (disconnect) await disconnect();
+    if (connect) await connect();
+}
+
+export async function Connected(target: Element, context: any) {
     const disconnected = Reflect.get(target, 'xDisconnected');
 
     Reflect.set(target, 'xConnected', context.connected);
@@ -8,6 +20,6 @@ export default function cycle(target: Element, context: any) {
 
     const connected = Reflect.get(target, 'xConnected');
 
-    if (disconnected) disconnected();
-    if (connected) connected();
+    if (disconnected) await disconnected();
+    if (connected) await connected();
 }
