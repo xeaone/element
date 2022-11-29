@@ -104,7 +104,7 @@ const __default = new Proxy({}, {
                 [ParametersSymbol]: {},
                 [ChildrenSymbol]: children,
                 [TypeSymbol]: ElementSymbol,
-                [NameSymbol]: Dash(eName)
+                [NameSymbol]: Dash(eName).toUpperCase()
             }, {
                 get (aTarget, aName, aReceiver) {
                     if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
@@ -322,13 +322,12 @@ const PatchCommon = function(node, target) {
         }
         return;
     }
-    if (!(node instanceof Element)) {
-        console.error(node, target);
-        return;
-    }
-    if (node.localName !== virtualName) {
+    if (node.nodeName !== virtualName) {
         node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
+    }
+    if (!(node instanceof Element)) {
+        throw new Error('Patch - node type not handled');
     }
     if (target.attributes['html']) {
         PatchAttributes(node, target);

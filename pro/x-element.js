@@ -12,6 +12,7 @@ const frame = async function() {
     patching = 0;
 };
 async function Schedule(update) {
+    if (updates.includes(update)) return;
     updates.push(update);
     if (patching) return;
     patching = 1;
@@ -22,13 +23,14 @@ function Dash(data) {
 }
 const NameSymbol = Symbol('name');
 Symbol('value');
-const SelfSymbol = Symbol('self');
+Symbol('self');
 const CdataSymbol = Symbol('cdata');
 const CommentSymbol = Symbol('comment');
 const TypeSymbol = Symbol('type');
 const ElementSymbol = Symbol('element');
 const ChildrenSymbol = Symbol('children');
 const AttributesSymbol = Symbol('attributes');
+const ParametersSymbol = Symbol('parameters');
 const BooleanAttributes = [
     'allowfullscreen',
     'async',
@@ -78,15 +80,6 @@ const BooleanAttributes = [
 const __default = new Proxy({}, {
     get (eTarget, eName, eReceiver) {
         if (typeof eName === 'symbol') return Reflect.get(eTarget, eName, eReceiver);
-        if (eName === 'self') {
-            return function SelfProxy(...value) {
-                return {
-                    name: eName,
-                    value,
-                    [TypeSymbol]: SelfSymbol
-                };
-            };
-        }
         if (eName === 'comment') {
             return function CommentProxy(...value) {
                 return {
@@ -105,32 +98,19 @@ const __default = new Proxy({}, {
                 };
             };
         }
-        return function ElementProxy(attributes, ...children) {
-            if (attributes?.[TypeSymbol] || attributes?.constructor !== Object) {
-                if (attributes !== undefined) {
-                    children.unshift(attributes);
-                }
-                attributes = {};
-            } else {
-                attributes = attributes ?? {};
-            }
-            children[TypeSymbol] = ChildrenSymbol;
-            attributes[TypeSymbol] = AttributesSymbol;
+        return function ElementProxy(...children) {
             return new Proxy({
-                children,
-                attributes,
-                parameters: {},
+                [AttributesSymbol]: {},
+                [ParametersSymbol]: {},
+                [ChildrenSymbol]: children,
                 [TypeSymbol]: ElementSymbol,
-                [NameSymbol]: Dash(eName)
+                [NameSymbol]: Dash(eName).toUpperCase()
             }, {
                 get (aTarget, aName, aReceiver) {
                     if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
-                    if (aName === 'attributes') return Reflect.get(aTarget, aName, aReceiver);
-                    if (aName === 'parameters') return Reflect.get(aTarget, aName, aReceiver);
-                    if (aName === 'children') return Reflect.get(aTarget, aName, aReceiver);
                     return function AttributeProxy(aValue, ...aParameters) {
-                        Reflect.set(aTarget.attributes, aName, aValue);
-                        Reflect.set(aTarget.parameters, aName, aParameters);
+                        Reflect.set(aTarget[AttributesSymbol], aName, aValue);
+                        Reflect.set(aTarget[ParametersSymbol], aName, aParameters);
                         return aReceiver;
                     };
                 }
@@ -261,15 +241,21 @@ function Attribute(element, name, value, parameters) {
     }
 }
 const PatchAttributes = function(element, item) {
-    for(const name in item.attributes){
-        const value = item.attributes[name];
-        const parameters = item.parameters[name];
-        Attribute(element, name, value, parameters);
+    const parameters = item[ParametersSymbol];
+    const attributes = item[AttributesSymbol];
+    if (attributes['type']) {
+        const value = attributes['type'];
+        Attribute(element, 'type', value, parameters['type']);
+    }
+    for(const name in attributes){
+        if (name === 'type') continue;
+        const value1 = attributes[name];
+        Attribute(element, name, value1, parameters[name]);
     }
     if (element.hasAttributes()) {
         const names = element.getAttributeNames();
         for (const name1 of names){
-            if (!(name1 in item.attributes)) {
+            if (!(name1 in attributes)) {
                 element.removeAttribute(name1);
             }
         }
@@ -277,13 +263,15 @@ const PatchAttributes = function(element, item) {
 };
 const PatchCreateElement = function(owner, item) {
     const element = owner.createElement(item[NameSymbol]);
-    for (const child of item.children){
+    const parameters = item[ParametersSymbol];
+    const attributes = item[AttributesSymbol];
+    const children = item[ChildrenSymbol];
+    for (const child of children){
         PatchAppend(element, child);
     }
-    for(const name in item.attributes){
-        const value = item.attributes[name];
-        const parameters = item.parameters[name];
-        Attribute(element, name, value, parameters);
+    for(const name in attributes){
+        const value = attributes[name];
+        Attribute(element, name, value, parameters[name]);
     }
     return element;
 };
@@ -295,9 +283,6 @@ const PatchAppend = function(parent, child) {
         parent.appendChild(owner.createComment(child.value));
     } else if (child?.[TypeSymbol] === CdataSymbol) {
         parent.appendChild(owner.createCDATASection(child.value));
-    } else if (child?.[TypeSymbol] === SelfSymbol) {
-        console.log('self replace');
-        parent.appendChild(owner.createTextNode(''));
     } else {
         parent.appendChild(owner.createTextNode(Display(child)));
     }
@@ -310,17 +295,6 @@ const PatchCommon = function(node, target) {
     const owner = node.ownerDocument;
     const virtualType = target?.[TypeSymbol];
     const virtualName = target?.[NameSymbol];
-    if (virtualType === SelfSymbol) {
-        console.log('self patch common');
-        if (node.nodeName != '#text') {
-            console.log('self replace');
-            node.parentNode?.replaceChild(owner?.createTextNode(''), node);
-        } else if (node.nodeValue != '') {
-            console.log('self mod');
-            node.nodeValue = '';
-        }
-        return;
-    }
     if (virtualType === CommentSymbol) {
         const value = Display(target);
         if (node.nodeName != '#comment') {
@@ -348,16 +322,18 @@ const PatchCommon = function(node, target) {
         }
         return;
     }
-    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
-    if (node.localName !== virtualName) {
+    if (node.nodeName !== virtualName) {
         node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
         return;
+    }
+    if (!(node instanceof Element)) {
+        throw new Error('Patch - node type not handled');
     }
     if (target.attributes['html']) {
         PatchAttributes(node, target);
         return;
     }
-    const targetChildren = target.children;
+    const targetChildren = target[ChildrenSymbol];
     const targetLength = targetChildren.length;
     const nodeChildren = node.childNodes;
     const nodeLength = nodeChildren.length;
@@ -484,7 +460,7 @@ const transition = async function(route) {
         if (route.instance instanceof Component) {
             route.target.replaceChildren(route.instance);
         } else {
-            Patch(route.target, route.instance.component());
+            await route.instance.update();
         }
         try {
             await Connected(route.target, route.instance.context);
@@ -503,11 +479,14 @@ const transition = async function(route) {
             await Connected(route.target, route.instance.context);
         } else {
             const update = (async function(route) {
-                await Schedule(()=>Patch(route.target, route.instance.component()));
+                await Schedule(function() {
+                    Patch(route.target, route.instance.component());
+                });
             }).bind(null, route);
             const context = ContextCreate(route.context(), update);
             route.instance = {
                 context,
+                update,
                 component: route.component.bind(null, __default, context)
             };
             try {
@@ -515,7 +494,7 @@ const transition = async function(route) {
             } catch (error2) {
                 console.error(error2);
             }
-            Patch(route.target, route.instance.component());
+            await update();
             try {
                 await Connected(route.target, route.instance.context);
             } catch (error3) {
@@ -538,7 +517,6 @@ const navigate = function(event) {
     for (const route of routes){
         if (route.path !== pathname) continue;
         if (!route.target) continue;
-        if (Reflect.get(route.target, 'xRouterPath') === route.path) continue;
         Reflect.set(route.target, 'xRouterPath', route.path);
         transitions.push(route);
     }

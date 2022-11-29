@@ -23,7 +23,7 @@ export default new Proxy({}, {
                 [ParametersSymbol]: {},
                 [ChildrenSymbol]: children,
                 [TypeSymbol]: ElementSymbol,
-                [NameSymbol]: Dash(eName as string),
+                [NameSymbol]: Dash(eName as string).toUpperCase(),
             }, {
                 get(aTarget, aName, aReceiver) {
                     if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
