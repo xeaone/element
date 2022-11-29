@@ -17,6 +17,7 @@ export const TypeSymbol = Symbol('type');
 export const ElementSymbol = Symbol('element');
 export const ChildrenSymbol = Symbol('children');
 export const AttributesSymbol = Symbol('attributes');
+export const ParametersSymbol = Symbol('parameters');
 
 // export const parseable = function (value: any) {
 //     return !isNaN(value) && value !== undefined && typeof value !== 'string';

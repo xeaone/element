@@ -5,11 +5,6 @@ const updates: Array<Update> = [];
 
 let patching: number;
 
-// const frame = function () {
-//     while (updates.length) updates.shift()?.();
-//     patching = 0;
-// };
-
 const frame = async function () {
     const tasks = [];
     while (updates.length) tasks.push(updates.shift()?.());
@@ -18,6 +13,7 @@ const frame = async function () {
 };
 
 export default async function Schedule(update: Update) {
+    if (updates.includes(update)) return;
     updates.push(update);
     if (patching) return;
     patching = 1;

@@ -2,19 +2,27 @@ import Attribute from './attribute.ts';
 import Display from './display.ts';
 
 import { Item, Items } from './types.ts';
-import { CdataSymbol, CommentSymbol, ElementSymbol, NameSymbol, SelfSymbol, TypeSymbol } from './tool.ts';
+import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, ParametersSymbol, SelfSymbol, TypeSymbol } from './tool.ts';
 
 const PatchAttributes = function (element: Element, item: Item) {
-    for (const name in item.attributes) {
-        const value = item.attributes[name];
-        const parameters = item.parameters[name];
-        Attribute(element, name, value, parameters);
+    const parameters = item[ParametersSymbol];
+    const attributes = item[AttributesSymbol];
+
+    if (attributes['type']) {
+        const value = attributes['type'];
+        Attribute(element, 'type', value, parameters['type']);
+    }
+
+    for (const name in attributes) {
+        if (name === 'type') continue;
+        const value = attributes[name];
+        Attribute(element, name, value, parameters[name]);
     }
 
     if (element.hasAttributes()) {
         const names = element.getAttributeNames();
         for (const name of names) {
-            if (!(name in item.attributes)) {
+            if (!(name in attributes)) {
                 element.removeAttribute(name);
             }
         }
@@ -23,15 +31,17 @@ const PatchAttributes = function (element: Element, item: Item) {
 
 const PatchCreateElement = function (owner: Document, item: Item): Element {
     const element = owner.createElement(item[NameSymbol]);
+    const parameters = item[ParametersSymbol];
+    const attributes = item[AttributesSymbol];
+    const children = item[ChildrenSymbol];
 
-    for (const child of item.children) {
+    for (const child of children) {
         PatchAppend(element, child);
     }
 
-    for (const name in item.attributes) {
-        const value = item.attributes[name];
-        const parameters = item.parameters[name];
-        Attribute(element, name, value, parameters);
+    for (const name in attributes) {
+        const value = attributes[name];
+        Attribute(element, name, value, parameters[name]);
     }
 
     return element;
@@ -45,9 +55,6 @@ const PatchAppend = function (parent: Element, child: any) {
         parent.appendChild(owner.createComment(child.value));
     } else if (child?.[TypeSymbol] === CdataSymbol) {
         parent.appendChild(owner.createCDATASection(child.value));
-    } else if (child?.[TypeSymbol] === SelfSymbol) {
-        console.log('self replace');
-        parent.appendChild(owner.createTextNode(''));
     } else {
         parent.appendChild(owner.createTextNode(Display(child)));
     }
@@ -62,20 +69,6 @@ const PatchCommon = function (node: Node, target: any) {
     const owner = node.ownerDocument as Document;
     const virtualType = target?.[TypeSymbol];
     const virtualName = target?.[NameSymbol];
-
-    if (virtualType === SelfSymbol) {
-        console.log('self patch common');
-
-        if (node.nodeName != '#text') {
-            console.log('self replace');
-            node.parentNode?.replaceChild(owner?.createTextNode('') as Text, node);
-        } else if (node.nodeValue != '') {
-            console.log('self mod');
-            node.nodeValue = '';
-        }
-
-        return;
-    }
 
     if (virtualType === CommentSymbol) {
         const value = Display(target);
@@ -113,7 +106,11 @@ const PatchCommon = function (node: Node, target: any) {
         return;
     }
 
-    if (!(node instanceof Element)) throw new Error('Patch - node type not handled');
+    if (!(node instanceof Element)) {
+        console.error(node, target);
+        return;
+        // throw new Error('Patch - node type not handled');
+    }
 
     if (node.localName !== virtualName) {
         node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
@@ -125,7 +122,7 @@ const PatchCommon = function (node: Node, target: any) {
         return;
     }
 
-    const targetChildren = target.children;
+    const targetChildren = target[ChildrenSymbol];
     const targetLength = targetChildren.length;
     const nodeChildren = node.childNodes;
     const nodeLength = nodeChildren.length;

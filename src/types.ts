@@ -1,4 +1,4 @@
-import { NameSymbol, TypeSymbol } from './tool.ts';
+import { AttributesSymbol, ChildrenSymbol, NameSymbol, ParametersSymbol, TypeSymbol } from './tool.ts';
 
 export type Update = () => void;
 
@@ -7,9 +7,9 @@ export type Item = {
     value?: any;
     [NameSymbol]: string;
     [TypeSymbol]: symbol;
-    children: Array<Item | string>;
-    parameters: Record<string, any>;
-    attributes: Record<string, any>;
+    [ChildrenSymbol]: Array<Item | string>;
+    [ParametersSymbol]: Record<string, any>;
+    [AttributesSymbol]: Record<string, any>;
 };
 
 export type Items = Array<Item>;

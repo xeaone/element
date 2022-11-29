@@ -38,7 +38,7 @@ const transition = async function (route: Route) {
         if (route.instance instanceof Component) {
             route.target.replaceChildren(route.instance);
         } else {
-            Patch(route.target as any, route.instance.component());
+            await route.instance.update();
         }
 
         try {
@@ -63,13 +63,16 @@ const transition = async function (route: Route) {
             await Connected(route.target, route.instance.context);
         } else {
             const update = async function (route: any) {
-                await Schedule(() => Patch(route.target, route.instance.component()));
+                await Schedule(function () {
+                    Patch(route.target, route.instance.component());
+                });
             }.bind(null, route);
 
             const context = Context(route.context(), update);
 
             route.instance = {
                 context,
+                update,
                 component: route.component.bind(null, Virtual, context),
             };
 
@@ -79,7 +82,7 @@ const transition = async function (route: Route) {
                 console.error(error);
             }
 
-            Patch(route.target as any, route.instance.component());
+            await update();
 
             try {
                 await Connected(route.target, route.instance.context);
@@ -118,7 +121,7 @@ const navigate = function (event?: any) {
         // const busy = Reflect.get(route.target, 'xRouterBusy');
         // if (busy) continue;
 
-        if (Reflect.get(route.target, 'xRouterPath') === route.path) continue;
+        // if (Reflect.get(route.target, 'xRouterPath') === route.path) continue;
 
         // const current = Reflect.get(route.target, 'xRouterCurrent');
         // if (current) current.instance.childNodes = Array.from(current.target.childNodes);
