@@ -73,9 +73,9 @@ const PatchCommon = function (node: Node, target: any) {
     if (virtualType === CommentSymbol) {
         const value = Display(target);
 
-        if (node.nodeName != '#comment') {
+        if (node.nodeName !== '#comment') {
             node.parentNode?.replaceChild(owner?.createComment(value) as Comment, node);
-        } else if (node.nodeValue != value) {
+        } else if (node.nodeValue !== value) {
             node.nodeValue = value;
         }
 
@@ -85,9 +85,9 @@ const PatchCommon = function (node: Node, target: any) {
     if (virtualType === CdataSymbol) {
         const value = Display(target);
 
-        if (node.nodeName != '#cdata-section') {
+        if (node.nodeName !== '#cdata-section') {
             node.parentNode?.replaceChild(owner?.createCDATASection(value) as CDATASection, node);
-        } else if (node.nodeValue != value) {
+        } else if (node.nodeValue !== value) {
             node.nodeValue = value;
         }
 
@@ -97,9 +97,9 @@ const PatchCommon = function (node: Node, target: any) {
     if (virtualType !== ElementSymbol) {
         const value = Display(target);
 
-        if (node.nodeName != '#text') {
+        if (node.nodeName !== '#text') {
             node.parentNode?.replaceChild(owner?.createTextNode(value) as Text, node);
-        } else if (node.nodeValue != value) {
+        } else if (node.nodeValue !== value) {
             node.nodeValue = value;
         }
 
@@ -122,7 +122,7 @@ const PatchCommon = function (node: Node, target: any) {
 
     const targetChildren = target[ChildrenSymbol];
     const targetLength = targetChildren.length;
-    const nodeChildren = node.childNodes;
+    const nodeChildren = [...node.childNodes];
     const nodeLength = nodeChildren.length;
     const commonLength = Math.min(nodeLength, targetLength);
 
@@ -151,7 +151,7 @@ export default function Patch(root: Element, fragment: Items) {
     const virtualChildren = fragment;
     const virtualLength = virtualChildren.length;
 
-    const rootChildren = root.childNodes;
+    const rootChildren = [...root.childNodes];
     const rootLength = rootChildren.length;
 
     const commonLength = Math.min(rootLength, virtualLength);

@@ -86,7 +86,7 @@ export default class Component extends HTMLElement {
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
         const update = () => Patch(this.#root, this.component());
-        const change = () => Schedule(update);
+        const change = () => Schedule(update, this.#root);
         this.context = Context(context(), change);
 
         this.component = component.bind(this.context, Virtual, this.context);

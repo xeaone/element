@@ -38,7 +38,7 @@ const transition = async function (route: Route) {
         if (route.instance instanceof Component) {
             route.target.replaceChildren(route.instance);
         } else {
-            await route.instance.update();
+            await route.instance.change();
         }
 
         try {
@@ -62,19 +62,17 @@ const transition = async function (route: Route) {
 
             await Connected(route.target, route.instance.context);
         } else {
-            const update = async function (route: any) {
-                await Schedule(function () {
-                    Patch(route.target, route.instance.component());
-                });
-            }.bind(null, route);
-
-            const context = Context(route.context(), update);
-
-            route.instance = {
-                context,
-                update,
-                component: route.component.bind(null, Virtual, context),
+            const update = function () {
+                Patch(route.target as Element, route.component(Virtual, context));
             };
+
+            const change = async function () {
+                await Schedule(update, route.target as Element);
+            };
+
+            const context = Context(route.context(), change);
+
+            route.instance = { context, change };
 
             try {
                 await Connect(route.target, route.instance.context);
@@ -82,7 +80,7 @@ const transition = async function (route: Route) {
                 console.error(error);
             }
 
-            await update();
+            await change();
 
             try {
                 await Connected(route.target, route.instance.context);

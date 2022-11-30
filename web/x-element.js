@@ -3,20 +3,23 @@
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
 const tick = Promise.resolve();
-const updates = [];
-let patching;
-const frame = async function() {
-    const tasks = [];
-    while(updates.length)tasks.push(updates.shift()?.());
-    await Promise.all(tasks);
-    patching = 0;
-};
-async function Schedule(update) {
-    if (updates.includes(update)) return;
-    updates.push(update);
-    if (patching) return;
-    patching = 1;
-    await tick.then(frame);
+function Schedule(update, target) {
+    if (!Reflect.has(target, 'x')) {
+        Reflect.set(target, 'x', {});
+    }
+    const x = Reflect.get(target, 'x');
+    if (x.current) {
+        x.next = update;
+    } else {
+        x.current = tick.then(update).then(function() {
+            const next = x.next;
+            x.next = undefined;
+            x.current = undefined;
+            if (next) {
+                Schedule(next, target);
+            }
+        });
+    }
 }
 function Dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
@@ -297,27 +300,27 @@ const PatchCommon = function(node, target) {
     const virtualName = target?.[NameSymbol];
     if (virtualType === CommentSymbol) {
         const value = Display(target);
-        if (node.nodeName != '#comment') {
+        if (node.nodeName !== '#comment') {
             node.parentNode?.replaceChild(owner?.createComment(value), node);
-        } else if (node.nodeValue != value) {
+        } else if (node.nodeValue !== value) {
             node.nodeValue = value;
         }
         return;
     }
     if (virtualType === CdataSymbol) {
         const value1 = Display(target);
-        if (node.nodeName != '#cdata-section') {
+        if (node.nodeName !== '#cdata-section') {
             node.parentNode?.replaceChild(owner?.createCDATASection(value1), node);
-        } else if (node.nodeValue != value1) {
+        } else if (node.nodeValue !== value1) {
             node.nodeValue = value1;
         }
         return;
     }
     if (virtualType !== ElementSymbol) {
         const value2 = Display(target);
-        if (node.nodeName != '#text') {
+        if (node.nodeName !== '#text') {
             node.parentNode?.replaceChild(owner?.createTextNode(value2), node);
-        } else if (node.nodeValue != value2) {
+        } else if (node.nodeValue !== value2) {
             node.nodeValue = value2;
         }
         return;
@@ -335,7 +338,9 @@ const PatchCommon = function(node, target) {
     }
     const targetChildren = target[ChildrenSymbol];
     const targetLength = targetChildren.length;
-    const nodeChildren = node.childNodes;
+    const nodeChildren = [
+        ...node.childNodes
+    ];
     const nodeLength = nodeChildren.length;
     const commonLength = Math.min(nodeLength, targetLength);
     let index;
@@ -357,7 +362,9 @@ function Patch(root, fragment) {
     let index;
     const virtualChildren = fragment;
     const virtualLength = virtualChildren.length;
-    const rootChildren = root.childNodes;
+    const rootChildren = [
+        ...root.childNodes
+    ];
     const rootLength = rootChildren.length;
     const commonLength = Math.min(rootLength, virtualLength);
     for(index = 0; index < commonLength; index++){
@@ -422,7 +429,7 @@ class Component extends HTMLElement {
         else this.#root = this.shadowRoot;
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
         const update = ()=>Patch(this.#root, this.component());
-        const change = ()=>Schedule(update);
+        const change = ()=>Schedule(update, this.#root);
         this.context = ContextCreate(context(), change);
         this.component = component.bind(this.context, __default, this.context);
         if (this.#root !== this) this[upgrade]();
@@ -460,7 +467,7 @@ const transition = async function(route) {
         if (route.instance instanceof Component) {
             route.target.replaceChildren(route.instance);
         } else {
-            await route.instance.update();
+            await route.instance.change();
         }
         try {
             await Connected(route.target, route.instance.context);
@@ -478,23 +485,23 @@ const transition = async function(route) {
             route.target.replaceChildren(route.instance);
             await Connected(route.target, route.instance.context);
         } else {
-            const update = (async function(route) {
-                await Schedule(function() {
-                    Patch(route.target, route.instance.component());
-                });
-            }).bind(null, route);
-            const context = ContextCreate(route.context(), update);
+            const update = function() {
+                Patch(route.target, route.component(__default, context));
+            };
+            const change = async function() {
+                await Schedule(update, route.target);
+            };
+            const context = ContextCreate(route.context(), change);
             route.instance = {
                 context,
-                update,
-                component: route.component.bind(null, __default, context)
+                change
             };
             try {
                 await Connect(route.target, route.instance.context);
             } catch (error2) {
                 console.error(error2);
             }
-            await update();
+            await change();
             try {
                 await Connected(route.target, route.instance.context);
             } catch (error3) {
@@ -579,9 +586,7 @@ function router(path, target, component, context, cache) {
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
 function Render(target, context, component) {
-    const update = async function() {
-        await Schedule(()=>Patch(target(), component()));
-    };
+    const update = async function() {};
     context = ContextCreate(context(), update);
     component = component.bind(null, __default, context);
     Connect(target(), context);

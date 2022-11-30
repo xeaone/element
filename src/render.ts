@@ -7,7 +7,7 @@ import Patch from './patch.ts';
 
 export default function Render(target: () => Element, context: () => ContextData, component: () => Items) {
     const update = async function () {
-        await Schedule(() => Patch(target(), component()));
+        // await Schedule(() => Patch(target(), component()));
     };
 
     context = Context(context(), update);
