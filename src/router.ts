@@ -31,36 +31,44 @@ const transition = async function (route: Route) {
     if (route.cache && route.instance) {
         try {
             await Connect(route.target, route.instance.context);
-        } catch (error) {
-            console.error(error);
-        }
 
-        if (route.instance instanceof Component) {
-            route.target.replaceChildren(route.instance);
-        } else {
-            await route.instance.change();
-        }
+            if (route.instance instanceof Component) {
+                route.target.replaceChildren(route.instance);
+            } else {
+                await route.instance.change();
+            }
 
-        try {
-            await Connected(route.target, route.instance.context);
+            try {
+                await Connected(route.target, route.instance.context);
+            } catch (error) {
+                console.error(error);
+            }
         } catch (error) {
             console.error(error);
         }
     } else {
         if (route.component instanceof Component) {
-            await Connect(route.target, route.instance.context);
+            try {
+                await Connect(route.target, route.instance.context);
 
-            route.name = route.name ?? Dash(route.construct.name);
+                route.name = route.name ?? Dash(route.construct.name);
 
-            if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
+                if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
 
-            if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
-            await customElements.whenDefined(route.name);
+                if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
+                await customElements.whenDefined(route.name);
 
-            route.instance = document.createElement(route.name);
-            route.target.replaceChildren(route.instance);
+                route.instance = document.createElement(route.name);
+                route.target.replaceChildren(route.instance);
 
-            await Connected(route.target, route.instance.context);
+                try {
+                    await Connected(route.target, route.instance.context);
+                } catch (error) {
+                    console.error(error);
+                }
+            } catch (error) {
+                console.error(error);
+            }
         } else {
             const update = function () {
                 Patch(route.target as Element, route.component(Virtual, context));
@@ -76,14 +84,14 @@ const transition = async function (route: Route) {
 
             try {
                 await Connect(route.target, route.instance.context);
-            } catch (error) {
-                console.error(error);
-            }
 
-            await change();
+                await change();
 
-            try {
-                await Connected(route.target, route.instance.context);
+                try {
+                    await Connected(route.target, route.instance.context);
+                } catch (error) {
+                    console.error(error);
+                }
             } catch (error) {
                 console.error(error);
             }

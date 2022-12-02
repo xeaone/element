@@ -43,6 +43,7 @@
     "tasks": {
         "p": "deno run -A src/parse.ts",
         "docs": "deno run -A docs.ts",
+        "bundle": "deno run -A bundle.ts",
         "deploy": "deno run -A deploy.ts",
         "test": "deno --unstable test -A test.ts",
         "watch": "deno --unstable run -A watch.ts"
