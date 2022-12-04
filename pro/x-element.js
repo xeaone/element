@@ -590,7 +590,6 @@ function router(path, target, component, context, cache) {
             cache: cache ?? true
         });
     }
-    navigate();
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
 function Render(target, context, component) {

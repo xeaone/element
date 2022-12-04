@@ -191,7 +191,5 @@ export default function router(path: string, target: Element, component: any, co
         routes.push({ path, target, context, component, cache: cache ?? true });
     }
 
-    navigate();
-
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
