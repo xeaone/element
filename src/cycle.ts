@@ -23,3 +23,23 @@ export async function Connected(target: Element, context: any) {
     if (disconnected) await disconnected();
     if (connected) await connected();
 }
+
+export async function Upgrade(target: Element, context: any) {
+    if (!context.upgrade) return;
+
+    Reflect.set(target, 'xUpgrade', context.upgrade);
+
+    const upgrade = Reflect.get(target, 'xUpgrade');
+
+    if (upgrade) await upgrade();
+}
+
+export async function Upgraded(target: Element, context: any) {
+    if (!context.upgraded) return;
+
+    Reflect.set(target, 'xUpgraded', context.upgraded);
+
+    const upgraded = Reflect.get(target, 'xUpgraded');
+
+    if (upgraded) await upgraded();
+}

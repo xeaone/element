@@ -13,3 +13,5 @@ Router('/guide', main, Guide.component, Guide.context);
 Router('/*', main, All.component, All.context);
 
 navigation.addEventListener('navigate', () => console.log('nav after'));
+
+location.replace(location.href);

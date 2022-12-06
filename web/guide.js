@@ -7,53 +7,59 @@ const {
     section, h3, p, pre, div, select, option, br, input
 } = Virtual;
 
-const inputComponenet = (v, c) => [
+const inputComponenet = (c) => [
     div(c.input),
     input().value(c.input).oninput((e) => c.input = e.target.value),
 ];
 const inputCode = Highlight(inputComponenet.toString());
 
-const mapComponenet = (v, c) => [
+const mapComponenet = (c) => [
     ...c.fruits.map((fruit, index) => div(`${index}: ${fruit}`))
 ];
 const mapCode = Highlight(mapComponenet.toString());
 
-const checkComponent = (v, c) => [
+const checkComponent = (c) => [
     div(c.checked ? 'Is Checked' : 'Is Not Checked'),
     input().type('checkbox').checked(c.checked).oninput((e) => c.checked = e.target.checked),
 ];
 const checkCode = Highlight(checkComponent.toString());
 
-const radioComponenet = (v, c) => [
+const radioComponenet = (c) => [
     div(c.radioShared),
     input().type('radio').name('radio').checked(c.radioShared === c.radioOne).oninput(() => c.radioShared = 'one'),
     input().type('radio').name('radio').checked( c.radioShared === c.radioTwo).oninput(() => c.radioShared = 'two'),
 ];
 const radioCode = Highlight(radioComponenet.toString());
 
-const styleComponenet = (v, c) => [
+const styleComponenet = (c) => [
     div('Look at my style').style(`color: ${c.color}`),
     button('Change Color').onclick(() => c.color = Color()),
 ];
 const styleCode = Highlight(styleComponenet.toString());
 
-const classComponenet = (v, c) => [
+const classComponenet = (c) => [
     div('Look at my class').class(c.active ? 'default class-color' : 'default'),
     button('Toggle Class').onclick(() => c.active = !c.active),
 ];
 const classCode = Highlight(classComponenet.toString());
 
-const fruitsComponenet = (v, c) => [
+const fruitsComponenet = (c) => [
     div(c.fruit),
-    select(
-        ...c.fruits.map((fruit) =>
-            option(fruit).value(fruit)
-        )
-    ).value(c.fruit).oninput((e) => c.fruit = e.target.value),
+    select(...c.fruits.map((fruit) =>
+        option(fruit).value(fruit)
+    )).value(c.fruit).oninput((e) => c.fruit = e.target.value),
 ];
 const fruitsCode = Highlight(fruitsComponenet.toString());
 
-const selectBooleanComponenet = (v, c) => [
+const carsComponenet = (c) => [
+    div(c.car),
+    select(...c.cars.map((car) =>
+        option(car).value(car).selected(c.car.includes(car))
+    )).multiple(true).oninput((e) => c.car = [...e.target.selectedOptions].map(o => o.value)),
+];
+const carsCode = Highlight(carsComponenet.toString());
+
+const selectBooleanComponenet = (c) => [
     div(c.boolean),
     select(
         option('yes').value(true),
@@ -62,7 +68,7 @@ const selectBooleanComponenet = (v, c) => [
 ];
 const selectBooleanCode = Highlight(selectBooleanComponenet.toString());
 
-const selectNumberComponenet = (v, c) => [
+const selectNumberComponenet = (c) => [
     div(c.number),
     select(
         option('zero').value(0),
@@ -93,7 +99,7 @@ const RootComponent = ({ h1 }, { title }) => [
 Router('/', main, RootComponent, RootContext);
 `);
 
-// const dateComponenet = (v, c) => [
+// const dateComponenet = (c) => [
 //     div(c.stamp),
 //     input().type('time').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
 //     input().type('date').value(c.stamp).oninput((e) => c.stamp = e.target.valueAsNumber),
@@ -124,7 +130,26 @@ export const context = () => ({
     fruit: 'Orange',
     fruits: ['Apple', 'Orange', 'Tomato'],
 
+    car: ['ford'],
+    cars: [ 'tesla', 'ford', 'chevy' ],
+
     inputHtml: '',
+    mapHtml: '',
+
+    upgraded () {
+        console.log('upgrade');
+        this.inputHtml = Highlight(document.querySelector('#inputComponent').innerHTML, 'html');
+        this.mapHtml = Highlight(document.querySelector('#mapComponent').innerHTML, 'html');
+        this.checkHtml = Highlight(document.querySelector('#checkComponent').innerHTML, 'html');
+        this.radioHtml = Highlight(document.querySelector('#radioComponent').innerHTML, 'html');
+        this.classHtml = Highlight(document.querySelector('#classComponent').innerHTML, 'html');
+        this.styleHtml = Highlight(document.querySelector('#styleComponent').innerHTML, 'html');
+        this.fruitsHtml = Highlight(document.querySelector('#fruitsComponent').innerHTML, 'html');
+        this.carsHtml = Highlight(document.querySelector('#carsComponent').innerHTML, 'html');
+        this.selectBooleanHtml = Highlight(document.querySelector('#selectBooleanComponent').innerHTML, 'html');
+        this.selectNumberHtml = Highlight(document.querySelector('#selectNumberComponent').innerHTML, 'html');
+        this.htmlHtml = Highlight(document.querySelector('#htmlComponent').innerHTML, 'html');
+    }
 
 })
 
@@ -142,14 +167,14 @@ export const component = (v, c) => [
     section(
         h3('Input'),
         pre().html(inputCode),
-        pre(...inputComponenet(v, c)).onframe((t) => c.inputHtml = Highlight(t.innerHTML, 'html')),
+        pre(...inputComponenet(c)).id('inputComponent'),
         pre().html(c.inputHtml),
     ).id('input'),
 
     section(
         h3('Map'),
         pre().html(mapCode),
-        pre(...mapComponenet(v, c)).onframe((t) => c.mapHtml = Highlight(t.innerHTML, 'html')),
+        pre(...mapComponenet(c)).id('mapComponent'),
         pre().html(c.mapHtml),
     ).id('map'),
 
@@ -157,7 +182,7 @@ export const component = (v, c) => [
         h3('Check'),
         p('Boolean html attributes will treated as Boolean paramters and toggle the attribute.'),
         pre().html(checkCode),
-        pre(...checkComponent(v, c)).onframe((t) => c.checkHtml = Highlight(t.innerHTML, 'html')),
+        pre(...checkComponent(c)).id('checkComponent'),
         pre().html(c.checkHtml),
     ).id('check'),
 
@@ -165,9 +190,10 @@ export const component = (v, c) => [
         h3('Radio'),
         p('Boolean html attributes will treated as Boolean paramters and toggle the attribute.'),
         pre().html(radioCode),
-        pre(...radioComponenet(v, c)).onframe((t) => c.radioHtml = Highlight(t.innerHTML, 'html')),
+        pre(...radioComponenet(c)).id('radioComponent'),
         pre().html(c.radioHtml),
     ).id('radio'),
+
 
     // section(
     //     h3('Date'),
@@ -176,17 +202,18 @@ export const component = (v, c) => [
     //     pre(...dateComponenet(v, c)),
     // ).id('date'),
 
+
     section(
         h3('Class'),
         pre().html(classCode),
-        pre(...classComponenet(v, c)).onframe((t) => c.classHtml = Highlight(t.innerHTML, 'html')),
+        pre(...classComponenet(c)).id('classComponent'),
         pre().html(c.classHtml),
     ).id('class'),
 
     section(
         h3('Style'),
         pre().html(styleCode),
-        pre(...styleComponenet(v, c)).onframe((t) => c.styleHtml = Highlight(t.innerHTML, 'html')),
+        pre(...styleComponenet(c)).id('styleComponent'),
         pre().html(c.styleHtml),
     ).id('style'),
 
@@ -194,19 +221,25 @@ export const component = (v, c) => [
         h3('Select'),
 
         pre().html(fruitsCode),
-        pre(...fruitsComponenet(v, c)).onframe((t) => c.fruitsHtml = Highlight(t.innerHTML, 'html')),
+        pre(...fruitsComponenet(c)).id('fruitsComponent'),
         pre().html(c.fruitsHtml),
 
         br(),
 
+        pre().html(carsCode),
+        pre(...carsComponenet(c)).id('carsComponent'),
+        pre().html(c.carsHtml),
+
+        br(),
+
         pre().html(selectBooleanCode),
-        pre(...selectBooleanComponenet(v, c)).onframe((t) => c.selectBooleanHtml = Highlight(t.innerHTML, 'html')),
+        pre(...selectBooleanComponenet(c)).id('selectBooleanComponent'),
         pre().html(c.selectBooleanHtml),
 
         br(),
 
         pre().html(selectNumberCode),
-        pre(...selectNumberComponenet(v, c)).onframe((t) => c.selectNumberHtml = Highlight(t.innerHTML, 'html')),
+        pre(...selectNumberComponenet(c)).id('selectNumberComponent'),
         pre().html(c.selectNumberHtml),
 
     ).id('select'),
@@ -214,7 +247,7 @@ export const component = (v, c) => [
    section(
         h3('HTML'),
         pre().html(htmlCode),
-        pre(...htmlComponent(v, c)).onframe((t) => c.htmlHtml = Highlight(t.innerHTML, 'html')),
+        pre(...htmlComponent(c)).id('htmlComponent'),
         pre().html(c.htmlHtml),
     ).id('html'),
 
@@ -223,4 +256,4 @@ export const component = (v, c) => [
         pre().html(routeCode),
     ).id('routing')
 
-]
+];

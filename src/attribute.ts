@@ -30,29 +30,22 @@ export default function Attribute(element: Element, name: string, value: any, pa
         Reflect.set(element, name, value);
         element.setAttribute(name, value);
     } else if (name.startsWith('on')) {
-
-        if (name === 'onframe') {
-            requestAnimationFrame(() => value(element, name, value));
-            return;
-        }
-
         const original = Reflect.get(element, `xRaw${name}`);
+        if (original === value) return;
 
-        if (original !== value) {
-            const wrapped = Reflect.get(element, `xWrap${name}`);
+        const wrapped = Reflect.get(element, `xWrap${name}`);
 
-            const wrap = function (e: Event) {
-                if (parameters[0]?.prevent) e.preventDefault();
-                if (parameters[0]?.stop) e.stopPropagation();
-                return value(e);
-            };
+        const wrap = function (e: Event) {
+            if (parameters[0]?.prevent) e.preventDefault();
+            if (parameters[0]?.stop) e.stopPropagation();
+            return value(e);
+        };
 
-            Reflect.set(element, `xRaw${name}`, value);
-            Reflect.set(element, `xWrap${name}`, wrap);
+        Reflect.set(element, `xRaw${name}`, value);
+        Reflect.set(element, `xWrap${name}`, wrap);
 
-            element.addEventListener(name.slice(2), wrap, parameters?.[0] as any);
-            element.removeEventListener(name.slice(2), wrapped);
-        }
+        element.addEventListener(name.slice(2), wrap, parameters?.[0] as any);
+        element.removeEventListener(name.slice(2), wrapped);
 
         if (element.hasAttribute(name)) element.removeAttribute(name);
     } else if (BooleanAttributes.includes(name)) {
@@ -61,9 +54,9 @@ export default function Attribute(element: Element, name: string, value: any, pa
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
     } else if (name === 'html') {
-        const html = Reflect.get(element, 'xhtml');
-        if (html === value) return;
-        Reflect.set(element, 'xhtml', value);
+        const original = Reflect.get(element, 'xHtml');
+        if (original === value) return;
+        Reflect.set(element, 'xHtml', value);
         Reflect.set(element, 'innerHTML', value);
     } else {
         const display = Display(value);

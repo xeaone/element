@@ -1,4 +1,4 @@
-import { Connect, Connected } from './cycle.ts';
+import { Connect, Connected, Upgrade, Upgraded } from './cycle.ts';
 import Component from './component.ts';
 import Schedule from './schedule.ts';
 import Context from './context.ts';
@@ -70,8 +70,10 @@ const transition = async function (route: Route) {
                 console.error(error);
             }
         } else {
-            const update = function () {
+            const update = async function () {
+                await Upgrade(route.target as Element, route.instance.context);
                 Patch(route.target as Element, route.component(Virtual, context));
+                await Upgraded(route.target as Element, route.instance.context);
             };
 
             const change = async function () {

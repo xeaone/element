@@ -2,7 +2,7 @@ import Attribute from './attribute.ts';
 import Display from './display.ts';
 
 import { Item, Items } from './types.ts';
-import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, ParametersSymbol, SelfSymbol, TypeSymbol } from './tool.ts';
+import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, ParametersSymbol, TypeSymbol } from './tool.ts';
 
 const PatchAttributes = function (element: Element, item: Item) {
     const parameters = item[ParametersSymbol];
@@ -34,6 +34,11 @@ const PatchCreateElement = function (owner: Document, item: Item): Element {
     const parameters = item[ParametersSymbol];
     const attributes = item[AttributesSymbol];
     const children = item[ChildrenSymbol];
+
+    if (attributes['html']) {
+        PatchAttributes(element, item);
+        return element;
+    }
 
     for (const child of children) {
         PatchAppend(element, child);
@@ -69,6 +74,7 @@ const PatchCommon = function (node: Node, target: any) {
     const owner = node.ownerDocument as Document;
     const virtualType = target?.[TypeSymbol];
     const virtualName = target?.[NameSymbol];
+    const virtualAttributes = target?.[AttributesSymbol];
 
     if (virtualType === CommentSymbol) {
         const value = Display(target);
@@ -115,7 +121,7 @@ const PatchCommon = function (node: Node, target: any) {
         throw new Error('Patch - node type not handled');
     }
 
-    if (target.attributes['html']) {
+    if (virtualAttributes['html']) {
         PatchAttributes(node, target);
         return;
     }

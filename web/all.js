@@ -6,4 +6,4 @@ export const component = ({ h1, h2, section }) => [
         h1('404'),
         h2('This page does not exists')
     )
-]
+];

@@ -1,46 +1,30 @@
 import { Update } from './types.ts';
 
+const caches = new WeakMap();
 const tick = Promise.resolve();
-const updates: Array<Update> = [];
 
-let patching: number;
+const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
 
-const frame = async function () {
-    const tasks = [];
-    while (updates.length) tasks.push(updates.shift()?.());
-    await Promise.all(tasks);
-    patching = 0;
-};
+export default async function Schedule(update: Update, target: Element) {
+    let cache = caches.get(target);
 
-export default function Schedule(update: Update, target: Element) {
-    if (!Reflect.has(target, 'x')) {
-        Reflect.set(target, 'x', {});
+    if (!cache) {
+        cache = {};
+        caches.set(target, cache);
     }
 
-    const x = Reflect.get(target, 'x');
-
-    // x.patching = x.patching ?? false;
-    // x.patches = x.patches ?? [];
-
-    if (x.current) {
-        x.next = update;
+    if (cache.current) {
+        cache.next = update;
     } else {
-        // x.patching = true;
-        x.current = tick.then(update).then(function () {
-            const next = x.next;
-            x.next = undefined;
-            x.current = undefined;
-            if (next) {
-                // x.patching = false;
-                Schedule(next, target);
-            }
+        cache.current = tick.then(async function () {
+            // await sleep(100);
+            if (cache.next) await cache.next();
+            else await update();
+            if (cache.next) await cache.next();
+            cache.next = undefined;
+            cache.current = undefined;
         });
     }
 
-    // if (updates.includes(update)) return;
-    // console.log(update);
-    // updates.push(update);
-    // if (patching) return;
-    // patching = 1;
-    // await tick.then(frame);
+    await cache.current;
 }

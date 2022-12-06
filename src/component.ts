@@ -3,6 +3,7 @@ import Virtual from './virtual.ts';
 import Context from './context.ts';
 import Patch from './patch.ts';
 import Dash from './dash.ts';
+import { Connect, Connected, Upgrade, Upgraded } from './cycle.ts';
 
 const upgrade = Symbol('upgrade');
 
@@ -30,7 +31,6 @@ Object.defineProperty(window, 'customElements', {
 });
 
 export default class Component extends HTMLElement {
-
     // static slottedEvent = new Event('slotted');
     // static slottingEvent = new Event('slotting');
 
@@ -85,19 +85,34 @@ export default class Component extends HTMLElement {
 
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
-        const update = () => Patch(this.#root, this.component());
-        const change = () => Schedule(update, this.#root);
-        this.context = Context(context(), change);
+        const update = async () => {
+            await Upgrade(this.#root, this.context);
+            Patch(this.#root, this.component());
+            await Upgraded(this.#root, this.context);
+        };
 
+        const change = async () => {
+            await Schedule(update, this.#root);
+        };
+
+        this.context = Context(context(Virtual), change);
         this.component = component.bind(this.context, Virtual, this.context);
 
         if (this.#root !== this) this[upgrade]();
     }
 
-    [upgrade]() {
-        // this.dispatchEvent(Component.upgradingEvent);
-        Patch(this.#root, this.component());
-        // this.dispatchEvent(Component.upgradedEvent);
+    async [upgrade]() {
+        // Patch(this.#root, this.component());
+
+        const update = async () => {
+            await Upgrade(this.#root, this.context);
+            Patch(this.#root, this.component());
+            await Upgraded(this.#root, this.context);
+        };
+
+        await Connect(this.#root, this.context);
+        await Schedule(update, this.#root);
+        await Connected(this.#root, this.context);
     }
 
     // async slottedCallback() {
