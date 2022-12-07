@@ -13,18 +13,39 @@ export default async function Schedule(target: Element, update: Update) {
         caches.set(target, cache);
     }
 
+    // if (cache.current) {
+    //     cache.next = update;
+    // } else {
+    //     cache.current = tick.then(async function () {
+    //         // await sleep(100);
+    //         if (cache.next) await cache.next();
+    //         else await update();
+    //         if (cache.next) await cache.next();
+    //         cache.next = undefined;
+    //         cache.current = undefined;
+    //     });
+    // }
+
     if (cache.current) {
-        cache.next = update;
+        clearTimeout(cache.timer);
+        cache.update = update;
     } else {
-        cache.current = tick.then(async function () {
-            // await sleep(100);
-            if (cache.next) await cache.next();
-            else await update();
-            if (cache.next) await cache.next();
-            cache.next = undefined;
-            cache.current = undefined;
-        });
+        cache.update = update;
     }
+
+    cache.current = new Promise((resolve) => {
+        cache.resolves.push(resolve);
+        cache.timer = setTimeout(async () => {
+            await cache.update();
+            cache.current = undefined;
+            cache.update = undefined;
+            cache.timer = undefined;
+            const resolves = cache.resolves;
+            cache.resolves = [];
+            console.log(resolves);
+            resolves.forEach((r: any) => r());
+        }, 100);
+    });
 
     await cache.current;
 }

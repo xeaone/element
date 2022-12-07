@@ -163,7 +163,7 @@ const __default = new Proxy({}, {
     }
 });
 const caches = new WeakMap();
-const tick = Promise.resolve();
+Promise.resolve();
 async function Schedule(target, update) {
     let cache = caches.get(target);
     if (!cache) {
@@ -171,16 +171,24 @@ async function Schedule(target, update) {
         caches.set(target, cache);
     }
     if (cache.current) {
-        cache.next = update;
+        clearTimeout(cache.timer);
+        cache.update = update;
     } else {
-        cache.current = tick.then(async function() {
-            if (cache.next) await cache.next();
-            else await update();
-            if (cache.next) await cache.next();
-            cache.next = undefined;
-            cache.current = undefined;
-        });
+        cache.update = update;
     }
+    cache.current = new Promise((resolve)=>{
+        cache.resolves.push(resolve);
+        cache.timer = setTimeout(async ()=>{
+            await cache.update();
+            cache.current = undefined;
+            cache.update = undefined;
+            cache.timer = undefined;
+            const resolves = cache.resolves;
+            cache.resolves = [];
+            console.log(resolves);
+            resolves.forEach((r)=>r());
+        }, 100);
+    });
     await cache.current;
 }
 function Display(data) {
