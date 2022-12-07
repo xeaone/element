@@ -6,6 +6,10 @@
 // export const cdataType = Node.CDATA_SECTION_NODE;
 // export const fragmentType = Node.DOCUMENT_FRAGMENT_NODE;
 
+// export const parseable = function (value: any) {
+//     return !isNaN(value) && value !== undefined && typeof value !== 'string';
+// };
+
 export const $ = Symbol('$');
 
 export const NameSymbol = Symbol('name');
@@ -22,10 +26,6 @@ export const AttributesSymbol = Symbol('attributes');
 export const ParametersSymbol = Symbol('parameters');
 
 export const RenderCache = new WeakMap();
-
-// export const parseable = function (value: any) {
-//     return !isNaN(value) && value !== undefined && typeof value !== 'string';
-// };
 
 export const NumberAttributes = [
     'range',

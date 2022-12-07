@@ -1,7 +1,7 @@
 import Dash from './dash.ts';
-import { AttributesSymbol, ParametersSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, TypeSymbol } from './tool.ts';
+import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, ParametersSymbol, TypeSymbol } from './tool.ts';
 
-export default new Proxy({}, {
+const Virtual = new Proxy({}, {
     get(eTarget, eName, eReceiver) {
         if (typeof eName === 'symbol') return Reflect.get(eTarget, eName, eReceiver);
 
@@ -37,3 +37,5 @@ export default new Proxy({}, {
         };
     },
 });
+
+export default Virtual;

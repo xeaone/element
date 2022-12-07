@@ -1,62 +1,67 @@
-<base href="/">
-<title>XElement Performance</title>
-<script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/';</script>
-<link rel="stylesheet" href="./index.css">
+<!DOCTYPE html>
+<html lang="en">
 
-<h1>XElement Performance</h1>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <base href="/element/">
+        <title>XElement Performance</title>
+        <link rel="stylesheet" href="./performance/index.css">
+    </head>
 
-<o-loop></o-loop>
+    <body>
+        <h1>XElement Performance</h1>
+        <!-- <o-loop></o-loop> -->
+        <main></main>
 
-<script type="module">
-    import { Component } from '../x-element.js';
+        <script type="module">
+            import { Component, render } from './x-element.js';
 
-    const context = () => ({
+            const context = () => ({
+                items: [],
+                message: '',
+                count: 100000,
+                oninput(e) {
+                    this.count = e.target.valueAsNumber;
+                },
+                push() {
+                    console.time('push');
+                    for (var i = 0; i < this.count; i++) this.items.push(i);
+                    console.timeEnd('push');
+                },
+                overwrite() {
+                    console.time('overwrite');
+                    var items = [];
+                    for (var i = 0; i < this.count; i++) items.push(i);
+                    this.items = items;
+                    console.timeEnd('overwrite');
+                },
+                clear() {
+                    this.items = [];
+                },
+            });
 
-        items: [],
-        message: '',
-        count: 100000,
+            const component = (v, c) => [
+                v.h2(`Count: ${c.count.toLocaleString()}`),
+                v.input().oninput(c.oninput).value(c.count).type('number'),
+                v.button('push').onclick(c.push),
+                v.button('overwrite').onclick(c.overwrite),
+                v.button('clear').onclick(c.clear),
+                v.div(...c.items.map(item => v.div(`${item}`).class('box'))),
+            ];
 
-        oninput(e) {
-            this.count = e.target.valueAsNumber;
-        },
+            render(document.querySelector('main'), component, context);
 
-        push() {
-            console.time('push');
-            for (var i = 0; i < this.count; i++) this.items.push(i);
-            console.timeEnd('push');
-        },
+            // class OLoop extends Component {
+            //     static context = context;
+            //     static component = component;
+            //     static options = { root: 'this', slot: 'default' };
+            // }
 
-        overwrite() {
-            console.time('overwrite');
-            var items = [];
-            for (var i = 0; i < this.count; i++) items.push(i);
-            this.items = items;
-            console.timeEnd('overwrite');
-        },
+            // OLoop.define();
 
-        clear() {
-            this.items = [];
-        },
+        </script>
+    </body>
 
-    });
-
-    const component = ({ h2, input, button, div, br, select, option }, c) => [
-
-        h2(`Count: ${c.count.toLocaleString()}`),
-        input().oninput(c.oninput).value(c.count).type('number'),
-        button('push').onclick(c.push),
-        button('overwrite').onclick(c.overwrite),
-        button('clear').onclick(c.clear),
-        div(...c.items.map(item => div(`${item}`).class('box'))),
-
-    ];
-
-    class OLoop extends Component {
-        static context = context;
-        static component = component;
-        static options = { root: 'this', slot: 'default' };
-    }
-
-    OLoop.define();
-
-</script>
+</html>

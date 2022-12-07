@@ -40,7 +40,7 @@ const transition = async function (route: Route) {
             route.target.replaceChildren(route.instance);
             route.instance[$].render();
         } else {
-            route.instance = await Render(route.target, route.context, route.component);
+            route.instance = await Render(route.target, route.component, route.context);
         }
     }
 };
@@ -110,7 +110,7 @@ const navigate = function (event?: any) {
     }
 };
 
-export default function router(path: string, target: Element, component: any, context?: any, cache?: boolean) {
+export default function Router(path: string, target: Element, component: any, context?: any, cache?: boolean) {
     if (!path) throw new Error('XElement - router path required');
     if (!target) throw new Error('XElement - router target required');
     if (!component) throw new Error('XElement - router component required');

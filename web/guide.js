@@ -3,7 +3,7 @@ import Highlight from './modules/highlight.js';
 import Color from './modules/color.js';
 
 const {
-    style, button, section, h3, p, pre, div, select, option, br, input
+    style, button, section, h1, h3, p, pre, div, select, option, br, input
 } = Virtual;
 
 const inputComponenet = (c) => [
@@ -108,6 +108,8 @@ Router('/', main, RootComponent, RootContext);
 // const dateCode = Highlight(dateComponenet.toString());
 
 export const context = () => ({
+    waitOne: '',
+    waitTwo: '',
 
     input: 'hello world',
     checked: true,
@@ -123,8 +125,20 @@ export const context = () => ({
     car: ['ford'],
     cars: [ 'tesla', 'ford', 'chevy' ],
 
-    upgraded () {
-        console.log('upgrade');
+    async connect() {
+        console.log('before connect');
+        // await new Promise(resolve => setTimeout(()=> resolve(), 2000));
+        // let count = 0;
+        // let id = setInterval(()=> {
+        //     console.log(count);
+        //     this.waitOne = count++;
+        //     if (count === 50) clearInterval(id);
+        // }, 100);
+    },
+    upgrade() { console.log('before upgrade'); },
+    upgraded() { console.log('after upgraded'); },
+    connected() {
+        console.log('after connected');
         this.inputHtml = Highlight(document.querySelector('#inputComponent').innerHTML, 'html');
         this.mapHtml = Highlight(document.querySelector('#mapComponent').innerHTML, 'html');
         this.checkHtml = Highlight(document.querySelector('#checkComponent').innerHTML, 'html');
@@ -137,14 +151,8 @@ export const context = () => ({
         this.selectNumberHtml = Highlight(document.querySelector('#selectNumberComponent').innerHTML, 'html');
         this.htmlHtml = Highlight(document.querySelector('#htmlComponent').innerHTML, 'html');
     },
-
-    connect() { console.log('before connect'); },
-    upgrade() { console.log('before upgrade'); },
-    upgraded() { console.log('after upgraded'); },
-    connected() { console.log('after connected'); },
     disconnect() { console.log('before disconnect'); },
     disconnected() { console.log('after disconnected'); },
-
 });
 
 const contextCode = Highlight(`
@@ -168,6 +176,8 @@ export const component = (v, c) => [
         border-color: var(--accent);
     }
     `),
+    h1(c.waitOne),
+    h1(c.waitTwo),
 
     section(
         h3('Context'),

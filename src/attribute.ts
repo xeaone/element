@@ -60,8 +60,7 @@ export default function Attribute(element: Element, name: string, value: any, pa
         Reflect.set(element, 'innerHTML', value);
     } else {
         const display = Display(value);
-        if (element.getAttribute(name) !== display) {
-            element.setAttribute(name, display);
-        }
+        if (element.getAttribute(name) === display) return;
+        element.setAttribute(name, display);
     }
 }

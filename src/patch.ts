@@ -4,26 +4,26 @@ import Display from './display.ts';
 import { Item, Items } from './types.ts';
 import { AttributesSymbol, CdataSymbol, ChildrenSymbol, CommentSymbol, ElementSymbol, NameSymbol, ParametersSymbol, TypeSymbol } from './tool.ts';
 
-const PatchAttributes = function (element: Element, item: Item) {
-    const parameters = item[ParametersSymbol];
-    const attributes = item[AttributesSymbol];
+const PatchAttributes = function (source: Element, target: Item) {
+    const parameters = target[ParametersSymbol];
+    const attributes = target[AttributesSymbol];
 
     if (attributes['type']) {
         const value = attributes['type'];
-        Attribute(element, 'type', value, parameters['type']);
+        Attribute(source, 'type', value, parameters['type']);
     }
 
     for (const name in attributes) {
         if (name === 'type') continue;
         const value = attributes[name];
-        Attribute(element, name, value, parameters[name]);
+        Attribute(source, name, value, parameters[name]);
     }
 
-    if (element.hasAttributes()) {
-        const names = element.getAttributeNames();
+    if (source.hasAttributes()) {
+        const names = source.getAttributeNames();
         for (const name of names) {
             if (!(name in attributes)) {
-                element.removeAttribute(name);
+                source.removeAttribute(name);
             }
         }
     }
@@ -70,8 +70,8 @@ const PatchRemove = function (parent: Element) {
     if (child) parent.removeChild(child);
 };
 
-const PatchCommon = function (node: Node, target: any) {
-    const owner = node.ownerDocument as Document;
+const PatchCommon = function (source: Node, target: any) {
+    const owner = source.ownerDocument as Document;
     const virtualType = target?.[TypeSymbol];
     const virtualName = target?.[NameSymbol];
     const virtualAttributes = target?.[AttributesSymbol];
@@ -79,10 +79,10 @@ const PatchCommon = function (node: Node, target: any) {
     if (virtualType === CommentSymbol) {
         const value = Display(target);
 
-        if (node.nodeName !== '#comment') {
-            node.parentNode?.replaceChild(owner?.createComment(value) as Comment, node);
-        } else if (node.nodeValue !== value) {
-            node.nodeValue = value;
+        if (source.nodeName !== '#comment') {
+            source.parentNode?.replaceChild(owner?.createComment(value) as Comment, source);
+        } else if (source.nodeValue !== value) {
+            source.nodeValue = value;
         }
 
         return;
@@ -91,10 +91,10 @@ const PatchCommon = function (node: Node, target: any) {
     if (virtualType === CdataSymbol) {
         const value = Display(target);
 
-        if (node.nodeName !== '#cdata-section') {
-            node.parentNode?.replaceChild(owner?.createCDATASection(value) as CDATASection, node);
-        } else if (node.nodeValue !== value) {
-            node.nodeValue = value;
+        if (source.nodeName !== '#cdata-section') {
+            source.parentNode?.replaceChild(owner?.createCDATASection(value) as CDATASection, source);
+        } else if (source.nodeValue !== value) {
+            source.nodeValue = value;
         }
 
         return;
@@ -103,76 +103,78 @@ const PatchCommon = function (node: Node, target: any) {
     if (virtualType !== ElementSymbol) {
         const value = Display(target);
 
-        if (node.nodeName !== '#text') {
-            node.parentNode?.replaceChild(owner?.createTextNode(value) as Text, node);
-        } else if (node.nodeValue !== value) {
-            node.nodeValue = value;
+        if (source.nodeName !== '#text') {
+            source.parentNode?.replaceChild(owner?.createTextNode(value) as Text, source);
+        } else if (source.nodeValue !== value) {
+            source.nodeValue = value;
         }
 
         return;
     }
 
-    if (node.nodeName !== virtualName) {
-        node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
+    if (source.nodeName !== virtualName) {
+        source.parentNode?.replaceChild(PatchCreateElement(owner, target), source);
         return;
     }
 
-    if (!(node instanceof Element)) {
+    if (!(source instanceof Element)) {
         throw new Error('Patch - node type not handled');
     }
 
     if (virtualAttributes['html']) {
-        PatchAttributes(node, target);
+        PatchAttributes(source, target);
         return;
     }
 
     const targetChildren = target[ChildrenSymbol];
     const targetLength = targetChildren.length;
-    const nodeChildren = [...node.childNodes];
-    const nodeLength = nodeChildren.length;
-    const commonLength = Math.min(nodeLength, targetLength);
+
+    const sourceChildren = [...source.childNodes];
+    const sourceLength = sourceChildren.length;
+
+    const commonLength = Math.min(sourceLength, targetLength);
 
     let index;
 
     for (index = 0; index < commonLength; index++) {
-        PatchCommon(nodeChildren[index], targetChildren[index]);
+        PatchCommon(sourceChildren[index], targetChildren[index]);
     }
 
-    if (nodeLength > targetLength) {
-        for (index = targetLength; index < nodeLength; index++) {
-            PatchRemove(node);
+    if (sourceLength > targetLength) {
+        for (index = targetLength; index < sourceLength; index++) {
+            PatchRemove(source);
         }
-    } else if (nodeLength < targetLength) {
-        for (index = nodeLength; index < targetLength; index++) {
-            PatchAppend(node, targetChildren[index]);
+    } else if (sourceLength < targetLength) {
+        for (index = sourceLength; index < targetLength; index++) {
+            PatchAppend(source, targetChildren[index]);
         }
     }
 
-    PatchAttributes(node, target);
+    PatchAttributes(source, target);
 };
 
-export default function Patch(root: Element, fragment: Items) {
+export default function Patch(source: Element, target: Items) {
     let index;
 
-    const virtualChildren = fragment;
-    const virtualLength = virtualChildren.length;
+    const targetChildren = target;
+    const targetLength = targetChildren.length;
 
-    const rootChildren = [...root.childNodes];
-    const rootLength = rootChildren.length;
+    const sourceChildren = [...source.childNodes];
+    const sourceLength = sourceChildren.length;
 
-    const commonLength = Math.min(rootLength, virtualLength);
+    const commonLength = Math.min(sourceLength, targetLength);
 
     for (index = 0; index < commonLength; index++) {
-        PatchCommon(rootChildren[index], virtualChildren[index]);
+        PatchCommon(sourceChildren[index], targetChildren[index]);
     }
 
-    if (rootLength > virtualLength) {
-        for (index = virtualLength; index < rootLength; index++) {
-            PatchRemove(root);
+    if (sourceLength > targetLength) {
+        for (index = targetLength; index < sourceLength; index++) {
+            PatchRemove(source);
         }
-    } else if (rootLength < virtualLength) {
-        for (index = rootLength; index < virtualLength; index++) {
-            PatchAppend(root, virtualChildren[index]);
+    } else if (sourceLength < targetLength) {
+        for (index = sourceLength; index < targetLength; index++) {
+            PatchAppend(source, targetChildren[index]);
         }
     }
 }

@@ -5,8 +5,6 @@ import Patch from './patch.ts';
 import Dash from './dash.ts';
 import { $, RenderCache } from './tool.ts';
 
-// import Render from './render.ts';
-
 // const UPGRADE = Symbol('upgrade');
 
 // const DEFINED = new WeakSet();
@@ -76,14 +74,15 @@ export default class Component extends HTMLElement {
         this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
         // this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
 
-        const options = Reflect.get(this.constructor, 'options') ?? {};
         const context = Reflect.get(this.constructor, 'context');
         const component = Reflect.get(this.constructor, 'component');
+        const options = Reflect.get(this.constructor, 'options') ?? {};
 
         if (options.root === 'this') this.#root = this;
         else if (options.root === 'shadow') this.#root = this.shadowRoot;
         else this.#root = this.shadowRoot;
 
+        if (options.render === undefined) options.render = true;
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
         this[$].update = async () => {
@@ -104,8 +103,8 @@ export default class Component extends HTMLElement {
                 const cache = RenderCache.get(this.parentNode);
                 // if (cache && cache !== this[$].context && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
                 // if (cache && cache !== this[$].context && cache.disconnected) await cache.disconnected()?.catch(console.error);
-                if (cache  && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-                if (cache  && cache.disconnected) await cache.disconnected()?.catch(console.error);
+                if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+                if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
                 RenderCache.set(this.parentNode, this[$].context);
             }
 
@@ -114,7 +113,9 @@ export default class Component extends HTMLElement {
             if (this[$].context.connected) await this[$].context.connected()?.catch(console.error);
         };
 
-        // this[$].render();
+        if (options.render !== false) {
+            this[$].render();
+        }
     }
 
     // async [UPGRADE]() {

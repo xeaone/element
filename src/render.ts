@@ -7,7 +7,7 @@ import Patch from './patch.ts';
 type ContextType = (virtual: any) => Record<any, any>;
 type ComponentType = (virtual: any, context: any) => Array<any>;
 
-export default async function Render(target: Element, context: ContextType, component: ComponentType) {
+export default async function Render(target: Element, component: ComponentType, context: ContextType) {
     const instance: any = {};
 
     instance.update = async function () {

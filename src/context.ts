@@ -2,7 +2,6 @@ import { ContextData, ContextKey, ContextMethod, ContextReceiver, ContextTarget,
 
 const ContextCache = new WeakMap();
 const ContextNext = Promise.resolve();
-// const ContextSymbol = Symbol('context');
 
 const ContextSet = function (method: ContextMethod, target: ContextTarget, key: ContextKey, value: ContextValue, receiver: ContextReceiver) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);

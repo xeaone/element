@@ -18,7 +18,7 @@ const component = (
 
 const target = document.querySelector('main');
 
-Render(target, context, component);
+Render(target, component, context);
 `);
 
 const elementExample = Highlight(`
@@ -67,7 +67,7 @@ const component = (
 
 const target = document.querySelector('main');
 
-Router('/', target, Root.context, Root.component);
+Router('/', target, Root.component, Root.context);
 `);
 
 export const context = () => ({});

@@ -1,30 +1,15 @@
 import { Update } from './types.ts';
 
-const caches = new WeakMap();
-const tick = Promise.resolve();
-
-const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
+const ScheduleCache = new WeakMap();
+const ScheduleNext = Promise.resolve();
 
 export default async function Schedule(target: Element, update: Update) {
-    let cache = caches.get(target);
+    let cache = ScheduleCache.get(target);
 
     if (!cache) {
-        cache = {};
-        caches.set(target, cache);
+        cache = { resolves: [] };
+        ScheduleCache.set(target, cache);
     }
-
-    // if (cache.current) {
-    //     cache.next = update;
-    // } else {
-    //     cache.current = tick.then(async function () {
-    //         // await sleep(100);
-    //         if (cache.next) await cache.next();
-    //         else await update();
-    //         if (cache.next) await cache.next();
-    //         cache.next = undefined;
-    //         cache.current = undefined;
-    //     });
-    // }
 
     if (cache.current) {
         clearTimeout(cache.timer);
@@ -35,15 +20,17 @@ export default async function Schedule(target: Element, update: Update) {
 
     cache.current = new Promise((resolve) => {
         cache.resolves.push(resolve);
-        cache.timer = setTimeout(async () => {
-            await cache.update();
+        cache.timer = setTimeout(function ScheduleTime() {
+            let r;
+            const rs = cache.resolves;
+            const u = cache.update;
             cache.current = undefined;
             cache.update = undefined;
             cache.timer = undefined;
-            const resolves = cache.resolves;
             cache.resolves = [];
-            console.log(resolves);
-            resolves.forEach((r: any) => r());
+            ScheduleNext.then(u).then(function ScheduleResolves() {
+                for (r of rs) r();
+            });
         }, 100);
     });
 
