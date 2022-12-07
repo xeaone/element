@@ -2,68 +2,28 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-const ContextCache = new WeakMap();
-const ContextNext = Promise.resolve();
-const ContextSet = function(method, target, key, value, receiver) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
-    const from = Reflect.get(target, key, receiver);
-    if (from === value) return true;
-    if (Number.isNaN(from) && Number.isNaN(value)) return true;
-    if (from && (from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function')) {
-        const cache = ContextCache.get(from);
-        if (cache === value) return true;
-        ContextCache.delete(from);
+const tick = Promise.resolve();
+function Schedule(update, target) {
+    if (!Reflect.has(target, 'x')) {
+        Reflect.set(target, 'x', {});
     }
-    Reflect.set(target, key, value, receiver);
-    ContextNext.then(method);
-    return true;
-};
-const ContextGet = function(method, target, key, receiver) {
-    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-    const value = Reflect.get(target, key, receiver);
-    if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
-        const cache = ContextCache.get(value);
-        if (cache) return cache;
-        const proxy = new Proxy(value, {
-            get: ContextGet.bind(null, method),
-            set: ContextSet.bind(null, method),
-            deleteProperty: ContextDelete.bind(null, method)
-        });
-        ContextCache.set(value, proxy);
-        return proxy;
-    }
-    if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
-        const cache1 = ContextCache.get(value);
-        if (cache1) return cache1;
-        const proxy1 = new Proxy(value, {
-            apply (t, _, a) {
-                return Reflect.apply(t, receiver, a);
+    const x = Reflect.get(target, 'x');
+    if (x.current) {
+        x.next = update;
+    } else {
+        x.current = tick.then(update).then(function() {
+            const next = x.next;
+            x.next = undefined;
+            x.current = undefined;
+            if (next) {
+                Schedule(next, target);
             }
         });
-        ContextCache.set(value, proxy1);
-        return proxy1;
     }
-    return value;
-};
-const ContextDelete = function(method, target, key) {
-    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
-    const from = Reflect.get(target, key);
-    ContextCache.delete(from);
-    Reflect.deleteProperty(target, key);
-    ContextNext.then(method);
-    return true;
-};
-const ContextCreate = function(data, method) {
-    return new Proxy(data, {
-        get: ContextGet.bind(null, method),
-        set: ContextSet.bind(null, method),
-        deleteProperty: ContextDelete.bind(null, method)
-    });
-};
+}
 function Dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
 }
-const $ = Symbol('$');
 const NameSymbol = Symbol('name');
 Symbol('value');
 Symbol('self');
@@ -74,7 +34,6 @@ const ElementSymbol = Symbol('element');
 const ChildrenSymbol = Symbol('children');
 const AttributesSymbol = Symbol('attributes');
 const ParametersSymbol = Symbol('parameters');
-const RenderCache = new WeakMap();
 const BooleanAttributes = [
     'allowfullscreen',
     'async',
@@ -162,27 +121,64 @@ const __default = new Proxy({}, {
         };
     }
 });
-const caches = new WeakMap();
-const tick = Promise.resolve();
-async function Schedule(target, update) {
-    let cache = caches.get(target);
-    if (!cache) {
-        cache = {};
-        caches.set(target, cache);
+const ContextCache = new WeakMap();
+const ContextNext = Promise.resolve();
+const ContextSet = function(method, target, key, value, receiver) {
+    if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
+    const from = Reflect.get(target, key, receiver);
+    if (from === value) return true;
+    if (Number.isNaN(from) && Number.isNaN(value)) return true;
+    if (from && (from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function')) {
+        const cache = ContextCache.get(from);
+        if (cache === value) return true;
+        ContextCache.delete(from);
     }
-    if (cache.current) {
-        cache.next = update;
-    } else {
-        cache.current = tick.then(async function() {
-            if (cache.next) await cache.next();
-            else await update();
-            if (cache.next) await cache.next();
-            cache.next = undefined;
-            cache.current = undefined;
+    Reflect.set(target, key, value, receiver);
+    ContextNext.then(method);
+    return true;
+};
+const ContextGet = function(method, target, key, receiver) {
+    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
+    const value = Reflect.get(target, key, receiver);
+    if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
+        const cache = ContextCache.get(value);
+        if (cache) return cache;
+        const proxy = new Proxy(value, {
+            get: ContextGet.bind(null, method),
+            set: ContextSet.bind(null, method),
+            deleteProperty: ContextDelete.bind(null, method)
         });
+        ContextCache.set(value, proxy);
+        return proxy;
     }
-    await cache.current;
-}
+    if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
+        const cache1 = ContextCache.get(value);
+        if (cache1) return cache1;
+        const proxy1 = new Proxy(value, {
+            apply (t, _, a) {
+                return Reflect.apply(t, receiver, a);
+            }
+        });
+        ContextCache.set(value, proxy1);
+        return proxy1;
+    }
+    return value;
+};
+const ContextDelete = function(method, target, key) {
+    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
+    const from = Reflect.get(target, key);
+    ContextCache.delete(from);
+    Reflect.deleteProperty(target, key);
+    ContextNext.then(method);
+    return true;
+};
+const ContextCreate = function(data, method) {
+    return new Proxy(data, {
+        get: ContextGet.bind(null, method),
+        set: ContextSet.bind(null, method),
+        deleteProperty: ContextDelete.bind(null, method)
+    });
+};
 function Display(data) {
     switch(typeof data){
         case 'undefined':
@@ -212,18 +208,23 @@ function Attribute(element, name, value, parameters) {
         Reflect.set(element, name, value);
         element.setAttribute(name, value);
     } else if (name.startsWith('on')) {
+        if (name === 'onframe') {
+            requestAnimationFrame(()=>value(element, name, value));
+            return;
+        }
         const original = Reflect.get(element, `xRaw${name}`);
-        if (original === value) return;
-        const wrapped = Reflect.get(element, `xWrap${name}`);
-        const wrap = function(e) {
-            if (parameters[0]?.prevent) e.preventDefault();
-            if (parameters[0]?.stop) e.stopPropagation();
-            return value(e);
-        };
-        Reflect.set(element, `xRaw${name}`, value);
-        Reflect.set(element, `xWrap${name}`, wrap);
-        element.addEventListener(name.slice(2), wrap, parameters?.[0]);
-        element.removeEventListener(name.slice(2), wrapped);
+        if (original !== value) {
+            const wrapped = Reflect.get(element, `xWrap${name}`);
+            const wrap = function(e) {
+                if (parameters[0]?.prevent) e.preventDefault();
+                if (parameters[0]?.stop) e.stopPropagation();
+                return value(e);
+            };
+            Reflect.set(element, `xRaw${name}`, value);
+            Reflect.set(element, `xWrap${name}`, wrap);
+            element.addEventListener(name.slice(2), wrap, parameters?.[0]);
+            element.removeEventListener(name.slice(2), wrapped);
+        }
         if (element.hasAttribute(name)) element.removeAttribute(name);
     } else if (BooleanAttributes.includes(name)) {
         const result = value ? true : false;
@@ -231,9 +232,9 @@ function Attribute(element, name, value, parameters) {
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
     } else if (name === 'html') {
-        const original1 = Reflect.get(element, 'xHtml');
-        if (original1 === value) return;
-        Reflect.set(element, 'xHtml', value);
+        const html = Reflect.get(element, 'xhtml');
+        if (html === value) return;
+        Reflect.set(element, 'xhtml', value);
         Reflect.set(element, 'innerHTML', value);
     } else {
         const display = Display(value);
@@ -268,10 +269,6 @@ const PatchCreateElement = function(owner, item) {
     const parameters = item[ParametersSymbol];
     const attributes = item[AttributesSymbol];
     const children = item[ChildrenSymbol];
-    if (attributes['html']) {
-        PatchAttributes(element, item);
-        return element;
-    }
     for (const child of children){
         PatchAppend(element, child);
     }
@@ -301,7 +298,6 @@ const PatchCommon = function(node, target) {
     const owner = node.ownerDocument;
     const virtualType = target?.[TypeSymbol];
     const virtualName = target?.[NameSymbol];
-    const virtualAttributes = target?.[AttributesSymbol];
     if (virtualType === CommentSymbol) {
         const value = Display(target);
         if (node.nodeName !== '#comment') {
@@ -336,7 +332,7 @@ const PatchCommon = function(node, target) {
     if (!(node instanceof Element)) {
         throw new Error('Patch - node type not handled');
     }
-    if (virtualAttributes['html']) {
+    if (target.attributes['html']) {
         PatchAttributes(node, target);
         return;
     }
@@ -384,6 +380,28 @@ function Patch(root, fragment) {
         }
     }
 }
+const upgrade = Symbol('upgrade');
+const DEFINED = new WeakSet();
+const CE = window.customElements;
+Object.defineProperty(window, 'customElements', {
+    get: ()=>({
+            define (name, constructor, options) {
+                if (constructor.prototype instanceof Component && !DEFINED.has(constructor)) {
+                    constructor = new Proxy(constructor, {
+                        construct (target, args, extender) {
+                            const instance = Reflect.construct(target, args, extender);
+                            instance[upgrade]();
+                            return instance;
+                        }
+                    });
+                    DEFINED.add(constructor);
+                }
+                CE.define(name, constructor, options);
+            },
+            get: CE.get,
+            whenDefined: CE.whenDefined
+        })
+});
 class Component extends HTMLElement {
     static define(name, constructor) {
         constructor = constructor ?? this;
@@ -394,7 +412,8 @@ class Component extends HTMLElement {
         name = name ?? Dash(this.name);
         return customElements.whenDefined(name);
     }
-    [$] = {};
+    context;
+    component;
     #root;
     #shadow;
     constructor(){
@@ -409,74 +428,93 @@ class Component extends HTMLElement {
         else if (options.root === 'shadow') this.#root = this.shadowRoot;
         else this.#root = this.shadowRoot;
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
-        this[$].update = async ()=>{
-            if (this[$].context.upgrade) await this[$].context.upgrade()?.catch?.(console.error);
-            Patch(this.#root, this[$].component());
-            if (this[$].context.upgraded) await this[$].context.upgraded()?.catch(console.error);
-        };
-        this[$].change = async ()=>{
-            await Schedule(this.#root, this[$].update);
-        };
-        this[$].context = ContextCreate(context(__default), this[$].change);
-        this[$].component = component.bind(this[$].context, __default, this[$].context);
-        this[$].render = async ()=>{
-            if (this.parentNode) {
-                const cache = RenderCache.get(this.parentNode);
-                if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-                if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-                RenderCache.set(this.parentNode, this[$].context);
-            }
-            if (this[$].context.connect) await this[$].context.connect()?.catch?.(console.error);
-            await Schedule(this.#root, this[$].update);
-            if (this[$].context.connected) await this[$].context.connected()?.catch(console.error);
-        };
+        const update = ()=>Patch(this.#root, this.component());
+        const change = ()=>Schedule(update, this.#root);
+        this.context = ContextCreate(context(), change);
+        this.component = component.bind(this.context, __default, this.context);
+        if (this.#root !== this) this[upgrade]();
+    }
+    [upgrade]() {
+        Patch(this.#root, this.component());
     }
 }
-async function Render(target, context, component) {
-    const instance = {};
-    instance.update = async function() {
-        if (instance.context.upgrade) await instance.context.upgrade()?.catch?.(console.error);
-        Patch(target, instance.component());
-        if (instance.context.upgraded) await instance.context.upgraded()?.catch(console.error);
-    };
-    instance.change = async function() {
-        await Schedule(target, instance.update);
-    };
-    instance.context = ContextCreate(context(__default), instance.change);
-    instance.component = component.bind(instance.context, __default, instance.context);
-    instance.render = async function() {
-        const cache = RenderCache.get(target);
-        if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-        if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-        RenderCache.set(target, instance.context);
-        if (instance.context.connect) await instance.context.connect()?.catch?.(console.error);
-        await Schedule(target, instance.update);
-        if (instance.context.connected) await instance.context.connected()?.catch(console.error);
-    };
-    await instance.render();
-    return instance;
+async function Connect(target, context) {
+    const disconnect = Reflect.get(target, 'xDisconnect');
+    Reflect.set(target, 'xConnect', context.connect);
+    Reflect.set(target, 'xDisconnect', context.disconnect);
+    const connect = Reflect.get(target, 'xConnect');
+    if (disconnect) await disconnect();
+    if (connect) await connect();
+}
+async function Connected(target, context) {
+    const disconnected = Reflect.get(target, 'xDisconnected');
+    Reflect.set(target, 'xConnected', context.connected);
+    Reflect.set(target, 'xDisconnected', context.disconnected);
+    const connected = Reflect.get(target, 'xConnected');
+    if (disconnected) await disconnected();
+    if (connected) await connected();
 }
 const alls = [];
 const routes = [];
 const transition = async function(route) {
+    if (!route.target) throw new Error('XElement - transition target option required');
     if (route.cache && route.instance) {
-        if (route.instance instanceof Component || route.instance.prototype instanceof Component) {
-            route.target.replaceChildren(route.instance);
-            await route.instance[$].render();
-        } else {
-            await route.instance.render();
+        try {
+            await Connect(route.target, route.instance.context);
+            if (route.instance instanceof Component) {
+                route.target.replaceChildren(route.instance);
+            } else {
+                await route.instance.change();
+            }
+            try {
+                await Connected(route.target, route.instance.context);
+            } catch (error) {
+                console.error(error);
+            }
+        } catch (error1) {
+            console.error(error1);
         }
     } else {
-        if (route.component instanceof Component || route.component.prototype instanceof Component) {
-            route.name = route.name ?? Dash(route.component.name);
-            if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
-            if (!customElements.get(route.name)) customElements.define(route.name, route.component);
-            await customElements.whenDefined(route.name);
-            route.instance = document.createElement(route.name);
-            route.target.replaceChildren(route.instance);
-            route.instance[$].render();
+        if (route.component instanceof Component) {
+            try {
+                await Connect(route.target, route.instance.context);
+                route.name = route.name ?? Dash(route.construct.name);
+                if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
+                if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
+                await customElements.whenDefined(route.name);
+                route.instance = document.createElement(route.name);
+                route.target.replaceChildren(route.instance);
+                try {
+                    await Connected(route.target, route.instance.context);
+                } catch (error2) {
+                    console.error(error2);
+                }
+            } catch (error3) {
+                console.error(error3);
+            }
         } else {
-            route.instance = await Render(route.target, route.context, route.component);
+            const update = function() {
+                Patch(route.target, route.component(__default, context));
+            };
+            const change = async function() {
+                await Schedule(update, route.target);
+            };
+            const context = ContextCreate(route.context(), change);
+            route.instance = {
+                context,
+                change
+            };
+            try {
+                await Connect(route.target, route.instance.context);
+                await change();
+                try {
+                    await Connected(route.target, route.instance.context);
+                } catch (error4) {
+                    console.error(error4);
+                }
+            } catch (error5) {
+                console.error(error5);
+            }
         }
     }
 };
@@ -524,7 +562,7 @@ function router(path, target, component, context, cache) {
     if (!path) throw new Error('XElement - router path required');
     if (!target) throw new Error('XElement - router target required');
     if (!component) throw new Error('XElement - router component required');
-    if (!(component instanceof Component || component.prototype instanceof Component) && !context) throw new Error('XElement - router context required');
+    if (!(component instanceof Component) && !context) throw new Error('XElement - router context required');
     if (path === '/*') {
         for (const all of alls){
             if (all.path === path && all.target === target) {
@@ -553,6 +591,18 @@ function router(path, target, component, context, cache) {
         });
     }
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
+}
+function Render(target, context, component) {
+    const update = async function() {};
+    context = ContextCreate(context(), update);
+    component = component.bind(null, __default, context);
+    Connect(target(), context);
+    Patch(target(), component());
+    Connected(target(), context);
+    return {
+        context,
+        component
+    };
 }
 export { __default as Virtual };
 export { __default as virtual };

@@ -1,44 +1,76 @@
 import Highlight from './modules/highlight.js';
 
 const virtualExample = Highlight(`
-export const context = () => ({
+import { Render } from '/x-element.js';
+
+const context = () => ({
     greeting: 'Default Greeting',
-    greet () { this.greeting = 'Update Greeting'; }
+    greet() { this.greeting = 'Updated Greeting'; }
 });
 
-export const component = (
+const component = (
     { h1, button },
-    { title, greet }
+    { greeting, greet }
 ) => [
-    h1(title),
+    h1(greeting),
     button('Greet').onclick(greet)
-]
+];
+
+const target = document.querySelector('main');
+
+Render(target, context, component);
 `);
 
 const elementExample = Highlight(`
 import { Component } from '/x-element.js';
 
-export MyGreeting extends Component {
+export class MyGreeting extends Component {
 
     static context = () => ({
         greeting: 'Default Greeting',
-        greet () { this.greeting = 'Update Greeting'; }
+        greet() { this.greeting = 'Updated Greeting'; }
     });
 
     static component = (
         { h1, button },
-        { title, greet }
+        { greeting, greet }
     ) => [
-        h1(title),
+        h1(greeting),
         button('Greet').onclick(greet)
-    ]
+    ];
 
 }
 
 MyGreeting.define();
+
+const target = document.querySelector('main');
+const instance = document.createElement('my-greeting');
+
+target.replaceChildren(instance);
 `);
 
-export const context = () => ({})
+const routerExample = Highlight(`
+import { Router } from '/x-element.js';
+
+const context = () => ({
+    greeting: 'Default Greeting',
+    greet() { this.greeting = 'Updated Greeting'; }
+});
+
+const component = (
+    { h1, button },
+    { greeting, greet }
+) => [
+    h1(greeting),
+    button('Greet').onclick(greet)
+];
+
+const target = document.querySelector('main');
+
+Router('/', target, Root.context, Root.component);
+`);
+
+export const context = () => ({});
 
 export const component = ({
     section, h2, h4, div, span, pre, code, a
@@ -79,7 +111,10 @@ export const component = ({
         pre(code().class('language-js').html(virtualExample)),
 
         h2('Element Example'),
-        pre(code().class('language-js').html(elementExample))
+        pre(code().class('language-js').html(elementExample)),
+
+        h2('Router Example'),
+        pre().html(routerExample),
 
     )
 ]

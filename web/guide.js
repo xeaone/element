@@ -3,8 +3,7 @@ import Highlight from './modules/highlight.js';
 import Color from './modules/color.js';
 
 const {
-    style, button,
-    section, h3, p, pre, div, select, option, br, input
+    style, button, section, h3, p, pre, div, select, option, br, input
 } = Virtual;
 
 const inputComponenet = (c) => [
@@ -110,31 +109,19 @@ Router('/', main, RootComponent, RootContext);
 
 export const context = () => ({
 
-    // stamp: Date.now(),
-
     input: 'hello world',
-
     checked: true,
-
     color: Color(),
-
     active: true,
-
     radioShared: 'two',
     radioOne: 'one',
     radioTwo: 'two',
-
     boolean: true,
     number: 1,
-
     fruit: 'Orange',
     fruits: ['Apple', 'Orange', 'Tomato'],
-
     car: ['ford'],
     cars: [ 'tesla', 'ford', 'chevy' ],
-
-    inputHtml: '',
-    mapHtml: '',
 
     upgraded () {
         console.log('upgrade');
@@ -149,9 +136,27 @@ export const context = () => ({
         this.selectBooleanHtml = Highlight(document.querySelector('#selectBooleanComponent').innerHTML, 'html');
         this.selectNumberHtml = Highlight(document.querySelector('#selectNumberComponent').innerHTML, 'html');
         this.htmlHtml = Highlight(document.querySelector('#htmlComponent').innerHTML, 'html');
-    }
+    },
 
-})
+    connect() { console.log('before connect'); },
+    upgrade() { console.log('before upgrade'); },
+    upgraded() { console.log('after upgraded'); },
+    connected() { console.log('after connected'); },
+    disconnect() { console.log('before disconnect'); },
+    disconnected() { console.log('after disconnected'); },
+
+});
+
+const contextCode = Highlight(`
+const context = () => ({
+    connect() { console.log('before connect'); },
+    upgrade() { console.log('before upgrade'); },
+    upgraded() { console.log('after upgraded'); },
+    connected() { console.log('after connected'); },
+    disconnect() { console.log('before disconnect'); },
+    disconnected() { console.log('after disconnected'); },
+});
+`)
 
 export const component = (v, c) => [
 
@@ -163,6 +168,11 @@ export const component = (v, c) => [
         border-color: var(--accent);
     }
     `),
+
+    section(
+        h3('Context'),
+        pre().html(contextCode)
+    ),
 
     section(
         h3('Input'),

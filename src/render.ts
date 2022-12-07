@@ -1,29 +1,44 @@
-import { ContextData, Items } from './types.ts';
-import { Connect, Connected, Upgrade, Upgraded } from './cycle.ts';
+import { RenderCache } from './tool.ts';
 import Virtual from './virtual.ts';
 import Schedule from './schedule.ts';
 import Context from './context.ts';
 import Patch from './patch.ts';
 
-export default async function Render(target: () => Element, context: (virtual: any) => ContextData, component: (virtual: any, context: any) => Items) {
-    const update = async function () {
-        await Upgrade(target(), context);
-        Patch(target(), component(Virtual, context));
-        await Upgraded(target(), context);
+type ContextType = (virtual: any) => Record<any, any>;
+type ComponentType = (virtual: any, context: any) => Array<any>;
+
+export default async function Render(target: Element, context: ContextType, component: ComponentType) {
+    const instance: any = {};
+
+    instance.update = async function () {
+        if (instance.context.upgrade) await instance.context.upgrade()?.catch?.(console.error);
+        Patch(target, instance.component());
+        if (instance.context.upgraded) await instance.context.upgraded()?.catch(console.error);
     };
 
-    const change = async function () {
-        await Schedule(update, target());
+    instance.change = async function () {
+        await Schedule(target, instance.update);
     };
 
-    context = Context(context(Virtual), change);
+    instance.context = Context(context(Virtual), instance.change);
+    instance.component = component.bind(instance.context, Virtual, instance.context);
 
-    await Connect(target(), context);
-    await Schedule(update, target());
-    // await Upgrade(target(), context);
-    // Patch(target(), component(Virtual, context));
-    // await Upgraded(target(), context);
-    await Connected(target(), context);
+    instance.render = async function () {
+        const cache = RenderCache.get(target);
 
-    return { context, component };
+        // if (cache && cache !== instance.context && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+        // if (cache && cache !== instance.context && cache.disconnected) await cache.disconnected()?.catch(console.error);
+        if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+        if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
+
+        RenderCache.set(target, instance.context);
+
+        if (instance.context.connect) await instance.context.connect()?.catch?.(console.error);
+        await Schedule(target, instance.update);
+        if (instance.context.connected) await instance.context.connected()?.catch(console.error);
+    };
+
+    await instance.render();
+
+    return instance;
 }

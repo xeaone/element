@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>T</title>
+    </head>
+
+    <body>
+
+        <main></main>
+
+        <script>
+
+            const PatchAttributes = function (source, target) {
+                const targetAttributeNames = target.hasAttributes() ? [...target.getAttributeNames()] : [];
+                const sourceAttributeNames = source.hasAttributes() ? [...source.getAttributeNames()] : [];
+
+                for (const name of targetAttributeNames) {
+                    source.setAttribute(name, target.getAttribute(name));
+                }
+
+                for (const name of sourceAttributeNames) {
+                    if (!targetAttributeNames.includes(name)) {
+                        source.removeAttribute(name);
+                    }
+                }
+
+            };
+
+            const PatchAppend = function (parent, child) {
+                parent.appendChild(child);
+            };
+
+            const PatchRemove = function (parent) {
+                const child = parent.lastChild;
+                if (child) parent.removeChild(child);
+            };
+
+            const PatchCommon = function (source, target) {
+
+                if (source.nodeName !== target.nodeName) {
+                    source.parentNode.replaceChild(target, source);
+                }
+
+                if (target.nodeName === '#text') {
+
+                    if (source.nodeValue !== target.nodeValue) {
+                        source.nodeValue = target.nodeValue;
+                    }
+
+                    return;
+                }
+
+                // if (virtualAttributes['html']) {
+                //     PatchAttributes(node, target);
+                //     return;
+                // }
+
+                const targetChildren = [...target.childNodes];
+                const targetLength = targetChildren.length;
+                const sourceChildren = [...source.childNodes];
+                const sourceLength = sourceChildren.length;
+                const commonLength = Math.min(sourceLength, targetLength);
+
+                let index;
+
+                for (index = 0; index < commonLength; index++) {
+                    PatchCommon(sourceChildren[index], targetChildren[index]);
+                }
+
+                if (sourceLength > targetLength) {
+                    for (index = targetLength; index < sourceLength; index++) {
+                        PatchRemove(source);
+                    }
+                } else if (sourceLength < targetLength) {
+                    for (index = sourceLength; index < targetLength; index++) {
+                        PatchAppend(source, targetChildren[index]);
+                    }
+                }
+
+                PatchAttributes(source, target);
+            };
+
+            const Patch = function (source, target) {
+                let index;
+
+                const targetChildren = [...target.content.childNodes];
+                const targetLength = targetChildren.length;
+
+                const sourceChildren = [...source.childNodes];
+                const sourceLength = sourceChildren.length;
+
+                const commonLength = Math.min(sourceLength, targetLength);
+
+                for (index = 0; index < commonLength; index++) {
+                    PatchCommon(sourceChildren[index], targetChildren[index]);
+                }
+
+                if (sourceLength > targetLength) {
+                    for (index = targetLength; index < sourceLength; index++) {
+                        PatchRemove(source);
+                    }
+                } else if (sourceLength < targetLength) {
+                    for (index = sourceLength; index < targetLength; index++) {
+                        PatchAppend(source, targetChildren[index]);
+                    }
+                }
+            };
+
+            let html = function (strings, ...values) {
+                let data = '';
+                const on = {};
+
+                for (let index = 0; index < strings.length; index++) {
+                    const part = strings[index];
+                    const next = strings[index + 1];
+                    const value = values[index];
+
+                    if (part.endsWith('onclick="')) {
+                        const id = crypto.randomUUID();
+                        data += `${part.slice(0, -9)}x-onclick="${id}`;
+                        on[id] = value;
+                    } else if (value?.constructor === Array) {
+                        data += part;
+                        for (const v of value) {
+                            data += v.data;
+                            Object.assign(on, v.on);
+                        }
+                    } else {
+                        data += part;
+                        if (value !== undefined) data += `${value}`;
+                    }
+
+                }
+
+                return { data, on };
+            };
+
+            /*
+                app
+            */
+
+            const main = document.querySelector('main');
+
+            const state = {
+                count: 0,
+                title: 'The Count:',
+                numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                click(e) {
+                    console.log(e, this.count++);
+                    render();
+                }
+            };
+
+            const component = (s) => html`
+                <h1>${s.title} <i>${s.count}</i></h1>
+                <button onclick="${(e) => s.click(e)}">Click</button>
+                <div>
+                    ${s.numbers.map(number => html`<span>${number}</span>`)}
+                </div>
+            `;
+
+            const render = function () {
+                const template = document.createElement('template');
+                const instance = component(state);
+
+                template.innerHTML = instance.data;
+
+                const onElements = template.content.querySelectorAll('[x-onclick]');
+                for (const onElement of onElements) {
+                    const index = onElement.getAttribute('x-onclick');
+                    onElement.removeAttribute('x-onclick');
+                    onElement.addEventListener('click', instance.on[index]);
+                }
+
+                Patch(main, template);
+            };
+
+            render();
+        </script>
+
+    </body>
+
+</html>

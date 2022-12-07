@@ -1,34 +1,36 @@
-import Schedule from './schedule.ts';
-import Virtual from './virtual.ts';
 import Context from './context.ts';
+import Virtual from './virtual.ts';
+import Schedule from './schedule.ts';
 import Patch from './patch.ts';
 import Dash from './dash.ts';
-import { Connect, Connected, Upgrade, Upgraded } from './cycle.ts';
+import { $, RenderCache } from './tool.ts';
 
-const upgrade = Symbol('upgrade');
+// import Render from './render.ts';
 
-const DEFINED = new WeakSet();
-const CE = window.customElements;
-Object.defineProperty(window, 'customElements', {
-    get: () => ({
-        define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
-            if (constructor.prototype instanceof Component && !DEFINED.has(constructor)) {
-                constructor = new Proxy(constructor, {
-                    construct(target, args, extender) {
-                        const instance = Reflect.construct(target, args, extender);
-                        instance[upgrade]();
-                        return instance;
-                    },
-                });
+// const UPGRADE = Symbol('upgrade');
 
-                DEFINED.add(constructor);
-            }
-            CE.define(name, constructor, options);
-        },
-        get: CE.get,
-        whenDefined: CE.whenDefined,
-    }),
-});
+// const DEFINED = new WeakSet();
+// const CE = window.customElements;
+// Object.defineProperty(window, 'customElements', {
+//     get: () => ({
+//         define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
+//             if (constructor.prototype instanceof Component && !DEFINED.has(constructor)) {
+//                 constructor = new Proxy(constructor, {
+//                     construct(target, args, extender) {
+//                         const instance = Reflect.construct(target, args, extender);
+//                         instance[upgrade]();
+//                         return instance;
+//                     },
+//                 });
+
+//                 DEFINED.add(constructor);
+//             }
+//             CE.define(name, constructor, options);
+//         },
+//         get: CE.get,
+//         whenDefined: CE.whenDefined,
+//     }),
+// });
 
 export default class Component extends HTMLElement {
     // static slottedEvent = new Event('slotted');
@@ -63,8 +65,7 @@ export default class Component extends HTMLElement {
         return customElements.whenDefined(name);
     }
 
-    context;
-    component;
+    [$]: any = {};
 
     #root: any;
     #shadow: ShadowRoot;
@@ -85,35 +86,39 @@ export default class Component extends HTMLElement {
 
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
 
-        const update = async () => {
-            await Upgrade(this.#root, this.context);
-            Patch(this.#root, this.component());
-            await Upgraded(this.#root, this.context);
+        this[$].update = async () => {
+            if (this[$].context.upgrade) await this[$].context.upgrade()?.catch?.(console.error);
+            Patch(this.#root, this[$].component());
+            if (this[$].context.upgraded) await this[$].context.upgraded()?.catch(console.error);
         };
 
-        const change = async () => {
-            await Schedule(update, this.#root);
+        this[$].change = async () => {
+            await Schedule(this.#root, this[$].update);
         };
 
-        this.context = Context(context(Virtual), change);
-        this.component = component.bind(this.context, Virtual, this.context);
+        this[$].context = Context(context(Virtual), this[$].change);
+        this[$].component = component.bind(this[$].context, Virtual, this[$].context);
 
-        if (this.#root !== this) this[upgrade]();
+        this[$].render = async () => {
+            if (this.parentNode) {
+                const cache = RenderCache.get(this.parentNode);
+                // if (cache && cache !== this[$].context && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+                // if (cache && cache !== this[$].context && cache.disconnected) await cache.disconnected()?.catch(console.error);
+                if (cache  && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+                if (cache  && cache.disconnected) await cache.disconnected()?.catch(console.error);
+                RenderCache.set(this.parentNode, this[$].context);
+            }
+
+            if (this[$].context.connect) await this[$].context.connect()?.catch?.(console.error);
+            await Schedule(this.#root, this[$].update);
+            if (this[$].context.connected) await this[$].context.connected()?.catch(console.error);
+        };
+
+        // this[$].render();
     }
 
-    async [upgrade]() {
-        // Patch(this.#root, this.component());
-
-        const update = async () => {
-            await Upgrade(this.#root, this.context);
-            Patch(this.#root, this.component());
-            await Upgraded(this.#root, this.context);
-        };
-
-        await Connect(this.#root, this.context);
-        await Schedule(update, this.#root);
-        await Connected(this.#root, this.context);
-    }
+    // async [UPGRADE]() {
+    // }
 
     // async slottedCallback() {
     //     this.dispatchEvent(Component.slottingEvent);

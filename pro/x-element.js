@@ -2,24 +2,26 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
+const caches = new WeakMap();
 const tick = Promise.resolve();
-function Schedule(update, target) {
-    if (!Reflect.has(target, 'x')) {
-        Reflect.set(target, 'x', {});
+async function Schedule(update, target) {
+    let cache = caches.get(target);
+    if (!cache) {
+        cache = {};
+        caches.set(target, cache);
     }
-    const x = Reflect.get(target, 'x');
-    if (x.current) {
-        x.next = update;
+    if (cache.current) {
+        cache.next = update;
     } else {
-        x.current = tick.then(update).then(function() {
-            const next = x.next;
-            x.next = undefined;
-            x.current = undefined;
-            if (next) {
-                Schedule(next, target);
-            }
+        cache.current = tick.then(async function() {
+            if (cache.next) await cache.next();
+            else await update();
+            if (cache.next) await cache.next();
+            cache.next = undefined;
+            cache.current = undefined;
         });
     }
+    await cache.current;
 }
 function Dash(data) {
     return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
@@ -208,23 +210,18 @@ function Attribute(element, name, value, parameters) {
         Reflect.set(element, name, value);
         element.setAttribute(name, value);
     } else if (name.startsWith('on')) {
-        if (name === 'onframe') {
-            requestAnimationFrame(()=>value(element, name, value));
-            return;
-        }
         const original = Reflect.get(element, `xRaw${name}`);
-        if (original !== value) {
-            const wrapped = Reflect.get(element, `xWrap${name}`);
-            const wrap = function(e) {
-                if (parameters[0]?.prevent) e.preventDefault();
-                if (parameters[0]?.stop) e.stopPropagation();
-                return value(e);
-            };
-            Reflect.set(element, `xRaw${name}`, value);
-            Reflect.set(element, `xWrap${name}`, wrap);
-            element.addEventListener(name.slice(2), wrap, parameters?.[0]);
-            element.removeEventListener(name.slice(2), wrapped);
-        }
+        if (original === value) return;
+        const wrapped = Reflect.get(element, `xWrap${name}`);
+        const wrap = function(e) {
+            if (parameters[0]?.prevent) e.preventDefault();
+            if (parameters[0]?.stop) e.stopPropagation();
+            return value(e);
+        };
+        Reflect.set(element, `xRaw${name}`, value);
+        Reflect.set(element, `xWrap${name}`, wrap);
+        element.addEventListener(name.slice(2), wrap, parameters?.[0]);
+        element.removeEventListener(name.slice(2), wrapped);
         if (element.hasAttribute(name)) element.removeAttribute(name);
     } else if (BooleanAttributes.includes(name)) {
         const result = value ? true : false;
@@ -232,9 +229,9 @@ function Attribute(element, name, value, parameters) {
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
     } else if (name === 'html') {
-        const html = Reflect.get(element, 'xhtml');
-        if (html === value) return;
-        Reflect.set(element, 'xhtml', value);
+        const original1 = Reflect.get(element, 'xHtml');
+        if (original1 === value) return;
+        Reflect.set(element, 'xHtml', value);
         Reflect.set(element, 'innerHTML', value);
     } else {
         const display = Display(value);
@@ -269,6 +266,10 @@ const PatchCreateElement = function(owner, item) {
     const parameters = item[ParametersSymbol];
     const attributes = item[AttributesSymbol];
     const children = item[ChildrenSymbol];
+    if (attributes['html']) {
+        PatchAttributes(element, item);
+        return element;
+    }
     for (const child of children){
         PatchAppend(element, child);
     }
@@ -298,6 +299,7 @@ const PatchCommon = function(node, target) {
     const owner = node.ownerDocument;
     const virtualType = target?.[TypeSymbol];
     const virtualName = target?.[NameSymbol];
+    const virtualAttributes = target?.[AttributesSymbol];
     if (virtualType === CommentSymbol) {
         const value = Display(target);
         if (node.nodeName !== '#comment') {
@@ -332,7 +334,7 @@ const PatchCommon = function(node, target) {
     if (!(node instanceof Element)) {
         throw new Error('Patch - node type not handled');
     }
-    if (target.attributes['html']) {
+    if (virtualAttributes['html']) {
         PatchAttributes(node, target);
         return;
     }
@@ -379,6 +381,34 @@ function Patch(root, fragment) {
             PatchAppend(root, virtualChildren[index]);
         }
     }
+}
+async function Connect(target, context) {
+    const disconnect = Reflect.get(target, 'xDisconnect');
+    Reflect.set(target, 'xConnect', context.connect);
+    Reflect.set(target, 'xDisconnect', context.disconnect);
+    const connect = Reflect.get(target, 'xConnect');
+    if (disconnect) await disconnect();
+    if (connect) await connect();
+}
+async function Connected(target, context) {
+    const disconnected = Reflect.get(target, 'xDisconnected');
+    Reflect.set(target, 'xConnected', context.connected);
+    Reflect.set(target, 'xDisconnected', context.disconnected);
+    const connected = Reflect.get(target, 'xConnected');
+    if (disconnected) await disconnected();
+    if (connected) await connected();
+}
+async function Upgrade(target, context) {
+    if (!context.upgrade) return;
+    Reflect.set(target, 'xUpgrade', context.upgrade);
+    const upgrade = Reflect.get(target, 'xUpgrade');
+    if (upgrade) await upgrade();
+}
+async function Upgraded(target, context) {
+    if (!context.upgraded) return;
+    Reflect.set(target, 'xUpgraded', context.upgraded);
+    const upgraded = Reflect.get(target, 'xUpgraded');
+    if (upgraded) await upgraded();
 }
 const upgrade = Symbol('upgrade');
 const DEFINED = new WeakSet();
@@ -428,31 +458,28 @@ class Component extends HTMLElement {
         else if (options.root === 'shadow') this.#root = this.shadowRoot;
         else this.#root = this.shadowRoot;
         if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
-        const update = ()=>Patch(this.#root, this.component());
-        const change = ()=>Schedule(update, this.#root);
-        this.context = ContextCreate(context(), change);
+        const update = async ()=>{
+            await Upgrade(this.#root, this.context);
+            Patch(this.#root, this.component());
+            await Upgraded(this.#root, this.context);
+        };
+        const change = async ()=>{
+            await Schedule(update, this.#root);
+        };
+        this.context = ContextCreate(context(__default), change);
         this.component = component.bind(this.context, __default, this.context);
         if (this.#root !== this) this[upgrade]();
     }
-    [upgrade]() {
-        Patch(this.#root, this.component());
+    async [upgrade]() {
+        const update = async ()=>{
+            await Upgrade(this.#root, this.context);
+            Patch(this.#root, this.component());
+            await Upgraded(this.#root, this.context);
+        };
+        await Connect(this.#root, this.context);
+        await Schedule(update, this.#root);
+        await Connected(this.#root, this.context);
     }
-}
-async function Connect(target, context) {
-    const disconnect = Reflect.get(target, 'xDisconnect');
-    Reflect.set(target, 'xConnect', context.connect);
-    Reflect.set(target, 'xDisconnect', context.disconnect);
-    const connect = Reflect.get(target, 'xConnect');
-    if (disconnect) await disconnect();
-    if (connect) await connect();
-}
-async function Connected(target, context) {
-    const disconnected = Reflect.get(target, 'xDisconnected');
-    Reflect.set(target, 'xConnected', context.connected);
-    Reflect.set(target, 'xDisconnected', context.disconnected);
-    const connected = Reflect.get(target, 'xConnected');
-    if (disconnected) await disconnected();
-    if (connected) await connected();
 }
 const alls = [];
 const routes = [];
@@ -493,8 +520,10 @@ const transition = async function(route) {
                 console.error(error3);
             }
         } else {
-            const update = function() {
+            const update = async function() {
+                await Upgrade(route.target, route.instance.context);
                 Patch(route.target, route.component(__default, context));
+                await Upgraded(route.target, route.instance.context);
             };
             const change = async function() {
                 await Schedule(update, route.target);
@@ -592,13 +621,19 @@ function router(path, target, component, context, cache) {
     }
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
-function Render(target, context, component) {
-    const update = async function() {};
-    context = ContextCreate(context(), update);
-    component = component.bind(null, __default, context);
-    Connect(target(), context);
-    Patch(target(), component());
-    Connected(target(), context);
+async function Render(target, context, component) {
+    const update = async function() {
+        await Upgrade(target(), context);
+        Patch(target(), component(__default, context));
+        await Upgraded(target(), context);
+    };
+    const change = async function() {
+        await Schedule(update, target());
+    };
+    context = ContextCreate(context(__default), change);
+    await Connect(target(), context);
+    await Schedule(update, target());
+    await Connected(target(), context);
     return {
         context,
         component

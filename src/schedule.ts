@@ -5,7 +5,7 @@ const tick = Promise.resolve();
 
 const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
 
-export default async function Schedule(update: Update, target: Element) {
+export default async function Schedule(target: Element, update: Update) {
     let cache = caches.get(target);
 
     if (!cache) {

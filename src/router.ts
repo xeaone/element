@@ -1,10 +1,7 @@
-import { Connect, Connected, Upgrade, Upgraded } from './cycle.ts';
 import Component from './component.ts';
-import Schedule from './schedule.ts';
-import Context from './context.ts';
-import Virtual from './virtual.ts';
-import Patch from './patch.ts';
+import Render from './render.ts';
 import Dash from './dash.ts';
+import { $ } from './tool.ts';
 
 type Route = {
     path?: string;
@@ -16,92 +13,36 @@ type Route = {
     construct?: any;
 
     name?: string;
-    target?: Element;
+    target: Element;
 };
 
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
 
 const transition = async function (route: Route) {
-    if (!route.target) throw new Error('XElement - transition target option required');
-
-    // const current = Reflect.get(route.target, 'xRouterCurrent');
-    // if (current) current.instance.childNodes = Array.from(current.target.childNodes);
-
     if (route.cache && route.instance) {
-        try {
-            await Connect(route.target, route.instance.context);
-
-            if (route.instance instanceof Component) {
-                route.target.replaceChildren(route.instance);
-            } else {
-                await route.instance.change();
-            }
-
-            try {
-                await Connected(route.target, route.instance.context);
-            } catch (error) {
-                console.error(error);
-            }
-        } catch (error) {
-            console.error(error);
+        if (route.instance instanceof Component || route.instance.prototype instanceof Component) {
+            route.target.replaceChildren(route.instance);
+            await route.instance[$].render();
+        } else {
+            await route.instance.render();
         }
     } else {
-        if (route.component instanceof Component) {
-            try {
-                await Connect(route.target, route.instance.context);
+        if (route.component instanceof Component || route.component.prototype instanceof Component) {
+            route.name = route.name ?? Dash(route.component.name);
 
-                route.name = route.name ?? Dash(route.construct.name);
+            if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
 
-                if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
+            if (!customElements.get(route.name)) customElements.define(route.name, route.component);
+            await customElements.whenDefined(route.name);
 
-                if (!customElements.get(route.name)) customElements.define(route.name, route.construct);
-                await customElements.whenDefined(route.name);
-
-                route.instance = document.createElement(route.name);
-                route.target.replaceChildren(route.instance);
-
-                try {
-                    await Connected(route.target, route.instance.context);
-                } catch (error) {
-                    console.error(error);
-                }
-            } catch (error) {
-                console.error(error);
-            }
+            route.instance = document.createElement(route.name);
+            route.target.replaceChildren(route.instance);
+            route.instance[$].render();
         } else {
-            const update = async function () {
-                await Upgrade(route.target as Element, route.instance.context);
-                Patch(route.target as Element, route.component(Virtual, context));
-                await Upgraded(route.target as Element, route.instance.context);
-            };
-
-            const change = async function () {
-                await Schedule(update, route.target as Element);
-            };
-
-            const context = Context(route.context(), change);
-
-            route.instance = { context, change };
-
-            try {
-                await Connect(route.target, route.instance.context);
-
-                await change();
-
-                try {
-                    await Connected(route.target, route.instance.context);
-                } catch (error) {
-                    console.error(error);
-                }
-            } catch (error) {
-                console.error(error);
-            }
+            route.instance = await Render(route.target, route.context, route.component);
         }
     }
-
-    // Reflect.set(route.target, 'xRouterBusy', false);
-    // Reflect.set(route.target, 'xRouterCurrent', route);
 };
 
 const navigate = function (event?: any) {
@@ -173,7 +114,7 @@ export default function router(path: string, target: Element, component: any, co
     if (!path) throw new Error('XElement - router path required');
     if (!target) throw new Error('XElement - router target required');
     if (!component) throw new Error('XElement - router component required');
-    if (!(component instanceof Component) && !context) throw new Error('XElement - router context required');
+    if (!(component instanceof Component || component.prototype instanceof Component) && !context) throw new Error('XElement - router context required');
 
     if (path === '/*') {
         for (const all of alls) {
