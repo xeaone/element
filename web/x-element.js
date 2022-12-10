@@ -96,118 +96,6 @@ const ContextCreate = function(data, method) {
 function Define(name, constructor) {
     customElements.define(name, constructor);
 }
-const attributes = function(source, target) {
-    const targetAttributeNames = target.hasAttributes() ? [
-        ...target.getAttributeNames()
-    ] : [];
-    const sourceAttributeNames = source.hasAttributes() ? [
-        ...source.getAttributeNames()
-    ] : [];
-    for (const name of targetAttributeNames){
-        source.setAttribute(name, target.getAttribute(name) ?? '');
-    }
-    for (const name1 of sourceAttributeNames){
-        if (!targetAttributeNames.includes(name1)) {
-            source.removeAttribute(name1);
-        }
-    }
-};
-const append = function(parent, child) {
-    parent.appendChild(child);
-};
-const remove = function(parent) {
-    const child = parent.lastChild;
-    if (child) parent.removeChild(child);
-};
-const common = function(source, target) {
-    if (!source.parentNode) throw new Error('source parent node not found');
-    if (source.nodeName !== target.nodeName) {
-        source.parentNode?.replaceChild(target, source);
-    }
-    if (target.nodeName === '#text') {
-        if (source.nodeValue !== target.nodeValue) {
-            source.nodeValue = target.nodeValue;
-        }
-        return;
-    }
-    if (target.nodeName === '#comment') {
-        if (source.nodeValue !== target.nodeValue) {
-            source.nodeValue = target.nodeValue;
-        }
-        return;
-    }
-    if (!(source instanceof Element)) throw new Error('source node not valid');
-    if (!(target instanceof Element)) throw new Error('target node not valid');
-    const targetChildren = [
-        ...target.childNodes
-    ];
-    const targetLength = targetChildren.length;
-    const sourceChildren = [
-        ...source.childNodes
-    ];
-    const sourceLength = sourceChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    let index;
-    for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index]);
-    }
-    if (sourceLength > targetLength) {
-        for(index = targetLength; index < sourceLength; index++){
-            remove(source);
-        }
-    } else if (sourceLength < targetLength) {
-        for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index]);
-        }
-    }
-    attributes(source, target);
-};
-function patch(source, target) {
-    let index;
-    const targetChildren = [
-        ...target.childNodes
-    ];
-    const targetLength = targetChildren.length;
-    const sourceChildren = [
-        ...source.childNodes
-    ];
-    const sourceLength = sourceChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index]);
-    }
-    if (sourceLength > targetLength) {
-        for(index = targetLength; index < sourceLength; index++){
-            remove(source);
-        }
-    } else if (sourceLength < targetLength) {
-        for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index]);
-        }
-    }
-}
-function Display(data) {
-    switch(typeof data){
-        case 'undefined':
-            return '';
-        case 'string':
-            return data;
-        case 'number':
-            return `${data}`;
-        case 'bigint':
-            return `${data}`;
-        case 'boolean':
-            return `${data}`;
-        case 'function':
-            return `${data()}`;
-        case 'symbol':
-            return String(data);
-        case 'object':
-            return JSON.stringify(data);
-        default:
-            throw new Error('Display - type not handled');
-    }
-}
 Symbol('$');
 Symbol('name');
 Symbol('value');
@@ -266,6 +154,193 @@ const BooleanAttributes = [
     'typemustmatch',
     'visible'
 ];
+function Display(data) {
+    switch(typeof data){
+        case 'undefined':
+            return '';
+        case 'string':
+            return data;
+        case 'number':
+            return `${data}`;
+        case 'bigint':
+            return `${data}`;
+        case 'boolean':
+            return `${data}`;
+        case 'function':
+            return `${data()}`;
+        case 'symbol':
+            return String(data);
+        case 'object':
+            return JSON.stringify(data);
+        default:
+            throw new Error('Display - type not handled');
+    }
+}
+const OnCache = new WeakMap();
+const attributes = function(source, target, bindings) {
+    const targetAttributeNames = target.hasAttributes() ? [
+        ...target.getAttributeNames()
+    ] : [];
+    const sourceAttributeNames = source.hasAttributes() ? [
+        ...source.getAttributeNames()
+    ] : [];
+    for (const name of targetAttributeNames){
+        if (name === 'data-x-value') {
+            const { value  } = bindings[target.getAttribute(name)];
+            const result = `${value == undefined ? '' : value}`;
+            if (source.getAttribute('value') === result) continue;
+            Reflect.set(source, 'value', result);
+            source.setAttribute('value', result);
+        } else if (name.startsWith('data-x-on')) {
+            const { value: value1  } = bindings[target.getAttribute(name)];
+            if (OnCache.get(source) === value1) continue;
+            source.addEventListener(name.slice(9), value1);
+        } else if (BooleanAttributes.includes(name.slice(7))) {
+            const { value: value2  } = bindings[target.getAttribute(name)];
+            const slice = name.slice(7);
+            const result1 = value2 ? true : false;
+            const has = source.hasAttribute(slice);
+            if (has === result1) continue;
+            Reflect.set(source, name, result1);
+            if (result1) source.setAttribute(slice, '');
+            else source.removeAttribute(slice);
+        } else if (name.startsWith('data-x')) {
+            const { value: value3  } = bindings[target.getAttribute(name)];
+            const slice1 = name.slice(7);
+            const result2 = Display(value3);
+            console.log(result2, value3, source);
+            if (source.getAttribute(slice1) === result2) continue;
+            source.setAttribute(slice1, result2);
+        } else {
+            const sourceAttributeValue = source.getAttribute(name);
+            const targetAttributeValue = target.getAttribute(name);
+            if (sourceAttributeValue !== targetAttributeValue) {
+                source.setAttribute(name, targetAttributeValue);
+                Reflect.set(source, name, targetAttributeValue);
+            }
+        }
+    }
+    for (const name1 of sourceAttributeNames){
+        if (targetAttributeNames.includes(`data-x-${name1}`)) continue;
+        if (!targetAttributeNames.includes(name1)) source.removeAttribute(name1);
+    }
+};
+const children = function(node, bindings) {
+    if (node instanceof Element) {
+        const nodeAttributeNames = node.hasAttributes() ? [
+            ...node.getAttributeNames()
+        ] : [];
+        for (const name of nodeAttributeNames){
+            if (name === 'data-x-value') {
+                const { value  } = bindings[node.getAttribute(name)];
+                const result = `${value == undefined ? '' : value}`;
+                Reflect.set(node, 'value', result);
+                node.setAttribute('value', result);
+                node.removeAttribute(name);
+            } else if (name.startsWith('data-x-on')) {
+                const { value: value1  } = bindings[node.getAttribute(name)];
+                OnCache.set(node, value1);
+                node.addEventListener(name.slice(9), value1);
+                node.removeAttribute(name);
+            } else if (BooleanAttributes.includes(name.slice(7))) {
+                const { value: value2  } = bindings[node.getAttribute(name)];
+                const slice = name.slice(7);
+                const result1 = value2 ? true : false;
+                Reflect.set(node, name, result1);
+                if (result1) node.setAttribute(slice, '');
+                else node.removeAttribute(slice);
+                node.removeAttribute(name);
+            } else if (name.startsWith('data-x')) {
+                const { value: value3  } = bindings[node.getAttribute(name)];
+                const slice1 = name.slice(7);
+                const result2 = Display(value3);
+                node.setAttribute(slice1, result2);
+                node.removeAttribute(name);
+            }
+        }
+    }
+    let child = node.firstChild;
+    while(child){
+        children(child, bindings);
+        child = child.nextSibling;
+    }
+};
+const append = function(parent, child, bindings) {
+    children(child, bindings);
+    parent.appendChild(child);
+};
+const remove = function(parent) {
+    const child = parent.lastChild;
+    if (child) parent.removeChild(child);
+};
+const common = function(source, target, bindings) {
+    if (!source.parentNode) throw new Error('source parent node not found');
+    if (source.nodeName !== target.nodeName) {
+        source.parentNode?.replaceChild(target, source);
+        return;
+    }
+    if (target.nodeName === '#text') {
+        if (source.nodeValue !== target.nodeValue) {
+            source.nodeValue = target.nodeValue;
+        }
+        return;
+    }
+    if (target.nodeName === '#comment') {
+        if (source.nodeValue !== target.nodeValue) {
+            source.nodeValue = target.nodeValue;
+        }
+        return;
+    }
+    if (!(source instanceof Element)) throw new Error('source node not valid');
+    if (!(target instanceof Element)) throw new Error('target node not valid');
+    const targetChildren = [
+        ...target.childNodes
+    ];
+    const targetLength = targetChildren.length;
+    const sourceChildren = [
+        ...source.childNodes
+    ];
+    const sourceLength = sourceChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    let index;
+    for(index = 0; index < commonLength; index++){
+        common(sourceChildren[index], targetChildren[index], bindings);
+    }
+    if (sourceLength > targetLength) {
+        for(index = targetLength; index < sourceLength; index++){
+            remove(source);
+        }
+    } else if (sourceLength < targetLength) {
+        for(index = sourceLength; index < targetLength; index++){
+            append(source, targetChildren[index], bindings);
+        }
+    }
+    attributes(source, target, bindings);
+};
+function patch(source, target, bindings) {
+    let index;
+    const targetChildren = [
+        ...target.childNodes
+    ];
+    const targetLength = targetChildren.length;
+    const sourceChildren = [
+        ...source.childNodes
+    ];
+    const sourceLength = sourceChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    for(index = 0; index < commonLength; index++){
+        common(sourceChildren[index], targetChildren[index], bindings);
+    }
+    if (sourceLength > targetLength) {
+        for(index = targetLength; index < sourceLength; index++){
+            remove(source);
+        }
+    } else if (sourceLength < targetLength) {
+        for(index = sourceLength; index < targetLength; index++){
+            append(source, targetChildren[index], bindings);
+        }
+    }
+}
 const HtmlNameSymbol = Symbol('HtmlName');
 const HtmlValueSymbol = Symbol('HtmlValue');
 function html(strings, ...values) {
@@ -275,10 +350,10 @@ function html(strings, ...values) {
         const part = strings[index];
         const value = values[index];
         const name = part.match(/\b([a-zA-Z-]+)=$/)?.[1] ?? '';
-        if (name.startsWith('on')) {
+        if (name) {
             const end = name.length + 1;
             const id = crypto.randomUUID();
-            data += `${part.slice(0, -end)}data-x-${id}`;
+            data += `${part.slice(0, -end)}data-x-${name}="${id}"`;
             bindings[id] = {
                 name,
                 value,
@@ -289,19 +364,14 @@ function html(strings, ...values) {
             Object.assign(bindings, value.bindings);
         } else if (value?.constructor === Array) {
             data += part;
-            for (const v of value){
-                data += v.data;
-                Object.assign(bindings, v.bindings);
+            for (const item of value){
+                if (item[HtmlNameSymbol] === HtmlValueSymbol) {
+                    data += item.data;
+                    Object.assign(bindings, item.bindings);
+                } else {
+                    data += `${Display(value)}`;
+                }
             }
-        } else if (BooleanAttributes.includes(name)) {
-            if (value) {
-                data += part.slice(0, -1);
-            } else {
-                const end1 = name.length + 1;
-                data += part.slice(0, -end1);
-            }
-        } else if (name) {
-            data += `${part}"${Display(value)}"`;
         } else {
             data += `${part}${Display(value)}`;
         }
@@ -317,16 +387,7 @@ function render(root, context, component) {
     const { data , bindings  } = componentInstance;
     const template = document.createElement('template');
     template.innerHTML = data;
-    for(const id in bindings){
-        const binding = bindings[id];
-        const element = template.content.querySelector(`[data-x-${binding.id}]`);
-        if (!element) throw new Error('query not found');
-        if (binding.name.startsWith('on')) {
-            element.addEventListener(binding.name.slice(2), binding.value.bind(context));
-        }
-        element.removeAttribute(`data-x-${binding.id}`);
-    }
-    patch(root, template.content);
+    patch(root, template.content, bindings);
 }
 function mount(root, context, component) {
     const update = function() {
@@ -341,6 +402,7 @@ function mount(root, context, component) {
 const alls = [];
 const routes = [];
 const transition = function(route) {
+    console.log(route);
     if (route.render) {
         route.render();
     } else {

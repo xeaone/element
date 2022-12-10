@@ -40,14 +40,16 @@ const classCode = Highlight(classComponenet.toString());
 const fruitsComponenet = (html, c) => html`
     <div>${c.fruit}</div>
     <select value=${c.fruit} oninput=${(e) => c.fruit = e.target.value}>
-        ${c.fruits.map(fruit => html`<option value=${fruit}>${fruit}</option>`)}
+        ${c.fruits.map(fruit => html`
+            <option value=${fruit}>${fruit}</option>
+        `)}
     </select>
 `;
 const fruitsCode = Highlight(fruitsComponenet.toString());
 
 const carsComponenet = (html, c) => html`
     <div>${c.car}</div>
-    <select value=${c.car} oninput=${(e) => c.car = [ ...e.target.selectedOptions ].map(o => o.value)}>
+    <select oninput=${(e) => c.car = Array.from(e.target.selectedOptions).map(o => o.value)}>
         ${c.cars.map(car => html`
             <option value=${car} selected=${c.car.includes(car)}>${car}</option>
         `)}

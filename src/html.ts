@@ -14,30 +14,34 @@ export default function html(strings: string[], ...values: any[]) {
         const value = values[index];
         const name = part.match(/\b([a-zA-Z-]+)=$/)?.[1] ?? '';
 
-        if (name.startsWith('on')) {
+        if (name) {
             // const id = ids++;
             const end = name.length + 1;
             const id = crypto.randomUUID();
-            data += `${part.slice(0, -end)}data-x-${id}`;
+            data += `${part.slice(0, -end)}data-x-${name}="${id}"`;
             bindings[id] = { name, value, id };
         } else if (value?.constructor === Object && value[HtmlNameSymbol] === HtmlValueSymbol) {
             data += value.data;
             Object.assign(bindings, value.bindings);
         } else if (value?.constructor === Array) {
             data += part;
-            for (const v of value) {
-                data += v.data;
-                Object.assign(bindings, v.bindings);
+            for (const item of value) {
+                if (item[HtmlNameSymbol] === HtmlValueSymbol) {
+                    data += item.data;
+                    Object.assign(bindings, item.bindings);
+                } else {
+                    data += `${display(value)}`;
+                }
             }
-        } else if (BooleanAttributes.includes(name)) {
-            if (value) {
-                data += part.slice(0, -1);
-            } else {
-                const end = name.length + 1;
-                data += part.slice(0, -end);
-            }
-        } else if (name) {
-            data += `${part}"${display(value)}"`;
+        // } else if (BooleanAttributes.includes(name)) {
+        //     if (value) {
+        //         data += part.slice(0, -1);
+        //     } else {
+        //         const end = name.length + 1;
+        //         data += part.slice(0, -end);
+        //     }
+            // } else if (name) {
+            // data += `${part}"${display(value)}"`;
         } else {
             data += `${part}${display(value)}`;
         }

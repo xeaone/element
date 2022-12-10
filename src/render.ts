@@ -55,18 +55,18 @@ export default function render(root: Element, context: any, component: any) {
     // script.textContent = `console.log(document.currentScript.parentElement)`;
     // template.content.appendChild(script);
 
-    for (const id in bindings) {
-        const binding = bindings[id];
-        const element = template.content.querySelector(`[data-x-${binding.id}]`);
+    // for (const id in bindings) {
+    //     const binding = bindings[id];
+    //     const element = template.content.querySelector(`[data-x-${binding.id}]`);
 
-        if (!element) throw new Error('query not found');
+    //     if (!element) throw new Error('element not found');
 
-        if (binding.name.startsWith('on')) {
-            element.addEventListener(binding.name.slice(2), binding.value.bind(context));
-        }
+    //     if (binding.name.startsWith('on')) {
+    //         element.addEventListener(binding.name.slice(2), binding.value.bind(context));
+    //     }
 
-        element.removeAttribute(`data-x-${binding.id}`);
-    }
+    //     element.removeAttribute(`data-x-${binding.id}`);
+    // }
 
-    patch(root, template.content);
+    patch(root, template.content, bindings);
 }

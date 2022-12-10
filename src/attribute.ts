@@ -1,8 +1,8 @@
 import { BooleanAttributes, DateAttributes, ValueSymbol } from './tool.ts';
 import Display from './display.ts';
 
-export default function Attribute(element: Element, name: string, value: any, parameters: any) {
-    if (name === 'value') {
+export default function attribute(element: Element, name: string, bindings: any) {
+    if (name === 'data-x-value') {
         // const type = Reflect.get(element, 'type');
 
         // if (typeof value === 'number' && DateAttributes.includes(type)) {
@@ -22,6 +22,7 @@ export default function Attribute(element: Element, name: string, value: any, pa
         //     else if (type === 'month') value = iso.slice(0, 7);
         //     else if (type === 'datetime-local') value = iso.slice(0, -1);
         // }
+        const value = bindings[element.getAttribute(name) as string];
 
         value = `${value == undefined ? '' : value}`;
 

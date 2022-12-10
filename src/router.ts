@@ -42,6 +42,7 @@ const transition = function (route: Route) {
     //     route.instance[$].render();
 
     // }
+    console.log(route);
     if (route.render) {
         route.render();
     } else {
