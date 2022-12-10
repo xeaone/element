@@ -1,17 +1,20 @@
-// import Component from './component.ts';
+import Component from './component.ts';
 import Schedule from './schedule.ts';
+import Virtual from './virtual.ts';
 import Context from './context.ts';
 import Define from './define.ts';
 import Router from './router.ts';
 import Render from './render.ts';
 import Patch from './patch.ts';
-import Mount from './mount.ts';
 
-// export { Component };
-// export { Component as component };
+export { Component };
+export { Component as component };
 
 export { Schedule };
 export { Schedule as schedule };
+
+export { Virtual };
+export { Virtual as virtual };
 
 export { Context };
 export { Context as context };
@@ -28,26 +31,23 @@ export { Render as render };
 export { Patch };
 export { Patch as patch };
 
-export { Mount };
-export { Mount as mount };
-
 const Index = {
-    // Component,
+    Component,
     Schedule,
+    Virtual,
     Context,
     Define,
     Router,
     Render,
     Patch,
-    Mount,
-    // component: Component,
+    component: Component,
     schedule: Schedule,
+    virtual: Virtual,
     context: Context,
     define: Define,
     router: Router,
     render: Render,
     patch: Patch,
-    mount: Mount,
 };
 
 export default Index;

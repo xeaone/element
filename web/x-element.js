@@ -2,6 +2,39 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
+const ScheduleCache = new WeakMap();
+const ScheduleNext = Promise.resolve();
+async function Schedule(target, update) {
+    let cache = ScheduleCache.get(target);
+    if (!cache) {
+        cache = {
+            resolves: []
+        };
+        ScheduleCache.set(target, cache);
+    }
+    if (cache.current) {
+        clearTimeout(cache.timer);
+        cache.update = update;
+    } else {
+        cache.update = update;
+    }
+    cache.current = new Promise((resolve)=>{
+        cache.resolves.push(resolve);
+        cache.timer = setTimeout(function ScheduleTime() {
+            let r;
+            const rs = cache.resolves;
+            const u = cache.update;
+            cache.current = undefined;
+            cache.update = undefined;
+            cache.timer = undefined;
+            cache.resolves = [];
+            ScheduleNext.then(u).then(function ScheduleResolves() {
+                for (r of rs)r();
+            });
+        }, 100);
+    });
+    await cache.current;
+}
 const ContextCache = new WeakMap();
 const ContextNext = Promise.resolve();
 const ContextSet = function(method, target, key, value, receiver) {
@@ -60,21 +93,133 @@ const ContextCreate = function(data, method) {
         deleteProperty: ContextDelete.bind(null, method)
     });
 };
-function Dash(data) {
-    return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
+function Define(name, constructor) {
+    customElements.define(name, constructor);
 }
-const $ = Symbol('$');
-const NameSymbol = Symbol('name');
+const attributes = function(source, target) {
+    const targetAttributeNames = target.hasAttributes() ? [
+        ...target.getAttributeNames()
+    ] : [];
+    const sourceAttributeNames = source.hasAttributes() ? [
+        ...source.getAttributeNames()
+    ] : [];
+    for (const name of targetAttributeNames){
+        source.setAttribute(name, target.getAttribute(name) ?? '');
+    }
+    for (const name1 of sourceAttributeNames){
+        if (!targetAttributeNames.includes(name1)) {
+            source.removeAttribute(name1);
+        }
+    }
+};
+const append = function(parent, child) {
+    parent.appendChild(child);
+};
+const remove = function(parent) {
+    const child = parent.lastChild;
+    if (child) parent.removeChild(child);
+};
+const common = function(source, target) {
+    if (!source.parentNode) throw new Error('source parent node not found');
+    if (source.nodeName !== target.nodeName) {
+        source.parentNode?.replaceChild(target, source);
+    }
+    if (target.nodeName === '#text') {
+        if (source.nodeValue !== target.nodeValue) {
+            source.nodeValue = target.nodeValue;
+        }
+        return;
+    }
+    if (target.nodeName === '#comment') {
+        if (source.nodeValue !== target.nodeValue) {
+            source.nodeValue = target.nodeValue;
+        }
+        return;
+    }
+    if (!(source instanceof Element)) throw new Error('source node not valid');
+    if (!(target instanceof Element)) throw new Error('target node not valid');
+    const targetChildren = [
+        ...target.childNodes
+    ];
+    const targetLength = targetChildren.length;
+    const sourceChildren = [
+        ...source.childNodes
+    ];
+    const sourceLength = sourceChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    let index;
+    for(index = 0; index < commonLength; index++){
+        common(sourceChildren[index], targetChildren[index]);
+    }
+    if (sourceLength > targetLength) {
+        for(index = targetLength; index < sourceLength; index++){
+            remove(source);
+        }
+    } else if (sourceLength < targetLength) {
+        for(index = sourceLength; index < targetLength; index++){
+            append(source, targetChildren[index]);
+        }
+    }
+    attributes(source, target);
+};
+function patch(source, target) {
+    let index;
+    const targetChildren = [
+        ...target.childNodes
+    ];
+    const targetLength = targetChildren.length;
+    const sourceChildren = [
+        ...source.childNodes
+    ];
+    const sourceLength = sourceChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    for(index = 0; index < commonLength; index++){
+        common(sourceChildren[index], targetChildren[index]);
+    }
+    if (sourceLength > targetLength) {
+        for(index = targetLength; index < sourceLength; index++){
+            remove(source);
+        }
+    } else if (sourceLength < targetLength) {
+        for(index = sourceLength; index < targetLength; index++){
+            append(source, targetChildren[index]);
+        }
+    }
+}
+function Display(data) {
+    switch(typeof data){
+        case 'undefined':
+            return '';
+        case 'string':
+            return data;
+        case 'number':
+            return `${data}`;
+        case 'bigint':
+            return `${data}`;
+        case 'boolean':
+            return `${data}`;
+        case 'function':
+            return `${data()}`;
+        case 'symbol':
+            return String(data);
+        case 'object':
+            return JSON.stringify(data);
+        default:
+            throw new Error('Display - type not handled');
+    }
+}
+Symbol('$');
+Symbol('name');
 Symbol('value');
 Symbol('self');
-const CdataSymbol = Symbol('cdata');
-const CommentSymbol = Symbol('comment');
-const TypeSymbol = Symbol('type');
-const ElementSymbol = Symbol('element');
-const ChildrenSymbol = Symbol('children');
-const AttributesSymbol = Symbol('attributes');
-const ParametersSymbol = Symbol('parameters');
-const RenderCache = new WeakMap();
+Symbol('cdata');
+Symbol('comment');
+Symbol('type');
+Symbol('element');
+Symbol('children');
+Symbol('attributes');
+Symbol('parameters');
+new WeakMap();
 const BooleanAttributes = [
     'allowfullscreen',
     'async',
@@ -121,381 +266,85 @@ const BooleanAttributes = [
     'typemustmatch',
     'visible'
 ];
-const Virtual = new Proxy({}, {
-    get (eTarget, eName, eReceiver) {
-        if (typeof eName === 'symbol') return Reflect.get(eTarget, eName, eReceiver);
-        if (eName === 'comment') {
-            return function CommentProxy(...value) {
-                return {
-                    name: eName,
-                    value: value.join(''),
-                    [TypeSymbol]: CommentSymbol
-                };
+const HtmlNameSymbol = Symbol('HtmlName');
+const HtmlValueSymbol = Symbol('HtmlValue');
+function html(strings, ...values) {
+    let data = '';
+    const bindings = {};
+    for(let index = 0; index < strings.length; index++){
+        const part = strings[index];
+        const value = values[index];
+        const name = part.match(/\b([a-zA-Z-]+)=$/)?.[1] ?? '';
+        if (name.startsWith('on')) {
+            const end = name.length + 1;
+            const id = crypto.randomUUID();
+            data += `${part.slice(0, -end)}data-x-${id}`;
+            bindings[id] = {
+                name,
+                value,
+                id
             };
-        }
-        if (eName === 'cdata') {
-            return function CdataProxy(...value) {
-                return {
-                    name: eName,
-                    value: value.join(''),
-                    [TypeSymbol]: CdataSymbol
-                };
-            };
-        }
-        return function ElementProxy(...children) {
-            return new Proxy({
-                [AttributesSymbol]: {},
-                [ParametersSymbol]: {},
-                [ChildrenSymbol]: children,
-                [TypeSymbol]: ElementSymbol,
-                [NameSymbol]: Dash(eName).toUpperCase()
-            }, {
-                get (aTarget, aName, aReceiver) {
-                    if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
-                    return function AttributeProxy(aValue, ...aParameters) {
-                        Reflect.set(aTarget[AttributesSymbol], aName, aValue);
-                        Reflect.set(aTarget[ParametersSymbol], aName, aParameters);
-                        return aReceiver;
-                    };
-                }
-            });
-        };
-    }
-});
-const ScheduleCache = new WeakMap();
-const ScheduleNext = Promise.resolve();
-async function Schedule(target, update) {
-    let cache = ScheduleCache.get(target);
-    if (!cache) {
-        cache = {
-            resolves: []
-        };
-        ScheduleCache.set(target, cache);
-    }
-    if (cache.current) {
-        clearTimeout(cache.timer);
-        cache.update = update;
-    } else {
-        cache.update = update;
-    }
-    cache.current = new Promise((resolve)=>{
-        cache.resolves.push(resolve);
-        cache.timer = setTimeout(function ScheduleTime() {
-            let r;
-            const rs = cache.resolves;
-            const u = cache.update;
-            cache.current = undefined;
-            cache.update = undefined;
-            cache.timer = undefined;
-            cache.resolves = [];
-            ScheduleNext.then(u).then(function ScheduleResolves() {
-                for (r of rs)r();
-            });
-        }, 100);
-    });
-    await cache.current;
-}
-function Display(data) {
-    switch(typeof data){
-        case 'undefined':
-            return '';
-        case 'string':
-            return data;
-        case 'number':
-            return `${data}`;
-        case 'bigint':
-            return `${data}`;
-        case 'boolean':
-            return `${data}`;
-        case 'function':
-            return `${data()}`;
-        case 'symbol':
-            return String(data);
-        case 'object':
-            return JSON.stringify(data);
-        default:
-            throw new Error('Display - type not handled');
-    }
-}
-function Attribute(element, name, value, parameters) {
-    if (name === 'value') {
-        value = `${value == undefined ? '' : value}`;
-        if (element.getAttribute(name) === value) return;
-        Reflect.set(element, name, value);
-        element.setAttribute(name, value);
-    } else if (name.startsWith('on')) {
-        const original = Reflect.get(element, `xRaw${name}`);
-        if (original === value) return;
-        const wrapped = Reflect.get(element, `xWrap${name}`);
-        const wrap = function(e) {
-            if (parameters[0]?.prevent) e.preventDefault();
-            if (parameters[0]?.stop) e.stopPropagation();
-            return value(e);
-        };
-        Reflect.set(element, `xRaw${name}`, value);
-        Reflect.set(element, `xWrap${name}`, wrap);
-        element.addEventListener(name.slice(2), wrap, parameters?.[0]);
-        element.removeEventListener(name.slice(2), wrapped);
-        if (element.hasAttribute(name)) element.removeAttribute(name);
-    } else if (BooleanAttributes.includes(name)) {
-        const result = value ? true : false;
-        Reflect.set(element, name, result);
-        if (result) element.setAttribute(name, '');
-        else element.removeAttribute(name);
-    } else if (name === 'html') {
-        const original1 = Reflect.get(element, 'xHtml');
-        if (original1 === value) return;
-        Reflect.set(element, 'xHtml', value);
-        Reflect.set(element, 'innerHTML', value);
-    } else {
-        const display = Display(value);
-        if (element.getAttribute(name) === display) return;
-        element.setAttribute(name, display);
-    }
-}
-const PatchAttributes = function(source, target) {
-    const parameters = target[ParametersSymbol];
-    const attributes = target[AttributesSymbol];
-    if (attributes['type']) {
-        const value = attributes['type'];
-        Attribute(source, 'type', value, parameters['type']);
-    }
-    for(const name in attributes){
-        if (name === 'type') continue;
-        const value1 = attributes[name];
-        Attribute(source, name, value1, parameters[name]);
-    }
-    if (source.hasAttributes()) {
-        const names = source.getAttributeNames();
-        for (const name1 of names){
-            if (!(name1 in attributes)) {
-                source.removeAttribute(name1);
+        } else if (value?.constructor === Object && value[HtmlNameSymbol] === HtmlValueSymbol) {
+            data += value.data;
+            Object.assign(bindings, value.bindings);
+        } else if (value?.constructor === Array) {
+            data += part;
+            for (const v of value){
+                data += v.data;
+                Object.assign(bindings, v.bindings);
             }
-        }
-    }
-};
-const PatchCreateElement = function(owner, item) {
-    const element = owner.createElement(item[NameSymbol]);
-    const parameters = item[ParametersSymbol];
-    const attributes = item[AttributesSymbol];
-    const children = item[ChildrenSymbol];
-    if (attributes['html']) {
-        PatchAttributes(element, item);
-        return element;
-    }
-    for (const child of children){
-        PatchAppend(element, child);
-    }
-    for(const name in attributes){
-        const value = attributes[name];
-        Attribute(element, name, value, parameters[name]);
-    }
-    return element;
-};
-const PatchAppend = function(parent, child) {
-    const owner = parent.ownerDocument;
-    if (child?.[TypeSymbol] === ElementSymbol) {
-        parent.appendChild(PatchCreateElement(owner, child));
-    } else if (child?.[TypeSymbol] === CommentSymbol) {
-        parent.appendChild(owner.createComment(child.value));
-    } else if (child?.[TypeSymbol] === CdataSymbol) {
-        parent.appendChild(owner.createCDATASection(child.value));
-    } else {
-        parent.appendChild(owner.createTextNode(Display(child)));
-    }
-};
-const PatchRemove = function(parent) {
-    const child = parent.lastChild;
-    if (child) parent.removeChild(child);
-};
-const PatchCommon = function(source, target) {
-    const owner = source.ownerDocument;
-    const virtualType = target?.[TypeSymbol];
-    const virtualName = target?.[NameSymbol];
-    const virtualAttributes = target?.[AttributesSymbol];
-    if (virtualType === CommentSymbol) {
-        const value = Display(target);
-        if (source.nodeName !== '#comment') {
-            source.parentNode?.replaceChild(owner?.createComment(value), source);
-        } else if (source.nodeValue !== value) {
-            source.nodeValue = value;
-        }
-        return;
-    }
-    if (virtualType === CdataSymbol) {
-        const value1 = Display(target);
-        if (source.nodeName !== '#cdata-section') {
-            source.parentNode?.replaceChild(owner?.createCDATASection(value1), source);
-        } else if (source.nodeValue !== value1) {
-            source.nodeValue = value1;
-        }
-        return;
-    }
-    if (virtualType !== ElementSymbol) {
-        const value2 = Display(target);
-        if (source.nodeName !== '#text') {
-            source.parentNode?.replaceChild(owner?.createTextNode(value2), source);
-        } else if (source.nodeValue !== value2) {
-            source.nodeValue = value2;
-        }
-        return;
-    }
-    if (source.nodeName !== virtualName) {
-        source.parentNode?.replaceChild(PatchCreateElement(owner, target), source);
-        return;
-    }
-    if (!(source instanceof Element)) {
-        throw new Error('Patch - node type not handled');
-    }
-    if (virtualAttributes['html']) {
-        PatchAttributes(source, target);
-        return;
-    }
-    const targetChildren = target[ChildrenSymbol];
-    const targetLength = targetChildren.length;
-    const sourceChildren = [
-        ...source.childNodes
-    ];
-    const sourceLength = sourceChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    let index;
-    for(index = 0; index < commonLength; index++){
-        PatchCommon(sourceChildren[index], targetChildren[index]);
-    }
-    if (sourceLength > targetLength) {
-        for(index = targetLength; index < sourceLength; index++){
-            PatchRemove(source);
-        }
-    } else if (sourceLength < targetLength) {
-        for(index = sourceLength; index < targetLength; index++){
-            PatchAppend(source, targetChildren[index]);
-        }
-    }
-    PatchAttributes(source, target);
-};
-function Patch(source, target) {
-    let index;
-    const targetChildren = target;
-    const targetLength = targetChildren.length;
-    const sourceChildren = [
-        ...source.childNodes
-    ];
-    const sourceLength = sourceChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    for(index = 0; index < commonLength; index++){
-        PatchCommon(sourceChildren[index], targetChildren[index]);
-    }
-    if (sourceLength > targetLength) {
-        for(index = targetLength; index < sourceLength; index++){
-            PatchRemove(source);
-        }
-    } else if (sourceLength < targetLength) {
-        for(index = sourceLength; index < targetLength; index++){
-            PatchAppend(source, targetChildren[index]);
-        }
-    }
-}
-class Component extends HTMLElement {
-    static define(name, constructor) {
-        constructor = constructor ?? this;
-        name = name ?? Dash(this.name);
-        customElements.define(name, constructor);
-    }
-    static defined(name) {
-        name = name ?? Dash(this.name);
-        return customElements.whenDefined(name);
-    }
-    [$] = {};
-    #root;
-    #shadow;
-    constructor(){
-        super();
-        this.#shadow = this.shadowRoot ?? this.attachShadow({
-            mode: 'open'
-        });
-        const context = Reflect.get(this.constructor, 'context');
-        const component = Reflect.get(this.constructor, 'component');
-        const options = Reflect.get(this.constructor, 'options') ?? {};
-        if (options.root === 'this') this.#root = this;
-        else if (options.root === 'shadow') this.#root = this.shadowRoot;
-        else this.#root = this.shadowRoot;
-        if (options.render === undefined) options.render = true;
-        if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
-        this[$].update = async ()=>{
-            if (this[$].context.upgrade) await this[$].context.upgrade()?.catch?.(console.error);
-            Patch(this.#root, this[$].component());
-            if (this[$].context.upgraded) await this[$].context.upgraded()?.catch(console.error);
-        };
-        this[$].change = async ()=>{
-            await Schedule(this.#root, this[$].update);
-        };
-        this[$].context = ContextCreate(context(Virtual), this[$].change);
-        this[$].component = component.bind(this[$].context, Virtual, this[$].context);
-        this[$].render = async ()=>{
-            if (this.parentNode) {
-                const cache = RenderCache.get(this.parentNode);
-                if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-                if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-                RenderCache.set(this.parentNode, this[$].context);
+        } else if (BooleanAttributes.includes(name)) {
+            if (value) {
+                data += part.slice(0, -1);
+            } else {
+                const end1 = name.length + 1;
+                data += part.slice(0, -end1);
             }
-            if (this[$].context.connect) await this[$].context.connect()?.catch?.(console.error);
-            await Schedule(this.#root, this[$].update);
-            if (this[$].context.connected) await this[$].context.connected()?.catch(console.error);
-        };
-        if (options.render !== false) {
-            this[$].render();
+        } else if (name) {
+            data += `${part}"${Display(value)}"`;
+        } else {
+            data += `${part}${Display(value)}`;
         }
     }
+    return {
+        [HtmlNameSymbol]: HtmlValueSymbol,
+        data,
+        bindings
+    };
 }
-function Define(name, constructor) {
-    customElements.define(name, constructor);
+function render(root, context, component) {
+    const componentInstance = component(html, context);
+    const { data , bindings  } = componentInstance;
+    const template = document.createElement('template');
+    template.innerHTML = data;
+    for(const id in bindings){
+        const binding = bindings[id];
+        const element = template.content.querySelector(`[data-x-${binding.id}]`);
+        if (!element) throw new Error('query not found');
+        if (binding.name.startsWith('on')) {
+            element.addEventListener(binding.name.slice(2), binding.value.bind(context));
+        }
+        element.removeAttribute(`data-x-${binding.id}`);
+    }
+    patch(root, template.content);
 }
-async function Render(target, component, context) {
-    const instance = {};
-    instance.update = async function() {
-        if (instance.context.upgrade) await instance.context.upgrade()?.catch?.(console.error);
-        Patch(target, instance.component());
-        if (instance.context.upgraded) await instance.context.upgraded()?.catch(console.error);
+function mount(root, context, component) {
+    const update = function() {
+        console.log('update');
+        renderInstance();
     };
-    instance.change = async function() {
-        await Schedule(target, instance.update);
-    };
-    instance.context = ContextCreate(context(Virtual), instance.change);
-    instance.component = component.bind(instance.context, Virtual, instance.context);
-    instance.render = async function() {
-        const cache = RenderCache.get(target);
-        if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-        if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-        RenderCache.set(target, instance.context);
-        if (instance.context.connect) await instance.context.connect()?.catch?.(console.error);
-        await Schedule(target, instance.update);
-        if (instance.context.connected) await instance.context.connected()?.catch(console.error);
-    };
-    await instance.render();
-    return instance;
+    const contextInstance = ContextCreate(context(html), update);
+    const renderInstance = render.bind(null, root, contextInstance, component);
+    update();
+    return update;
 }
 const alls = [];
 const routes = [];
-const transition = async function(route) {
-    if (route.cache && route.instance) {
-        if (route.instance instanceof Component || route.instance.prototype instanceof Component) {
-            route.target.replaceChildren(route.instance);
-            await route.instance[$].render();
-        } else {
-            await route.instance.render();
-        }
+const transition = function(route) {
+    if (route.render) {
+        route.render();
     } else {
-        if (route.component instanceof Component || route.component.prototype instanceof Component) {
-            route.name = route.name ?? Dash(route.component.name);
-            if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
-            if (!customElements.get(route.name)) customElements.define(route.name, route.component);
-            await customElements.whenDefined(route.name);
-            route.instance = document.createElement(route.name);
-            route.target.replaceChildren(route.instance);
-            route.instance[$].render();
-        } else {
-            route.instance = await Render(route.target, route.component, route.context);
-        }
+        route.render = mount(route.root, route.context, route.component);
     }
 };
 const navigate = function(event) {
@@ -511,21 +360,21 @@ const navigate = function(event) {
     const transitions = [];
     for (const route of routes){
         if (route.path !== pathname) continue;
-        if (!route.target) continue;
-        Reflect.set(route.target, 'xRouterPath', route.path);
+        if (!route.root) continue;
+        Reflect.set(route.root, 'xRouterPath', route.path);
         transitions.push(route);
     }
     for (const all of alls){
-        if (!all.target) continue;
+        if (!all.root) continue;
         let has = false;
         for (const transition1 of transitions){
-            if (transition1.target === all.target) {
+            if (transition1.root === all.root) {
                 has = true;
                 break;
             }
         }
         if (has) continue;
-        if (Reflect.get(all.target, 'xRouterPath') === pathname) continue;
+        if (Reflect.get(all.root, 'xRouterPath') === pathname) continue;
         transitions.push(all);
     }
     if (event?.intercept) {
@@ -538,72 +387,66 @@ const navigate = function(event) {
         transitions.map((route)=>transition(route));
     }
 };
-function Router(path, target, component, context, cache) {
+function router(path, root, context, component) {
     if (!path) throw new Error('XElement - router path required');
-    if (!target) throw new Error('XElement - router target required');
+    if (!root) throw new Error('XElement - router root required');
+    if (!context) throw new Error('XElement - router context required');
     if (!component) throw new Error('XElement - router component required');
-    if (!(component instanceof Component || component.prototype instanceof Component) && !context) throw new Error('XElement - router context required');
     if (path === '/*') {
         for (const all of alls){
-            if (all.path === path && all.target === target) {
-                throw new Error('XElement - router duplicate path and target');
+            if (all.path === path && all.root === root) {
+                throw new Error('XElement - router duplicate path on root');
             }
         }
         alls.push({
             path,
-            target,
+            root,
             context,
-            component,
-            cache: cache ?? true
+            component
         });
     } else {
         for (const route of routes){
-            if (route.path === path && route.target === target) {
-                throw new Error('XElement - router duplicate path and target');
+            if (route.path === path && route.root === root) {
+                throw new Error('XElement - router duplicate path on root');
             }
         }
         routes.push({
             path,
-            target,
+            root,
             context,
-            component,
-            cache: cache ?? true
+            component
         });
     }
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
-export { Component as Component };
-export { Component as component };
 export { Schedule as Schedule };
 export { Schedule as schedule };
-export { Virtual as Virtual };
-export { Virtual as virtual };
 export { ContextCreate as Context };
 export { ContextCreate as context };
 export { Define as Define };
 export { Define as define };
-export { Router as Router };
-export { Router as router };
-export { Render as Render };
-export { Render as render };
-export { Patch as Patch };
-export { Patch as patch };
+export { router as Router };
+export { router as router };
+export { render as Render };
+export { render as render };
+export { patch as Patch };
+export { patch as patch };
+export { mount as Mount };
+export { mount as mount };
 const Index = {
-    Component,
     Schedule,
-    Virtual,
     Context: ContextCreate,
     Define,
-    Router,
-    Render,
-    Patch,
-    component: Component,
+    Router: router,
+    Render: render,
+    Patch: patch,
+    Mount: mount,
     schedule: Schedule,
-    virtual: Virtual,
     context: ContextCreate,
     define: Define,
-    router: Router,
-    render: Render,
-    patch: Patch
+    router: router,
+    render: render,
+    patch: patch,
+    mount: mount
 };
 export { Index as default };

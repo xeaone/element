@@ -1,4 +1,5 @@
 import Context from './context.ts';
+import Virtual from './virtual.ts';
 import Schedule from './schedule.ts';
 import Patch from './patch.ts';
 import Dash from './dash.ts';
@@ -94,8 +95,8 @@ export default class Component extends HTMLElement {
             await Schedule(this.#root, this[$].update);
         };
 
-        // this[$].context = Context(context(Virtual), this[$].change);
-        // this[$].component = component.bind(this[$].context, Virtual, this[$].context);
+        this[$].context = Context(context(Virtual), this[$].change);
+        this[$].component = component.bind(this[$].context, Virtual, this[$].context);
 
         this[$].render = async () => {
             if (this.parentNode) {
