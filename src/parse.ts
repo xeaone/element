@@ -35,9 +35,6 @@ type ElementNode = {
     children: Array<ElementNode | TextNode>;
 };
 
-const special = ['script', 'style'];
-const empty = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'isindex', 'link', 'meta', 'param', 'embed'];
-
 const TextType = 3;
 const ElementType = 1;
 const AttributeType = 2;
@@ -51,6 +48,9 @@ const ATTRIBUTE_NAME = 'AttributeName';
 const ATTRIBUTE_VALUE = 'AttributeValue';
 const ELEMENT_CHILDREN = 'ElementChildren';
 
+const special = ['script', 'style'];
+const empty = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'isindex', 'link', 'meta', 'param', 'embed'];
+
 const parse = function (data: string) {
     const fragment: any = {
         id: 1,
@@ -63,9 +63,7 @@ const parse = function (data: string) {
     let mode = ELEMENT_CHILDREN;
     let node = fragment;
 
-    const l = data.length;
-
-    for (let i = 0; i < l; i++) {
+    for (let i = 0; i < data.length; i++) {
         const c = data[i];
         const next = data[i + 1];
 
@@ -80,7 +78,7 @@ const parse = function (data: string) {
             } else if (c === '>') {
                 mode = ELEMENT_CHILDREN;
                 if (empty.includes(node.name)) node.closed = true;
-                if (special.includes(node.name)) mode = TEXT;
+                if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
             } else {
                 node.name += c;
@@ -97,7 +95,7 @@ const parse = function (data: string) {
             } else if (c === '>') {
                 mode = ELEMENT_CHILDREN;
                 if (empty.includes(node.name)) node.closed = true;
-                if (special.includes(node.name)) mode = TEXT;
+                if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
             } else if (c === '=') {
                 i++;
@@ -122,7 +120,7 @@ const parse = function (data: string) {
                 node = node.parent;
             } else if (c === '>') {
                 if (empty.includes(node.name)) node.closed = true;
-                if (special.includes(node.name)) mode = TEXT;
+                if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
             } else {
                 node = {
@@ -258,6 +256,8 @@ const tests = [
         </4>
         <9 10 />
     `,
+    '<style>div { background:color; }</style>',
+    '<script>console.log("hello world");</script>',
 ];
 
 for (const test of tests) {
