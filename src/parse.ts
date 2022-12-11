@@ -29,14 +29,14 @@ type ElementNode = {
     id: number;
     type: number;
     name: string;
-    closing: boolean;
+    closed: boolean;
     attributes: Array<AttributeNode>;
     parent: FragmentNode | ElementNode;
     children: Array<ElementNode | TextNode>;
 };
 
 const special = ['script', 'style'];
-const closing = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'isindex', 'link', 'meta', 'param', 'embed'];
+const empty = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'isindex', 'link', 'meta', 'param', 'embed'];
 
 const TextType = 3;
 const ElementType = 1;
@@ -75,11 +75,11 @@ const parse = function (data: string) {
             } else if (c === '/') {
                 i++;
                 mode = ELEMENT_CHILDREN;
-                node.closing = true;
+                node.closed = true;
                 node = node.parent;
             } else if (c === '>') {
                 mode = ELEMENT_CHILDREN;
-                if (closing.includes(node.name)) node.closing = true;
+                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = TEXT;
                 else mode = ELEMENT_CHILDREN;
             } else {
@@ -93,10 +93,10 @@ const parse = function (data: string) {
                 i++;
                 mode = ELEMENT_CHILDREN;
                 node = node.parent;
-                node.closing = true;
+                node.closed = true;
             } else if (c === '>') {
                 mode = ELEMENT_CHILDREN;
-                if (closing.includes(node.name)) node.closing = true;
+                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = TEXT;
                 else mode = ELEMENT_CHILDREN;
             } else if (c === '=') {
@@ -118,10 +118,10 @@ const parse = function (data: string) {
             } else if (c === '/') {
                 i++;
                 mode = ELEMENT_CHILDREN;
-                node.closing = true;
+                node.closed = true;
                 node = node.parent;
             } else if (c === '>') {
-                if (closing.includes(node.name)) node.closing = true;
+                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = TEXT;
                 else mode = ELEMENT_CHILDREN;
             } else {
@@ -214,7 +214,7 @@ const serialize = function (data: any) {
                 }
             }
 
-            if (child.closing) {
+            if (child.closed) {
                 result += ` />`;
             } else {
                 result += `>`;
