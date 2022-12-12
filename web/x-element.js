@@ -96,6 +96,173 @@ const ContextCreate = function(data, method) {
 function Define(name, constructor) {
     customElements.define(name, constructor);
 }
+const TextType = 3;
+const ElementType = 1;
+const AttributeType = 2;
+const TEXT = 'Text';
+const IN_OPEN = 'InOpen';
+const IN_CLOSE = 'InClose';
+const ELEMENT_NAME = 'ElementName';
+const ATTRIBUTE_NAME = 'AttributeName';
+const ATTRIBUTE_VALUE = 'AttributeValue';
+const ELEMENT_CHILDREN = 'ElementChildren';
+const special = [
+    'script',
+    'style'
+];
+const empty = [
+    'area',
+    'base',
+    'basefont',
+    'br',
+    'col',
+    'frame',
+    'hr',
+    'img',
+    'input',
+    'isindex',
+    'link',
+    'meta',
+    'param',
+    'embed'
+];
+function virtual(data) {
+    const fragment = {
+        id: 1,
+        type: 11,
+        children: [],
+        name: 'fragment'
+    };
+    let id = 1;
+    let mode = ELEMENT_CHILDREN;
+    let node = fragment;
+    for(let i = 0; i < data.length; i++){
+        const c = data[i];
+        const next = data[i + 1];
+        if (mode === ELEMENT_NAME) {
+            if (c === ' ') {
+                mode = IN_OPEN;
+            } else if (c === '/') {
+                i++;
+                mode = ELEMENT_CHILDREN;
+                node.closed = true;
+                node = node.parent;
+            } else if (c === '>') {
+                mode = ELEMENT_CHILDREN;
+                if (empty.includes(node.name)) node.closed = true;
+                if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
+                else mode = ELEMENT_CHILDREN;
+            } else {
+                node.name += c;
+            }
+        } else if (mode === ATTRIBUTE_NAME) {
+            if (c === ' ') {
+                mode = IN_OPEN;
+                node = node.parent;
+            } else if (c === '/') {
+                i++;
+                mode = ELEMENT_CHILDREN;
+                node = node.parent;
+                node.closed = true;
+            } else if (c === '>') {
+                mode = ELEMENT_CHILDREN;
+                if (empty.includes(node.name)) node.closed = true;
+                if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
+                else mode = ELEMENT_CHILDREN;
+            } else if (c === '=') {
+                i++;
+                mode = ATTRIBUTE_VALUE;
+            } else {
+                node.name += c;
+            }
+        } else if (mode === ATTRIBUTE_VALUE) {
+            if (c === '"') {
+                mode = IN_OPEN;
+                node = node.parent;
+            } else {
+                node.value += c;
+            }
+        } else if (mode === IN_OPEN) {
+            if (c === ' ') {
+                continue;
+            } else if (c === '/') {
+                i++;
+                mode = ELEMENT_CHILDREN;
+                node.closed = true;
+                node = node.parent;
+            } else if (c === '>') {
+                if (empty.includes(node.name)) node.closed = true;
+                if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
+                else mode = ELEMENT_CHILDREN;
+            } else {
+                node = {
+                    id: id += 1,
+                    name: c === ' ' ? '' : c,
+                    value: '',
+                    parent: node,
+                    type: AttributeType
+                };
+                node.parent.attributes.push(node);
+                mode = ATTRIBUTE_NAME;
+            }
+        } else if (mode === IN_CLOSE) {
+            if (c === '>') {
+                mode = ELEMENT_CHILDREN;
+            } else {
+                continue;
+            }
+        } else if (mode === TEXT) {
+            if (c === '<' && next === '/') {
+                i++;
+                mode = IN_CLOSE;
+                node = node.parent;
+                node = node.parent;
+            } else if (c === '<') {
+                node = node.parent;
+                node = {
+                    id: id += 1,
+                    name: '',
+                    parent: node,
+                    children: [],
+                    attributes: [],
+                    type: ElementType
+                };
+                node.parent.children.push(node);
+                mode = ELEMENT_NAME;
+            } else {
+                node.value += c;
+            }
+        } else if (mode === ELEMENT_CHILDREN) {
+            if (c === '<' && next === '/') {
+                i++;
+                mode = IN_CLOSE;
+                node = node.parent;
+            } else if (c === '<') {
+                node = {
+                    id: id += 1,
+                    name: '',
+                    parent: node,
+                    children: [],
+                    attributes: [],
+                    type: ElementType
+                };
+                node.parent.children.push(node);
+                mode = ELEMENT_NAME;
+            } else {
+                node = {
+                    id: id += 1,
+                    value: c,
+                    parent: node,
+                    name: '#text',
+                    type: TextType
+                };
+                node.parent.children.push(node);
+                mode = TEXT;
+            }
+        }
+    }
+    return fragment;
+}
 Symbol('$');
 Symbol('name');
 Symbol('value');
@@ -176,126 +343,101 @@ function Display(data) {
             throw new Error('Display - type not handled');
     }
 }
-const OnCache = new WeakMap();
-const attributes = function(source, target, bindings) {
-    const targetAttributeNames = target.hasAttributes() ? [
-        ...target.getAttributeNames()
-    ] : [];
-    const sourceAttributeNames = source.hasAttributes() ? [
-        ...source.getAttributeNames()
-    ] : [];
-    for (const name of targetAttributeNames){
-        if (name === 'data-x-value') {
-            const { value  } = bindings[target.getAttribute(name)];
-            const result = `${value == undefined ? '' : value}`;
-            if (source.getAttribute('value') === result) continue;
-            Reflect.set(source, 'value', result);
-            source.setAttribute('value', result);
-        } else if (name.startsWith('data-x-on')) {
-            const { value: value1  } = bindings[target.getAttribute(name)];
-            if (OnCache.get(source) === value1) continue;
-            source.addEventListener(name.slice(9), value1);
-        } else if (BooleanAttributes.includes(name.slice(7))) {
-            const { value: value2  } = bindings[target.getAttribute(name)];
-            const slice = name.slice(7);
-            const result1 = value2 ? true : false;
-            const has = source.hasAttribute(slice);
-            if (has === result1) continue;
-            Reflect.set(source, name, result1);
-            if (result1) source.setAttribute(slice, '');
-            else source.removeAttribute(slice);
-        } else if (name.startsWith('data-x')) {
-            const { value: value3  } = bindings[target.getAttribute(name)];
-            const slice1 = name.slice(7);
-            const result2 = Display(value3);
-            console.log(result2, value3, source);
-            if (source.getAttribute(slice1) === result2) continue;
-            source.setAttribute(slice1, result2);
-        } else {
-            const sourceAttributeValue = source.getAttribute(name);
-            const targetAttributeValue = target.getAttribute(name);
-            if (sourceAttributeValue !== targetAttributeValue) {
-                source.setAttribute(name, targetAttributeValue);
-                Reflect.set(source, name, targetAttributeValue);
+const attribute = function(element, name, value, properties) {
+    console.log(arguments);
+    if (name.startsWith('data-x-')) {
+        const property = properties[name.slice(7)];
+        if (property.name === 'value') {
+            element.setAttribute(property.name, property.value);
+            Reflect.set(element, property.name, property.value);
+        } else if (property.name.startsWith('on')) {
+            console.log(property);
+            element.removeAttribute(property.name);
+            element.addEventListener(property.name, property.value);
+        } else if (BooleanAttributes.includes(property.name)) {
+            const result = property.value ? true : false;
+            const has = element.hasAttribute(property.name);
+            if (has === result) return;
+            if (result) element.setAttribute(property.name, '');
+            else element.removeAttribute(property.name);
+            Reflect.set(element, property.name, result);
+        }
+        if (element.getAttribute(property.name) === property.value) return;
+        element.setAttribute(property.name, property.value);
+        Reflect.set(element, property.name, property.value);
+    } else {
+        if (element.getAttribute(name) === value) return;
+        element.setAttribute(name, value);
+        Reflect.set(element, name, value);
+    }
+};
+const attributes = function(source, target, properties) {
+    const attributes = target.attributes;
+    for(const name in attributes){
+        const value = attributes[name];
+        attribute(source, name, value, properties);
+    }
+    if (source.hasAttributes()) {
+        const names = source.getAttributeNames();
+        for (const name1 of names){
+            if (!(name1 in attributes)) {
+                source.removeAttribute(name1);
             }
         }
     }
-    for (const name1 of sourceAttributeNames){
-        if (targetAttributeNames.includes(`data-x-${name1}`)) continue;
-        if (!targetAttributeNames.includes(name1)) source.removeAttribute(name1);
-    }
 };
-const children = function(node, bindings) {
-    if (node instanceof Element) {
-        const nodeAttributeNames = node.hasAttributes() ? [
-            ...node.getAttributeNames()
-        ] : [];
-        for (const name of nodeAttributeNames){
-            if (name === 'data-x-value') {
-                const { value  } = bindings[node.getAttribute(name)];
-                const result = `${value == undefined ? '' : value}`;
-                Reflect.set(node, 'value', result);
-                node.setAttribute('value', result);
-                node.removeAttribute(name);
-            } else if (name.startsWith('data-x-on')) {
-                const { value: value1  } = bindings[node.getAttribute(name)];
-                OnCache.set(node, value1);
-                node.addEventListener(name.slice(9), value1);
-                node.removeAttribute(name);
-            } else if (BooleanAttributes.includes(name.slice(7))) {
-                const { value: value2  } = bindings[node.getAttribute(name)];
-                const slice = name.slice(7);
-                const result1 = value2 ? true : false;
-                Reflect.set(node, name, result1);
-                if (result1) node.setAttribute(slice, '');
-                else node.removeAttribute(slice);
-                node.removeAttribute(name);
-            } else if (name.startsWith('data-x')) {
-                const { value: value3  } = bindings[node.getAttribute(name)];
-                const slice1 = name.slice(7);
-                const result2 = Display(value3);
-                node.setAttribute(slice1, result2);
-                node.removeAttribute(name);
-            }
-        }
+const create = function(owner, node, properties) {
+    const element = owner.createElement(node.name);
+    const children = node.children;
+    for (const child of children){
+        append(element, child, properties);
     }
-    let child = node.firstChild;
-    while(child){
-        children(child, bindings);
-        child = child.nextSibling;
+    const attributes = node.attributes;
+    for(const name in attributes){
+        const value = attributes[name];
+        attribute(element, name, value, properties);
     }
+    return element;
 };
-const append = function(parent, child, bindings) {
-    children(child, bindings);
-    parent.appendChild(child);
+const append = function(parent, child, properties) {
+    const owner = parent.ownerDocument;
+    if (child.type === Node.ELEMENT_NODE) {
+        console.log(parent, child);
+        parent.appendChild(create(owner, child, properties));
+    } else if (child.type === Node.COMMENT_NODE) {
+        parent.appendChild(owner.createComment(child.value));
+    } else if (child.type === Node.CDATA_SECTION_NODE) {
+        parent.appendChild(owner.createCDATASection(child.value));
+    } else {
+        parent.appendChild(owner.createTextNode(Display(child.value)));
+    }
 };
 const remove = function(parent) {
     const child = parent.lastChild;
     if (child) parent.removeChild(child);
 };
-const common = function(source, target, bindings) {
+const common = function(source, target, properties) {
+    console.log(source, target);
     if (!source.parentNode) throw new Error('source parent node not found');
-    if (source.nodeName !== target.nodeName) {
-        source.parentNode?.replaceChild(target, source);
+    const owner = source.ownerDocument;
+    if (source.nodeName !== target.name) {
+        source.parentNode?.replaceChild(create(owner, target, properties), source);
         return;
     }
-    if (target.nodeName === '#text') {
-        if (source.nodeValue !== target.nodeValue) {
-            source.nodeValue = target.nodeValue;
+    if (target.name === '#text') {
+        if (source.nodeValue !== target.value) {
+            source.nodeValue = target.value;
         }
         return;
     }
     if (target.nodeName === '#comment') {
-        if (source.nodeValue !== target.nodeValue) {
-            source.nodeValue = target.nodeValue;
+        if (source.nodeValue !== target.value) {
+            source.nodeValue = target.value;
         }
         return;
     }
     if (!(source instanceof Element)) throw new Error('source node not valid');
-    if (!(target instanceof Element)) throw new Error('target node not valid');
-    const targetChildren = [
-        ...target.childNodes
-    ];
+    const targetChildren = target.children;
     const targetLength = targetChildren.length;
     const sourceChildren = [
         ...source.childNodes
@@ -304,7 +446,7 @@ const common = function(source, target, bindings) {
     const commonLength = Math.min(sourceLength, targetLength);
     let index;
     for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index], bindings);
+        common(sourceChildren[index], targetChildren[index], properties);
     }
     if (sourceLength > targetLength) {
         for(index = targetLength; index < sourceLength; index++){
@@ -312,16 +454,14 @@ const common = function(source, target, bindings) {
         }
     } else if (sourceLength < targetLength) {
         for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index], bindings);
+            append(source, targetChildren[index], properties);
         }
     }
-    attributes(source, target, bindings);
+    attributes(source, target, properties);
 };
-function patch(source, target, bindings) {
+function patch(source, target, properties) {
     let index;
-    const targetChildren = [
-        ...target.childNodes
-    ];
+    const targetChildren = target.children;
     const targetLength = targetChildren.length;
     const sourceChildren = [
         ...source.childNodes
@@ -329,7 +469,7 @@ function patch(source, target, bindings) {
     const sourceLength = sourceChildren.length;
     const commonLength = Math.min(sourceLength, targetLength);
     for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index], bindings);
+        common(sourceChildren[index], targetChildren[index], properties);
     }
     if (sourceLength > targetLength) {
         for(index = targetLength; index < sourceLength; index++){
@@ -337,7 +477,7 @@ function patch(source, target, bindings) {
         }
     } else if (sourceLength < targetLength) {
         for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index], bindings);
+            append(source, targetChildren[index], properties);
         }
     }
 }
@@ -345,29 +485,28 @@ const HtmlNameSymbol = Symbol('HtmlName');
 const HtmlValueSymbol = Symbol('HtmlValue');
 function html(strings, ...values) {
     let data = '';
-    const bindings = {};
+    const properties = {};
     for(let index = 0; index < strings.length; index++){
         const part = strings[index];
         const value = values[index];
         const name = part.match(/\b([a-zA-Z-]+)=$/)?.[1] ?? '';
         if (name) {
-            const end = name.length + 1;
             const id = crypto.randomUUID();
-            data += `${part.slice(0, -end)}data-x-${name}="${id}"`;
-            bindings[id] = {
+            const end = name.length + 1;
+            data += `${part.slice(0, -end)} data-x-${id} ${name}="${Display(value)}"`;
+            properties[id] = {
                 name,
-                value,
-                id
+                value
             };
         } else if (value?.constructor === Object && value[HtmlNameSymbol] === HtmlValueSymbol) {
             data += value.data;
-            Object.assign(bindings, value.bindings);
+            Object.assign(properties, value.properties);
         } else if (value?.constructor === Array) {
             data += part;
             for (const item of value){
                 if (item[HtmlNameSymbol] === HtmlValueSymbol) {
                     data += item.data;
-                    Object.assign(bindings, item.bindings);
+                    Object.assign(properties, item.properties);
                 } else {
                     data += `${Display(value)}`;
                 }
@@ -379,15 +518,14 @@ function html(strings, ...values) {
     return {
         [HtmlNameSymbol]: HtmlValueSymbol,
         data,
-        bindings
+        properties
     };
 }
 function render(root, context, component) {
     const componentInstance = component(html, context);
-    const { data , bindings  } = componentInstance;
-    const template = document.createElement('template');
-    template.innerHTML = data;
-    patch(root, template.content, bindings);
+    const { data , properties  } = componentInstance;
+    console.log(virtual(data));
+    patch(root, virtual(data), properties);
 }
 function mount(root, context, component) {
     const update = function() {

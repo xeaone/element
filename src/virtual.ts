@@ -1,39 +1,7 @@
+import { FragmentNode, VirtualNode } from './types.ts';
 /**
  * todo: need to handle comments and specail svg
  */
-
-type TextNode = {
-    id: number;
-    type: number;
-    name: string;
-    value: string;
-    parent: ElementNode;
-};
-
-type AttributeNode = {
-    id: number;
-    type: number;
-    name: string;
-    value: string;
-    parent: ElementNode;
-};
-
-type FragmentNode = {
-    id: number;
-    type: number;
-    name: string;
-    children: Array<ElementNode | TextNode>;
-};
-
-type ElementNode = {
-    id: number;
-    type: number;
-    name: string;
-    closed: boolean;
-    attributes: Array<AttributeNode>;
-    parent: FragmentNode | ElementNode;
-    children: Array<ElementNode | TextNode>;
-};
 
 const TextType = 3;
 const ElementType = 1;
@@ -51,8 +19,8 @@ const ELEMENT_CHILDREN = 'ElementChildren';
 const special = ['script', 'style'];
 const empty = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'isindex', 'link', 'meta', 'param', 'embed'];
 
-const parse = function (data: string) {
-    const fragment: any = {
+export default function virtual(data: string): FragmentNode {
+    const fragment: VirtualNode = {
         id: 1,
         type: 11,
         children: [],
@@ -193,80 +161,80 @@ const parse = function (data: string) {
     }
 
     return fragment;
-};
-
-const serialize = function (data: any) {
-    let result = '';
-
-    const children = data.children;
-
-    for (const child of children) {
-        if (child.type === ElementType) {
-            result += `<${child.name}`;
-
-            for (const attribute of child.attributes) {
-                if (attribute.value) {
-                    result += ` ${attribute.name}="${attribute.value}"`;
-                } else {
-                    result += ` ${attribute.name}`;
-                }
-            }
-
-            if (child.closed) {
-                result += ` />`;
-            } else {
-                result += `>`;
-                result += serialize(child);
-                result += `</${child.name}>`;
-            }
-        } else if (child.type === TextType) {
-            result += `${child.value}`;
-        }
-    }
-
-    return result;
-};
-
-const log = function (data: any) {
-    console.log(JSON.stringify(
-        data,
-        function (key, value) {
-            if (key == 'parent') return value.id;
-            else return value;
-        },
-        '  ',
-    ));
-};
-
-const tests = [
-    `<2 3="3" /><4 5="5">6</4><7 8 />`,
-    `<input checked >`,
-    `<input value="2" />`,
-    `
-        <2 3="3" />
-        <4 5="5">6</4>
-        <7 8 />
-    `,
-    `
-        <2 3="3" />
-        <4 5="5">
-            <6>
-                <7>8</7>
-            </6>
-        </4>
-        <9 10 />
-    `,
-    '<style>div { background:color; }</style>',
-    '<script>console.log("hello world");</script>',
-];
-
-for (const test of tests) {
-    const d = parse(test);
-    const s = serialize(d);
-    if (s === test) {
-        console.log('pass');
-    } else {
-        console.log('fail', test, s);
-        log(d);
-    }
 }
+
+// export const serialize = function (data: VirtualNode) {
+//     let result = '';
+
+//     const children = data.children;
+
+//     for (const child of children) {
+//         if (child.type === ElementType) {
+//             result += `<${child.name}`;
+
+//             for (const attribute of child.attributes) {
+//                 if (attribute.value) {
+//                     result += ` ${attribute.name}="${attribute.value}"`;
+//                 } else {
+//                     result += ` ${attribute.name}`;
+//                 }
+//             }
+
+//             if (child.closed) {
+//                 result += ` />`;
+//             } else {
+//                 result += `>`;
+//                 result += serialize(child);
+//                 result += `</${child.name}>`;
+//             }
+//         } else if (child.type === TextType) {
+//             result += `${child.value}`;
+//         }
+//     }
+
+//     return result;
+// };
+
+// const log = function (data: any) {
+//     console.log(JSON.stringify(
+//         data,
+//         function (key, value) {
+//             if (key == 'parent') return value.id;
+//             else return value;
+//         },
+//         '  ',
+//     ));
+// };
+
+// const tests = [
+//     `<2 3="3" /><4 5="5">6</4><7 8 />`,
+//     `<input checked >`,
+//     `<input value="2" />`,
+//     `
+//         <2 3="3" />
+//         <4 5="5">6</4>
+//         <7 8 />
+//     `,
+//     `
+//         <2 3="3" />
+//         <4 5="5">
+//             <6>
+//                 <7>8</7>
+//             </6>
+//         </4>
+//         <9 10 />
+//     `,
+//     '<style>div { background:color; }</style>',
+//     '<script>console.log("hello world");</script>',
+// ];
+
+// for (const test of tests) {
+//     const d = parse(test);
+//     const s = serialize(d);
+//     if (s === test) {
+//         console.log('pass');
+//     } else {
+//         console.log('fail', test, s);
+//         log(d);
+//     }
+// }

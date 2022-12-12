@@ -77,7 +77,7 @@
                 message: '',
                 count: 100000,
                 oninput(e) {
-                    this.count = e.target.valueAsNumber;
+                    this.count = e?.target?.valueAsNumber;
                 },
                 push() {
                     console.time('push');

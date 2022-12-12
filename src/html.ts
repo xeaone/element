@@ -1,13 +1,15 @@
+// import Virtual from './virtual.ts';
 import display from './display.ts';
-import { BooleanAttributes } from './tool.ts';
 
 const HtmlNameSymbol = Symbol('HtmlName');
 const HtmlValueSymbol = Symbol('HtmlValue');
 
+type Property = { name: string; value: any };
+type Properties = Record<string, Property>;
+
 export default function html(strings: string[], ...values: any[]) {
     let data = '';
-    const bindings: any = {};
-    // let ids = 0;
+    const properties: Properties = {};
 
     for (let index = 0; index < strings.length; index++) {
         const part = strings[index];
@@ -15,37 +17,31 @@ export default function html(strings: string[], ...values: any[]) {
         const name = part.match(/\b([a-zA-Z-]+)=$/)?.[1] ?? '';
 
         if (name) {
-            // const id = ids++;
-            const end = name.length + 1;
             const id = crypto.randomUUID();
-            data += `${part.slice(0, -end)}data-x-${name}="${id}"`;
-            bindings[id] = { name, value, id };
+            // data += ` data-x-${id} ${part}`;
+            const end = name.length + 1;
+            data += `${part.slice(0, -end)} data-x-${id} ${name}="${display(value)}"`;
+            // data += `${part.slice(0, -end)}data-x-${name}="${id}"`;
+            properties[id] = { name, value };
         } else if (value?.constructor === Object && value[HtmlNameSymbol] === HtmlValueSymbol) {
             data += value.data;
-            Object.assign(bindings, value.bindings);
+            Object.assign(properties, value.properties);
         } else if (value?.constructor === Array) {
             data += part;
             for (const item of value) {
                 if (item[HtmlNameSymbol] === HtmlValueSymbol) {
                     data += item.data;
-                    Object.assign(bindings, item.bindings);
+                    Object.assign(properties, item.properties);
                 } else {
                     data += `${display(value)}`;
                 }
             }
-        // } else if (BooleanAttributes.includes(name)) {
-        //     if (value) {
-        //         data += part.slice(0, -1);
-        //     } else {
-        //         const end = name.length + 1;
-        //         data += part.slice(0, -end);
-        //     }
-            // } else if (name) {
-            // data += `${part}"${display(value)}"`;
         } else {
             data += `${part}${display(value)}`;
         }
     }
 
-    return { [HtmlNameSymbol]: HtmlValueSymbol, data, bindings };
+    // console.log(Virtual(data));
+
+    return { [HtmlNameSymbol]: HtmlValueSymbol, data, properties };
 }

@@ -2,6 +2,7 @@
 // import Virtual from './virtual.ts';
 // import Schedule from './schedule.ts';
 // import Context from './context.ts';
+import virtual from './virtual.ts';
 import patch from './patch.ts';
 import html from './html.ts';
 
@@ -46,27 +47,13 @@ import html from './html.ts';
 
 export default function render(root: Element, context: any, component: any) {
     const componentInstance = component(html, context);
-    const { data, bindings } = componentInstance;
-    const template = document.createElement('template');
+    const { data, properties } = componentInstance;
 
-    template.innerHTML = data;
+    // const template = document.createElement('template');
+    // template.innerHTML = data;
+    // patch(root, template.content, bindings);
 
-    // const script = document.createElement('script');
-    // script.textContent = `console.log(document.currentScript.parentElement)`;
-    // template.content.appendChild(script);
+    console.log(virtual(data));
 
-    // for (const id in bindings) {
-    //     const binding = bindings[id];
-    //     const element = template.content.querySelector(`[data-x-${binding.id}]`);
-
-    //     if (!element) throw new Error('element not found');
-
-    //     if (binding.name.startsWith('on')) {
-    //         element.addEventListener(binding.name.slice(2), binding.value.bind(context));
-    //     }
-
-    //     element.removeAttribute(`data-x-${binding.id}`);
-    // }
-
-    patch(root, template.content, bindings);
+    patch(root, virtual(data), properties);
 }
