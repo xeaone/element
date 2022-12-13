@@ -93,12 +93,6 @@ const remove = function (parent: Node) {
 const common = function (source: Node, target: VirtualNode, properties: any) {
     if (!source.parentNode) throw new Error('source parent node not found');
 
-    if (source.nodeName.toLowerCase() !== target.name) {
-        const owner = source.ownerDocument as Document;
-        source.parentNode?.replaceChild(create(owner, target, properties), source);
-        return;
-    }
-
     if (target.name === '#text') {
         if (source.nodeValue !== target.value) {
             source.nodeValue = target.value;
@@ -112,6 +106,12 @@ const common = function (source: Node, target: VirtualNode, properties: any) {
             source.nodeValue = target.value;
         }
 
+        return;
+    }
+
+    if (source.nodeName.toLowerCase() !== target.name) {
+        const owner = source.ownerDocument as Document;
+        source.parentNode?.replaceChild(create(owner, target, properties), source);
         return;
     }
 

@@ -401,11 +401,6 @@ const remove = function(parent) {
 };
 const common = function(source, target, properties) {
     if (!source.parentNode) throw new Error('source parent node not found');
-    if (source.nodeName.toLowerCase() !== target.name) {
-        const owner = source.ownerDocument;
-        source.parentNode?.replaceChild(create(owner, target, properties), source);
-        return;
-    }
     if (target.name === '#text') {
         if (source.nodeValue !== target.value) {
             source.nodeValue = target.value;
@@ -416,6 +411,11 @@ const common = function(source, target, properties) {
         if (source.nodeValue !== target.value) {
             source.nodeValue = target.value;
         }
+        return;
+    }
+    if (source.nodeName.toLowerCase() !== target.name) {
+        const owner = source.ownerDocument;
+        source.parentNode?.replaceChild(create(owner, target, properties), source);
         return;
     }
     if (!(source instanceof Element)) throw new Error('source node not valid');
