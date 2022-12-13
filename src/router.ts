@@ -19,7 +19,7 @@ type Route = {
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
 
-const transition = function (route: Route) {
+const transition = async function (route: Route) {
     // if (route.cache && route.instance) {
     //     if (route.instance instanceof Component || route.instance.prototype instanceof Component) {
     //         route.root.replaceChildren(route.instance);
@@ -42,11 +42,10 @@ const transition = function (route: Route) {
     //     route.instance[$].render();
 
     // }
-    console.log(route);
     if (route.render) {
         route.render();
     } else {
-        route.render = mount(route.root, route.context, route.component);
+        route.render = await mount(route.root, route.context, route.component);
     }
 };
 

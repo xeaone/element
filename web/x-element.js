@@ -4,7 +4,7 @@
 
 const ScheduleCache = new WeakMap();
 const ScheduleNext = Promise.resolve();
-async function Schedule(target, update) {
+async function schedule(target, task) {
     let cache = ScheduleCache.get(target);
     if (!cache) {
         cache = {
@@ -14,18 +14,18 @@ async function Schedule(target, update) {
     }
     if (cache.current) {
         clearTimeout(cache.timer);
-        cache.update = update;
+        cache.task = task;
     } else {
-        cache.update = update;
+        cache.task = task;
     }
     cache.current = new Promise((resolve)=>{
         cache.resolves.push(resolve);
         cache.timer = setTimeout(function ScheduleTime() {
             let r;
             const rs = cache.resolves;
-            const u = cache.update;
+            const u = cache.task;
             cache.current = undefined;
-            cache.update = undefined;
+            cache.task = undefined;
             cache.timer = undefined;
             cache.resolves = [];
             ScheduleNext.then(u).then(function ScheduleResolves() {
@@ -93,12 +93,12 @@ const ContextCreate = function(data, method) {
         deleteProperty: ContextDelete.bind(null, method)
     });
 };
-function Define(name, constructor) {
+function define(name, constructor) {
     customElements.define(name, constructor);
 }
-const TextType = 3;
-const ElementType = 1;
-const AttributeType = 2;
+const TextType = Node.TEXT_NODE;
+const ElementType = Node.ELEMENT_NODE;
+const AttributeType = Node.ATTRIBUTE_NODE;
 const TEXT = 'Text';
 const IN_OPEN = 'InOpen';
 const IN_CLOSE = 'InClose';
@@ -138,7 +138,6 @@ function virtual(data) {
     let node = fragment;
     for(let i = 0; i < data.length; i++){
         const c = data[i];
-        const next = data[i + 1];
         if (mode === ELEMENT_NAME) {
             if (c === ' ') {
                 mode = IN_OPEN;
@@ -148,10 +147,12 @@ function virtual(data) {
                 node.closed = true;
                 node = node.parent;
             } else if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
+                if (empty.includes(node.name)) {
+                    node.closed = true;
+                    node = node.parent;
+                }
             } else {
                 node.name += c;
             }
@@ -165,10 +166,10 @@ function virtual(data) {
                 node = node.parent;
                 node.closed = true;
             } else if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
+                node = node.parent;
+                if (empty.includes(node.name)) node.closed = true;
             } else if (c === '=') {
                 i++;
                 mode = ATTRIBUTE_VALUE;
@@ -191,9 +192,12 @@ function virtual(data) {
                 node.closed = true;
                 node = node.parent;
             } else if (c === '>') {
-                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
+                if (empty.includes(node.name)) {
+                    node.closed = true;
+                    node = node.parent;
+                }
             } else {
                 node = {
                     id: id += 1,
@@ -212,6 +216,7 @@ function virtual(data) {
                 continue;
             }
         } else if (mode === TEXT) {
+            const next = data[i + 1];
             if (c === '<' && next === '/') {
                 i++;
                 mode = IN_CLOSE;
@@ -233,7 +238,8 @@ function virtual(data) {
                 node.value += c;
             }
         } else if (mode === ELEMENT_CHILDREN) {
-            if (c === '<' && next === '/') {
+            const next1 = data[i + 1];
+            if (c === '<' && next1 === '/') {
                 i++;
                 mode = IN_CLOSE;
                 node = node.parent;
@@ -263,19 +269,7 @@ function virtual(data) {
     }
     return fragment;
 }
-Symbol('$');
-Symbol('name');
-Symbol('value');
-Symbol('self');
-Symbol('cdata');
-Symbol('comment');
-Symbol('type');
-Symbol('element');
-Symbol('children');
-Symbol('attributes');
-Symbol('parameters');
-new WeakMap();
-const BooleanAttributes = [
+const booleans = [
     'allowfullscreen',
     'async',
     'autofocus',
@@ -301,7 +295,7 @@ const BooleanAttributes = [
     'multiple',
     'muted',
     'nohref',
-    'noresize',
+    'onresize',
     'noshade',
     'hidden',
     'novalidate',
@@ -321,7 +315,7 @@ const BooleanAttributes = [
     'typemustmatch',
     'visible'
 ];
-function Display(data) {
+function display(data) {
     switch(typeof data){
         case 'undefined':
             return '';
@@ -340,50 +334,39 @@ function Display(data) {
         case 'object':
             return JSON.stringify(data);
         default:
-            throw new Error('Display - type not handled');
+            throw new Error('display - type not handled');
     }
 }
+const OnCache = new WeakMap();
 const attribute = function(element, name, value, properties) {
-    console.log(arguments);
-    if (name.startsWith('data-x-')) {
-        const property = properties[name.slice(7)];
+    if (value.startsWith('{{') && value.endsWith('}}')) {
+        const property = properties[value.slice(2, -2)];
         if (property.name === 'value') {
-            element.setAttribute(property.name, property.value);
-            Reflect.set(element, property.name, property.value);
-        } else if (property.name.startsWith('on')) {
-            console.log(property);
-            element.removeAttribute(property.name);
-            element.addEventListener(property.name, property.value);
-        } else if (BooleanAttributes.includes(property.name)) {
-            const result = property.value ? true : false;
-            const has = element.hasAttribute(property.name);
-            if (has === result) return;
-            if (result) element.setAttribute(property.name, '');
-            else element.removeAttribute(property.name);
+            const result = display(property.value);
+            if (element.getAttribute(property.name) === result) return;
             Reflect.set(element, property.name, result);
+            element.setAttribute(property.name, result);
+        } else if (property.name.startsWith('on')) {
+            if (OnCache.get(element) === property.value) return;
+            Reflect.set(element, property.name, property.value);
+            element.addEventListener(property.name, property.value);
+        } else if (booleans.includes(property.name)) {
+            const result1 = property.value ? true : false;
+            const has = element.hasAttribute(property.name);
+            if (has === result1) return;
+            Reflect.set(element, property.name, result1);
+            if (result1) element.setAttribute(property.name, '');
+            else element.removeAttribute(property.name);
+        } else {
+            const result2 = display(property.value);
+            if (element.getAttribute(property.name) === result2) return;
+            Reflect.set(element, property.name, result2);
+            element.setAttribute(property.name, result2);
         }
-        if (element.getAttribute(property.name) === property.value) return;
-        element.setAttribute(property.name, property.value);
-        Reflect.set(element, property.name, property.value);
     } else {
         if (element.getAttribute(name) === value) return;
-        element.setAttribute(name, value);
         Reflect.set(element, name, value);
-    }
-};
-const attributes = function(source, target, properties) {
-    const attributes = target.attributes;
-    for(const name in attributes){
-        const value = attributes[name];
-        attribute(source, name, value, properties);
-    }
-    if (source.hasAttributes()) {
-        const names = source.getAttributeNames();
-        for (const name1 of names){
-            if (!(name1 in attributes)) {
-                source.removeAttribute(name1);
-            }
-        }
+        element.setAttribute(name, value);
     }
 };
 const create = function(owner, node, properties) {
@@ -393,8 +376,7 @@ const create = function(owner, node, properties) {
         append(element, child, properties);
     }
     const attributes = node.attributes;
-    for(const name in attributes){
-        const value = attributes[name];
+    for (const { name , value  } of attributes){
         attribute(element, name, value, properties);
     }
     return element;
@@ -402,14 +384,15 @@ const create = function(owner, node, properties) {
 const append = function(parent, child, properties) {
     const owner = parent.ownerDocument;
     if (child.type === Node.ELEMENT_NODE) {
-        console.log(parent, child);
         parent.appendChild(create(owner, child, properties));
     } else if (child.type === Node.COMMENT_NODE) {
-        parent.appendChild(owner.createComment(child.value));
+        parent.appendChild(owner.createComment(display(child.value)));
     } else if (child.type === Node.CDATA_SECTION_NODE) {
-        parent.appendChild(owner.createCDATASection(child.value));
+        parent.appendChild(owner.createCDATASection(display(child.value)));
+    } else if (child.type === Node.TEXT_NODE) {
+        parent.appendChild(owner.createTextNode(display(child.value)));
     } else {
-        parent.appendChild(owner.createTextNode(Display(child.value)));
+        throw new Error('child type not handled');
     }
 };
 const remove = function(parent) {
@@ -417,10 +400,9 @@ const remove = function(parent) {
     if (child) parent.removeChild(child);
 };
 const common = function(source, target, properties) {
-    console.log(source, target);
     if (!source.parentNode) throw new Error('source parent node not found');
-    const owner = source.ownerDocument;
-    if (source.nodeName !== target.name) {
+    if (source.nodeName.toLowerCase() !== target.name) {
+        const owner = source.ownerDocument;
         source.parentNode?.replaceChild(create(owner, target, properties), source);
         return;
     }
@@ -430,7 +412,7 @@ const common = function(source, target, properties) {
         }
         return;
     }
-    if (target.nodeName === '#comment') {
+    if (target.name === '#comment') {
         if (source.nodeValue !== target.value) {
             source.nodeValue = target.value;
         }
@@ -457,7 +439,10 @@ const common = function(source, target, properties) {
             append(source, targetChildren[index], properties);
         }
     }
-    attributes(source, target, properties);
+    const attributes = target.attributes;
+    for (const { name , value  } of attributes){
+        attribute(source, name, value, properties);
+    }
 };
 function patch(source, target, properties) {
     let index;
@@ -487,32 +472,34 @@ function html(strings, ...values) {
     let data = '';
     const properties = {};
     for(let index = 0; index < strings.length; index++){
-        const part = strings[index];
+        const string = strings[index];
         const value = values[index];
-        const name = part.match(/\b([a-zA-Z-]+)=$/)?.[1] ?? '';
+        const name = string.match(/\b([a-zA-Z-]+)=$/)?.[1] ?? '';
         if (name) {
             const id = crypto.randomUUID();
             const end = name.length + 1;
-            data += `${part.slice(0, -end)} data-x-${id} ${name}="${Display(value)}"`;
+            data += `${string.slice(0, -end)}${name}="{{${id}}}"`;
             properties[id] = {
                 name,
                 value
             };
         } else if (value?.constructor === Object && value[HtmlNameSymbol] === HtmlValueSymbol) {
+            data += string;
             data += value.data;
             Object.assign(properties, value.properties);
         } else if (value?.constructor === Array) {
-            data += part;
+            data += string;
             for (const item of value){
                 if (item[HtmlNameSymbol] === HtmlValueSymbol) {
                     data += item.data;
                     Object.assign(properties, item.properties);
                 } else {
-                    data += `${Display(value)}`;
+                    data += display(value);
                 }
             }
         } else {
-            data += `${part}${Display(value)}`;
+            data += string;
+            data += display(value);
         }
     }
     return {
@@ -521,30 +508,37 @@ function html(strings, ...values) {
         properties
     };
 }
-function render(root, context, component) {
+async function render(root, context, component) {
     const componentInstance = component(html, context);
     const { data , properties  } = componentInstance;
-    console.log(virtual(data));
-    patch(root, virtual(data), properties);
+    const virtualInstance = virtual(data);
+    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+    patch(root, virtualInstance, properties);
+    if (context.upgraded) await context.upgraded()?.catch(console.error);
 }
-function mount(root, context, component) {
-    const update = function() {
-        console.log('update');
-        renderInstance();
+const MountCache = new WeakMap();
+async function mount(root, context, component) {
+    const update = async function() {
+        await schedule(root, renderInstance);
     };
     const contextInstance = ContextCreate(context(html), update);
     const renderInstance = render.bind(null, root, contextInstance, component);
-    update();
+    const cache = MountCache.get(root);
+    if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+    if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
+    MountCache.set(root, contextInstance);
+    if (contextInstance.connect) await contextInstance.connect()?.catch?.(console.error);
+    await update();
+    if (contextInstance.connected) await contextInstance.connected()?.catch(console.error);
     return update;
 }
 const alls = [];
 const routes = [];
-const transition = function(route) {
-    console.log(route);
+const transition = async function(route) {
     if (route.render) {
         route.render();
     } else {
-        route.render = mount(route.root, route.context, route.component);
+        route.render = await mount(route.root, route.context, route.component);
     }
 };
 const navigate = function(event) {
@@ -619,12 +613,12 @@ function router(path, root, context, component) {
     }
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
-export { Schedule as Schedule };
-export { Schedule as schedule };
+export { schedule as Schedule };
+export { schedule as schedule };
 export { ContextCreate as Context };
 export { ContextCreate as context };
-export { Define as Define };
-export { Define as define };
+export { define as Define };
+export { define as define };
 export { router as Router };
 export { router as router };
 export { render as Render };
@@ -634,16 +628,16 @@ export { patch as patch };
 export { mount as Mount };
 export { mount as mount };
 const Index = {
-    Schedule,
+    Schedule: schedule,
     Context: ContextCreate,
-    Define,
+    Define: define,
     Router: router,
     Render: render,
     Patch: patch,
     Mount: mount,
-    schedule: Schedule,
+    schedule: schedule,
     context: ContextCreate,
-    define: Define,
+    define: define,
     router: router,
     render: render,
     patch: patch,

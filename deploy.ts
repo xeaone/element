@@ -18,6 +18,9 @@ pkg.version = inc(pkg.version, release as ReleaseType);
 
 const { license, author, email, version } = pkg;
 
+const proceed = confirm(`Do you want to deploy version ${version}?`);
+if (!proceed) Deno.exit();
+
 const banner = `/************************************************************************
 Name: XElement
 Version: ${version}

@@ -1,18 +1,28 @@
+import schedule from './schedule.ts';
 import render from './render.ts';
+import Context from './context.ts';
 import html from './html.ts';
 
-import Context from './context.ts';
+export const MountCache = new WeakMap();
 
-export default function mount(root: Element, context: (html: any) => any, component: (html: any) => any) {
-    const update = function () {
-        console.log('update');
-        renderInstance();
+export default async function mount(root: Element, context: (html: any) => any, component: (html: any) => any) {
+    const update = async function () {
+        await schedule(root, renderInstance);
     };
 
     const contextInstance = Context(context(html), update);
     const renderInstance = render.bind(null, root, contextInstance, component);
 
-    update();
+    const cache = MountCache.get(root);
+
+    if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+    if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
+
+    MountCache.set(root, contextInstance);
+
+    if (contextInstance.connect) await contextInstance.connect()?.catch?.(console.error);
+    await update();
+    if (contextInstance.connected) await contextInstance.connected()?.catch(console.error);
 
     return update;
 }

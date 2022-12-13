@@ -1,9 +1,9 @@
-import { Update } from './types.ts';
+type Task = () => void | Promise<void>;
 
 const ScheduleCache = new WeakMap();
 const ScheduleNext = Promise.resolve();
 
-export default async function Schedule(target: Element, update: Update) {
+export default async function schedule(target: Element, task: Task) {
     let cache = ScheduleCache.get(target);
 
     if (!cache) {
@@ -13,9 +13,9 @@ export default async function Schedule(target: Element, update: Update) {
 
     if (cache.current) {
         clearTimeout(cache.timer);
-        cache.update = update;
+        cache.task = task;
     } else {
-        cache.update = update;
+        cache.task = task;
     }
 
     cache.current = new Promise((resolve) => {
@@ -23,9 +23,9 @@ export default async function Schedule(target: Element, update: Update) {
         cache.timer = setTimeout(function ScheduleTime() {
             let r;
             const rs = cache.resolves;
-            const u = cache.update;
+            const u = cache.task;
             cache.current = undefined;
-            cache.update = undefined;
+            cache.task = undefined;
             cache.timer = undefined;
             cache.resolves = [];
             ScheduleNext.then(u).then(function ScheduleResolves() {

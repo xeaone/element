@@ -1,6 +1,6 @@
 #! /usr/bin/env -S deno run -A
 
-import { Cors, File, Handler, Normalize, Router, Server } from 'https://deno.land/x/xserver@0.2.1/mod.ts';
+import { Cors, File, Handler, Normalize, Router } from 'https://deno.land/x/xserver@0.2.1/mod.ts';
 // import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
 
 // Deno.run({ cmd: ['npx', 'tsc', '--watch'] }).status();
@@ -66,10 +66,4 @@ handler.add(normalize);
 handler.add(cors);
 handler.add(router);
 
-// const server = Server((request) => handler.handle(request), { port });
-// console.log(`listening: ${port}`);
-// await server;
-
 await Deno.serve({ port }, (request) => handler.handle(request));
-
-// stop();

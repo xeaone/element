@@ -41,11 +41,10 @@
         }
     },
     "tasks": {
-        "p": "deno run -A src/parse.ts",
         "docs": "deno run -A docs.ts",
-        "bundle": "deno run -A bundle.ts",
-        "deploy": "deno run -A deploy.ts",
-        "test": "deno --unstable test -A test.ts",
-        "watch": "deno --unstable run -A watch.ts"
+        "b": "deno run -A bundle.ts",
+        "d": "deno run -A deploy.ts",
+        "t": "deno test -A test.ts",
+        "w": "deno run --unstable -A watch.ts"
     }
 }

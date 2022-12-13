@@ -1,35 +1,63 @@
-<base href="/">
-<title>Lit Performance</title>
-<script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/performance/';</script>
-<link rel="stylesheet" href="./index.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lit Performance</title>
+    <base href="/element/">
+    <link rel="stylesheet" href="./performance/index.css">
+</head>
+<body>
+    <h1>Lite Performance</h1>
 
-<h1>Lite Performance</h1>
+    <lit-test></lit-test>
 
-<lit-test></lit-test>
+    <script type="module">
+        import { LitElement, html } from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
+        // import { LitElement, html } from 'https://cdn.jsdelivr.net/npm/lit@2.4.0/index.js';
 
-<script type="module">
-    import { LitElement, html } from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
-    // import { LitElement, html } from 'https://cdn.jsdelivr.net/npm/lit@2.4.0/index.js';
+        class LitTest extends LitElement {
 
-    class LitTest extends LitElement {
+            static properties = {
+                items: { type: Array },
+                count: { type: Number },
+            };
 
-        static properties = {
-            text: { type: String },
-        };
+            constructor() {
+                super();
+                this.items = [];
+                this.count = 100000;
+            }
 
-        constructor() {
-            super();
-            this.text = 'Hello World';
+            oninput(e) {
+                this.count = e?.target?.valueAsNumber;
+            }
+
+            overwrite() {
+                console.time('overwrite');
+                var items = [];
+                for (var i = 0; i < this.count; i++) items.push(i);
+                this.items = items;
+                console.timeEnd('overwrite');
+            }
+
+            render() {
+                return html`
+                    <link rel="stylesheet" href="./performance/index.css">
+                    <h2>Count: ${this.count.toLocaleString()}</h2>
+                    <input type="number" @input=${this.oninput} value=${this.count}>
+                    <button @click=${this.overwrite}>overwrite</button>
+                    <div>${this.items.map(item => html`<div class="box">${item}</div>`)}</div>
+                `;
+            }
         }
 
-        render() {
-            return html`
-                <span>${this.text}</span>
-                <input value=${this.text.toUpperCase()} oninput=${this.text = event.value} />
-                <input value=${this.text.toLowerCase()} />
-            `;
-        }
-    }
+                // <button onclick=${c.push} >push</button>
+                // <button onclick=${c.clear}>clear</button>
 
-    customElements.define('lit-test', LitTest);
-</script>
+        customElements.define('lit-test', LitTest);
+    </script>
+</body>
+</html>
+

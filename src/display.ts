@@ -1,4 +1,4 @@
-export default function Display(data: any): string {
+export default function display(data: any): string {
     switch (typeof data) {
         case 'undefined':
             return '';
@@ -17,6 +17,6 @@ export default function Display(data: any): string {
         case 'object':
             return JSON.stringify(data);
         default:
-            throw new Error('Display - type not handled');
+            throw new Error('display - type not handled');
     }
 }

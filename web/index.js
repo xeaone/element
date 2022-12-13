@@ -8,8 +8,6 @@ const main = document.querySelector('main');
 
 // navigation.addEventListener('navigate', () => console.log('nav before'));
 
-console.log(guide);
-
 router('/', main, root.context, root.component);
 router('/guide', main, guide.context, guide.component);
 router('/*', main, all.context, all.component);

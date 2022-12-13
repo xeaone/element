@@ -1,11 +1,12 @@
 import { FragmentNode, VirtualNode } from './types.ts';
+
 /**
  * todo: need to handle comments and specail svg
  */
 
-const TextType = 3;
-const ElementType = 1;
-const AttributeType = 2;
+const TextType = Node.TEXT_NODE;
+const ElementType = Node.ELEMENT_NODE;
+const AttributeType = Node.ATTRIBUTE_NODE;
 
 const TEXT = 'Text';
 const IN_OPEN = 'InOpen';
@@ -33,7 +34,6 @@ export default function virtual(data: string): FragmentNode {
 
     for (let i = 0; i < data.length; i++) {
         const c = data[i];
-        const next = data[i + 1];
 
         if (mode === ELEMENT_NAME) {
             if (c === ' ') {
@@ -44,10 +44,13 @@ export default function virtual(data: string): FragmentNode {
                 node.closed = true;
                 node = node.parent;
             } else if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
+
+                if (empty.includes(node.name)) {
+                    node.closed = true; // close the current element node
+                    node = node.parent; // change current element node to parent node
+                }
             } else {
                 node.name += c;
             }
@@ -61,10 +64,10 @@ export default function virtual(data: string): FragmentNode {
                 node = node.parent;
                 node.closed = true;
             } else if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
+                node = node.parent; // change current node from attribute node to parent node
+                if (empty.includes(node.name)) node.closed = true; // close the parent element node
             } else if (c === '=') {
                 i++;
                 mode = ATTRIBUTE_VALUE;
@@ -87,9 +90,13 @@ export default function virtual(data: string): FragmentNode {
                 node.closed = true;
                 node = node.parent;
             } else if (c === '>') {
-                if (empty.includes(node.name)) node.closed = true;
                 if (special.includes(node.name)) mode = ELEMENT_CHILDREN;
                 else mode = ELEMENT_CHILDREN;
+
+                if (empty.includes(node.name)) {
+                    node.closed = true; // close the current element node
+                    node = node.parent; // change the current element node to parent node
+                }
             } else {
                 node = {
                     id: id += 1,
@@ -108,7 +115,8 @@ export default function virtual(data: string): FragmentNode {
                 continue;
             }
         } else if (mode === TEXT) {
-            if (c === '<' && next === '/') {
+            const next = data[i + 1];
+            if (c === '<' && next === '/') { // close tag
                 i++;
                 mode = IN_CLOSE;
                 node = node.parent;
@@ -129,9 +137,10 @@ export default function virtual(data: string): FragmentNode {
                 node.value += c;
             }
         } else if (mode === ELEMENT_CHILDREN) {
+            const next = data[i + 1];
             // if (c === '<' && data[i + 1] === '!' && data[i + 2] === '-' && data[i + 2] === '-') {
             // } else
-            if (c === '<' && next === '/') {
+            if (c === '<' && next === '/') { // close tag
                 i++;
                 mode = IN_CLOSE;
                 node = node.parent;

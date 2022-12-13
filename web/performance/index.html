@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
     <head>
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -9,72 +8,16 @@
         <title>XElement Performance</title>
         <link rel="stylesheet" href="./performance/index.css">
     </head>
-
     <body>
         <h1>XElement Performance</h1>
-        <!-- <o-loop></o-loop> -->
+
         <main></main>
-
-        <!--
-        <script type="module">
-            import { Component, render } from './x-element.js';
-
-            const context = () => ({
-                items: [],
-                message: '',
-                count: 100000,
-                oninput(e) {
-                    this.count = e.target.valueAsNumber;
-                },
-                push() {
-                    console.time('push');
-                    for (var i = 0; i < this.count; i++) this.items.push(i);
-                    console.timeEnd('push');
-                },
-                overwrite() {
-                    console.time('overwrite');
-                    var items = [];
-                    for (var i = 0; i < this.count; i++) items.push(i);
-                    this.items = items;
-                    console.timeEnd('overwrite');
-                },
-                clear() {
-                    this.items = [];
-                },
-            });
-
-            const component = (v, c) => [
-                v.h2(`Count: ${c.count.toLocaleString()}`),
-                v.input().oninput(c.oninput).value(c.count).type('number'),
-                v.button('push').onclick(c.push),
-                v.button('overwrite').onclick(c.overwrite),
-                v.button('clear').onclick(c.clear),
-                v.div(...c.items.map(item => v.div(`${item}`).class('box'))),
-            ];
-
-            render(document.querySelector('main'), component, context);
-
-            // class OLoop extends Component {
-            //     static context = context;
-            //     static component = component;
-            //     static options = { root: 'this', slot: 'default' };
-            // }
-
-            // OLoop.define();
-
-        </script>
-        -->
 
         <script type="module">
             import { mount } from './x-element.js';
 
-            /*
-                app
-            */
-
             const context = () => ({
                 items: [],
-                message: '',
                 count: 100000,
                 oninput(e) {
                     this.count = e?.target?.valueAsNumber;
@@ -99,8 +42,8 @@
             const component = (html, c) => html`
                 <h2>Count: ${c.count.toLocaleString()}</h2>
                 <input type="number" oninput=${c.oninput} value=${c.count}>
-                <button onclick=${c.push}>push</button>
                 <button onclick=${c.overwrite}>overwrite</button>
+                <button onclick=${c.push} >push</button>
                 <button onclick=${c.clear}>clear</button>
                 <div>${c.items.map(item => html`<div class="box">${item}</div>`)}</div>
             `;
@@ -111,5 +54,4 @@
         </script>
 
     </body>
-
 </html>
