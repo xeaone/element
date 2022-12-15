@@ -31,7 +31,7 @@ export default async function schedule(target: Element, task: Task) {
             ScheduleNext.then(u).then(function ScheduleResolves() {
                 for (r of rs) r();
             });
-        }, 100);
+        }, 50);
     });
 
     await cache.current;

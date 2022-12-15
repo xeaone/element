@@ -5,6 +5,8 @@ import display from './display.ts';
 const HtmlNameSymbol = Symbol('HtmlName');
 const HtmlValueSymbol = Symbol('HtmlValue');
 
+// const HtmlCache = new WeakMap();
+
 export default function html(strings: string[], ...values: any[]) {
     let data = '';
     const properties: Properties = {};
@@ -25,14 +27,19 @@ export default function html(strings: string[], ...values: any[]) {
             Object.assign(properties, value.properties);
         } else if (value?.constructor === Array) {
             data += string;
+            // const cache = HtmlCache.get(value);
+            // if (cache) console.log(value, cache)
+            let map = '';
             for (const item of value) {
                 if (item[HtmlNameSymbol] === HtmlValueSymbol) {
-                    data += item.data;
+                    map += item.data;
                     Object.assign(properties, item.properties);
                 } else {
-                    data += display(value);
+                    map += display(value);
                 }
             }
+            // HtmlCache.set(value, map);
+            data += map;
         } else {
             data += string;
             data += display(value);

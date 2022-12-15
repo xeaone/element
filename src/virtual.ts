@@ -1,26 +1,32 @@
 import { FragmentNode, VirtualNode } from './types.ts';
 
 /**
- * todo: need to handle comments and specail svg
+ * todo: handle cdata
  */
+
+// const VirtualCache = new Map();
 
 const TextType = Node.TEXT_NODE;
 const ElementType = Node.ELEMENT_NODE;
+const CommentType = Node.COMMENT_NODE;
 const AttributeType = Node.ATTRIBUTE_NODE;
 
 const TEXT = 'Text';
+const COMMENT = 'Comment';
 const IN_OPEN = 'InOpen';
 const IN_CLOSE = 'InClose';
-
 const ELEMENT_NAME = 'ElementName';
 const ATTRIBUTE_NAME = 'AttributeName';
 const ATTRIBUTE_VALUE = 'AttributeValue';
 const ELEMENT_CHILDREN = 'ElementChildren';
 
-const special = ['script', 'style'];
-const empty = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'isindex', 'link', 'meta', 'param', 'embed'];
+const special = ['SCRIPT', 'STYLE'];
+const empty = ['AREA', 'BASE', 'BASEFONT', 'BR', 'COL', 'FRAME', 'HR', 'IMG', 'INPUT', 'ISINDEX', 'LINK', 'META', 'PARAM', 'EMBED'];
 
 export default function virtual(data: string): FragmentNode {
+    // const cache = VirtualCache.get(data);
+    // if (cache) return cache;
+
     const fragment: VirtualNode = {
         id: 1,
         type: 11,
@@ -52,7 +58,7 @@ export default function virtual(data: string): FragmentNode {
                     node = node.parent; // change current element node to parent node
                 }
             } else {
-                node.name += c;
+                node.name += c.toUpperCase();
             }
         } else if (mode === ATTRIBUTE_NAME) {
             if (c === ' ') {
@@ -121,7 +127,19 @@ export default function virtual(data: string): FragmentNode {
                 mode = IN_CLOSE;
                 node = node.parent;
                 node = node.parent;
-            } else if (c === '<') {
+            } else if (c === '<' && next === '!') { // start comment
+                node = node.parent;
+                i++;
+                mode = COMMENT;
+                node = {
+                    id: id += 1,
+                    value: '',
+                    parent: node,
+                    name: '#comment',
+                    type: CommentType,
+                }
+                node.parent.children.push(node);
+            } else if (c === '<') { // start element
                 node = node.parent;
                 node = {
                     id: id += 1,
@@ -133,18 +151,27 @@ export default function virtual(data: string): FragmentNode {
                 };
                 node.parent.children.push(node);
                 mode = ELEMENT_NAME;
-            } else {
+            } else { // collect text
                 node.value += c;
             }
         } else if (mode === ELEMENT_CHILDREN) {
             const next = data[i + 1];
-            // if (c === '<' && data[i + 1] === '!' && data[i + 2] === '-' && data[i + 2] === '-') {
-            // } else
             if (c === '<' && next === '/') { // close tag
                 i++;
                 mode = IN_CLOSE;
                 node = node.parent;
-            } else if (c === '<') {
+            } else if (c === '<' && next === '!') {  // start comment
+                i++;
+                mode = COMMENT;
+                node = {
+                    id: id += 1,
+                    value: '',
+                    parent: node,
+                    name: '#comment',
+                    type: CommentType,
+                }
+                node.parent.children.push(node);
+            } else if (c === '<') { // start element
                 node = {
                     id: id += 1,
                     name: '',
@@ -155,7 +182,7 @@ export default function virtual(data: string): FragmentNode {
                 };
                 node.parent.children.push(node);
                 mode = ELEMENT_NAME;
-            } else {
+            } else { // start text
                 node = {
                     id: id += 1,
                     value: c,
@@ -166,8 +193,19 @@ export default function virtual(data: string): FragmentNode {
                 node.parent.children.push(node);
                 mode = TEXT;
             }
+        } else if (mode === COMMENT) {
+            if (c === '>') { // close comment
+                mode = ELEMENT_CHILDREN;
+                if (node.value.startsWith('--')) node.value = node.value.slice(2);
+                if (node.value.endsWith('--')) node.value = node.value.slice(0, -2);
+                node = node.parent;
+            } else { // collect comment
+                node.value += c;
+            }
         }
     }
+
+    // VirtualCache.set(data, fragment);
 
     return fragment;
 }

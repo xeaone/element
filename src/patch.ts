@@ -2,23 +2,6 @@ import { FragmentNode, VirtualNode } from './types.ts';
 import booleans from './booleans.ts';
 import display from './display.ts';
 
-// const attributes = function (source: Element, target: VirtualNode, properties: any) {
-//     const attributes = target.attributes;
-
-//     for (const { name, value } of attributes) {
-//         attribute(source, name, value, properties);
-//     }
-
-//     // if (source.hasAttributes()) {
-//     //     const names = source.getAttributeNames();
-//     //     for (const name of names) {
-//     //         if (!(name in attributes)) {
-//     //             source.removeAttribute(name);
-//     //         }
-//     //     }
-//     // }
-// };
-
 const OnCache = new WeakMap();
 
 const attribute = function (element: Element, name: string, value: string, properties: any) {
@@ -75,11 +58,11 @@ const append = function (parent: Node, child: VirtualNode, properties: any) {
     if (child.type === Node.ELEMENT_NODE) {
         parent.appendChild(create(owner, child, properties));
     } else if (child.type === Node.COMMENT_NODE) {
-        parent.appendChild(owner.createComment(display(child.value)));
+        parent.appendChild(owner.createComment(child.value));
     } else if (child.type === Node.CDATA_SECTION_NODE) {
-        parent.appendChild(owner.createCDATASection(display(child.value)));
+        parent.appendChild(owner.createCDATASection(child.value));
     } else if (child.type === Node.TEXT_NODE) {
-        parent.appendChild(owner.createTextNode(display(child.value)));
+        parent.appendChild(owner.createTextNode(child.value));
     } else {
         throw new Error('child type not handled');
     }
@@ -109,7 +92,7 @@ const common = function (source: Node, target: VirtualNode, properties: any) {
         return;
     }
 
-    if (source.nodeName.toLowerCase() !== target.name) {
+    if (source.nodeName !== target.name) {
         const owner = source.ownerDocument as Document;
         source.parentNode?.replaceChild(create(owner, target, properties), source);
         return;
@@ -119,7 +102,6 @@ const common = function (source: Node, target: VirtualNode, properties: any) {
     // if (!(target instanceof Element)) throw new Error('target node not valid');
 
     const targetChildren = target.children;
-    // const targetChildren = [...target.childNodes];
     const targetLength = targetChildren.length;
     const sourceChildren = [...source.childNodes];
     const sourceLength = sourceChildren.length;
@@ -151,7 +133,6 @@ export default function patch(source: Element, target: FragmentNode, properties:
     let index;
 
     const targetChildren = target.children;
-    // const targetChildren = [...target.childNodes];
     const targetLength = targetChildren.length;
 
     const sourceChildren = [...source.childNodes];

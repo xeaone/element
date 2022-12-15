@@ -66,7 +66,13 @@ const root = document.body;
 router('/', root, context, component);
 `);
 
-export const context = () => ({});
+export const context = () => ({
+    upgraded () {
+        document.querySelector('#component').innerHTML = componentExample;
+        document.querySelector('#router').innerHTML = routerExample;
+        document.querySelector('#element').innerHTML = elementExample;
+    }
+});
 
 export const component = (html) => html`
 <section>
@@ -102,13 +108,13 @@ export const component = (html) => html`
     </div>
 
     <h2>Component Example</h2>
-    <pre>${componentExample}</pre>
-
-    <h2>Element Example</h2>
-    <pre>${elementExample}</pre>
+    <pre id="component"></pre>
 
     <h2>Router Example</h2>
-    <pre>${routerExample}</pre>
+    <pre id="router"></pre>
+
+    <h2>Element Example</h2>
+    <pre id="element"></pre>
 
 </section>
 `;

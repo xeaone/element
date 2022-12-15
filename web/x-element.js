@@ -31,7 +31,7 @@ async function schedule(target, task) {
             ScheduleNext.then(u).then(function ScheduleResolves() {
                 for (r of rs)r();
             });
-        }, 100);
+        }, 50);
     });
     await cache.current;
 }
@@ -98,8 +98,10 @@ function define(name, constructor) {
 }
 const TextType = Node.TEXT_NODE;
 const ElementType = Node.ELEMENT_NODE;
+const CommentType = Node.COMMENT_NODE;
 const AttributeType = Node.ATTRIBUTE_NODE;
 const TEXT = 'Text';
+const COMMENT = 'Comment';
 const IN_OPEN = 'InOpen';
 const IN_CLOSE = 'InClose';
 const ELEMENT_NAME = 'ElementName';
@@ -107,24 +109,24 @@ const ATTRIBUTE_NAME = 'AttributeName';
 const ATTRIBUTE_VALUE = 'AttributeValue';
 const ELEMENT_CHILDREN = 'ElementChildren';
 const special = [
-    'script',
-    'style'
+    'SCRIPT',
+    'STYLE'
 ];
 const empty = [
-    'area',
-    'base',
-    'basefont',
-    'br',
-    'col',
-    'frame',
-    'hr',
-    'img',
-    'input',
-    'isindex',
-    'link',
-    'meta',
-    'param',
-    'embed'
+    'AREA',
+    'BASE',
+    'BASEFONT',
+    'BR',
+    'COL',
+    'FRAME',
+    'HR',
+    'IMG',
+    'INPUT',
+    'ISINDEX',
+    'LINK',
+    'META',
+    'PARAM',
+    'EMBED'
 ];
 function virtual(data) {
     const fragment = {
@@ -154,7 +156,7 @@ function virtual(data) {
                     node = node.parent;
                 }
             } else {
-                node.name += c;
+                node.name += c.toUpperCase();
             }
         } else if (mode === ATTRIBUTE_NAME) {
             if (c === ' ') {
@@ -222,6 +224,18 @@ function virtual(data) {
                 mode = IN_CLOSE;
                 node = node.parent;
                 node = node.parent;
+            } else if (c === '<' && next === '!') {
+                node = node.parent;
+                i++;
+                mode = COMMENT;
+                node = {
+                    id: id += 1,
+                    value: '',
+                    parent: node,
+                    name: '#comment',
+                    type: CommentType
+                };
+                node.parent.children.push(node);
             } else if (c === '<') {
                 node = node.parent;
                 node = {
@@ -243,6 +257,17 @@ function virtual(data) {
                 i++;
                 mode = IN_CLOSE;
                 node = node.parent;
+            } else if (c === '<' && next1 === '!') {
+                i++;
+                mode = COMMENT;
+                node = {
+                    id: id += 1,
+                    value: '',
+                    parent: node,
+                    name: '#comment',
+                    type: CommentType
+                };
+                node.parent.children.push(node);
             } else if (c === '<') {
                 node = {
                     id: id += 1,
@@ -264,6 +289,15 @@ function virtual(data) {
                 };
                 node.parent.children.push(node);
                 mode = TEXT;
+            }
+        } else if (mode === COMMENT) {
+            if (c === '>') {
+                mode = ELEMENT_CHILDREN;
+                if (node.value.startsWith('--')) node.value = node.value.slice(2);
+                if (node.value.endsWith('--')) node.value = node.value.slice(0, -2);
+                node = node.parent;
+            } else {
+                node.value += c;
             }
         }
     }
@@ -315,12 +349,45 @@ const booleans = [
     'typemustmatch',
     'visible'
 ];
+const escapes = new Map([
+    [
+        '<',
+        '&lt;'
+    ],
+    [
+        '>',
+        '&gt;'
+    ],
+    [
+        '"',
+        '&quot;'
+    ],
+    [
+        '\'',
+        '&apos;'
+    ],
+    [
+        '&',
+        '&amp;'
+    ],
+    [
+        '\r',
+        '&#10;'
+    ],
+    [
+        '\n',
+        '&#13;'
+    ]
+]);
+const escape = function(data) {
+    return data?.replace(/[<>"'\r\n&]/g, (c)=>escapes.get(c) ?? c) ?? '';
+};
 function display(data) {
     switch(typeof data){
         case 'undefined':
             return '';
         case 'string':
-            return data;
+            return escape(data);
         case 'number':
             return `${data}`;
         case 'bigint':
@@ -386,11 +453,11 @@ const append = function(parent, child, properties) {
     if (child.type === Node.ELEMENT_NODE) {
         parent.appendChild(create(owner, child, properties));
     } else if (child.type === Node.COMMENT_NODE) {
-        parent.appendChild(owner.createComment(display(child.value)));
+        parent.appendChild(owner.createComment(child.value));
     } else if (child.type === Node.CDATA_SECTION_NODE) {
-        parent.appendChild(owner.createCDATASection(display(child.value)));
+        parent.appendChild(owner.createCDATASection(child.value));
     } else if (child.type === Node.TEXT_NODE) {
-        parent.appendChild(owner.createTextNode(display(child.value)));
+        parent.appendChild(owner.createTextNode(child.value));
     } else {
         throw new Error('child type not handled');
     }
@@ -413,7 +480,7 @@ const common = function(source, target, properties) {
         }
         return;
     }
-    if (source.nodeName.toLowerCase() !== target.name) {
+    if (source.nodeName !== target.name) {
         const owner = source.ownerDocument;
         source.parentNode?.replaceChild(create(owner, target, properties), source);
         return;
@@ -489,14 +556,16 @@ function html(strings, ...values) {
             Object.assign(properties, value.properties);
         } else if (value?.constructor === Array) {
             data += string;
+            let map = '';
             for (const item of value){
                 if (item[HtmlNameSymbol] === HtmlValueSymbol) {
-                    data += item.data;
+                    map += item.data;
                     Object.assign(properties, item.properties);
                 } else {
-                    data += display(value);
+                    map += display(value);
                 }
             }
+            data += map;
         } else {
             data += string;
             data += display(value);
