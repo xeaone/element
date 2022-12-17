@@ -19,7 +19,8 @@ const ContextSet = function (method: ContextMethod, target: ContextTarget, key: 
 
     Reflect.set(target, key, value, receiver);
 
-    ContextNext.then(method);
+    method();
+    // ContextNext.then(method);
 
     return true;
 };
@@ -36,6 +37,7 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
         const proxy = new Proxy(value, {
             get: ContextGet.bind(null, method),
             set: ContextSet.bind(null, method),
+            // apply: ContextApply.bind(null, method),
             deleteProperty: ContextDelete.bind(null, method),
         });
 
@@ -72,10 +74,15 @@ const ContextDelete = function (method: ContextMethod, target: ContextTarget, ke
     return true;
 };
 
+// const ContextApply = function (method: ContextMethod, target: ContextTarget, self:any, args:any) {
+//     return Reflect.apply(target, self, args);
+// };
+
 const ContextCreate = function (data: ContextData, method: ContextMethod) {
     return new Proxy(data, {
         get: ContextGet.bind(null, method),
         set: ContextSet.bind(null, method),
+        // apply: ContextApply.bind(null, method),
         deleteProperty: ContextDelete.bind(null, method),
     });
 };

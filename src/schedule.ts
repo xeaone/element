@@ -11,28 +11,46 @@ export default async function schedule(target: Element, task: Task) {
         ScheduleCache.set(target, cache);
     }
 
-    if (cache.current) {
-        clearTimeout(cache.timer);
+    if (cache.busy) {
         cache.task = task;
-    } else {
-        cache.task = task;
+
+        await new Promise(function ScheduleResolve(resolve) {
+            cache.resolves.push(resolve);
+        });
+
+        return;
     }
 
-    cache.current = new Promise((resolve) => {
-        cache.resolves.push(resolve);
-        cache.timer = setTimeout(function ScheduleTime() {
-            let r;
-            const rs = cache.resolves;
-            const u = cache.task;
-            cache.current = undefined;
-            cache.task = undefined;
-            cache.timer = undefined;
+    if (cache.frame) {
+        cancelAnimationFrame(cache.frame);
+    }
+
+    cache.task = task;
+
+    cache.frame = requestAnimationFrame(function ScheduleFrame() {
+        const task = cache.task;
+        const resolves = cache.resolves;
+
+        cache.busy = true;
+        cache.task = undefined;
+
+        ScheduleNext.then(task).then(function (): any {
+            if (cache.task) {
+                return schedule(target, cache.task);
+            } else {
+                return Promise.all(resolves.map(function ScheduleMap(resolve: any) {
+                    return resolve();
+                }));
+            }
+        }).then(function () {
             cache.resolves = [];
-            ScheduleNext.then(u).then(function ScheduleResolves() {
-                for (r of rs) r();
-            });
-        }, 50);
+            cache.busy = false;
+            cache.task = undefined;
+            cache.frame = undefined;
+        });
     });
 
-    await cache.current;
+    await new Promise(function ScheduleResolve(resolve) {
+        cache.resolves.push(resolve);
+    });
 }

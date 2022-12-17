@@ -17,7 +17,7 @@
             import { mount } from './x-element.js';
 
             const context = () => ({
-                items: [],
+                items: [ 99 ],
                 count: 100000,
                 oninput(e) {
                     this.count = e?.target?.valueAsNumber;
@@ -43,10 +43,15 @@
                 <h2>Count: ${c.count.toLocaleString()}</h2>
                 <input type="number" oninput=${c.oninput} value=${c.count}>
                 <button onclick=${c.overwrite}>overwrite</button>
-                <button onclick=${c.push} >push</button>
-                <button onclick=${c.clear}>clear</button>
-                <div>${c.items.map(item => html`<div class="box">${item}</div>`)}</div>
+                <div>
+                ${c.items.map(item => html`
+                    <div class="box">${item}</div>
+                `)}
+                </div>
             `;
+                // <button onclick=${c.push} >push</button>
+                // <button onclick=${c.clear}>clear</button>
+                // <div ${'test'}>at</div>
 
             const root = document.querySelector('main');
             mount(root, context, component);

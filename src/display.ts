@@ -6,10 +6,10 @@ const escapes = new Map([
     ['&', '&amp;'],
     ['\r', '&#10;'],
     ['\n', '&#13;'],
-])
+]);
 
-const escape = function(data:string) {
-	return data?.replace(/[<>"'\r\n&]/g,  (c) => escapes.get(c) ?? c) ?? '';
+const escape = function (data: string) {
+    return data?.replace(/[<>"'\r\n&]/g, (c) => escapes.get(c) ?? c) ?? '';
 };
 
 export default function display(data: any): string {
