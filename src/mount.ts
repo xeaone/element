@@ -5,7 +5,7 @@ import html from './html.ts';
 
 export const MountCache = new WeakMap();
 
-export default async function mount(root: Element, context: (html: any) => any, component: (html: any) => any) {
+export default async function mount(root: Element, context: any, component: any) {
     const update = async function () {
         await schedule(root, renderInstance);
     };

@@ -4,13 +4,6 @@ import display from './display.ts';
 
 const OnCache = new WeakMap();
 
-const replace = function (node: VirtualNode, properties: any) {
-    for (const key in properties) {
-        node.name = node.name.replace(key, properties[key]);
-        node.value = node.value.replace(key, properties[key]);
-    }
-};
-
 const attribute = function (element: Element, name: string, value: any) {
     if (name === 'value') {
         const result = display(value);
@@ -18,9 +11,10 @@ const attribute = function (element: Element, name: string, value: any) {
         Reflect.set(element, name, result);
         element.setAttribute(name, result);
     } else if (name.startsWith('on')) {
-        if (OnCache.get(element) === value) return;
-        Reflect.set(element, name, value);
-        element.addEventListener(name, value);
+        element.setAttribute(name, value);
+        // if (OnCache.get(element) === value) return;
+        // Reflect.set(element, name, value);
+        // element.addEventListener(name, value);
     } else if (booleans.includes(name)) {
         const result = value ? true : false;
         const has = element.hasAttribute(name);
@@ -29,10 +23,10 @@ const attribute = function (element: Element, name: string, value: any) {
         if (result) element.setAttribute(name, '');
         else element.removeAttribute(name);
     } else {
-        const result = display(value);
-        if (element.getAttribute(name) === result) return;
-        Reflect.set(element, name, result);
-        element.setAttribute(name, result);
+        // const result = display(value);
+        if (element.getAttribute(name) === value) return;
+        Reflect.set(element, name, value);
+        element.setAttribute(name, value);
     }
 };
 
@@ -92,14 +86,17 @@ const common = function (source: Node, target: VirtualNode) {
         return;
     }
 
-    if (!(source instanceof Element)) throw new Error('source node not valid');
-    // if (!(target instanceof Element)) throw new Error('target node not valid');
-
     if (source.nodeName !== target.name) {
         const owner = source.ownerDocument as Document;
         source.parentNode?.replaceChild(create(owner, target), source);
         return;
     }
+
+    if (!(source instanceof Element)) {
+        console.log(source, target);
+        throw new Error('source node not valid');
+    }
+    // if (!(target instanceof Element)) throw new Error('target node not valid');
 
     const targetChildren = target.children;
     const targetLength = targetChildren.length;

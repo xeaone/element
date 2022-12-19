@@ -19,29 +19,24 @@ async function schedule(target, task) {
         });
         return;
     }
-    if (cache.frame) {
-        cancelAnimationFrame(cache.frame);
-    }
     cache.task = task;
-    cache.frame = requestAnimationFrame(function ScheduleFrame() {
-        const task = cache.task;
-        const resolves = cache.resolves;
-        cache.busy = true;
+    const work = cache.task;
+    const resolves = cache.resolves;
+    cache.busy = true;
+    cache.task = undefined;
+    ScheduleNext.then(work).then(function() {
+        if (cache.task) {
+            return schedule(target, cache.task);
+        } else {
+            return Promise.all(resolves.map(function ScheduleMap(resolve) {
+                return resolve();
+            }));
+        }
+    }).then(function() {
+        cache.resolves = [];
+        cache.busy = false;
         cache.task = undefined;
-        ScheduleNext.then(task).then(function() {
-            if (cache.task) {
-                return schedule(target, cache.task);
-            } else {
-                return Promise.all(resolves.map(function ScheduleMap(resolve) {
-                    return resolve();
-                }));
-            }
-        }).then(function() {
-            cache.resolves = [];
-            cache.busy = false;
-            cache.task = undefined;
-            cache.frame = undefined;
-        });
+        cache.frame = undefined;
     });
     await new Promise(function ScheduleResolve(resolve) {
         cache.resolves.push(resolve);
@@ -107,6 +102,464 @@ const ContextCreate = function(data, method) {
 };
 function define(name, constructor) {
     customElements.define(name, constructor);
+}
+new WeakMap();
+function html(strings, ...values) {
+    return {
+        strings,
+        values
+    };
+}
+const TextType = Node.TEXT_NODE;
+const ElementType = Node.ELEMENT_NODE;
+const CommentType = Node.COMMENT_NODE;
+const AttributeType = Node.ATTRIBUTE_NODE;
+const FragmentType = Node.DOCUMENT_FRAGMENT_NODE;
+const TEXT = 'Text';
+const OPEN = 'Open';
+const CLOSE = 'Close';
+const IGNORE = 'Ignore';
+const COMMENT = 'Comment';
+const ELEMENT_NAME = 'ElementName';
+const ATTRIBUTE_NAME = 'AttributeName';
+const ATTRIBUTE_VALUE = 'AttributeValue';
+const ELEMENT_CHILDREN = 'ElementChildren';
+const ignored = /script|style/i;
+const closed = /area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param|embed/i;
+const spacePattern = /\s/;
+const space = (c)=>spacePattern.test(c);
+const patchLastNode = function(rNodeParent, vNodeParent) {
+    console.log('parent', rNodeParent, vNodeParent);
+    if (!rNodeParent) throw new Error('real node not found');
+    if (!vNodeParent) throw new Error('virtual node not found');
+    const owner = rNodeParent.ownerDocument;
+    if (!owner) throw new Error('owner not found');
+    const position = vNodeParent.children.length - 1;
+    const vNode = vNodeParent.children[position];
+    const rNode = rNodeParent.childNodes[position];
+    console.log('child', rNode, vNode);
+    if (rNode) {
+        if (rNode.nodeName !== vNode.name) {
+            if (vNode.type === Node.ELEMENT_NODE) {
+                const node = owner.createElement(vNode.name);
+                for (const attribute of vNode.attributes){
+                    Reflect.set(node, attribute.name, attribute.value);
+                    node.setAttribute(attribute.name, attribute.value);
+                }
+                rNodeParent.replaceChild(node, rNode);
+            } else if (vNode.type === Node.TEXT_NODE) {
+                rNodeParent.replaceChild(owner.createTextNode(vNode.value), rNode);
+            } else if (vNode.type === Node.COMMENT_NODE) {
+                rNodeParent.replaceChild(owner.createComment(vNode.value), rNode);
+            } else {
+                throw new Error('type not handled');
+            }
+        } else {
+            if (vNode.type === Node.ELEMENT_NODE) {
+                for (const attribute1 of vNode.attributes){
+                    if (rNode.getAttribute(attribute1.name) !== attribute1.value) {
+                        Reflect.set(rNode, attribute1.name, attribute1.value);
+                        rNode.setAttribute(attribute1.name, attribute1.value);
+                    }
+                }
+            } else if (vNode.type === Node.TEXT_NODE) {
+                if (rNode.nodeValue !== vNode.value) {
+                    rNode.textContent = vNode.value;
+                }
+            } else if (vNode.type === Node.COMMENT_NODE) {
+                if (rNode.nodeValue !== vNode.value) {
+                    rNode.textContent = vNode.value;
+                }
+            } else {
+                throw new Error('type not handled');
+            }
+        }
+    } else {
+        if (vNode.type === Node.ELEMENT_NODE) {
+            const node1 = owner.createElement(vNode.name);
+            for (const attribute2 of vNode.attributes){
+                Reflect.set(node1, attribute2.name, attribute2.value);
+                node1.setAttribute(attribute2.name, attribute2.value);
+            }
+            rNodeParent.appendChild(node1);
+        } else if (vNode.type === Node.TEXT_NODE) {
+            rNodeParent.appendChild(owner.createTextNode(vNode.value));
+        } else if (vNode.type === Node.COMMENT_NODE) {
+            rNodeParent.appendChild(owner.createComment(vNode.value));
+        } else {
+            throw new Error('type not handled');
+        }
+    }
+};
+function parse(root, values, data) {
+    const fragment = {
+        type: FragmentType,
+        children: [],
+        name: 'fragment'
+    };
+    let i = 0;
+    let v = fragment;
+    let mode = ELEMENT_CHILDREN;
+    let n = root;
+    const l = data.length;
+    const childrenModeSlash = function() {
+        const last = v.children[v.children.length - 1];
+        last.name = last.name.toUpperCase();
+        last.closed = true;
+        patchLastNode(n, v);
+        mode = ELEMENT_CHILDREN;
+        i++;
+    };
+    const childrenModeClosed = function() {
+        const last = v.children[v.children.length - 1];
+        last.name = last.name.toUpperCase();
+        last.closed = true;
+        patchLastNode(n, v);
+        mode = ELEMENT_CHILDREN;
+    };
+    const childrenModeIgnored = function() {
+        const last = v.children[v.children.length - 1];
+        last.name = last.name.toUpperCase();
+        patchLastNode(n, v);
+        last.children.push({
+            value: '',
+            parent: v,
+            name: '#text',
+            type: TextType
+        });
+        mode = IGNORE;
+    };
+    const childrenMode = function() {
+        const last = v.children[v.children.length - 1];
+        last.name = last.name.toUpperCase();
+        patchLastNode(n, v);
+        const length = v.children.length;
+        n = n?.childNodes[length - 1];
+        v = v?.children[length - 1];
+        mode = ELEMENT_CHILDREN;
+        console.log('childrenMode -> elementChildrenMode');
+    };
+    for(i; i < l; i++){
+        const c = data[i];
+        if (mode === ELEMENT_CHILDREN) {
+            const next = data[i + 1];
+            if (c === '<' && next === '/') {
+                i++;
+                v = v.parent;
+                n = n?.parentNode;
+                mode = CLOSE;
+                console.log('elementChildrenMode -> closeMode');
+            } else if (c === '<' && next === '!') {
+                i++;
+                v.children.push({
+                    value: '',
+                    name: '#comment',
+                    parent: v,
+                    type: CommentType
+                });
+                mode = COMMENT;
+            } else if (c === '<') {
+                v.children.push({
+                    name: '',
+                    children: [],
+                    attributes: [],
+                    parent: v,
+                    type: ElementType
+                });
+                mode = ELEMENT_NAME;
+                console.log('elementChildrenMode -> elementNameMode');
+            } else {
+                v.children.push({
+                    value: c,
+                    name: '#text',
+                    parent: v,
+                    type: TextType
+                });
+                mode = TEXT;
+                console.log('elementChildrenMode -> textMode');
+            }
+        } else if (mode === ELEMENT_NAME) {
+            const last = v.children[v.children.length - 1];
+            if (space(c)) {
+                mode = OPEN;
+            } else if (c === '/') {
+                childrenModeSlash();
+            } else if (c === '>' && closed.test(last.name)) {
+                childrenModeClosed();
+            } else if (c === '>' && ignored.test(last.name)) {
+                childrenModeIgnored();
+            } else if (c === '>') {
+                childrenMode();
+            } else if (mode === ELEMENT_NAME) {
+                last.name += c;
+            }
+        } else if (mode === ATTRIBUTE_NAME) {
+            const last1 = v.children[v.children.length - 1];
+            if (space(c)) {
+                mode = OPEN;
+            } else if (c === '/') {
+                childrenModeSlash();
+            } else if (c === '>' && closed.test(last1.name)) {
+                childrenModeClosed();
+            } else if (c === '>' && ignored.test(last1.name)) {
+                childrenModeIgnored();
+            } else if (c === '>') {
+                childrenMode();
+            } else if (c === '=') {
+                if (data[i + 1] === '"') {
+                    i++;
+                    last1.attributes[v.attributes.length - 1].quoted = true;
+                }
+                mode = ATTRIBUTE_VALUE;
+            } else {
+                last1.attributes[v.attributes.length - 1].name += c;
+            }
+        } else if (mode === ATTRIBUTE_VALUE) {
+            const last2 = v.children[v.children.length - 1];
+            const attribute = last2.attributes[v.attributes.length - 1];
+            if (attribute.quoted) {
+                if (c === '"') {
+                    mode = OPEN;
+                } else {
+                    attribute.value += c;
+                }
+            } else if (space(c)) {
+                mode = OPEN;
+            } else if (c === '/') {
+                childrenModeSlash();
+            } else if (c === '>' && closed.test(last2.name)) {
+                childrenModeClosed();
+            } else if (c === '>' && ignored.test(last2.name)) {
+                childrenModeIgnored();
+            } else if (c === '>') {
+                childrenMode();
+            } else {
+                attribute.value += c;
+            }
+        } else if (mode === CLOSE) {
+            if (c === '>') {
+                mode = ELEMENT_CHILDREN;
+            } else {
+                continue;
+            }
+        } else if (mode === OPEN) {
+            const last3 = v.children[v.children.length - 1];
+            if (space(c)) {
+                continue;
+            } else if (c === '/') {
+                childrenModeSlash();
+            } else if (c === '>' && closed.test(last3.name)) {
+                childrenModeClosed();
+            } else if (c === '>' && ignored.test(last3.name)) {
+                childrenModeIgnored();
+            } else if (c === '>') {
+                childrenMode();
+            } else {
+                last3.attributes.push({
+                    name: c,
+                    value: '',
+                    type: AttributeType
+                });
+                mode = ATTRIBUTE_NAME;
+            }
+        } else if (mode === TEXT) {
+            const next1 = data[i + 1];
+            if (c === '<' && next1 === '/') {
+                patchLastNode(n, v);
+                v = v.parent;
+                n = n?.parentNode;
+                i++;
+                mode = CLOSE;
+                console.log('textMode -> closeMode');
+            } else if (c === '<' && next1 === '!') {
+                patchLastNode(n, v);
+                v.children.push({
+                    value: '',
+                    name: '#comment',
+                    parent: v.parent,
+                    type: CommentType
+                });
+                i++;
+                mode = COMMENT;
+                console.log('textMode -> commentMode');
+            } else if (c === '<') {
+                patchLastNode(n, v);
+                v.children.push({
+                    name: '',
+                    children: [],
+                    attributes: [],
+                    parent: v.parent,
+                    type: ElementType
+                });
+                mode = ELEMENT_NAME;
+                console.log('textMode -> elementNameMode');
+            } else if (c === '}' && next1 === '}') {
+                const last4 = v.children[v.children.length - 1];
+                last4.value = values[last4.value];
+                patchLastNode(n, v);
+                v.children.push({
+                    value: '',
+                    name: '#text',
+                    parent: v,
+                    type: TextType
+                });
+                i++;
+                console.log('textDynamicMode -> textMode');
+            } else if (c === '{' && next1 === '{') {
+                console.log('HERE', n, v);
+                patchLastNode(n, v);
+                v.children.push({
+                    name: '#text',
+                    value: '',
+                    parent: v,
+                    type: TextType
+                });
+                i++;
+                console.log('textMode -> textDynamicMode');
+            } else {
+                const last5 = v.children[v.children.length - 1];
+                last5.value += c;
+            }
+        } else if (mode === COMMENT) {
+            if (c === '>') {
+                if (v.last.value.startsWith('--')) v.last.value = v.last.value.slice(2);
+                if (v.last.value.endsWith('--')) v.last.value = v.last.value.slice(0, -2);
+                mode = ELEMENT_CHILDREN;
+            } else {
+                v.last.value += c;
+            }
+        } else if (mode === IGNORE) {
+            const last6 = v.children[v.children.length - 1][0];
+            if (c === '>') {
+                last6.value = last6.value.slice(0, -(last6.name.length + 2));
+                patchLastNode(n, v);
+                mode = ELEMENT_CHILDREN;
+            } else {
+                last6.value += c;
+            }
+        }
+    }
+    return fragment;
+}
+async function render(root, context, component) {
+    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+    const { strings , values  } = component(html, context);
+    let data = '';
+    const length = strings.length - 1;
+    for(let index = 0; index < length; index++){
+        const value = values[index];
+        if (value?.constructor === Array) {
+            data += `${strings[index]}`;
+            for (const child of value){
+                for(let ii = 0; ii < child.strings.length; ii++){
+                    data += `${child.strings[ii]}${child.values[ii] ?? ''}`;
+                }
+            }
+        } else {
+            data += `${strings[index]}{{${index}}}`;
+        }
+    }
+    data += strings[strings.length - 1];
+    const parsed = parse(root, values, data);
+    console.log(parsed);
+    if (context.upgraded) await context.upgraded()?.catch(console.error);
+}
+const MountCache = new WeakMap();
+async function mount(root, context, component) {
+    const update = async function() {
+        await schedule(root, renderInstance);
+    };
+    const contextInstance = ContextCreate(context(html), update);
+    const renderInstance = render.bind(null, root, contextInstance, component);
+    const cache = MountCache.get(root);
+    if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+    if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
+    MountCache.set(root, contextInstance);
+    if (contextInstance.connect) await contextInstance.connect()?.catch?.(console.error);
+    await update();
+    if (contextInstance.connected) await contextInstance.connected()?.catch(console.error);
+    return update;
+}
+const alls = [];
+const routes = [];
+const transition = async function(route) {
+    if (route.render) {
+        route.render();
+    } else {
+        route.render = await mount(route.root, route.context, route.component);
+    }
+};
+const navigate = function(event) {
+    if (event && 'canIntercept' in event && event.canIntercept === false) return;
+    if (event && 'canTransition' in event && event.canTransition === false) return;
+    const destination = new URL(event?.destination.url ?? location.href);
+    const base = new URL(document.querySelector('base')?.href ?? location.origin);
+    base.hash = '';
+    base.search = '';
+    destination.hash = '';
+    destination.search = '';
+    const pathname = destination.href.replace(base.href, '/');
+    const transitions = [];
+    for (const route of routes){
+        if (route.path !== pathname) continue;
+        if (!route.root) continue;
+        Reflect.set(route.root, 'xRouterPath', route.path);
+        transitions.push(route);
+    }
+    for (const all of alls){
+        if (!all.root) continue;
+        let has = false;
+        for (const transition1 of transitions){
+            if (transition1.root === all.root) {
+                has = true;
+                break;
+            }
+        }
+        if (has) continue;
+        if (Reflect.get(all.root, 'xRouterPath') === pathname) continue;
+        transitions.push(all);
+    }
+    if (event?.intercept) {
+        return event.intercept({
+            handler: ()=>transitions.map((route)=>transition(route))
+        });
+    } else if (event?.transitionWhile) {
+        return event.transitionWhile(transitions.map((route)=>transition(route)));
+    } else {
+        transitions.map((route)=>transition(route));
+    }
+};
+function router(path, root, context, component) {
+    if (!path) throw new Error('XElement - router path required');
+    if (!root) throw new Error('XElement - router root required');
+    if (!context) throw new Error('XElement - router context required');
+    if (!component) throw new Error('XElement - router component required');
+    if (path === '/*') {
+        for (const all of alls){
+            if (all.path === path && all.root === root) {
+                throw new Error('XElement - router duplicate path on root');
+            }
+        }
+        alls.push({
+            path,
+            root,
+            context,
+            component
+        });
+    } else {
+        for (const route of routes){
+            if (route.path === path && route.root === root) {
+                throw new Error('XElement - router duplicate path on root');
+            }
+        }
+        routes.push({
+            path,
+            root,
+            context,
+            component
+        });
+    }
+    Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
 const booleans = [
     'allowfullscreen',
@@ -209,7 +662,7 @@ function display(data) {
             throw new Error('display - type not handled');
     }
 }
-const OnCache = new WeakMap();
+new WeakMap();
 const attribute = function(element, name, value) {
     if (name === 'value') {
         const result = display(value);
@@ -217,9 +670,7 @@ const attribute = function(element, name, value) {
         Reflect.set(element, name, result);
         element.setAttribute(name, result);
     } else if (name.startsWith('on')) {
-        if (OnCache.get(element) === value) return;
-        Reflect.set(element, name, value);
-        element.addEventListener(name, value);
+        element.setAttribute(name, value);
     } else if (booleans.includes(name)) {
         const result1 = value ? true : false;
         const has = element.hasAttribute(name);
@@ -228,10 +679,9 @@ const attribute = function(element, name, value) {
         if (result1) element.setAttribute(name, '');
         else element.removeAttribute(name);
     } else {
-        const result2 = display(value);
-        if (element.getAttribute(name) === result2) return;
-        Reflect.set(element, name, result2);
-        element.setAttribute(name, result2);
+        if (element.getAttribute(name) === value) return;
+        Reflect.set(element, name, value);
+        element.setAttribute(name, value);
     }
 };
 const create = function(owner, node) {
@@ -279,11 +729,14 @@ const common = function(source, target) {
         }
         return;
     }
-    if (!(source instanceof Element)) throw new Error('source node not valid');
     if (source.nodeName !== target.name) {
         const owner = source.ownerDocument;
         source.parentNode?.replaceChild(create(owner, target), source);
         return;
+    }
+    if (!(source instanceof Element)) {
+        console.log(source, target);
+        throw new Error('source node not valid');
     }
     const targetChildren = target.children;
     const targetLength = targetChildren.length;
@@ -327,432 +780,6 @@ function patch(source, target) {
             append(source, targetChildren[index]);
         }
     }
-}
-function clone(source, values) {
-    const target = {
-        type: source.type
-    };
-    if (source.name) {
-        if (source.name.startsWith('{{') && source.name.endsWith('}}')) {
-            target.name = values[source.name.slice(2, -2)];
-        } else {
-            target.name = source.name;
-        }
-    }
-    if (source.value) {
-        if (source.value.startsWith('{{') && source.value.endsWith('}}')) {
-            const value = values[source.value.slice(2, -2)];
-            if (value?.constructor === Array || value?.constructor === Object) {
-                return value;
-            } else {
-                target.value = value;
-            }
-        } else {
-            target.value = source.value;
-        }
-    }
-    if (source.attributes) {
-        target.attributes = source.attributes.map((a)=>clone(a, values));
-    }
-    if (source.children) {
-        target.children = target.children ?? [];
-        for (const child of source.children){
-            const childClone = clone(child, values);
-            if (childClone.constructor === Object && childClone.name === 'fragment') {
-                target.children.push(...childClone.children);
-            } else if (childClone.constructor === Array) {
-                for (const cc of childClone){
-                    if (cc.children) {
-                        target.children.push(...cc.children);
-                    } else {}
-                }
-            } else {
-                target.children.push(childClone);
-            }
-        }
-    }
-    return target;
-}
-const TextType = Node.TEXT_NODE;
-const ElementType = Node.ELEMENT_NODE;
-const CommentType = Node.COMMENT_NODE;
-const AttributeType = Node.ATTRIBUTE_NODE;
-const TEXT = 'Text';
-const OPEN = 'Open';
-const CLOSE = 'Close';
-const IGNORE = 'Ignore';
-const COMMENT = 'Comment';
-const ELEMENT_NAME = 'ElementName';
-const ATTRIBUTE_NAME = 'AttributeName';
-const ATTRIBUTE_VALUE = 'AttributeValue';
-const ELEMENT_CHILDREN = 'ElementChildren';
-const special = [
-    'SCRIPT',
-    'STYLE'
-];
-const empty = [
-    'AREA',
-    'BASE',
-    'BASEFONT',
-    'BR',
-    'COL',
-    'FRAME',
-    'HR',
-    'IMG',
-    'INPUT',
-    'ISINDEX',
-    'LINK',
-    'META',
-    'PARAM',
-    'EMBED'
-];
-const spacePattern = /\s/;
-const space = (c)=>spacePattern.test(c);
-function parse(data) {
-    const fragment = {
-        type: 11,
-        children: [],
-        name: 'fragment'
-    };
-    let mode = ELEMENT_CHILDREN;
-    let node = fragment;
-    const l = data.length;
-    for(let i = 0; i < l; i++){
-        const c = data[i];
-        if (mode === ELEMENT_NAME) {
-            if (space(c)) {
-                node.name = node.name.toUpperCase();
-                mode = OPEN;
-            } else if (c === '/') {
-                i++;
-                node.name = node.name.toUpperCase();
-                mode = ELEMENT_CHILDREN;
-                node.closed = true;
-                node = node.parent;
-            } else if (c === '>') {
-                node.name = node.name.toUpperCase();
-                if (special.includes(node.name)) mode = IGNORE;
-                else mode = ELEMENT_CHILDREN;
-                if (empty.includes(node.name)) {
-                    node.closed = true;
-                    node = node.parent;
-                }
-            } else {
-                node.name += c;
-            }
-        } else if (mode === ATTRIBUTE_NAME) {
-            if (space(c)) {
-                mode = OPEN;
-                node = node.parent;
-            } else if (c === '/') {
-                i++;
-                mode = ELEMENT_CHILDREN;
-                node = node.parent;
-                node.closed = true;
-            } else if (c === '>') {
-                if (special.includes(node.name)) mode = IGNORE;
-                else mode = ELEMENT_CHILDREN;
-                node = node.parent;
-                if (empty.includes(node.name)) {
-                    node.closed = true;
-                    node = node.parent;
-                }
-            } else if (c === '=') {
-                const next = data[i + 1];
-                if (next === '"') i++;
-                else node.closed = true;
-                mode = ATTRIBUTE_VALUE;
-            } else {
-                node.name += c;
-            }
-        } else if (mode === ATTRIBUTE_VALUE) {
-            if (node.closed) {
-                if (space(c)) {
-                    mode = OPEN;
-                    node = node.parent;
-                } else if (c === '/') {
-                    i++;
-                    mode = ELEMENT_CHILDREN;
-                    node = node.parent;
-                    node.closed = true;
-                } else if (c === '>') {
-                    if (special.includes(node.name)) mode = IGNORE;
-                    else mode = ELEMENT_CHILDREN;
-                    node = node.parent;
-                    if (empty.includes(node.name)) {
-                        node.closed = true;
-                        node = node.parent;
-                    }
-                } else {
-                    node.value += c;
-                }
-            } else if (c === '"') {
-                mode = OPEN;
-                node = node.parent;
-            } else {
-                node.value += c;
-            }
-        } else if (mode === OPEN) {
-            if (space(c)) {
-                continue;
-            } else if (c === '/') {
-                i++;
-                mode = ELEMENT_CHILDREN;
-                node.closed = true;
-                node = node.parent;
-            } else if (c === '>') {
-                if (special.includes(node.name)) mode = IGNORE;
-                else mode = ELEMENT_CHILDREN;
-                if (empty.includes(node.name)) {
-                    node.closed = true;
-                    node = node.parent;
-                }
-            } else {
-                node = {
-                    name: c,
-                    value: '',
-                    parent: node,
-                    type: AttributeType
-                };
-                node.parent.attributes.push(node);
-                mode = ATTRIBUTE_NAME;
-            }
-        } else if (mode === CLOSE) {
-            if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-            } else {
-                continue;
-            }
-        } else if (mode === TEXT) {
-            const next1 = data[i + 1];
-            if (c === '<' && next1 === '/') {
-                i++;
-                mode = CLOSE;
-                node = node.parent;
-                node = node.parent;
-            } else if (c === '<' && next1 === '!') {
-                i++;
-                mode = COMMENT;
-                node = {
-                    value: '',
-                    parent: node.parent,
-                    name: '#comment',
-                    type: CommentType
-                };
-                node.parent.children.push(node);
-            } else if (c === '<') {
-                node = {
-                    name: '',
-                    parent: node.parent,
-                    children: [],
-                    attributes: [],
-                    type: ElementType
-                };
-                node.parent.children.push(node);
-                mode = ELEMENT_NAME;
-            } else if (c === '}' && next1 === '}') {
-                node.value += '}}';
-                i++;
-                node = node.parent;
-                mode = ELEMENT_CHILDREN;
-            } else if (c === '{' && next1 === '{') {
-                node = {
-                    name: '#text',
-                    value: c,
-                    type: TextType,
-                    parent: node.parent
-                };
-                node.parent.children.push(node);
-            } else {
-                node.value += c;
-            }
-        } else if (mode === ELEMENT_CHILDREN) {
-            const next2 = data[i + 1];
-            if (c === '<' && next2 === '/') {
-                i++;
-                mode = CLOSE;
-                node = node.parent;
-            } else if (c === '<' && next2 === '!') {
-                i++;
-                mode = COMMENT;
-                node = {
-                    value: '',
-                    parent: node,
-                    name: '#comment',
-                    type: CommentType
-                };
-                node.parent.children.push(node);
-            } else if (c === '<') {
-                node = {
-                    name: '',
-                    parent: node,
-                    children: [],
-                    attributes: [],
-                    type: ElementType
-                };
-                node.parent.children.push(node);
-                mode = ELEMENT_NAME;
-            } else {
-                node = {
-                    value: c,
-                    parent: node,
-                    name: '#text',
-                    type: TextType
-                };
-                node.parent.children.push(node);
-                mode = TEXT;
-            }
-        } else if (mode === COMMENT) {
-            if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-                if (node.value.startsWith('--')) node.value = node.value.slice(2);
-                if (node.value.endsWith('--')) node.value = node.value.slice(0, -2);
-                node = node.parent;
-            } else {
-                node.value += c;
-            }
-        } else if (mode === IGNORE) {
-            if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-                const child = node.children[0];
-                child.value = child.value.slice(0, -(child.name.length + 2));
-                node = node.parent;
-            } else {
-                if (!node.children[0]) {
-                    node.children[0] = {
-                        value: '',
-                        parent: node,
-                        name: '#text',
-                        type: TextType
-                    };
-                }
-                node.children[0].value += c;
-            }
-        }
-    }
-    return fragment;
-}
-const HtmlCache = new WeakMap();
-function html(strings, ...values) {
-    const cache = HtmlCache.get(strings);
-    if (cache) return clone(cache, values);
-    let data = '';
-    const length = strings.length;
-    const last = strings.length - 1;
-    for(let index = 0; index < length; index++){
-        if (index === last) {
-            data += strings[index];
-        } else {
-            data += `${strings[index]}{{${index}}}`;
-        }
-    }
-    const parsed = parse(data);
-    console.log(data, parsed);
-    HtmlCache.set(strings, parsed);
-    return clone(parsed, values);
-}
-async function render(root, context, component) {
-    const template = component(html, context);
-    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-    patch(root, template);
-    if (context.upgraded) await context.upgraded()?.catch(console.error);
-}
-const MountCache = new WeakMap();
-async function mount(root, context, component) {
-    const update = async function() {
-        await schedule(root, renderInstance);
-    };
-    const contextInstance = ContextCreate(context(html), update);
-    const renderInstance = render.bind(null, root, contextInstance, component);
-    const cache = MountCache.get(root);
-    if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-    if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-    MountCache.set(root, contextInstance);
-    if (contextInstance.connect) await contextInstance.connect()?.catch?.(console.error);
-    await update();
-    if (contextInstance.connected) await contextInstance.connected()?.catch(console.error);
-    return update;
-}
-const alls = [];
-const routes = [];
-const transition = async function(route) {
-    if (route.render) {
-        route.render();
-    } else {
-        route.render = await mount(route.root, route.context, route.component);
-    }
-};
-const navigate = function(event) {
-    if (event && 'canIntercept' in event && event.canIntercept === false) return;
-    if (event && 'canTransition' in event && event.canTransition === false) return;
-    const destination = new URL(event?.destination.url ?? location.href);
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    destination.hash = '';
-    destination.search = '';
-    const pathname = destination.href.replace(base.href, '/');
-    const transitions = [];
-    for (const route of routes){
-        if (route.path !== pathname) continue;
-        if (!route.root) continue;
-        Reflect.set(route.root, 'xRouterPath', route.path);
-        transitions.push(route);
-    }
-    for (const all of alls){
-        if (!all.root) continue;
-        let has = false;
-        for (const transition1 of transitions){
-            if (transition1.root === all.root) {
-                has = true;
-                break;
-            }
-        }
-        if (has) continue;
-        if (Reflect.get(all.root, 'xRouterPath') === pathname) continue;
-        transitions.push(all);
-    }
-    if (event?.intercept) {
-        return event.intercept({
-            handler: ()=>transitions.map((route)=>transition(route))
-        });
-    } else if (event?.transitionWhile) {
-        return event.transitionWhile(transitions.map((route)=>transition(route)));
-    } else {
-        transitions.map((route)=>transition(route));
-    }
-};
-function router(path, root, context, component) {
-    if (!path) throw new Error('XElement - router path required');
-    if (!root) throw new Error('XElement - router root required');
-    if (!context) throw new Error('XElement - router context required');
-    if (!component) throw new Error('XElement - router component required');
-    if (path === '/*') {
-        for (const all of alls){
-            if (all.path === path && all.root === root) {
-                throw new Error('XElement - router duplicate path on root');
-            }
-        }
-        alls.push({
-            path,
-            root,
-            context,
-            component
-        });
-    } else {
-        for (const route of routes){
-            if (route.path === path && route.root === root) {
-                throw new Error('XElement - router duplicate path on root');
-            }
-        }
-        routes.push({
-            path,
-            root,
-            context,
-            component
-        });
-    }
-    Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
 export { schedule as Schedule };
 export { schedule as schedule };

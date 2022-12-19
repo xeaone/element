@@ -3,30 +3,33 @@ import parse from './parse.ts';
 
 const HtmlCache = new WeakMap();
 
-export default function html(strings: string[], ...values: any[]) {
-    const cache = HtmlCache.get(strings);
-    if (cache) return clone(cache, values);
-
-    let data = '';
-
-    const length = strings.length;
-    const last = strings.length - 1;
-
-    for (let index = 0; index < length; index++) {
-        if (index === last) {
-            data += strings[index];
-        } else {
-            data += `${strings[index]}{{${index}}}`;
-        }
-    }
-
-    const parsed = parse(data);
-    console.log(data, parsed);
-
-    HtmlCache.set(strings, parsed);
-
-    return clone(parsed, values);
+export default function html(strings?: string[], ...values: unknown[]) {
+    return { strings, values };
 }
+
+// export default function html(strings: string[], ...values: any[]) {
+// const cache = HtmlCache.get(strings);
+// if (cache) return clone(cache, values);
+
+// let data = '';
+
+// const length = strings.length;
+// const last = strings.length - 1;
+
+// for (let index = 0; index < length; index++) {
+//     if (index === last) {
+//         data += strings[index];
+//     } else {
+//         data += `${strings[index]}{{${index}}}`;
+//     }
+// }
+
+// const parsed = parse(data);
+
+// HtmlCache.set(strings, parsed);
+
+// return clone(parsed, values);
+// }
 
 // const upgrade = function (node: Node, values:any[]) {
 //     if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
