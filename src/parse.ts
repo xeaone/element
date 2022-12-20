@@ -29,31 +29,6 @@ const ignored = /script|style/i;
 const closed = /area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param|embed/i;
 
 const OnCache = new WeakMap();
-// const attribute = function (element: Element, name: string, value: any) {
-//     if (name === 'value') {
-//         // const result = display(value);
-//         if (element.getAttribute(name) === value) return;
-//         Reflect.set(element, name, value);
-//         element.setAttribute(name, value);
-//     } else if (name.startsWith('on')) {
-//         element.setAttribute(name, value);
-//         // if (OnCache.get(element) === value) return;
-//         // Reflect.set(element, name, value);
-//         // element.addEventListener(name, value);
-//     } else if (booleans.includes(name)) {
-//         const result = value ? true : false;
-//         const has = element.hasAttribute(name);
-//         if (has === result) return;
-//         Reflect.set(element, name, result);
-//         if (result) element.setAttribute(name, '');
-//         else element.removeAttribute(name);
-//     } else {
-//         // const result = display(value);
-//         if (element.getAttribute(name) === value) return;
-//         Reflect.set(element, name, value);
-//         element.setAttribute(name, value);
-//     }
-// };
 
 const patchAttribute = function (element: Element, attribute: any) {
     // Reflect.set(node, attribute.name, attribute.value);
@@ -80,7 +55,8 @@ const patchAttribute = function (element: Element, attribute: any) {
     } else {
         // const result = display(value);
         if (element.getAttribute(name) === value) return;
-        Reflect.set(element, name, value);
+        // Reflect.set(element, name, value);
+        (element as any)[name] = value;
         element.setAttribute(name, value);
     }
 };

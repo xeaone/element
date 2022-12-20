@@ -104,416 +104,161 @@ function define(name, constructor) {
     customElements.define(name, constructor);
 }
 new WeakMap();
+const attribute = function(source, target, name, value) {
+    if (source.getAttribute(name) === value) return;
+    Reflect.set(source, name, value);
+    source.setAttribute(name, value);
+};
+const create = function(owner, target) {
+    const source = owner.createElement(target.nodeName);
+    if (target.hasChildNodes()) {
+        const children = target.childNodes;
+        for (const child of children){
+            append(source, child);
+        }
+    }
+    if (target.hasAttributes()) {
+        const attributes = target.attributes;
+        for (const { name , value  } of attributes){
+            attribute(source, target, name, value);
+        }
+    }
+    return source;
+};
+const append = function(parent, child) {
+    const owner = parent.ownerDocument;
+    if (child instanceof Element) {
+        parent.appendChild(create(owner, child));
+    } else if (child instanceof Comment) {
+        parent.appendChild(owner.createComment(child.nodeValue ?? ''));
+    } else if (child instanceof CDATASection) {
+        parent.appendChild(owner.createCDATASection(child.nodeValue ?? ''));
+    } else if (child instanceof Text) {
+        parent.appendChild(owner.createTextNode(child.nodeValue ?? ''));
+    } else {
+        throw new Error('child type not handled');
+    }
+};
+const remove = function(parent) {
+    const child = parent.lastChild;
+    if (child) parent.removeChild(child);
+};
+const common = function(source, target) {
+    if (!source.parentNode) throw new Error('source parent node not found');
+    if (target.nodeName === '#text') {
+        if (source.nodeValue !== target.nodeValue) {
+            source.nodeValue = target.nodeValue;
+        }
+        return;
+    }
+    if (target.nodeName === '#comment') {
+        if (source.nodeValue !== target.nodeValue) {
+            source.nodeValue = target.nodeValue;
+        }
+        return;
+    }
+    if (source.nodeName !== target.nodeName) {
+        const owner = source.ownerDocument;
+        source.parentNode?.replaceChild(create(owner, target), source);
+        return;
+    }
+    if (!(source instanceof Element)) throw new Error('source node not valid');
+    if (!(target instanceof Element)) throw new Error('target node not valid');
+    const targetChildren = target.childNodes;
+    const targetLength = targetChildren.length;
+    const sourceChildren = source.childNodes;
+    const sourceLength = sourceChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    let index;
+    for(index = 0; index < commonLength; index++){
+        common(sourceChildren[index], targetChildren[index]);
+    }
+    if (sourceLength > targetLength) {
+        for(index = targetLength; index < sourceLength; index++){
+            remove(source);
+        }
+    } else if (sourceLength < targetLength) {
+        for(index = sourceLength; index < targetLength; index++){
+            append(source, targetChildren[index]);
+        }
+    }
+    if (target.hasAttributes()) {
+        const attributes = target.attributes;
+        for (const { name , value  } of attributes){
+            attribute(source, target, name, value);
+        }
+    }
+};
+function patch(source, target) {
+    let index;
+    const targetChildren = target.childNodes;
+    const targetLength = targetChildren.length;
+    const sourceChildren = source.childNodes;
+    const sourceLength = sourceChildren.length;
+    const commonLength = Math.min(sourceLength, targetLength);
+    for(index = 0; index < commonLength; index++){
+        common(sourceChildren[index], targetChildren[index]);
+    }
+    if (sourceLength > targetLength) {
+        for(index = targetLength; index < sourceLength; index++){
+            remove(source);
+        }
+    } else if (sourceLength < targetLength) {
+        for(index = sourceLength; index < targetLength; index++){
+            append(source, targetChildren[index]);
+        }
+    }
+}
+new WeakMap();
 function html(strings, ...values) {
     return {
         strings,
         values
     };
 }
-const booleans = [
-    'allowfullscreen',
-    'async',
-    'autofocus',
-    'autoplay',
-    'checked',
-    'compact',
-    'controls',
-    'declare',
-    'default',
-    'defaultchecked',
-    'defaultmuted',
-    'defaultselected',
-    'defer',
-    'disabled',
-    'draggable',
-    'enabled',
-    'formnovalidate',
-    'indeterminate',
-    'inert',
-    'ismap',
-    'itemscope',
-    'loop',
-    'multiple',
-    'muted',
-    'nohref',
-    'onresize',
-    'noshade',
-    'hidden',
-    'novalidate',
-    'nowrap',
-    'open',
-    'pauseonexit',
-    'readonly',
-    'required',
-    'reversed',
-    'scoped',
-    'seamless',
-    'selected',
-    'sortable',
-    'spellcheck',
-    'translate',
-    'truespeed',
-    'typemustmatch',
-    'visible'
-];
-const TextType = Node.TEXT_NODE;
-const ElementType = Node.ELEMENT_NODE;
-const CommentType = Node.COMMENT_NODE;
-const AttributeType = Node.ATTRIBUTE_NODE;
-const FragmentType = Node.DOCUMENT_FRAGMENT_NODE;
-const TEXT = 'Text';
-const OPEN = 'Open';
-const CLOSE = 'Close';
-const IGNORE = 'Ignore';
-const COMMENT = 'Comment';
-const ELEMENT_NAME = 'ElementName';
-const ATTRIBUTE_NAME = 'AttributeName';
-const ATTRIBUTE_VALUE = 'AttributeValue';
-const ELEMENT_CHILDREN = 'ElementChildren';
-const space = /\s/;
-const ignored = /script|style/i;
-const closed = /area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param|embed/i;
-new WeakMap();
-const patchAttribute = function(element, attribute) {
-    const { name , value  } = attribute;
-    if (name === 'value') {
-        if (element.getAttribute(name) === value) return;
-        Reflect.set(element, name, value);
-        element.setAttribute(name, value);
-    } else if (name.startsWith('on')) {
-        element.addEventListener(name.slice(2), value);
-    } else if (booleans.includes(name)) {
-        const result = value ? true : false;
-        const has = element.hasAttribute(name);
-        if (has === result) return;
-        Reflect.set(element, name, result);
-        if (result) element.setAttribute(name, '');
-        else element.removeAttribute(name);
-    } else {
-        if (element.getAttribute(name) === value) return;
-        Reflect.set(element, name, value);
-        element.setAttribute(name, value);
-    }
-};
-const patchLastNode = function(rNodeParent, vNodeParent) {
-    if (!rNodeParent) throw new Error('real node not found');
-    if (!vNodeParent) throw new Error('virtual node not found');
-    const owner = rNodeParent.ownerDocument;
-    if (!owner) throw new Error('owner not found');
-    const position = vNodeParent.children.length - 1;
-    const vNode = vNodeParent.children[position];
-    const rNode = rNodeParent.childNodes[position];
-    if (rNode) {
-        if (rNode.nodeName !== vNode.name) {
-            if (vNode.type === Node.ELEMENT_NODE) {
-                const node = owner.createElement(vNode.name);
-                for (const attribute of vNode.attributes){
-                    patchAttribute(node, attribute);
-                }
-                rNodeParent.replaceChild(node, rNode);
-            } else if (vNode.type === Node.TEXT_NODE) {
-                rNodeParent.replaceChild(owner.createTextNode(vNode.value), rNode);
-            } else if (vNode.type === Node.COMMENT_NODE) {
-                rNodeParent.replaceChild(owner.createComment(vNode.value), rNode);
-            } else {
-                throw new Error('type not handled');
-            }
-        } else {
-            if (vNode.type === Node.ELEMENT_NODE) {
-                for (const attribute1 of vNode.attributes){
-                    patchAttribute(rNode, attribute1);
-                }
-            } else if (vNode.type === Node.TEXT_NODE) {
-                if (rNode.nodeValue !== vNode.value) {
-                    rNode.textContent = vNode.value;
-                }
-            } else if (vNode.type === Node.COMMENT_NODE) {
-                if (rNode.nodeValue !== vNode.value) {
-                    rNode.textContent = vNode.value;
-                }
-            } else {
-                throw new Error('type not handled');
-            }
-        }
-    } else {
-        if (vNode.type === Node.ELEMENT_NODE) {
-            const node1 = owner.createElement(vNode.name);
-            for (const attribute2 of vNode.attributes){
-                patchAttribute(node1, attribute2);
-            }
-            rNodeParent.appendChild(node1);
-        } else if (vNode.type === Node.TEXT_NODE) {
-            rNodeParent.appendChild(owner.createTextNode(vNode.value));
-        } else if (vNode.type === Node.COMMENT_NODE) {
-            rNodeParent.appendChild(owner.createComment(vNode.value));
-        } else {
-            throw new Error('type not handled');
-        }
-    }
-};
-function parse(root, values, data) {
-    const fragment = {
-        type: FragmentType,
-        children: [],
-        name: 'fragment'
-    };
-    let i = 0;
-    let v = fragment;
-    let n = root;
-    const l = data.length;
-    let mode = ELEMENT_CHILDREN;
-    const childrenSlashMode = function() {
-        const last = v.children[v.children.length - 1];
-        last.name = last.name.toUpperCase();
-        last.closed = true;
-        patchLastNode(n, v);
-        mode = ELEMENT_CHILDREN;
-        i++;
-    };
-    const childrenClosedMode = function() {
-        const length = v.children.length;
-        const last = v.children[length - 1];
-        last.name = last.name.toUpperCase();
-        last.closed = true;
-        patchLastNode(n, v);
-        mode = ELEMENT_CHILDREN;
-    };
-    const childrenIgnoreMode = function() {
-        const last = v.children[v.children.length - 1];
-        last.name = last.name.toUpperCase();
-        patchLastNode(n, v);
-        last.children.push({
-            value: '',
-            parent: v,
-            name: '#text',
-            type: TextType
-        });
-        mode = IGNORE;
-    };
-    const childrenMode = function() {
-        const length = v.children.length;
-        const last = v.children[length - 1];
-        last.name = last.name.toUpperCase();
-        patchLastNode(n, v);
-        n = n?.childNodes[length - 1];
-        v = v?.children[length - 1];
-        mode = ELEMENT_CHILDREN;
-    };
-    for(i; i < l; i++){
-        const c = data[i];
-        if (mode === ELEMENT_CHILDREN) {
-            const next = data[i + 1];
-            if (c === '<' && next === '/') {
-                i++;
-                v = v.parent;
-                n = n?.parentNode;
-                mode = CLOSE;
-            } else if (c === '<' && next === '!') {
-                i++;
-                v.children.push({
-                    value: '',
-                    name: '#comment',
-                    parent: v,
-                    type: CommentType
-                });
-                mode = COMMENT;
-            } else if (c === '<') {
-                v.children.push({
-                    name: '',
-                    children: [],
-                    attributes: [],
-                    parent: v,
-                    type: ElementType
-                });
-                mode = ELEMENT_NAME;
-            } else {
-                v.children.push({
-                    value: c,
-                    name: '#text',
-                    parent: v,
-                    type: TextType
-                });
-                mode = TEXT;
-            }
-        } else if (mode === ELEMENT_NAME) {
-            if (space.test(c)) {
-                mode = OPEN;
-            } else if (c === '/') {
-                childrenSlashMode();
-            } else if (c === '>') {
-                const last = v.children[v.children.length - 1];
-                if (closed.test(last.name)) childrenClosedMode();
-                else if (ignored.test(last.name)) childrenIgnoreMode();
-                else childrenMode();
-            } else if (mode === ELEMENT_NAME) {
-                const last1 = v.children[v.children.length - 1];
-                last1.name += c;
-            }
-        } else if (mode === ATTRIBUTE_NAME) {
-            if (space.test(c)) {
-                mode = OPEN;
-            } else if (c === '/') {
-                childrenSlashMode();
-            } else if (c === '>') {
-                const last2 = v.children[v.children.length - 1];
-                if (closed.test(last2.name)) childrenClosedMode();
-                else if (ignored.test(last2.name)) childrenIgnoreMode();
-                else childrenMode();
-            } else if (c === '=') {
-                const last3 = v.children[v.children.length - 1];
-                if (data[i + 1] === '"') {
-                    i++;
-                    last3.attributes[last3.attributes.length - 1].quoted = true;
-                }
-                mode = ATTRIBUTE_VALUE;
-            } else {
-                const last4 = v.children[v.children.length - 1];
-                last4.attributes[last4.attributes.length - 1].name += c;
-            }
-        } else if (mode === ATTRIBUTE_VALUE) {
-            const next1 = data[i + 1];
-            const last5 = v.children[v.children.length - 1];
-            const attribute = last5.attributes[last5.attributes.length - 1];
-            if (attribute.quoted) {
-                if (c === '"') {
-                    mode = OPEN;
-                } else {
-                    attribute.value += c;
-                }
-            } else if (space.test(c)) {
-                mode = OPEN;
-            } else if (c === '/') {
-                childrenSlashMode();
-            } else if (c === '>') {
-                if (closed.test(last5.name)) childrenClosedMode();
-                else if (ignored.test(last5.name)) childrenIgnoreMode();
-                else childrenMode();
-            } else if (c === '}' && next1 === '}') {
-                i++;
-                attribute.value = values[attribute.value];
-            } else if (c === '{' && next1 === '{') {
-                i++;
-            } else {
-                attribute.value += c;
-            }
-        } else if (mode === CLOSE) {
-            if (c === '>') {
-                mode = ELEMENT_CHILDREN;
-            } else {
-                continue;
-            }
-        } else if (mode === OPEN) {
-            if (space.test(c)) {
-                continue;
-            } else if (c === '/') {
-                childrenSlashMode();
-            } else if (c === '>') {
-                const last6 = v.children[v.children.length - 1];
-                if (closed.test(last6.name)) childrenClosedMode();
-                else if (ignored.test(last6.name)) childrenIgnoreMode();
-                else childrenMode();
-            } else {
-                const last7 = v.children[v.children.length - 1];
-                last7.attributes.push({
-                    name: c,
-                    value: '',
-                    type: AttributeType
-                });
-                mode = ATTRIBUTE_NAME;
-            }
-        } else if (mode === TEXT) {
-            const next2 = data[i + 1];
-            if (c === '<' && next2 === '/') {
-                patchLastNode(n, v);
-                v = v.parent;
-                n = n?.parentNode;
-                i++;
-                mode = CLOSE;
-            } else if (c === '<' && next2 === '!') {
-                patchLastNode(n, v);
-                v.children.push({
-                    value: '',
-                    name: '#comment',
-                    parent: v,
-                    type: CommentType
-                });
-                i++;
-                mode = COMMENT;
-            } else if (c === '<') {
-                patchLastNode(n, v);
-                v.children.push({
-                    name: '',
-                    children: [],
-                    attributes: [],
-                    parent: v,
-                    type: ElementType
-                });
-                mode = ELEMENT_NAME;
-            } else if (c === '}' && next2 === '}') {
-                const last8 = v.children[v.children.length - 1];
-                last8.value = values[last8.value];
-                patchLastNode(n, v);
-                v.children.push({
-                    value: '',
-                    name: '#text',
-                    parent: v,
-                    type: TextType
-                });
-                i++;
-            } else if (c === '{' && next2 === '{') {
-                patchLastNode(n, v);
-                v.children.push({
-                    name: '#text',
-                    value: '',
-                    parent: v,
-                    type: TextType
-                });
-                i++;
-            } else {
-                const last9 = v.children[v.children.length - 1];
-                last9.value += c;
-            }
-        } else if (mode === COMMENT) {
-            if (c === '>') {
-                if (v.last.value.startsWith('--')) v.last.value = v.last.value.slice(2);
-                if (v.last.value.endsWith('--')) v.last.value = v.last.value.slice(0, -2);
-                mode = ELEMENT_CHILDREN;
-            } else {
-                v.last.value += c;
-            }
-        } else if (mode === IGNORE) {
-            const last10 = v.children[v.children.length - 1][0];
-            if (c === '>') {
-                last10.value = last10.value.slice(0, -(last10.name.length + 2));
-                patchLastNode(n, v);
-                mode = ELEMENT_CHILDREN;
-            } else {
-                last10.value += c;
-            }
-        }
-    }
-    return fragment;
-}
+window.x = {};
 async function render(root, context, component) {
     if (context.upgrade) await context.upgrade()?.catch?.(console.error);
     const { strings , values  } = component(html, context);
     let data = '';
     const length = strings.length - 1;
     for(let index = 0; index < length; index++){
-        const value = values[index];
-        if (value?.constructor === Array) {
-            data += `${strings[index]}`;
-            for (const child of value){
-                for(let ii = 0; ii < child.strings.length; ii++){
-                    data += `${child.strings[ii]}${child.values[ii] ?? ''}`;
-                }
-            }
-        } else {
-            data += `${strings[index]}{{${index}}}`;
-        }
+        data += `${strings[index]}{{${index}}}`;
     }
     data += strings[strings.length - 1];
-    parse(root, values, data);
+    const template = document.createElement('template');
+    template.innerHTML = data;
+    const bound = [];
+    const walker = document.createTreeWalker(document, 5, null);
+    walker.currentNode = template.content;
+    let node = template.content.firstChild;
+    while((node = walker.nextNode()) !== null){
+        if (node.nodeType === Node.TEXT_NODE) {
+            const start = node.nodeValue?.indexOf('{{') ?? -1;
+            if (start == -1) continue;
+            if (start != 0) {
+                node.splitText(start);
+                node = walker.nextNode();
+            }
+            const end = node.nodeValue?.indexOf('}}') ?? -1;
+            if (end == -1) continue;
+            if (end + 2 != node.nodeValue?.length) {
+                node.splitText(end + 2);
+            }
+            bound.push(node);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const attributes = [
+                ...node.attributes
+            ];
+            for (const attribute of attributes){
+                if (attribute.value.includes('{{') && attribute.value.includes('}}')) {
+                    bound.push(attribute);
+                }
+            }
+        }
+    }
+    console.log(bound);
+    patch(root, template.content);
     if (context.upgraded) await context.upgraded()?.catch(console.error);
 }
 const MountCache = new WeakMap();
@@ -613,6 +358,52 @@ function router(path, root, context, component) {
     }
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
 }
+const booleans = [
+    'allowfullscreen',
+    'async',
+    'autofocus',
+    'autoplay',
+    'checked',
+    'compact',
+    'controls',
+    'declare',
+    'default',
+    'defaultchecked',
+    'defaultmuted',
+    'defaultselected',
+    'defer',
+    'disabled',
+    'draggable',
+    'enabled',
+    'formnovalidate',
+    'indeterminate',
+    'inert',
+    'ismap',
+    'itemscope',
+    'loop',
+    'multiple',
+    'muted',
+    'nohref',
+    'onresize',
+    'noshade',
+    'hidden',
+    'novalidate',
+    'nowrap',
+    'open',
+    'pauseonexit',
+    'readonly',
+    'required',
+    'reversed',
+    'scoped',
+    'seamless',
+    'selected',
+    'sortable',
+    'spellcheck',
+    'translate',
+    'truespeed',
+    'typemustmatch',
+    'visible'
+];
 const escapes = new Map([
     [
         '<',
@@ -669,7 +460,7 @@ function display(data) {
     }
 }
 new WeakMap();
-const attribute = function(element, name, value) {
+const attribute1 = function(element, name, value) {
     if (name === 'value') {
         const result = display(value);
         if (element.getAttribute(name) === result) return;
@@ -690,22 +481,22 @@ const attribute = function(element, name, value) {
         element.setAttribute(name, value);
     }
 };
-const create = function(owner, node) {
+const create1 = function(owner, node) {
     const element = owner.createElement(node.name);
     const children = node.children;
     for (const child of children){
-        append(element, child);
+        append1(element, child);
     }
     const attributes = node.attributes;
     for (const { name , value  } of attributes){
-        attribute(element, name, value);
+        attribute1(element, name, value);
     }
     return element;
 };
-const append = function(parent, child) {
+const append1 = function(parent, child) {
     const owner = parent.ownerDocument;
     if (child.type === Node.ELEMENT_NODE) {
-        parent.appendChild(create(owner, child));
+        parent.appendChild(create1(owner, child));
     } else if (child.type === Node.COMMENT_NODE) {
         parent.appendChild(owner.createComment(child.value));
     } else if (child.type === Node.CDATA_SECTION_NODE) {
@@ -717,11 +508,11 @@ const append = function(parent, child) {
         throw new Error('child type not handled');
     }
 };
-const remove = function(parent) {
+const remove1 = function(parent) {
     const child = parent.lastChild;
     if (child) parent.removeChild(child);
 };
-const common = function(source, target) {
+const common1 = function(source, target) {
     if (!source.parentNode) throw new Error('source parent node not found');
     if (target.name === '#text') {
         if (source.nodeValue !== target.value) {
@@ -737,7 +528,7 @@ const common = function(source, target) {
     }
     if (source.nodeName !== target.name) {
         const owner = source.ownerDocument;
-        source.parentNode?.replaceChild(create(owner, target), source);
+        source.parentNode?.replaceChild(create1(owner, target), source);
         return;
     }
     if (!(source instanceof Element)) {
@@ -751,23 +542,23 @@ const common = function(source, target) {
     const commonLength = Math.min(sourceLength, targetLength);
     let index;
     for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index]);
+        common1(sourceChildren[index], targetChildren[index]);
     }
     if (sourceLength > targetLength) {
         for(index = targetLength; index < sourceLength; index++){
-            remove(source);
+            remove1(source);
         }
     } else if (sourceLength < targetLength) {
         for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index]);
+            append1(source, targetChildren[index]);
         }
     }
     const attributes = target.attributes;
     for (const { name , value  } of attributes){
-        attribute(source, name, value);
+        attribute1(source, name, value);
     }
 };
-function patch(source, target) {
+function patch1(source, target) {
     let index;
     const targetChildren = target.children;
     const targetLength = targetChildren.length;
@@ -775,15 +566,15 @@ function patch(source, target) {
     const sourceLength = sourceChildren.length;
     const commonLength = Math.min(sourceLength, targetLength);
     for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index]);
+        common1(sourceChildren[index], targetChildren[index]);
     }
     if (sourceLength > targetLength) {
         for(index = targetLength; index < sourceLength; index++){
-            remove(source);
+            remove1(source);
         }
     } else if (sourceLength < targetLength) {
         for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index]);
+            append1(source, targetChildren[index]);
         }
     }
 }
@@ -797,8 +588,8 @@ export { router as Router };
 export { router as router };
 export { render as Render };
 export { render as render };
-export { patch as Patch };
-export { patch as patch };
+export { patch1 as Patch };
+export { patch1 as patch };
 export { mount as Mount };
 export { mount as mount };
 const Index = {
@@ -807,14 +598,14 @@ const Index = {
     Define: define,
     Router: router,
     Render: render,
-    Patch: patch,
+    Patch: patch1,
     Mount: mount,
     schedule: schedule,
     context: ContextCreate,
     define: define,
     router: router,
     render: render,
-    patch: patch,
+    patch: patch1,
     mount: mount
 };
 export { Index as default };
