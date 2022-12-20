@@ -5,7 +5,6 @@ import booleans from './booleans.ts';
  * todo: handle cdata
  */
 
-
 type RealNode = Element | Comment | Text;
 
 const TextType = Node.TEXT_NODE;
@@ -94,8 +93,8 @@ const patchLastNode = function (rNodeParent: Node | null | undefined, vNodeParen
                 for (const attribute of vNode.attributes) {
                     patchAttribute(rNode as Element, attribute);
                     // if ((rNode as Element).getAttribute(attribute.name) !== attribute.value) {
-                        // Reflect.set(rNode, attribute.name, attribute.value);
-                        // (rNode as Element).setAttribute(attribute.name, attribute.value);
+                    // Reflect.set(rNode, attribute.name, attribute.value);
+                    // (rNode as Element).setAttribute(attribute.name, attribute.value);
                     // }
                 }
             } else if (vNode.type === Node.TEXT_NODE) {
@@ -241,7 +240,7 @@ export default function parse(root: Element, values: unknown[], data: string): F
                 last.attributes[last.attributes.length - 1].name += c;
             }
         } else if (mode === ATTRIBUTE_VALUE) {
-            const next = data[i+1];
+            const next = data[i + 1];
             const last = v.children[v.children.length - 1];
             const attribute = last.attributes[last.attributes.length - 1];
             if (attribute.quoted) {
@@ -267,7 +266,7 @@ export default function parse(root: Element, values: unknown[], data: string): F
             } else if (c === '{' && next === '{') {
                 i++;
                 // attribute.dynamic = '';
-            // } else if ('dynamic' in attribute) {
+                // } else if ('dynamic' in attribute) {
                 // attribute.dynamic += c;
             } else {
                 attribute.value += c;

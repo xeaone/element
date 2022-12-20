@@ -104,112 +104,6 @@ function define(name, constructor) {
     customElements.define(name, constructor);
 }
 new WeakMap();
-const attribute = function(source, target, name, value) {
-    if (source.getAttribute(name) === value) return;
-    Reflect.set(source, name, value);
-    source.setAttribute(name, value);
-};
-const create = function(owner, target) {
-    const source = owner.createElement(target.nodeName);
-    if (target.hasChildNodes()) {
-        const children = target.childNodes;
-        for (const child of children){
-            append(source, child);
-        }
-    }
-    if (target.hasAttributes()) {
-        const attributes = target.attributes;
-        for (const { name , value  } of attributes){
-            attribute(source, target, name, value);
-        }
-    }
-    return source;
-};
-const append = function(parent, child) {
-    const owner = parent.ownerDocument;
-    if (child instanceof Element) {
-        parent.appendChild(create(owner, child));
-    } else if (child instanceof Comment) {
-        parent.appendChild(owner.createComment(child.nodeValue ?? ''));
-    } else if (child instanceof CDATASection) {
-        parent.appendChild(owner.createCDATASection(child.nodeValue ?? ''));
-    } else if (child instanceof Text) {
-        parent.appendChild(owner.createTextNode(child.nodeValue ?? ''));
-    } else {
-        throw new Error('child type not handled');
-    }
-};
-const remove = function(parent) {
-    const child = parent.lastChild;
-    if (child) parent.removeChild(child);
-};
-const common = function(source, target) {
-    if (!source.parentNode) throw new Error('source parent node not found');
-    if (target.nodeName === '#text') {
-        if (source.nodeValue !== target.nodeValue) {
-            source.nodeValue = target.nodeValue;
-        }
-        return;
-    }
-    if (target.nodeName === '#comment') {
-        if (source.nodeValue !== target.nodeValue) {
-            source.nodeValue = target.nodeValue;
-        }
-        return;
-    }
-    if (source.nodeName !== target.nodeName) {
-        const owner = source.ownerDocument;
-        source.parentNode?.replaceChild(create(owner, target), source);
-        return;
-    }
-    if (!(source instanceof Element)) throw new Error('source node not valid');
-    if (!(target instanceof Element)) throw new Error('target node not valid');
-    const targetChildren = target.childNodes;
-    const targetLength = targetChildren.length;
-    const sourceChildren = source.childNodes;
-    const sourceLength = sourceChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    let index;
-    for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index]);
-    }
-    if (sourceLength > targetLength) {
-        for(index = targetLength; index < sourceLength; index++){
-            remove(source);
-        }
-    } else if (sourceLength < targetLength) {
-        for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index]);
-        }
-    }
-    if (target.hasAttributes()) {
-        const attributes = target.attributes;
-        for (const { name , value  } of attributes){
-            attribute(source, target, name, value);
-        }
-    }
-};
-function patch(source, target) {
-    let index;
-    const targetChildren = target.childNodes;
-    const targetLength = targetChildren.length;
-    const sourceChildren = source.childNodes;
-    const sourceLength = sourceChildren.length;
-    const commonLength = Math.min(sourceLength, targetLength);
-    for(index = 0; index < commonLength; index++){
-        common(sourceChildren[index], targetChildren[index]);
-    }
-    if (sourceLength > targetLength) {
-        for(index = targetLength; index < sourceLength; index++){
-            remove(source);
-        }
-    } else if (sourceLength < targetLength) {
-        for(index = sourceLength; index < targetLength; index++){
-            append(source, targetChildren[index]);
-        }
-    }
-}
-new WeakMap();
 function html(strings, ...values) {
     return {
         strings,
@@ -217,48 +111,121 @@ function html(strings, ...values) {
     };
 }
 window.x = {};
-async function render(root, context, component) {
-    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-    const { strings , values  } = component(html, context);
+const RenderCache = new WeakMap();
+const RenderActions = function(strings, values) {
+    const cache = RenderCache.get(strings);
+    const l = values.length;
+    for(let i = 0; i < l; i++){
+        const newValue = values[i];
+        const oldValue = cache.values[i];
+        if (newValue?.constructor === Array) continue;
+        if (newValue?.constructor === Object) continue;
+        if (newValue !== oldValue) {
+            cache.actions[i](newValue, oldValue);
+            cache.values[i] = values[i];
+        }
+    }
+};
+const RenderHandle = function(node, cache, values) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        const start = node.nodeValue?.indexOf('{{') ?? -1;
+        if (start == -1) return;
+        if (start != 0) {
+            node.splitText(start);
+            return;
+        }
+        const end = node.nodeValue?.indexOf('}}') ?? -1;
+        if (end == -1) return;
+        if (end + 2 != node.nodeValue?.length) {
+            node.splitText(end + 2);
+        }
+        const newValue = values[cache.actions.length];
+        const oldValue = node.nodeValue;
+        if (newValue?.constructor === Array) {
+            const start1 = document.createTextNode('start');
+            const end1 = node;
+            end1.nodeValue = 'end';
+            end1.parentNode?.insertBefore(start1, end1);
+            const action = (function(start, end, newValue, oldValue) {
+                for (const { strings , values  } of newValue){
+                    const cacheChild = RenderWalk(strings, values);
+                    console.log(cacheChild, newValue);
+                    for (const cacheNode of cacheChild.nodes){
+                        end.parentNode?.insertBefore(cacheNode, end);
+                    }
+                }
+            }).bind(null, start1, end1);
+            action(newValue, oldValue);
+            cache.actions.push(action);
+        } else {
+            const action1 = (function(node, newValue, oldValue) {
+                node.nodeValue = newValue;
+            }).bind(null, node);
+            action1(newValue, oldValue);
+            cache.actions.push(action1);
+        }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const attributes = [
+            ...node.attributes
+        ];
+        for (const attribute of attributes){
+            if (attribute.value.includes('{{') && attribute.value.includes('}}')) {
+                if (attribute.name.startsWith('on')) {
+                    const action2 = (function(node, attribute, newValue, oldValue) {
+                        node.addEventListener(attribute.name.slice(2), newValue);
+                    }).bind(null, node, attribute);
+                    node.removeAttributeNode(attribute);
+                    action2(values[cache.actions.length], attribute.value);
+                    cache.actions.push(action2);
+                } else {
+                    const action3 = (function(node, attribute, newValue, oldValue) {
+                        node.setAttribute(attribute.name, newValue);
+                    }).bind(null, node, attribute);
+                    action3(values[cache.actions.length], attribute.value);
+                    cache.actions.push(action3);
+                }
+            }
+        }
+    }
+};
+const RenderWalk = function(strings, values) {
+    let cache = RenderCache.get(strings);
+    if (cache) {
+        RenderActions(strings, values);
+        return cache;
+    }
+    cache = {
+        values,
+        actions: [],
+        rooted: false,
+        template: document.createElement('template')
+    };
+    RenderCache.set(strings, cache);
     let data = '';
     const length = strings.length - 1;
     for(let index = 0; index < length; index++){
         data += `${strings[index]}{{${index}}}`;
     }
     data += strings[strings.length - 1];
-    const template = document.createElement('template');
-    template.innerHTML = data;
-    const bound = [];
+    cache.template.innerHTML = data;
+    cache.fragment = cache.template.cloneNode(true).content;
     const walker = document.createTreeWalker(document, 5, null);
-    walker.currentNode = template.content;
-    let node = template.content.firstChild;
+    walker.currentNode = cache.fragment;
+    let node = cache.fragment.firstChild;
     while((node = walker.nextNode()) !== null){
-        if (node.nodeType === Node.TEXT_NODE) {
-            const start = node.nodeValue?.indexOf('{{') ?? -1;
-            if (start == -1) continue;
-            if (start != 0) {
-                node.splitText(start);
-                node = walker.nextNode();
-            }
-            const end = node.nodeValue?.indexOf('}}') ?? -1;
-            if (end == -1) continue;
-            if (end + 2 != node.nodeValue?.length) {
-                node.splitText(end + 2);
-            }
-            bound.push(node);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            const attributes = [
-                ...node.attributes
-            ];
-            for (const attribute of attributes){
-                if (attribute.value.includes('{{') && attribute.value.includes('}}')) {
-                    bound.push(attribute);
-                }
-            }
-        }
+        RenderHandle(node, cache, values);
     }
-    console.log(bound);
-    patch(root, template.content);
+    return cache;
+};
+async function render(root, context, component) {
+    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+    const { strings , values  } = component(html, context);
+    const cache = RenderWalk(strings, values);
+    console.log(cache);
+    if (!cache.rooted) {
+        cache.rooted = true;
+        root.replaceChildren(cache.fragment);
+    }
     if (context.upgraded) await context.upgraded()?.catch(console.error);
 }
 const MountCache = new WeakMap();
@@ -460,7 +427,7 @@ function display(data) {
     }
 }
 new WeakMap();
-const attribute1 = function(element, name, value) {
+const attribute = function(element, name, value) {
     if (name === 'value') {
         const result = display(value);
         if (element.getAttribute(name) === result) return;
@@ -481,22 +448,22 @@ const attribute1 = function(element, name, value) {
         element.setAttribute(name, value);
     }
 };
-const create1 = function(owner, node) {
+const create = function(owner, node) {
     const element = owner.createElement(node.name);
     const children = node.children;
     for (const child of children){
-        append1(element, child);
+        append(element, child);
     }
     const attributes = node.attributes;
     for (const { name , value  } of attributes){
-        attribute1(element, name, value);
+        attribute(element, name, value);
     }
     return element;
 };
-const append1 = function(parent, child) {
+const append = function(parent, child) {
     const owner = parent.ownerDocument;
     if (child.type === Node.ELEMENT_NODE) {
-        parent.appendChild(create1(owner, child));
+        parent.appendChild(create(owner, child));
     } else if (child.type === Node.COMMENT_NODE) {
         parent.appendChild(owner.createComment(child.value));
     } else if (child.type === Node.CDATA_SECTION_NODE) {
@@ -508,11 +475,11 @@ const append1 = function(parent, child) {
         throw new Error('child type not handled');
     }
 };
-const remove1 = function(parent) {
+const remove = function(parent) {
     const child = parent.lastChild;
     if (child) parent.removeChild(child);
 };
-const common1 = function(source, target) {
+const common = function(source, target) {
     if (!source.parentNode) throw new Error('source parent node not found');
     if (target.name === '#text') {
         if (source.nodeValue !== target.value) {
@@ -528,7 +495,7 @@ const common1 = function(source, target) {
     }
     if (source.nodeName !== target.name) {
         const owner = source.ownerDocument;
-        source.parentNode?.replaceChild(create1(owner, target), source);
+        source.parentNode?.replaceChild(create(owner, target), source);
         return;
     }
     if (!(source instanceof Element)) {
@@ -542,23 +509,23 @@ const common1 = function(source, target) {
     const commonLength = Math.min(sourceLength, targetLength);
     let index;
     for(index = 0; index < commonLength; index++){
-        common1(sourceChildren[index], targetChildren[index]);
+        common(sourceChildren[index], targetChildren[index]);
     }
     if (sourceLength > targetLength) {
         for(index = targetLength; index < sourceLength; index++){
-            remove1(source);
+            remove(source);
         }
     } else if (sourceLength < targetLength) {
         for(index = sourceLength; index < targetLength; index++){
-            append1(source, targetChildren[index]);
+            append(source, targetChildren[index]);
         }
     }
     const attributes = target.attributes;
     for (const { name , value  } of attributes){
-        attribute1(source, name, value);
+        attribute(source, name, value);
     }
 };
-function patch1(source, target) {
+function patch(source, target) {
     let index;
     const targetChildren = target.children;
     const targetLength = targetChildren.length;
@@ -566,15 +533,15 @@ function patch1(source, target) {
     const sourceLength = sourceChildren.length;
     const commonLength = Math.min(sourceLength, targetLength);
     for(index = 0; index < commonLength; index++){
-        common1(sourceChildren[index], targetChildren[index]);
+        common(sourceChildren[index], targetChildren[index]);
     }
     if (sourceLength > targetLength) {
         for(index = targetLength; index < sourceLength; index++){
-            remove1(source);
+            remove(source);
         }
     } else if (sourceLength < targetLength) {
         for(index = sourceLength; index < targetLength; index++){
-            append1(source, targetChildren[index]);
+            append(source, targetChildren[index]);
         }
     }
 }
@@ -588,8 +555,8 @@ export { router as Router };
 export { router as router };
 export { render as Render };
 export { render as render };
-export { patch1 as Patch };
-export { patch1 as patch };
+export { patch as Patch };
+export { patch as patch };
 export { mount as Mount };
 export { mount as mount };
 const Index = {
@@ -598,14 +565,14 @@ const Index = {
     Define: define,
     Router: router,
     Render: render,
-    Patch: patch1,
+    Patch: patch,
     Mount: mount,
     schedule: schedule,
     context: ContextCreate,
     define: define,
     router: router,
     render: render,
-    patch: patch1,
+    patch: patch,
     mount: mount
 };
 export { Index as default };

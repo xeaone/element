@@ -22,10 +22,10 @@ const attribute = function (source: Element, target: Element, name: string, valu
     //     if (result) source.setAttribute(name, '');
     //     else source.removeAttribute(name);
     // } else {
-        // const result = display(value);
-        if (source.getAttribute(name) === value) return;
-        Reflect.set(source, name, value);
-        source.setAttribute(name, value);
+    // const result = display(value);
+    if (source.getAttribute(name) === value) return;
+    Reflect.set(source, name, value);
+    source.setAttribute(name, value);
     // }
 };
 

@@ -22,6 +22,8 @@ export default async function mount(root: Element, context: any, component: any)
 
     if (contextInstance.connect) await contextInstance.connect()?.catch?.(console.error);
     await update();
+    // setTimeout(()=> update(), 1000);
+    // setInterval(() => update(), 1000);
     if (contextInstance.connected) await contextInstance.connected()?.catch(console.error);
 
     return update;
