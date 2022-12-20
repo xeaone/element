@@ -38,7 +38,7 @@ export default async function render(root: Element, context: any, component: any
     data += strings[strings.length - 1];
 
     const parsed = parse(root, values, data);
-    console.log(parsed);
+    // console.log(parsed);
 
     // i think this might be faster
     // template.innerHTML = data;

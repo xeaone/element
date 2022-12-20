@@ -41,13 +41,13 @@
 
             const component = (html, c) => html`
                 <h2>Count: ${c.count.toLocaleString()}</h2>
+                <input type="number" oninput=${c.oninput} value=${c.count} >
+                <button onclick=${c.overwrite}>overwrite</button>
+                <div>
+                ${c.items.map(item => html`<div class="box">${item}</div>`)}
+                </div>
             `;
-            // <input type="number" oninput=${c.oninput} value=${c.count}>
             // <button onclick=${c.overwrite}>overwrite</button>
-            // <div>
-            // ${c.items.map(item => html`<div class="box">${item}</div>`)}
-            // </div>
-
                 // <button onclick=${c.push} >push</button>
                 // <button onclick=${c.clear}>clear</button>
                 // <div ${'test'}>at</div>
