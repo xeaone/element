@@ -50,17 +50,12 @@ const RenderHandle = function (node:Node, cache: any, values:any[]) {
                 end.nodeValue = 'end';
                 end.parentNode?.insertBefore(start, end);
                 const action = function (start: Text, end:Text, newValue: any, oldValue: any) {
-                    // let current:any = end;
+                    // TODO: need to handle
                     for (const {strings, values} of newValue) {
                         const cacheChild = RenderWalk(strings, values);
-                        // const newChild = document.createElement('div');
-                        // newChild.textContent = 'test';
-                        console.log(cacheChild, newValue)
                         for (const cacheNode of cacheChild.nodes) {
-                            // console.log(cacheNode)
                             end.parentNode?.insertBefore(cacheNode, end) as Element;
                         }
-                        // current = current.parentNode?.insertBefore(newChild, current) as Element;
                     }
                 }.bind(null, start as Text, end as Text);
 
