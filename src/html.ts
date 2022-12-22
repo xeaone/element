@@ -3,8 +3,26 @@ import parse from './parse.ts';
 
 const HtmlCache = new WeakMap();
 
-export default function html(strings?: string[], ...values: unknown[]) {
-    return { strings, values };
+export default function html(strings: string[], ...values: unknown[]) {
+    if (HtmlCache.has(strings)) {
+        const template = HtmlCache.get(strings);
+        return { strings, values, template };
+    } else {
+        let data = '';
+        const length = strings.length - 1;
+        for (let index = 0; index < length; index++) {
+            data += `${strings[index]}{{${index}}}`;
+        }
+
+        data += strings[strings.length - 1];
+
+        const template = document.createElement('template');
+        template.innerHTML = data;
+
+        HtmlCache.set(strings, template);
+
+        return { strings, values, template };
+    }
 }
 
 // export default function html(strings: string[], ...values: any[]) {

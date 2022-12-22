@@ -103,22 +103,41 @@ const ContextCreate = function(data, method) {
 function define(name, constructor) {
     customElements.define(name, constructor);
 }
-new WeakMap();
+const HtmlCache = new WeakMap();
 function html(strings, ...values) {
-    return {
-        strings,
-        values
-    };
+    if (HtmlCache.has(strings)) {
+        const template = HtmlCache.get(strings);
+        return {
+            strings,
+            values,
+            template
+        };
+    } else {
+        let data = '';
+        const length = strings.length - 1;
+        for(let index = 0; index < length; index++){
+            data += `${strings[index]}{{${index}}}`;
+        }
+        data += strings[strings.length - 1];
+        const template1 = document.createElement('template');
+        template1.innerHTML = data;
+        HtmlCache.set(strings, template1);
+        return {
+            strings,
+            values,
+            template: template1
+        };
+    }
 }
 window.x = {};
 const RenderCache = new WeakMap();
-const RenderActions = function(strings, values) {
+new WeakMap();
+const RenderRun = function(strings, values) {
     const cache = RenderCache.get(strings);
     const l = values.length;
     for(let i = 0; i < l; i++){
         const newValue = values[i];
         const oldValue = cache.values[i];
-        if (newValue?.constructor === Array) continue;
         if (newValue?.constructor === Object) continue;
         if (newValue !== oldValue) {
             cache.actions[i](newValue, oldValue);
@@ -126,102 +145,99 @@ const RenderActions = function(strings, values) {
         }
     }
 };
-const RenderHandle = function(node, cache, values) {
-    if (node.nodeType === Node.TEXT_NODE) {
-        const start = node.nodeValue?.indexOf('{{') ?? -1;
-        if (start == -1) return;
-        if (start != 0) {
-            node.splitText(start);
-            return;
-        }
-        const end = node.nodeValue?.indexOf('}}') ?? -1;
-        if (end == -1) return;
-        if (end + 2 != node.nodeValue?.length) {
-            node.splitText(end + 2);
-        }
-        const newValue = values[cache.actions.length];
-        const oldValue = node.nodeValue;
-        if (newValue?.constructor === Array) {
-            const start1 = document.createTextNode('start');
-            const end1 = node;
-            end1.nodeValue = 'end';
-            end1.parentNode?.insertBefore(start1, end1);
-            const action = (function(start, end, newValue, oldValue) {
-                for (const { strings , values  } of newValue){
-                    const cacheChild = RenderWalk(strings, values);
-                    console.log(cacheChild, newValue);
-                    for (const cacheNode of cacheChild.nodes){
-                        end.parentNode?.insertBefore(cacheNode, end);
+const RenderWalk = function(fragment, values, actions) {
+    const walker = document.createTreeWalker(document, 5, null);
+    walker.currentNode = fragment;
+    let node = fragment.firstChild;
+    while((node = walker.nextNode()) !== null){
+        if (node.nodeType === Node.TEXT_NODE) {
+            const start = node.nodeValue?.indexOf('{{') ?? -1;
+            if (start == -1) continue;
+            if (start != 0) {
+                node.splitText(start);
+                node = walker.nextNode();
+            }
+            const end = node.nodeValue?.indexOf('}}') ?? -1;
+            if (end == -1) continue;
+            if (end + 2 != node.nodeValue?.length) {
+                node.splitText(end + 2);
+            }
+            const newValue = values[actions.length];
+            const oldValue = node.nodeValue;
+            if (newValue?.constructor === Array) {
+                const start1 = document.createTextNode('');
+                const end1 = node;
+                end1.nodeValue = '';
+                end1.parentNode?.insertBefore(start1, end1);
+                const action = (function(start, end, newValue, oldValue) {
+                    console.log('TODO: need to patch common');
+                    if (newValue.length > oldValue.length) {
+                        const l = newValue.length - oldValue.length;
+                        for(let i = 0; i < l; i++){
+                            const { values , template  } = newValue[i];
+                            const fragment = template.content.cloneNode(true);
+                            RenderWalk(fragment, values, []);
+                            end.parentNode?.insertBefore(fragment, end);
+                        }
+                    } else if (newValue.length < oldValue.length) {
+                        const { template: template1  } = oldValue[0];
+                        let r = (oldValue.length - newValue.length) * template1.content.childNodes.length;
+                        while(r){
+                            end.parentNode?.removeChild(end.previousSibling);
+                            r--;
+                        }
                     }
-                }
-            }).bind(null, start1, end1);
-            action(newValue, oldValue);
-            cache.actions.push(action);
-        } else {
-            const action1 = (function(node, newValue, oldValue) {
-                node.nodeValue = newValue;
-            }).bind(null, node);
-            action1(newValue, oldValue);
-            cache.actions.push(action1);
-        }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-        const attributes = [
-            ...node.attributes
-        ];
-        for (const attribute of attributes){
-            if (attribute.value.includes('{{') && attribute.value.includes('}}')) {
-                if (attribute.name.startsWith('on')) {
-                    const action2 = (function(node, attribute, newValue, oldValue) {
-                        node.addEventListener(attribute.name.slice(2), newValue);
-                    }).bind(null, node, attribute);
-                    node.removeAttributeNode(attribute);
-                    action2(values[cache.actions.length], attribute.value);
-                    cache.actions.push(action2);
-                } else {
-                    const action3 = (function(node, attribute, newValue, oldValue) {
-                        node.setAttribute(attribute.name, newValue);
-                    }).bind(null, node, attribute);
-                    action3(values[cache.actions.length], attribute.value);
-                    cache.actions.push(action3);
+                }).bind(null, start1, end1);
+                action(newValue, []);
+                actions.push(action);
+            } else {
+                const action1 = (function(node, newValue, oldValue) {
+                    node.nodeValue = newValue;
+                }).bind(null, node);
+                action1(newValue, oldValue);
+                actions.push(action1);
+            }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const attributes = [
+                ...node.attributes
+            ];
+            for (const attribute of attributes){
+                if (attribute.value.includes('{{') && attribute.value.includes('}}')) {
+                    if (attribute.name.startsWith('on')) {
+                        const action2 = (function(node, attribute, newValue, oldValue) {
+                            node.addEventListener(attribute.name.slice(2), newValue);
+                        }).bind(null, node, attribute);
+                        node.removeAttributeNode(attribute);
+                        action2(values[actions.length], attribute.value);
+                        actions.push(action2);
+                    } else {
+                        const action3 = (function(node, attribute, newValue, oldValue) {
+                            node.setAttribute(attribute.name, newValue);
+                        }).bind(null, node, attribute);
+                        action3(values[actions.length], attribute.value);
+                        actions.push(action3);
+                    }
                 }
             }
         }
     }
 };
-const RenderWalk = function(strings, values) {
+async function render(root, context, component) {
+    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+    const { strings , values , template  } = component(html, context);
     let cache = RenderCache.get(strings);
     if (cache) {
-        RenderActions(strings, values);
+        RenderRun(strings, values);
         return cache;
     }
     cache = {
         values,
         actions: [],
         rooted: false,
-        template: document.createElement('template')
+        fragment: template.content.cloneNode(true)
     };
     RenderCache.set(strings, cache);
-    let data = '';
-    const length = strings.length - 1;
-    for(let index = 0; index < length; index++){
-        data += `${strings[index]}{{${index}}}`;
-    }
-    data += strings[strings.length - 1];
-    cache.template.innerHTML = data;
-    cache.fragment = cache.template.cloneNode(true).content;
-    const walker = document.createTreeWalker(document, 5, null);
-    walker.currentNode = cache.fragment;
-    let node = cache.fragment.firstChild;
-    while((node = walker.nextNode()) !== null){
-        RenderHandle(node, cache, values);
-    }
-    return cache;
-};
-async function render(root, context, component) {
-    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-    const { strings , values  } = component(html, context);
-    const cache = RenderWalk(strings, values);
-    console.log(cache);
+    RenderWalk(cache.fragment, values, cache.actions);
     if (!cache.rooted) {
         cache.rooted = true;
         root.replaceChildren(cache.fragment);
