@@ -1,12 +1,10 @@
-import clone from './clone.ts';
-import parse from './parse.ts';
-
-const HtmlCache = new WeakMap();
+export const HtmlCache = new WeakMap();
+export const HtmlSymbol = Symbol('html');
 
 export default function html(strings: string[], ...values: unknown[]) {
     if (HtmlCache.has(strings)) {
         const template = HtmlCache.get(strings);
-        return { strings, values, template };
+        return { strings, values, template, symbol: HtmlSymbol};
     } else {
         let data = '';
         const length = strings.length - 1;
@@ -21,7 +19,7 @@ export default function html(strings: string[], ...values: unknown[]) {
 
         HtmlCache.set(strings, template);
 
-        return { strings, values, template };
+        return { strings, values, template, symbol: HtmlSymbol };
     }
 }
 

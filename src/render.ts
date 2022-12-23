@@ -1,48 +1,115 @@
-// import patch from './patch.ts';
-import patch from './patch-dom.ts';
 import html from './html.ts';
-import parse from './parse.ts';
+import display from './display.ts';
 import booleans from './booleans.ts';
-import { VirtualNode } from './types.ts';
-
-(window as any).x = {};
+import {HtmlSymbol} from './html.ts';
 
 const RenderCache = new WeakMap();
-const RenderTemplates = new WeakMap();
 
-const RenderRun = function (strings: string[], values: any[]) {
-    const cache = RenderCache.get(strings);
-    const l = values.length;
+const RenderRun = function (actions: any[], oldValues: any[], newValues: any[]) {
+    const l = actions.length;
     for (let i = 0; i < l; i++) {
-        const newValue = values[i];
-        const oldValue = cache.values[i];
-        // if (newValue?.constructor === Array) continue;
-        if (newValue?.constructor === Object) continue;
+        const newValue = newValues[i];
+        const oldValue = oldValues[i];
         if (newValue !== oldValue) {
-            cache.actions[i](newValue, oldValue);
-            cache.values[i] = values[i];
+            actions[i](oldValue, newValue);
+            oldValues[i] = newValues[i];
         }
     }
 };
 
-// const RenderUpgrade = function (cache:any, values:any[]) {
-//     const walker = document.createTreeWalker(document, 5, null);
-//     walker.currentNode = cache.fragment;
+const ObjectAction = function (start: Text, end:Text, actions: any[], oldValue: any, newValue: any) {
 
-//     let node: Node | null = cache.fragment.firstChild;
+    if (oldValue?.strings !== newValue.strings) {
+        let next;
+        let node = end.previousSibling;
+        while(node !== start) {
+            next = node?.previousSibling as ChildNode;
+            node?.parentNode?.removeChild(node);
+            node = next;
+        }
 
-//     while ((node = walker.nextNode()) !== null) {
-//         RenderHandle(node, cache, values);
-//     }
-// };
+        const fragment = newValue.template.content.cloneNode(true);
+        RenderWalk(fragment, newValue.values, actions);
+        end.parentNode?.insertBefore(fragment, end);
+    } else {
+        RenderRun(actions, oldValue.values, newValue.values);
+    }
+};
+
+const ArrayChildAction = function (instance: any, values: any[]) {
+    RenderRun(instance.actions, instance.values, values);
+};
+
+const ArrayAction = function (start: Text, end: Text, actions: any[], oldValues: any, newValues: any) {
+    const newLength = newValues.length;
+    const oldLength = oldValues.length;
+    const common = Math.min(newLength, oldLength);
+
+    for (let i = 0; i < common; i++) {
+        actions[i](newValues[i].values);
+    }
+
+    if (newLength > oldLength) {
+        for (let i = oldLength; i < newLength; i++) {
+            if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
+                const { values, template } = newValues[i];
+                const fragment = template.content.cloneNode(true);
+                const instance = { values, actions: [] };
+                actions.push(ArrayChildAction.bind(null, instance));
+                RenderWalk(fragment, instance.values, instance.actions);
+                end.parentNode?.insertBefore(fragment, end) as Element;
+            } else {
+                const node = document.createTextNode(display(newValues[i]));
+                end.parentNode?.insertBefore(node, end);
+            }
+        }
+    } else if (newLength < oldLength) {
+        const { template } = oldValues[0];
+        let r = (oldLength - newLength) * template.content.childNodes.length;
+        while (r) {
+            // remove action
+            end.parentNode?.removeChild(end.previousSibling as Node);
+            r--;
+        }
+    }
+};
+
+const StandardAction = function (node: Text, oldValue: any, newValue: any) {
+    node.nodeValue = newValue;
+};
+
+const AttributeOn = function (node: Element, name: string, oldValue: any, newValue: any) {
+    if (oldValue === newValue) return;
+    node.addEventListener(name, newValue);
+};
+
+const AttributeBoolean = function (element: Element, name:string, oldValue: any, newValue:any) {
+    if (oldValue === newValue) return;
+    const value = newValue ? true : false;
+    if (value) element.setAttribute(name, '');
+    else element.removeAttribute(name);
+};
+
+const AttributeValue = function (element: Element, name: string, oldValue: any, newValue: any) {
+    if (oldValue === newValue) return;
+    const value = display(newValue);
+    Reflect.set(element, name, value);
+    element.setAttribute(name, value);
+};
+
+const AttributeStandard = function (node: Element, name: string, oldValue: any, newValue: any) {
+    node.setAttribute(name, newValue);
+};
 
 const RenderWalk = function (fragment: DocumentFragment, values: any[], actions: any[]) {
     const walker = document.createTreeWalker(document, 5, null);
+
     walker.currentNode = fragment;
 
     let node: Node | null = fragment.firstChild;
 
     while ((node = walker.nextNode()) !== null) {
+
         if (node.nodeType === Node.TEXT_NODE) {
             const start = node.nodeValue?.indexOf('{{') ?? -1;
             if (start == -1) continue;
@@ -58,70 +125,49 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
                 (node as Text).splitText(end + 2);
             }
 
-            const newValue = values[actions.length];
+            const actionsLength = actions.length;
+            const newValue = values[actionsLength];
             const oldValue = node.nodeValue;
 
-            if (newValue?.constructor === Array) {
+            if (newValue?.constructor === Object) {
+                if (newValue.symbol === HtmlSymbol) {
+                    const start = document.createTextNode('');
+                    const end = node;
+                    end.nodeValue = '';
+                    end.parentNode?.insertBefore(start, end);
+                    actions.push(ObjectAction.bind(null, start as Text, end as Text, []));
+                    actions[actionsLength](undefined, newValue);
+                } else {
+                    node.nodeValue = display(newValue);
+                }
+            } else if (newValue?.constructor === Array) {
                 const start = document.createTextNode('');
                 const end = node;
                 end.nodeValue = '';
                 end.parentNode?.insertBefore(start, end);
-                const action = function (start: Text, end: Text, newValue: any, oldValue: any) {
-                    console.log('TODO: need to patch common');
-                    if (newValue.length > oldValue.length) {
-                        const l = newValue.length - oldValue.length;
-                        for (let i = 0; i < l; i++) {
-                            const { values, template } = newValue[i];
-                            const fragment = template.content.cloneNode(true);
-                            RenderWalk(fragment, values, []);
-                            end.parentNode?.insertBefore(fragment, end) as Element;
-                        }
-                    } else if (newValue.length < oldValue.length) {
-                        const { template } = oldValue[0];
-                        let r = (oldValue.length - newValue.length)*template.content.childNodes.length;
-                        while (r) {
-                            end.parentNode?.removeChild(end.previousSibling as Node);
-                            r--;
-                        }
-                    }
-
-                    // for (const {strings, values, template} of newValue) {
-                    //     const fragment = template.content.cloneNode(true);
-                    //     RenderWalk(fragment,values, []);
-                    //     end.parentNode?.insertBefore(fragment, end) as Element;
-                    // }
-                }.bind(null, start as Text, end as Text);
-
-                action(newValue, []);
-
-                actions.push(action);
+                actions.push(ArrayAction.bind(null, start as Text, end as Text, []));
+                actions[actionsLength]([], newValue);
             } else {
-                const action = function (node: Text, newValue: any, oldValue: any) {
-                    node.nodeValue = newValue;
-                }.bind(null, node as Text);
-
-                action(newValue, oldValue);
-
-                actions.push(action);
+                actions.push(StandardAction.bind(null, node as Text));
+                actions[actionsLength](oldValue, newValue);
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            const attributes = [...(node as Element).attributes];
-            for (const attribute of attributes) {
-                if (attribute.value.includes('{{') && attribute.value.includes('}}')) {
-                    if (attribute.name.startsWith('on')) {
-                        const action = function (node: Element, attribute: Attr, newValue: any, oldValue: any) {
-                            node.addEventListener(attribute.name.slice(2), newValue);
-                        }.bind(null, node as Element, attribute);
-                        (node as Element).removeAttributeNode(attribute);
-                        action(values[actions.length], attribute.value);
-                        actions.push(action);
+            const names = (node as Element).getAttributeNames();
+            for (const name of names) {
+                const value = (node as Element).getAttribute(name) ?? '';
+                if (value.includes('{{') && value.includes('}}')) {
+                    if (name === 'value') {
+                        actions.push(AttributeValue.bind(null, node as Element, name));
+                    } else if (booleans.includes(name)) {
+                        actions.push(AttributeBoolean.bind(null, node as Element, name));
+                    } else if (name.startsWith('on')) {
+                        (node as Element).removeAttribute(name);
+                        actions.push(AttributeOn.bind(null, node as Element, name.slice(2)));
                     } else {
-                        const action = function (node: Element, attribute: Attr, newValue: any, oldValue: any) {
-                            node.setAttribute(attribute.name, newValue);
-                        }.bind(null, node as Element, attribute);
-                        action(values[actions.length], attribute.value);
-                        actions.push(action);
+                        actions.push(AttributeStandard.bind(null, node as Element, name));
                     }
+
+                    actions[actions.length-1](undefined, values[actions.length-1]);
                 }
             }
         }
@@ -136,7 +182,7 @@ export default async function render(root: Element, context: any, component: any
     let cache = RenderCache.get(strings);
 
     if (cache) {
-        RenderRun(strings, values);
+        RenderRun(cache.actions, cache.values, values);
         return cache;
     }
 

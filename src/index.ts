@@ -4,7 +4,7 @@ import Context from './context.ts';
 import Define from './define.ts';
 import Router from './router.ts';
 import Render from './render.ts';
-import Patch from './patch.ts';
+// import Patch from './patch.ts';
 import Mount from './mount.ts';
 
 // export { Component };
@@ -25,8 +25,8 @@ export { Router as router };
 export { Render };
 export { Render as render };
 
-export { Patch };
-export { Patch as patch };
+// export { Patch };
+// export { Patch as patch };
 
 export { Mount };
 export { Mount as mount };
@@ -38,7 +38,7 @@ const Index = {
     Define,
     Router,
     Render,
-    Patch,
+    // Patch,
     Mount,
     // component: Component,
     schedule: Schedule,
@@ -46,7 +46,7 @@ const Index = {
     define: Define,
     router: Router,
     render: Render,
-    patch: Patch,
+    // patch: Patch,
     mount: Mount,
 };
 
