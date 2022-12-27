@@ -269,7 +269,11 @@ const ArrayAction = function(start, end, actions, oldValues, newValues) {
     const oldLength = oldValues.length;
     const common = Math.min(newLength, oldLength);
     for(let i = 0; i < common; i++){
-        actions[i](newValues[i].values);
+        if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
+            actions[i](newValues[i].values);
+        } else {
+            actions[i](oldValues[i], newValues[i]);
+        }
     }
     if (newLength > oldLength) {
         for(let i1 = oldLength; i1 < newLength; i1++){
@@ -284,24 +288,30 @@ const ArrayAction = function(start, end, actions, oldValues, newValues) {
                 RenderWalk(fragment, instance.values, instance.actions);
                 end.parentNode?.insertBefore(fragment, end);
             } else {
-                const node = document.createTextNode(display(newValues[i1]));
+                const node = document.createTextNode('');
+                actions.push(StandardAction.bind(null, node));
+                actions[actions.length - 1]('', newValues[i1]);
                 end.parentNode?.insertBefore(node, end);
             }
         }
     } else if (newLength < oldLength) {
-        const { template: template1  } = oldValues[0];
-        let r = (oldLength - newLength) * template1.content.childNodes.length;
-        while(r){
-            end.parentNode?.removeChild(end.previousSibling);
-            r--;
+        for(let i2 = oldLength; i2 !== newLength; i2--){
+            if (oldValues[i2]?.constructor === Object && oldValues[i2].symbol === HtmlSymbol) {
+                const { template: template1  } = oldValues[i2];
+                let removes = template1.content.childNodes.length;
+                while(removes--)end.parentNode?.removeChild(end.previousSibling);
+            } else {
+                end.parentNode?.removeChild(end.previousSibling);
+            }
         }
     }
 };
 const StandardAction = function(node, oldValue, newValue) {
-    node.nodeValue = newValue;
+    node.textContent = newValue;
 };
 const AttributeOn = function(node, name, oldValue, newValue) {
     if (oldValue === newValue) return;
+    if (typeof oldValue === 'function') node.removeEventListener(name, oldValue);
     node.addEventListener(name, newValue);
 };
 const AttributeBoolean = function(element, name, oldValue, newValue) {
@@ -322,6 +332,7 @@ const AttributeStandard = function(node, name, oldValue, newValue) {
 const RenderWalk = function(fragment, values, actions) {
     const walker = document.createTreeWalker(document, 5, null);
     walker.currentNode = fragment;
+    let index = 0;
     let node = fragment.firstChild;
     while((node = walker.nextNode()) !== null){
         if (node.nodeType === Node.TEXT_NODE) {
@@ -336,49 +347,51 @@ const RenderWalk = function(fragment, values, actions) {
             if (end + 2 != node.nodeValue?.length) {
                 node.splitText(end + 2);
             }
-            const actionsLength = actions.length;
-            const newValue = values[actionsLength];
+            const newValue = values[index++];
             const oldValue = node.nodeValue;
-            if (newValue?.constructor === Object) {
-                if (newValue.symbol === HtmlSymbol) {
-                    const start1 = document.createTextNode('');
-                    const end1 = node;
-                    end1.nodeValue = '';
-                    end1.parentNode?.insertBefore(start1, end1);
-                    actions.push(ObjectAction.bind(null, start1, end1, []));
-                    actions[actionsLength](undefined, newValue);
-                } else {
-                    node.nodeValue = display(newValue);
-                }
+            if (newValue?.constructor === Object && newValue.symbol === HtmlSymbol) {
+                const start1 = document.createTextNode('');
+                const end1 = node;
+                end1.nodeValue = '';
+                end1.parentNode?.insertBefore(start1, end1);
+                const action = ObjectAction.bind(null, start1, end1, []);
+                actions.push(action);
+                action(undefined, newValue);
             } else if (newValue?.constructor === Array) {
                 const start2 = document.createTextNode('');
                 const end2 = node;
                 end2.nodeValue = '';
                 end2.parentNode?.insertBefore(start2, end2);
-                actions.push(ArrayAction.bind(null, start2, end2, []));
-                actions[actionsLength]([], newValue);
+                const action1 = ArrayAction.bind(null, start2, end2, []);
+                actions.push(action1);
+                action1([], newValue);
             } else {
-                actions.push(StandardAction.bind(null, node));
-                actions[actionsLength](oldValue, newValue);
+                const action2 = StandardAction.bind(null, node);
+                actions.push(action2);
+                action2(oldValue, newValue);
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const names = node.getAttributeNames();
             for (const name of names){
                 const value = node.getAttribute(name) ?? '';
                 if (value.includes('{{') && value.includes('}}')) {
+                    let action3;
                     if (name === 'value') {
-                        actions.push(AttributeValue.bind(null, node, name));
+                        action3 = AttributeValue.bind(null, node, name);
                     } else if (booleans.includes(name)) {
-                        actions.push(AttributeBoolean.bind(null, node, name));
+                        action3 = AttributeBoolean.bind(null, node, name);
                     } else if (name.startsWith('on')) {
                         node.removeAttribute(name);
-                        actions.push(AttributeOn.bind(null, node, name.slice(2)));
+                        action3 = AttributeOn.bind(null, node, name.slice(2));
                     } else {
-                        actions.push(AttributeStandard.bind(null, node, name));
+                        action3 = AttributeStandard.bind(null, node, name);
                     }
-                    actions[actions.length - 1](undefined, values[actions.length - 1]);
+                    actions.push(action3);
+                    action3(undefined, values[index++]);
                 }
             }
+        } else {
+            console.warn('node type not handled ', node.nodeType);
         }
     }
 };
@@ -392,6 +405,7 @@ async function render(root, context, component) {
     }
     cache = {
         values,
+        template,
         actions: [],
         rooted: false,
         fragment: template.content.cloneNode(true)

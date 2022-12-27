@@ -35,14 +35,14 @@ const fruitsComponenet = (html, ctx) => html`
     <div>${ctx.fruit}</div>
     <select value=${ctx.fruit} oninput=${(e) => ctx.fruit = e.target.value}>
         ${ctx.fruits.map(fruit => html`
-            <option value=${fruit}>${fruit}</option>
+            <option value=${fruit} selected=${ctx.fruit===fruit}>${fruit}</option>
         `)}
     </select>
 `;
 
 const carsComponenet = (html, ctx) => html`
     <div>${ctx.car}</div>
-    <select oninput=${(e) => ctx.car = Array.from(e.target.selectedOptions).map(o => o.value)}>
+    <select oninput=${(e) => ctx.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
         ${ctx.cars.map(car => html`
             <option value=${car} selected=${ctx.car.includes(car)}>${car}</option>
         `)}

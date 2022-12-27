@@ -46,7 +46,11 @@ const ArrayAction = function (start: Text, end: Text, actions: any[], oldValues:
     const common = Math.min(newLength, oldLength);
 
     for (let i = 0; i < common; i++) {
-        actions[i](newValues[i].values);
+        if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
+            actions[i](newValues[i].values);
+        } else {
+            actions[i](oldValues[i], newValues[i]);
+        }
     }
 
     if (newLength > oldLength) {
@@ -59,27 +63,32 @@ const ArrayAction = function (start: Text, end: Text, actions: any[], oldValues:
                 RenderWalk(fragment, instance.values, instance.actions);
                 end.parentNode?.insertBefore(fragment, end) as Element;
             } else {
-                const node = document.createTextNode(display(newValues[i]));
+                const node = document.createTextNode('');
+                actions.push(StandardAction.bind(null, node as Text));
+                actions[actions.length-1]('', newValues[i]);
                 end.parentNode?.insertBefore(node, end);
             }
         }
     } else if (newLength < oldLength) {
-        const { template } = oldValues[0];
-        let r = (oldLength - newLength) * template.content.childNodes.length;
-        while (r) {
-            // remove action
-            end.parentNode?.removeChild(end.previousSibling as Node);
-            r--;
+        for (let i = oldLength; i !== newLength; i--) {
+            if (oldValues[i]?.constructor === Object && oldValues[i].symbol === HtmlSymbol) {
+                const { template } = oldValues[i];
+                let removes = template.content.childNodes.length;
+                while(removes--) end.parentNode?.removeChild(end.previousSibling as Node);
+            } else {
+                end.parentNode?.removeChild(end.previousSibling as Node);
+            }
         }
     }
 };
 
 const StandardAction = function (node: Text, oldValue: any, newValue: any) {
-    node.nodeValue = newValue;
+    node.textContent = newValue;
 };
 
 const AttributeOn = function (node: Element, name: string, oldValue: any, newValue: any) {
     if (oldValue === newValue) return;
+    if (typeof oldValue === 'function') node.removeEventListener(name, oldValue);
     node.addEventListener(name, newValue);
 };
 
@@ -95,6 +104,10 @@ const AttributeValue = function (element: Element, name: string, oldValue: any, 
     const value = display(newValue);
     Reflect.set(element, name, value);
     element.setAttribute(name, value);
+    // if (element instanceof HTMLOptionElement) {
+    //     console.log(element, element.parentNode, value);
+    //     element.selected = element.value === (element?.parentNode as any)?.value;
+    // }
 };
 
 const AttributeStandard = function (node: Element, name: string, oldValue: any, newValue: any) {
@@ -106,11 +119,12 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
 
     walker.currentNode = fragment;
 
+    let index = 0;
     let node: Node | null = fragment.firstChild;
 
     while ((node = walker.nextNode()) !== null) {
-
         if (node.nodeType === Node.TEXT_NODE) {
+
             const start = node.nodeValue?.indexOf('{{') ?? -1;
             if (start == -1) continue;
             if (start != 0) {
@@ -125,53 +139,57 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
                 (node as Text).splitText(end + 2);
             }
 
-            const actionsLength = actions.length;
-            const newValue = values[actionsLength];
+            const newValue = values[index++];
             const oldValue = node.nodeValue;
 
-            if (newValue?.constructor === Object) {
-                if (newValue.symbol === HtmlSymbol) {
-                    const start = document.createTextNode('');
-                    const end = node;
-                    end.nodeValue = '';
-                    end.parentNode?.insertBefore(start, end);
-                    actions.push(ObjectAction.bind(null, start as Text, end as Text, []));
-                    actions[actionsLength](undefined, newValue);
-                } else {
-                    node.nodeValue = display(newValue);
-                }
+            if (newValue?.constructor === Object && newValue.symbol === HtmlSymbol) {
+                const start = document.createTextNode('');
+                const end = node;
+                end.nodeValue = '';
+                end.parentNode?.insertBefore(start, end);
+                const action = ObjectAction.bind(null, start as Text, end as Text, [])
+                actions.push(action);
+                action(undefined, newValue);
             } else if (newValue?.constructor === Array) {
                 const start = document.createTextNode('');
                 const end = node;
                 end.nodeValue = '';
                 end.parentNode?.insertBefore(start, end);
-                actions.push(ArrayAction.bind(null, start as Text, end as Text, []));
-                actions[actionsLength]([], newValue);
+                const action = ArrayAction.bind(null, start as Text, end as Text, [])
+                actions.push(action);
+                action([], newValue);
             } else {
-                actions.push(StandardAction.bind(null, node as Text));
-                actions[actionsLength](oldValue, newValue);
+                const action = StandardAction.bind(null, node as Text)
+                actions.push(action);
+                action(oldValue, newValue);
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const names = (node as Element).getAttributeNames();
             for (const name of names) {
                 const value = (node as Element).getAttribute(name) ?? '';
                 if (value.includes('{{') && value.includes('}}')) {
+                    let action;
+
                     if (name === 'value') {
-                        actions.push(AttributeValue.bind(null, node as Element, name));
+                        action = AttributeValue.bind(null, node as Element, name);
                     } else if (booleans.includes(name)) {
-                        actions.push(AttributeBoolean.bind(null, node as Element, name));
+                        action = AttributeBoolean.bind(null, node as Element, name);
                     } else if (name.startsWith('on')) {
                         (node as Element).removeAttribute(name);
-                        actions.push(AttributeOn.bind(null, node as Element, name.slice(2)));
+                        action = AttributeOn.bind(null, node as Element, name.slice(2));
                     } else {
-                        actions.push(AttributeStandard.bind(null, node as Element, name));
+                        action = AttributeStandard.bind(null, node as Element, name);
                     }
 
-                    actions[actions.length-1](undefined, values[actions.length-1]);
+                    actions.push(action);
+                    action(undefined, values[index++]);
                 }
             }
+        } else {
+            console.warn('node type not handled ', node.nodeType);
         }
     }
+
 };
 
 export default async function render(root: Element, context: any, component: any) {
@@ -188,6 +206,7 @@ export default async function render(root: Element, context: any, component: any
 
     cache = {
         values,
+        template,
         actions: [],
         rooted: false,
         fragment: template.content.cloneNode(true),
