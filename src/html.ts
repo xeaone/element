@@ -4,7 +4,7 @@ export const HtmlSymbol = Symbol('html');
 export default function html(strings: string[], ...values: unknown[]) {
     if (HtmlCache.has(strings)) {
         const template = HtmlCache.get(strings);
-        return { strings, values, template, symbol: HtmlSymbol};
+        return { strings, values, template, symbol: HtmlSymbol };
     } else {
         let data = '';
         const length = strings.length - 1;

@@ -233,18 +233,7 @@ const booleans = [
     'typemustmatch',
     'visible'
 ];
-const RenderCache = new WeakMap();
-const RenderRun = function(actions, oldValues, newValues) {
-    const l = actions.length;
-    for(let i = 0; i < l; i++){
-        const newValue = newValues[i];
-        const oldValue = oldValues[i];
-        if (newValue !== oldValue) {
-            actions[i](oldValue, newValue);
-            oldValues[i] = newValues[i];
-        }
-    }
-};
+const RootCache = new WeakMap();
 const ObjectAction = function(start, end, actions, oldValue, newValue) {
     if (oldValue?.strings !== newValue.strings) {
         let next;
@@ -258,11 +247,11 @@ const ObjectAction = function(start, end, actions, oldValue, newValue) {
         RenderWalk(fragment, newValue.values, actions);
         end.parentNode?.insertBefore(fragment, end);
     } else {
-        RenderRun(actions, oldValue.values, newValue.values);
+        RenderUpdate(actions, oldValue.values, newValue.values);
     }
 };
 const ArrayChildAction = function(instance, values) {
-    RenderRun(instance.actions, instance.values, values);
+    RenderUpdate(instance.actions, instance.values, values);
 };
 const ArrayAction = function(start, end, actions, oldValues, newValues) {
     const newLength = newValues.length;
@@ -307,6 +296,7 @@ const ArrayAction = function(start, end, actions, oldValues, newValues) {
     }
 };
 const StandardAction = function(node, oldValue, newValue) {
+    if (oldValue === newValue) return;
     node.textContent = newValue;
 };
 const AttributeOn = function(node, name, oldValue, newValue) {
@@ -328,6 +318,17 @@ const AttributeValue = function(element, name, oldValue, newValue) {
 };
 const AttributeStandard = function(node, name, oldValue, newValue) {
     node.setAttribute(name, newValue);
+};
+const RenderUpdate = function(actions, oldValues, newValues) {
+    const l = actions.length;
+    for(let i = 0; i < l; i++){
+        const newValue = newValues[i];
+        const oldValue = oldValues[i];
+        if (newValue !== oldValue) {
+            actions[i](oldValue, newValue);
+            oldValues[i] = newValues[i];
+        }
+    }
 };
 const RenderWalk = function(fragment, values, actions) {
     const walker = document.createTreeWalker(document, 5, null);
@@ -396,52 +397,38 @@ const RenderWalk = function(fragment, values, actions) {
     }
 };
 async function render(root, context, component) {
-    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-    const { strings , values , template  } = component(html, context);
-    let cache = RenderCache.get(strings);
-    if (cache) {
-        RenderRun(cache.actions, cache.values, values);
-        return cache;
-    }
-    cache = {
-        values,
-        template,
-        actions: [],
-        rooted: false,
-        fragment: template.content.cloneNode(true)
-    };
-    RenderCache.set(strings, cache);
-    RenderWalk(cache.fragment, values, cache.actions);
-    if (!cache.rooted) {
-        cache.rooted = true;
-        root.replaceChildren(cache.fragment);
-    }
-    if (context.upgraded) await context.upgraded()?.catch(console.error);
-}
-const MountCache = new WeakMap();
-async function mount(root, context, component) {
     const update = async function() {
-        await schedule(root, renderInstance);
+        await schedule(root, async function task() {
+            if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+            const { values  } = component(html, context);
+            RenderUpdate(instance.actions, instance.values, values);
+            if (context.upgraded) await context.upgraded()?.catch(console.error);
+        });
     };
-    const contextInstance = ContextCreate(context(html), update);
-    const renderInstance = render.bind(null, root, contextInstance, component);
-    const cache = MountCache.get(root);
+    const cache = RootCache.get(root);
     if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
     if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-    MountCache.set(root, contextInstance);
-    if (contextInstance.connect) await contextInstance.connect()?.catch?.(console.error);
-    await update();
-    if (contextInstance.connected) await contextInstance.connected()?.catch(console.error);
-    return update;
+    context = ContextCreate(context(html), update);
+    RootCache.set(root, context);
+    if (context.connect) await context.connect()?.catch?.(console.error);
+    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+    const { strings , values , template  } = component(html, context);
+    const instance = {
+        values,
+        strings,
+        template,
+        actions: [],
+        fragment: template.content.cloneNode(true)
+    };
+    RenderWalk(instance.fragment, values, instance.actions);
+    root.replaceChildren(instance.fragment);
+    if (context.upgraded) await context.upgraded()?.catch(console.error);
+    if (context.connected) await context.connected()?.catch(console.error);
 }
 const alls = [];
 const routes = [];
 const transition = async function(route) {
-    if (route.render) {
-        route.render();
-    } else {
-        route.render = await mount(route.root, route.context, route.component);
-    }
+    await render(route.root, route.context, route.component);
 };
 const navigate = function(event) {
     if (event && 'canIntercept' in event && event.canIntercept === false) return;
@@ -525,20 +512,16 @@ export { router as Router };
 export { router as router };
 export { render as Render };
 export { render as render };
-export { mount as Mount };
-export { mount as mount };
 const Index = {
     Schedule: schedule,
     Context: ContextCreate,
     Define: define,
     Router: router,
     Render: render,
-    Mount: mount,
     schedule: schedule,
     context: ContextCreate,
     define: define,
     router: router,
-    render: render,
-    mount: mount
+    render: render
 };
 export { Index as default };

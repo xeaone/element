@@ -1,5 +1,6 @@
 // import Component from './component.ts';
-import mount from './mount.ts';
+import render from './render.ts';
+// import mount from './mount.ts';
 // import Dash from './dash.ts';
 // import { $ } from './tool.ts';
 
@@ -42,11 +43,12 @@ const transition = async function (route: Route) {
     //     route.instance[$].render();
 
     // }
-    if (route.render) {
-        route.render();
-    } else {
-        route.render = await mount(route.root, route.context, route.component);
-    }
+    // if (route.render) {
+    //     route.render();
+    // } else {
+        // route.render = await mount(route.root, route.context, route.component);
+    // }
+    await render(route.root, route.context, route.component);
 };
 
 const navigate = function (event?: any) {

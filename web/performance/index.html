@@ -14,7 +14,7 @@
         <main></main>
 
         <script type="module">
-            import { mount } from './x-element.js';
+            import { render } from './x-element.js';
 
             const context = () => ({
                 items: [ 1, 2 ],
@@ -54,7 +54,7 @@
                 // <div ${'test'}>at</div>
 
             const root = document.querySelector('main');
-            mount(root, context, component);
+            render(root, context, component);
 
         </script>
 
