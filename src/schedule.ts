@@ -1,56 +1,72 @@
-type Task = () => void | Promise<void>;
+let busy = false;
 
-const ScheduleCache = new WeakMap();
-const ScheduleNext = Promise.resolve();
+const sleep = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-export default async function schedule(target: Element, task: Task) {
-    let cache = ScheduleCache.get(target);
+// const tasks: any = [];
+// export default async function schedule(target: Element, task: Task) {
+//     tasks.push(task);
+//     if (busy) return;
+//     busy = true;
 
-    if (!cache) {
-        cache = { resolves: [] };
-        ScheduleCache.set(target, cache);
-    }
+//     let max = performance.now() + 50;
 
-    if (cache.busy) {
-        cache.task = task;
+//     while (tasks.length > 0) {
+//         if (performance.now() >= max) {
+//             await sleep();
+//             max = performance.now() + 50;
+//             continue;
+//         }
 
-        await new Promise(function ScheduleResolve(resolve) {
-            cache.resolves.push(resolve);
-        });
+//         const task = tasks.shift();
 
-        return;
-    }
+//         await task();
+//     }
 
-    // if (cache.frame) {
-    //     cancelAnimationFrame(cache.frame);
-    // }
+//     busy = false;
+// }
 
-    cache.task = task;
+const Actions:any = [];
+const OldValues:any = [];
+const NewValues:any = [];
 
-    // cache.frame = requestAnimationFrame(function ScheduleFrame() {
-    const work = cache.task;
-    const resolves = cache.resolves;
+export default async function schedule (actions: any[], oldValues: any[], newValues: any[]) {
+    actions = actions ?? [];
+    oldValues = oldValues ?? [];
+    newValues = newValues ?? [];
 
-    cache.busy = true;
-    cache.task = undefined;
+    Actions.push(...actions);
+    OldValues.push(...oldValues);
+    NewValues.push(...newValues);
 
-    ScheduleNext.then(work).then(function (): any {
-        if (cache.task) {
-            return schedule(target, cache.task);
-        } else {
-            return Promise.all(resolves.map(function ScheduleMap(resolve: any) {
-                return resolve();
-            }));
+    if (busy) return;
+    busy = true;
+
+    let action;
+    let oldValue;
+    let newValue;
+    let max = performance.now() + 100;
+
+    while (Actions.length > 0) {
+
+        // if (
+        //     // (navigator as any).scheduling?.isInputPending() ||
+        //     performance.now() >= max
+        // ) {
+        //     await sleep();
+        //     max = performance.now() + 100;
+        //     continue;
+        // }
+
+        action = Actions.shift();
+        oldValue = OldValues.shift();
+        newValue = NewValues.shift();
+
+        if (oldValue !== newValue) {
+            // console.log(action, oldValue, newValue);
+            action(oldValue, newValue);
         }
-    }).then(function () {
-        cache.resolves = [];
-        cache.busy = false;
-        cache.task = undefined;
-        cache.frame = undefined;
-    });
-    // });
 
-    await new Promise(function ScheduleResolve(resolve) {
-        cache.resolves.push(resolve);
-    });
+    }
+
+    busy = false;
 }

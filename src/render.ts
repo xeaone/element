@@ -2,12 +2,15 @@ import html from './html.ts';
 import display from './display.ts';
 import booleans from './booleans.ts';
 import { HtmlSymbol } from './html.ts';
-import schedule from "./schedule.ts";
-import Context from './context.ts'
+import schedule from './schedule.ts';
+import Context from './context.ts';
 
 const RootCache = new WeakMap();
 
 const ObjectAction = function (start: Text, end: Text, actions: any[], oldValue: any, newValue: any) {
+    oldValue = oldValue ?? {};
+    newValue = newValue ?? {};
+
     if (oldValue?.strings !== newValue.strings) {
         let next;
         let node = end.previousSibling;
@@ -20,55 +23,64 @@ const ObjectAction = function (start: Text, end: Text, actions: any[], oldValue:
         const fragment = newValue.template.content.cloneNode(true);
         RenderWalk(fragment, newValue.values, actions);
         end.parentNode?.insertBefore(fragment, end);
-    } else {
-        RenderUpdate(actions, oldValue.values, newValue.values);
     }
-};
 
-const ArrayChildAction = function (instance: any, values: any[]) {
-    RenderUpdate(instance.actions, instance.values, values);
+    for (let i = 0; i < actions.length; i++) {
+        actions[i](oldValue.values?.[i], newValue.values[i]);
+    }
 };
 
 const ArrayAction = function (start: Text, end: Text, actions: any[], oldValues: any, newValues: any) {
-    const newLength = newValues.length;
+    oldValues = oldValues ?? [];
+    newValues = newValues ?? [];
+
     const oldLength = oldValues.length;
-    const common = Math.min(newLength, oldLength);
+    const newLength = newValues.length;
+    const common = Math.min(oldLength, newLength);
 
     for (let i = 0; i < common; i++) {
-        if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
-            actions[i](newValues[i].values);
-        } else {
+        // if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
+            // actions[i](newValues[i].values);
+        // } else {
             actions[i](oldValues[i], newValues[i]);
-        }
+        // }
     }
 
-    if (newLength > oldLength) {
+    if (oldLength < newLength) {
+        const template = document.createElement('template');
         for (let i = oldLength; i < newLength; i++) {
             if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
-                const { values, template } = newValues[i];
-                const fragment = template.content.cloneNode(true);
-                const instance = { values, actions: [] };
-                actions.push(ArrayChildAction.bind(null, instance));
-                RenderWalk(fragment, instance.values, instance.actions);
-                end.parentNode?.insertBefore(fragment, end) as Element;
+                const start = document.createTextNode('');
+                const end = document.createTextNode('');
+                const action = ObjectAction.bind(null, start, end, [])
+                template.content.appendChild(start);
+                template.content.appendChild(end);
+                actions.push(action);
+                action(oldValues[i], newValues[i]);
             } else {
                 const node = document.createTextNode('');
-                actions.push(StandardAction.bind(null, node as Text));
-                actions[actions.length - 1]('', newValues[i]);
-                end.parentNode?.insertBefore(node, end);
+                const action = StandardAction.bind(null, node as Text);
+                actions.push(action);
+                template.content.appendChild(node);
+                action(oldValues[i], newValues[i]);
             }
         }
-    } else if (newLength < oldLength) {
+        end.parentNode?.insertBefore(template.content as Node, end);
+    } else if (oldLength > newLength) {
         for (let i = oldLength; i !== newLength; i--) {
             if (oldValues[i]?.constructor === Object && oldValues[i].symbol === HtmlSymbol) {
                 const { template } = oldValues[i];
-                let removes = template.content.childNodes.length;
+                let removes = template.content.childNodes.length + 2;
                 while (removes--) end.parentNode?.removeChild(end.previousSibling as Node);
             } else {
                 end.parentNode?.removeChild(end.previousSibling as Node);
             }
         }
+        actions.length = newLength;
+        // oldValues.length = newLength;
+        // await schedule(actions, oldValues, newValues);
     }
+
 };
 
 const StandardAction = function (node: Text, oldValue: any, newValue: any) {
@@ -97,19 +109,8 @@ const AttributeValue = function (element: Element, name: string, oldValue: any, 
 };
 
 const AttributeStandard = function (node: Element, name: string, oldValue: any, newValue: any) {
+    if (oldValue === newValue) return;
     node.setAttribute(name, newValue);
-};
-
-const RenderUpdate = function (actions: any[], oldValues: any[], newValues: any[]) {
-    const l = actions.length;
-    for (let i = 0; i < l; i++) {
-        const newValue = newValues[i];
-        const oldValue = oldValues[i];
-        if (newValue !== oldValue) {
-            actions[i](oldValue, newValue);
-            oldValues[i] = newValues[i];
-        }
-    }
 };
 
 const RenderWalk = function (fragment: DocumentFragment, values: any[], actions: any[]) {
@@ -137,7 +138,6 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
             }
 
             const newValue = values[index++];
-            const oldValue = node.nodeValue;
 
             if (newValue?.constructor === Object && newValue.symbol === HtmlSymbol) {
                 const start = document.createTextNode('');
@@ -146,7 +146,6 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
                 end.parentNode?.insertBefore(start, end);
                 const action = ObjectAction.bind(null, start as Text, end as Text, []);
                 actions.push(action);
-                action(undefined, newValue);
             } else if (newValue?.constructor === Array) {
                 const start = document.createTextNode('');
                 const end = node;
@@ -154,17 +153,17 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
                 end.parentNode?.insertBefore(start, end);
                 const action = ArrayAction.bind(null, start as Text, end as Text, []);
                 actions.push(action);
-                action([], newValue);
             } else {
                 const action = StandardAction.bind(null, node as Text);
                 actions.push(action);
-                action(oldValue, newValue);
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const names = (node as Element).getAttributeNames();
             for (const name of names) {
                 const value = (node as Element).getAttribute(name) ?? '';
                 if (value.includes('{{') && value.includes('}}')) {
+                    index++;
+
                     let action;
 
                     if (name === 'value') {
@@ -179,7 +178,6 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
                     }
 
                     actions.push(action);
-                    action(undefined, values[index++]);
                 }
             }
         } else {
@@ -189,14 +187,12 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
 };
 
 export default async function render(root: Element, context: any, component: any) {
-
     const update = async function () {
-        await schedule(root, async function task () {
-            if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-            const { values } = component(html, context);
-            RenderUpdate(instance.actions, instance.values, values);
-            if (context.upgraded) await context.upgraded()?.catch(console.error);
-        });
+        if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+        const { values } = component(html, context);
+        await schedule(instance.actions, instance.values, values);
+        instance.values = values;
+        if (context.upgraded) await context.upgraded()?.catch(console.error);
     };
 
     const cache = RootCache.get(root);
@@ -221,7 +217,9 @@ export default async function render(root: Element, context: any, component: any
         fragment: template.content.cloneNode(true),
     };
 
-    RenderWalk(instance.fragment, values, instance.actions);
+    RenderWalk(instance.fragment, instance.values, instance.actions);
+
+    await schedule(instance.actions, [], instance.values);
 
     root.replaceChildren(instance.fragment);
 

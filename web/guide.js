@@ -22,7 +22,7 @@ const radioComponenet = (html, ctx) => html`
 `;
 
 const styleComponenet = (html, ctx) => html`
-    <div style="color: ${ctx.color}">Look at my style</div>
+    <div style=${`color: ${ctx.color}`}>Look at my style</div>
     <button onclick=${() => ctx.color = Color()}>Change Color</button>
 `;
 

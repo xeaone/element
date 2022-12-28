@@ -46,7 +46,7 @@ const transition = async function (route: Route) {
     // if (route.render) {
     //     route.render();
     // } else {
-        // route.render = await mount(route.root, route.context, route.component);
+    // route.render = await mount(route.root, route.context, route.component);
     // }
     await render(route.root, route.context, route.component);
 };

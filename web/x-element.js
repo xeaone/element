@@ -2,45 +2,32 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-const ScheduleCache = new WeakMap();
-const ScheduleNext = Promise.resolve();
-async function schedule(target, task) {
-    let cache = ScheduleCache.get(target);
-    if (!cache) {
-        cache = {
-            resolves: []
-        };
-        ScheduleCache.set(target, cache);
-    }
-    if (cache.busy) {
-        cache.task = task;
-        await new Promise(function ScheduleResolve(resolve) {
-            cache.resolves.push(resolve);
-        });
-        return;
-    }
-    cache.task = task;
-    const work = cache.task;
-    const resolves = cache.resolves;
-    cache.busy = true;
-    cache.task = undefined;
-    ScheduleNext.then(work).then(function() {
-        if (cache.task) {
-            return schedule(target, cache.task);
-        } else {
-            return Promise.all(resolves.map(function ScheduleMap(resolve) {
-                return resolve();
-            }));
+let busy = false;
+const Actions = [];
+const OldValues = [];
+const NewValues = [];
+async function schedule(actions, oldValues, newValues) {
+    actions = actions ?? [];
+    oldValues = oldValues ?? [];
+    newValues = newValues ?? [];
+    Actions.push(...actions);
+    OldValues.push(...oldValues);
+    NewValues.push(...newValues);
+    if (busy) return;
+    busy = true;
+    let action;
+    let oldValue;
+    let newValue;
+    performance.now() + 100;
+    while(Actions.length > 0){
+        action = Actions.shift();
+        oldValue = OldValues.shift();
+        newValue = NewValues.shift();
+        if (oldValue !== newValue) {
+            action(oldValue, newValue);
         }
-    }).then(function() {
-        cache.resolves = [];
-        cache.busy = false;
-        cache.task = undefined;
-        cache.frame = undefined;
-    });
-    await new Promise(function ScheduleResolve(resolve) {
-        cache.resolves.push(resolve);
-    });
+    }
+    busy = false;
 }
 const ContextCache = new WeakMap();
 const ContextNext = Promise.resolve();
@@ -235,6 +222,8 @@ const booleans = [
 ];
 const RootCache = new WeakMap();
 const ObjectAction = function(start, end, actions, oldValue, newValue) {
+    oldValue = oldValue ?? {};
+    newValue = newValue ?? {};
     if (oldValue?.strings !== newValue.strings) {
         let next;
         let node = end.previousSibling;
@@ -246,53 +235,51 @@ const ObjectAction = function(start, end, actions, oldValue, newValue) {
         const fragment = newValue.template.content.cloneNode(true);
         RenderWalk(fragment, newValue.values, actions);
         end.parentNode?.insertBefore(fragment, end);
-    } else {
-        RenderUpdate(actions, oldValue.values, newValue.values);
     }
-};
-const ArrayChildAction = function(instance, values) {
-    RenderUpdate(instance.actions, instance.values, values);
+    for(let i = 0; i < actions.length; i++){
+        actions[i](oldValue.values?.[i], newValue.values[i]);
+    }
 };
 const ArrayAction = function(start, end, actions, oldValues, newValues) {
-    const newLength = newValues.length;
+    oldValues = oldValues ?? [];
+    newValues = newValues ?? [];
     const oldLength = oldValues.length;
-    const common = Math.min(newLength, oldLength);
+    const newLength = newValues.length;
+    const common = Math.min(oldLength, newLength);
     for(let i = 0; i < common; i++){
-        if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
-            actions[i](newValues[i].values);
-        } else {
-            actions[i](oldValues[i], newValues[i]);
-        }
+        actions[i](oldValues[i], newValues[i]);
     }
-    if (newLength > oldLength) {
+    if (oldLength < newLength) {
+        const template = document.createElement('template');
         for(let i1 = oldLength; i1 < newLength; i1++){
             if (newValues[i1]?.constructor === Object && newValues[i1].symbol === HtmlSymbol) {
-                const { values , template  } = newValues[i1];
-                const fragment = template.content.cloneNode(true);
-                const instance = {
-                    values,
-                    actions: []
-                };
-                actions.push(ArrayChildAction.bind(null, instance));
-                RenderWalk(fragment, instance.values, instance.actions);
-                end.parentNode?.insertBefore(fragment, end);
+                const start1 = document.createTextNode('');
+                const end1 = document.createTextNode('');
+                const action = ObjectAction.bind(null, start1, end1, []);
+                template.content.appendChild(start1);
+                template.content.appendChild(end1);
+                actions.push(action);
+                action(oldValues[i1], newValues[i1]);
             } else {
                 const node = document.createTextNode('');
-                actions.push(StandardAction.bind(null, node));
-                actions[actions.length - 1]('', newValues[i1]);
-                end.parentNode?.insertBefore(node, end);
+                const action1 = StandardAction.bind(null, node);
+                actions.push(action1);
+                template.content.appendChild(node);
+                action1(oldValues[i1], newValues[i1]);
             }
         }
-    } else if (newLength < oldLength) {
+        end.parentNode?.insertBefore(template.content, end);
+    } else if (oldLength > newLength) {
         for(let i2 = oldLength; i2 !== newLength; i2--){
             if (oldValues[i2]?.constructor === Object && oldValues[i2].symbol === HtmlSymbol) {
                 const { template: template1  } = oldValues[i2];
-                let removes = template1.content.childNodes.length;
+                let removes = template1.content.childNodes.length + 2;
                 while(removes--)end.parentNode?.removeChild(end.previousSibling);
             } else {
                 end.parentNode?.removeChild(end.previousSibling);
             }
         }
+        actions.length = newLength;
     }
 };
 const StandardAction = function(node, oldValue, newValue) {
@@ -317,18 +304,8 @@ const AttributeValue = function(element, name, oldValue, newValue) {
     element.setAttribute(name, value);
 };
 const AttributeStandard = function(node, name, oldValue, newValue) {
+    if (oldValue === newValue) return;
     node.setAttribute(name, newValue);
-};
-const RenderUpdate = function(actions, oldValues, newValues) {
-    const l = actions.length;
-    for(let i = 0; i < l; i++){
-        const newValue = newValues[i];
-        const oldValue = oldValues[i];
-        if (newValue !== oldValue) {
-            actions[i](oldValue, newValue);
-            oldValues[i] = newValues[i];
-        }
-    }
 };
 const RenderWalk = function(fragment, values, actions) {
     const walker = document.createTreeWalker(document, 5, null);
@@ -349,7 +326,6 @@ const RenderWalk = function(fragment, values, actions) {
                 node.splitText(end + 2);
             }
             const newValue = values[index++];
-            const oldValue = node.nodeValue;
             if (newValue?.constructor === Object && newValue.symbol === HtmlSymbol) {
                 const start1 = document.createTextNode('');
                 const end1 = node;
@@ -357,7 +333,6 @@ const RenderWalk = function(fragment, values, actions) {
                 end1.parentNode?.insertBefore(start1, end1);
                 const action = ObjectAction.bind(null, start1, end1, []);
                 actions.push(action);
-                action(undefined, newValue);
             } else if (newValue?.constructor === Array) {
                 const start2 = document.createTextNode('');
                 const end2 = node;
@@ -365,17 +340,16 @@ const RenderWalk = function(fragment, values, actions) {
                 end2.parentNode?.insertBefore(start2, end2);
                 const action1 = ArrayAction.bind(null, start2, end2, []);
                 actions.push(action1);
-                action1([], newValue);
             } else {
                 const action2 = StandardAction.bind(null, node);
                 actions.push(action2);
-                action2(oldValue, newValue);
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const names = node.getAttributeNames();
             for (const name of names){
                 const value = node.getAttribute(name) ?? '';
                 if (value.includes('{{') && value.includes('}}')) {
+                    index++;
                     let action3;
                     if (name === 'value') {
                         action3 = AttributeValue.bind(null, node, name);
@@ -388,7 +362,6 @@ const RenderWalk = function(fragment, values, actions) {
                         action3 = AttributeStandard.bind(null, node, name);
                     }
                     actions.push(action3);
-                    action3(undefined, values[index++]);
                 }
             }
         } else {
@@ -398,12 +371,11 @@ const RenderWalk = function(fragment, values, actions) {
 };
 async function render(root, context, component) {
     const update = async function() {
-        await schedule(root, async function task() {
-            if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-            const { values  } = component(html, context);
-            RenderUpdate(instance.actions, instance.values, values);
-            if (context.upgraded) await context.upgraded()?.catch(console.error);
-        });
+        if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+        const { values  } = component(html, context);
+        await schedule(instance.actions, instance.values, values);
+        instance.values = values;
+        if (context.upgraded) await context.upgraded()?.catch(console.error);
     };
     const cache = RootCache.get(root);
     if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
@@ -420,7 +392,8 @@ async function render(root, context, component) {
         actions: [],
         fragment: template.content.cloneNode(true)
     };
-    RenderWalk(instance.fragment, values, instance.actions);
+    RenderWalk(instance.fragment, instance.values, instance.actions);
+    await schedule(instance.actions, [], instance.values);
     root.replaceChildren(instance.fragment);
     if (context.upgraded) await context.upgraded()?.catch(console.error);
     if (context.connected) await context.connected()?.catch(console.error);
