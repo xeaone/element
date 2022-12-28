@@ -39,11 +39,7 @@ const ArrayAction = function (start: Text, end: Text, actions: any[], oldValues:
     const common = Math.min(oldLength, newLength);
 
     for (let i = 0; i < common; i++) {
-        // if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
-            // actions[i](newValues[i].values);
-        // } else {
-            actions[i](oldValues[i], newValues[i]);
-        // }
+        actions[i](oldValues[i], newValues[i]);
     }
 
     if (oldLength < newLength) {
