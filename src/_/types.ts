@@ -1,10 +1,3 @@
-export type ContextValue = any;
-export type ContextTarget = any;
-export type ContextReceiver = any;
-export type ContextMethod = () => void;
-export type ContextKey = symbol | string;
-export type ContextData = Record<string, any>;
-
 export type Property = { name: string; value: any };
 export type Properties = Record<string, Property>;
 

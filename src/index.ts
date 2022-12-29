@@ -1,6 +1,6 @@
 // import Component from './component.ts';
 import Schedule from './schedule.ts';
-import Context from './context.ts';
+// import Context from './context.ts';
 import Define from './define.ts';
 import Router from './router.ts';
 import Render from './render.ts';
@@ -13,8 +13,8 @@ import Render from './render.ts';
 export { Schedule };
 export { Schedule as schedule };
 
-export { Context };
-export { Context as context };
+// export { Context };
+// export { Context as context };
 
 export { Define };
 export { Define as define };
@@ -34,7 +34,7 @@ export { Render as render };
 const Index = {
     // Component,
     Schedule,
-    Context,
+    // Context,
     Define,
     Router,
     Render,
@@ -42,7 +42,7 @@ const Index = {
     // Mount,
     // component: Component,
     schedule: Schedule,
-    context: Context,
+    // context: Context,
     define: Define,
     router: Router,
     render: Render,

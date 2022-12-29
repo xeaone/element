@@ -2,34 +2,11 @@ let busy = false;
 
 const sleep = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-// const tasks: any = [];
-// export default async function schedule(target: Element, task: Task) {
-//     tasks.push(task);
-//     if (busy) return;
-//     busy = true;
+const Actions: any = [];
+const OldValues: any = [];
+const NewValues: any = [];
 
-//     let max = performance.now() + 50;
-
-//     while (tasks.length > 0) {
-//         if (performance.now() >= max) {
-//             await sleep();
-//             max = performance.now() + 50;
-//             continue;
-//         }
-
-//         const task = tasks.shift();
-
-//         await task();
-//     }
-
-//     busy = false;
-// }
-
-const Actions:any = [];
-const OldValues:any = [];
-const NewValues:any = [];
-
-export default async function schedule (actions: any[], oldValues: any[], newValues: any[]) {
+export default async function schedule(actions: any[], oldValues: any[], newValues: any[]) {
     actions = actions ?? [];
     oldValues = oldValues ?? [];
     newValues = newValues ?? [];
@@ -44,28 +21,25 @@ export default async function schedule (actions: any[], oldValues: any[], newVal
     let action;
     let oldValue;
     let newValue;
-    let max = performance.now() + 100;
+    let max = performance.now() + 50;
 
     while (Actions.length > 0) {
-
-        // if (
-        //     // (navigator as any).scheduling?.isInputPending() ||
-        //     performance.now() >= max
-        // ) {
-        //     await sleep();
-        //     max = performance.now() + 100;
-        //     continue;
-        // }
+        if (
+            (navigator as any).scheduling?.isInputPending() ||
+            performance.now() >= max
+        ) {
+            await sleep();
+            max = performance.now() + 50;
+            continue;
+        }
 
         action = Actions.shift();
         oldValue = OldValues.shift();
         newValue = NewValues.shift();
 
         if (oldValue !== newValue) {
-            // console.log(action, oldValue, newValue);
-            action(oldValue, newValue);
+            await action(oldValue, newValue);
         }
-
     }
 
     busy = false;

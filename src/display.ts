@@ -1,23 +1,9 @@
-const escapes = new Map([
-    ['<', '&lt;'],
-    ['>', '&gt;'],
-    ['"', '&quot;'],
-    ['\'', '&apos;'],
-    ['&', '&amp;'],
-    ['\r', '&#10;'],
-    ['\n', '&#13;'],
-]);
-
-const escape = function (data: string) {
-    return data?.replace(/[<>"'\r\n&]/g, (c) => escapes.get(c) ?? c) ?? '';
-};
-
 export default function display(data: any): string {
     switch (typeof data) {
         case 'undefined':
             return '';
         case 'string':
-            return escape(data);
+            return data;
         case 'number':
             return `${data}`;
         case 'bigint':

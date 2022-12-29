@@ -1,8 +1,4 @@
-// import Component from './component.ts';
 import render from './render.ts';
-// import mount from './mount.ts';
-// import Dash from './dash.ts';
-// import { $ } from './tool.ts';
 
 type Route = {
     path?: string;
@@ -116,7 +112,7 @@ const navigate = function (event?: any) {
     }
 };
 
-export default function router(path: string, root: Element, context: any, component: any) {
+const router = function (path: string, root: Element, context: any, component: any) {
     if (!path) throw new Error('XElement - router path required');
     if (!root) throw new Error('XElement - router root required');
     if (!context) throw new Error('XElement - router context required');
@@ -142,4 +138,6 @@ export default function router(path: string, root: Element, context: any, compon
     }
 
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
-}
+};
+
+export default router;

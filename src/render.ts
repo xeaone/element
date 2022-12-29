@@ -1,13 +1,18 @@
 import html from './html.ts';
 import display from './display.ts';
+import observe from './observe.ts';
 import booleans from './booleans.ts';
 import { HtmlSymbol } from './html.ts';
-import schedule from './schedule.ts';
-import Context from './context.ts';
+
+type Value = any;
+type OldValue = Value;
+type NewValue = Value;
+type Values = Array<Value>;
+type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
 
 const RootCache = new WeakMap();
 
-const ObjectAction = function (start: Text, end: Text, actions: any[], oldValue: any, newValue: any) {
+const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
     oldValue = oldValue ?? {};
     newValue = newValue ?? {};
 
@@ -22,50 +27,57 @@ const ObjectAction = function (start: Text, end: Text, actions: any[], oldValue:
 
         const fragment = newValue.template.content.cloneNode(true);
         RenderWalk(fragment, newValue.values, actions);
-        end.parentNode?.insertBefore(fragment, end);
-    }
 
-    for (let i = 0; i < actions.length; i++) {
-        actions[i](oldValue.values?.[i], newValue.values[i]);
+        const l = actions.length;
+        for (let i = 0; i < l; i++) {
+            actions[i](oldValue.values?.[i], newValue.values[i]);
+        }
+
+        end.parentNode?.insertBefore(fragment, end);
+    } else {
+        const l = actions.length;
+        for (let i = 0; i < l; i++) {
+            actions[i](oldValue.values?.[i], newValue.values[i]);
+        }
     }
 };
 
-const ArrayAction = function (start: Text, end: Text, actions: any[], oldValues: any, newValues: any) {
-    oldValues = oldValues ?? [];
-    newValues = newValues ?? [];
+const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
+    oldValue = oldValue ?? [];
+    newValue = newValue ?? [];
 
-    const oldLength = oldValues.length;
-    const newLength = newValues.length;
+    const oldLength = oldValue.length;
+    const newLength = newValue.length;
     const common = Math.min(oldLength, newLength);
 
     for (let i = 0; i < common; i++) {
-        actions[i](oldValues[i], newValues[i]);
+        actions[i](oldValue[i], newValue[i]);
     }
 
     if (oldLength < newLength) {
         const template = document.createElement('template');
         for (let i = oldLength; i < newLength; i++) {
-            if (newValues[i]?.constructor === Object && newValues[i].symbol === HtmlSymbol) {
+            if (newValue[i]?.constructor === Object && newValue[i]?.symbol === HtmlSymbol) {
                 const start = document.createTextNode('');
                 const end = document.createTextNode('');
-                const action = ObjectAction.bind(null, start, end, [])
+                const action = ObjectAction.bind(null, start, end, []);
                 template.content.appendChild(start);
                 template.content.appendChild(end);
                 actions.push(action);
-                action(oldValues[i], newValues[i]);
+                action(oldValue[i], newValue[i]);
             } else {
                 const node = document.createTextNode('');
                 const action = StandardAction.bind(null, node as Text);
-                actions.push(action);
                 template.content.appendChild(node);
-                action(oldValues[i], newValues[i]);
+                actions.push(action);
+                action(oldValue[i], newValue[i]);
             }
         }
         end.parentNode?.insertBefore(template.content as Node, end);
     } else if (oldLength > newLength) {
         for (let i = oldLength; i !== newLength; i--) {
-            if (oldValues[i]?.constructor === Object && oldValues[i].symbol === HtmlSymbol) {
-                const { template } = oldValues[i];
+            if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === HtmlSymbol) {
+                const { template } = oldValue[i];
                 let removes = template.content.childNodes.length + 2;
                 while (removes--) end.parentNode?.removeChild(end.previousSibling as Node);
             } else {
@@ -73,43 +85,48 @@ const ArrayAction = function (start: Text, end: Text, actions: any[], oldValues:
             }
         }
         actions.length = newLength;
-        // oldValues.length = newLength;
-        // await schedule(actions, oldValues, newValues);
     }
-
 };
 
-const StandardAction = function (node: Text, oldValue: any, newValue: any) {
+const StandardAction = function (node: Text, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     node.textContent = newValue;
 };
 
-const AttributeOn = function (node: Element, name: string, oldValue: any, newValue: any) {
+const AttributeOn = function (node: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
-    if (typeof oldValue === 'function') node.removeEventListener(name, oldValue);
-    node.addEventListener(name, newValue);
+    if (typeof oldValue === 'function') node.removeEventListener(attribute.name.slice(2), oldValue);
+    node.addEventListener(attribute.name.slice(2), newValue);
 };
 
-const AttributeBoolean = function (element: Element, name: string, oldValue: any, newValue: any) {
+const AttributeBoolean = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     const value = newValue ? true : false;
-    if (value) element.setAttribute(name, '');
-    else element.removeAttribute(name);
+    if (value) element.setAttribute(attribute.name, '');
+    else element.removeAttribute(attribute.name);
 };
 
-const AttributeValue = function (element: Element, name: string, oldValue: any, newValue: any) {
+const AttributeValue = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     const value = display(newValue);
-    Reflect.set(element, name, value);
-    element.setAttribute(name, value);
+    Reflect.set(element, attribute.name, value);
+    element.setAttribute(attribute.name, value);
 };
 
-const AttributeStandard = function (node: Element, name: string, oldValue: any, newValue: any) {
+const AttributeStandard = function (node: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
-    node.setAttribute(name, newValue);
+    attribute.value = newValue;
+    node.setAttribute(attribute.name, attribute.value);
 };
 
-const RenderWalk = function (fragment: DocumentFragment, values: any[], actions: any[]) {
+const AttributeName = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
+    if (oldValue === newValue) return;
+    attribute.name = newValue;
+    element.removeAttribute(oldValue);
+    element.setAttribute(attribute.name, attribute.value);
+};
+
+const RenderWalk = function (fragment: DocumentFragment, values: Values, actions: Actions) {
     const walker = document.createTreeWalker(document, 5, null);
 
     walker.currentNode = fragment;
@@ -135,45 +152,55 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
 
             const newValue = values[index++];
 
-            if (newValue?.constructor === Object && newValue.symbol === HtmlSymbol) {
+            if (newValue?.constructor === Object && newValue?.symbol === HtmlSymbol) {
                 const start = document.createTextNode('');
                 const end = node;
                 end.nodeValue = '';
                 end.parentNode?.insertBefore(start, end);
-                const action = ObjectAction.bind(null, start as Text, end as Text, []);
-                actions.push(action);
+                actions.push(ObjectAction.bind(null, start as Text, end as Text, []));
             } else if (newValue?.constructor === Array) {
                 const start = document.createTextNode('');
                 const end = node;
                 end.nodeValue = '';
                 end.parentNode?.insertBefore(start, end);
-                const action = ArrayAction.bind(null, start as Text, end as Text, []);
-                actions.push(action);
+                actions.push(ArrayAction.bind(null, start as Text, end as Text, []));
             } else {
-                const action = StandardAction.bind(null, node as Text);
-                actions.push(action);
+                actions.push(StandardAction.bind(null, node as Text));
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const names = (node as Element).getAttributeNames();
             for (const name of names) {
                 const value = (node as Element).getAttribute(name) ?? '';
+                const attribute = { name, value };
+
+                if (name.includes('{{') && name.includes('}}')) {
+                    index++;
+                    (node as Element).removeAttribute(name);
+                    actions.push(
+                        AttributeName.bind(null, node as Element, attribute),
+                    );
+                }
+
                 if (value.includes('{{') && value.includes('}}')) {
                     index++;
-
-                    let action;
-
                     if (name === 'value') {
-                        action = AttributeValue.bind(null, node as Element, name);
+                        actions.push(
+                            AttributeValue.bind(null, node as Element, attribute),
+                        );
                     } else if (booleans.includes(name)) {
-                        action = AttributeBoolean.bind(null, node as Element, name);
+                        actions.push(
+                            AttributeBoolean.bind(null, node as Element, attribute),
+                        );
                     } else if (name.startsWith('on')) {
                         (node as Element).removeAttribute(name);
-                        action = AttributeOn.bind(null, node as Element, name.slice(2));
+                        actions.push(
+                            AttributeOn.bind(null, node as Element, attribute),
+                        );
                     } else {
-                        action = AttributeStandard.bind(null, node as Element, name);
+                        actions.push(
+                            AttributeStandard.bind(null, node as Element, attribute),
+                        );
                     }
-
-                    actions.push(action);
                 }
             }
         } else {
@@ -182,13 +209,31 @@ const RenderWalk = function (fragment: DocumentFragment, values: any[], actions:
     }
 };
 
-export default async function render(root: Element, context: any, component: any) {
+const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
+
+const render = async function (root: Element, context: any, component: any) {
+    const instance: any = {};
+
     const update = async function () {
+        if (instance.busy) return;
+        else instance.busy = true;
+
+        await sleep(50);
+
         if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+
         const { values } = component(html, context);
-        await schedule(instance.actions, instance.values, values);
+
+        const length = instance.actions.length;
+        for (let index = 0; index < length; index++) {
+            instance.actions[index](instance.values[index], values[index]);
+        }
+
         instance.values = values;
+
         if (context.upgraded) await context.upgraded()?.catch(console.error);
+
+        instance.busy = false;
     };
 
     const cache = RootCache.get(root);
@@ -196,7 +241,7 @@ export default async function render(root: Element, context: any, component: any
     if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
     if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
 
-    context = Context(context(html), update);
+    context = observe(context(html), update);
 
     RootCache.set(root, context);
 
@@ -205,20 +250,24 @@ export default async function render(root: Element, context: any, component: any
 
     const { strings, values, template } = component(html, context);
 
-    const instance = {
-        values,
-        strings,
-        template,
-        actions: [],
-        fragment: template.content.cloneNode(true),
-    };
+    instance.busy = false;
+    instance.actions = [];
+    instance.values = values;
+    instance.strings = strings;
+    instance.template = template;
+    instance.fragment = template.content.cloneNode(true);
 
     RenderWalk(instance.fragment, instance.values, instance.actions);
 
-    await schedule(instance.actions, [], instance.values);
+    const length = instance.actions.length;
+    for (let index = 0; index < length; index++) {
+        instance.actions[index](undefined, values[index]);
+    }
 
     root.replaceChildren(instance.fragment);
 
     if (context.upgraded) await context.upgraded()?.catch(console.error);
     if (context.connected) await context.connected()?.catch(console.error);
-}
+};
+
+export default render;
