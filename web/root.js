@@ -1,7 +1,7 @@
 import Highlight from './modules/highlight.js';
 
 const componentExample = Highlight(`
-import { mount } from '/x-element.js';
+import { render } from '/x-element.js';
 
 const context = () => ({
     greeting: 'Default Greeting',
@@ -15,7 +15,7 @@ const component = (html, { greeting, greet }) => html\`
 
 const root = document.body;
 
-mount(root, component, context);
+render(root, component, context);
 `);
 
 // import { Component } from '/x-element.js';

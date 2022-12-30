@@ -249,7 +249,7 @@ const ArrayAction = function(start, end, actions, oldValue, newValue) {
         }
         end.parentNode?.insertBefore(template.content, end);
     } else if (oldLength > newLength) {
-        for(let i2 = oldLength; i2 !== newLength; i2--){
+        for(let i2 = oldLength - 1; i2 > newLength - 1; i2--){
             if (oldValue[i2]?.constructor === Object && oldValue[i2]?.symbol === HtmlSymbol) {
                 const { template: template1  } = oldValue[i2];
                 let removes = template1.content.childNodes.length + 2;
