@@ -1,3 +1,13 @@
+/************************************************************************
+Name: XElement
+Version: 8.0.0
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
 // deno-fmt-ignore-file
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
@@ -342,12 +352,12 @@ const RenderWalk = function(fragment, values, actions) {
                 }
                 if (value.includes('{{') && value.includes('}}')) {
                     index++;
+                    node.removeAttribute(name);
                     if (name === 'value') {
                         actions.push(AttributeValue.bind(null, node, attribute));
                     } else if (booleans.includes(name)) {
                         actions.push(AttributeBoolean.bind(null, node, attribute));
                     } else if (name.startsWith('on')) {
-                        node.removeAttribute(name);
                         actions.push(AttributeOn.bind(null, node, attribute));
                     } else {
                         actions.push(AttributeStandard.bind(null, node, attribute));

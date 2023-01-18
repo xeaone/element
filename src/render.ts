@@ -183,6 +183,7 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
 
                 if (value.includes('{{') && value.includes('}}')) {
                     index++;
+                    (node as Element).removeAttribute(name);
                     if (name === 'value') {
                         actions.push(
                             AttributeValue.bind(null, node as Element, attribute),
@@ -192,7 +193,6 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
                             AttributeBoolean.bind(null, node as Element, attribute),
                         );
                     } else if (name.startsWith('on')) {
-                        (node as Element).removeAttribute(name);
                         actions.push(
                             AttributeOn.bind(null, node as Element, attribute),
                         );
