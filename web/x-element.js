@@ -275,16 +275,17 @@ const StandardAction = function(node, oldValue, newValue) {
     if (oldValue === newValue) return;
     node.textContent = newValue;
 };
-const AttributeOn = function(node, attribute, oldValue, newValue) {
+const AttributeOn = function(element, attribute, oldValue, newValue) {
     if (oldValue === newValue) return;
-    if (typeof oldValue === 'function') node.removeEventListener(attribute.name.slice(2), oldValue);
-    node.addEventListener(attribute.name.slice(2), newValue);
+    if (typeof oldValue === 'function') element.removeEventListener(attribute.name.slice(2), oldValue);
+    element.addEventListener(attribute.name.slice(2), newValue);
 };
 const AttributeBoolean = function(element, attribute, oldValue, newValue) {
     if (oldValue === newValue) return;
     const value = newValue ? true : false;
     if (value) element.setAttribute(attribute.name, '');
     else element.removeAttribute(attribute.name);
+    Reflect.set(element, attribute.name, value);
 };
 const AttributeValue = function(element, attribute, oldValue, newValue) {
     if (oldValue === newValue) return;

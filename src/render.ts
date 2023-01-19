@@ -93,10 +93,10 @@ const StandardAction = function (node: Text, oldValue: OldValue, newValue: NewVa
     node.textContent = newValue;
 };
 
-const AttributeOn = function (node: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
+const AttributeOn = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
-    if (typeof oldValue === 'function') node.removeEventListener(attribute.name.slice(2), oldValue);
-    node.addEventListener(attribute.name.slice(2), newValue);
+    if (typeof oldValue === 'function') element.removeEventListener(attribute.name.slice(2), oldValue);
+    element.addEventListener(attribute.name.slice(2), newValue);
 };
 
 const AttributeBoolean = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
@@ -104,6 +104,7 @@ const AttributeBoolean = function (element: Element, attribute: { name: string; 
     const value = newValue ? true : false;
     if (value) element.setAttribute(attribute.name, '');
     else element.removeAttribute(attribute.name);
+    Reflect.set(element, attribute.name, value);
 };
 
 const AttributeValue = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {

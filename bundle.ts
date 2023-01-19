@@ -23,3 +23,4 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 await Deno.run({ cmd: ['deno', 'bundle', 'src/index.ts', 'web/x-element.js'] }).status();
 const bundle = await Deno.readTextFile('web/x-element.js');
 await Deno.writeTextFile('web/x-element.js', banner + bundle);
+await Deno.copyFile('web/x-element.js', '../budget/web/x-element.js');
