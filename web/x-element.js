@@ -1,13 +1,3 @@
-/************************************************************************
-Name: XElement
-Version: 8.0.0
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
 // deno-fmt-ignore-file
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
@@ -201,7 +191,7 @@ const booleans = [
     'translate',
     'truespeed',
     'typemustmatch',
-    'visible'
+    'visible', 
 ];
 const RootCache = new WeakMap();
 const ObjectAction = function(start, end, actions, oldValue, newValue) {
