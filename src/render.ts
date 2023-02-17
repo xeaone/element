@@ -25,7 +25,8 @@ const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValu
             node = next;
         }
 
-        const fragment = newValue.template.content.cloneNode(true);
+        const fragment = document.importNode(newValue.template.content, true);
+        // const fragment = newValue.template.content.cloneNode(true);
         RenderWalk(fragment, newValue.values, actions);
 
         const l = actions.length;
@@ -256,7 +257,8 @@ const render = async function (root: Element, context: any, component: any) {
     instance.values = values;
     instance.strings = strings;
     instance.template = template;
-    instance.fragment = template.content.cloneNode(true);
+    instance.fragment = document.importNode(template.content, true);
+    // instance.fragment = template.content.cloneNode(true);
 
     RenderWalk(instance.fragment, instance.values, instance.actions);
 

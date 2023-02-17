@@ -205,7 +205,7 @@ const ObjectAction = function(start, end, actions, oldValue, newValue) {
             node?.parentNode?.removeChild(node);
             node = next;
         }
-        const fragment = newValue.template.content.cloneNode(true);
+        const fragment = document.importNode(newValue.template.content, true);
         RenderWalk(fragment, newValue.values, actions);
         const l = actions.length;
         for(let i = 0; i < l; i++){
@@ -390,7 +390,7 @@ const render = async function(root, context, component) {
     instance.values = values;
     instance.strings = strings;
     instance.template = template;
-    instance.fragment = template.content.cloneNode(true);
+    instance.fragment = document.importNode(template.content, true);
     RenderWalk(instance.fragment, instance.values, instance.actions);
     const length = instance.actions.length;
     for(let index = 0; index < length; index++){
