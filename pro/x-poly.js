@@ -20,4 +20,31 @@ export default async function () {
         window.navigation = new (await import('https://cdn.skypack.dev/@virtualstate/navigation')).Navigation;
     }
 
+
+    if (!('HTMLDialogElement' in window)) {
+        await new Promise((resolve,reject)=>{
+            const element = document.createElement('link');
+            document.head.insertAdjacentElement('afterbegin', element);
+            element.onerror = reject;
+            element.onload = resolve;
+            element.rel = 'stylesheet';
+            element.href = 'https://esm.sh/dialog-polyfill@0.5.6/dist/dialog-polyfill.css';
+        });
+        const dialogPolyfill = (await import('https://esm.sh/dialog-polyfill@0.5.6/dist/dialog-polyfill.esm.js')).default;
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeName === 'DIALOG') {
+                        node.classList.add('fixed');
+                        dialogPolyfill.registerDialog(node);
+                    }
+                }
+            }
+        });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+    }
+
 }

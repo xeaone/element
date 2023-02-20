@@ -160,7 +160,7 @@ export const context = () => ({
     disconnected () { console.log('after disconnected'); },
 });
 
-export const component = (html, ctx) => html`
+export const content = (html, ctx) => html`
 
     <style>
         .default {
@@ -173,6 +173,7 @@ export const component = (html, ctx) => html`
 
     <section>
         <h3>Context</h3>
+        <p>Life cycle methods.</p>
         <pre id="contextCode"></pre>
     </section>
 
@@ -192,7 +193,7 @@ export const component = (html, ctx) => html`
 
     <section id="check">
         <h3>Check</h3>
-        <p>Boolean html attributes will treated as Boolean paramters and toggle the attribute.</p>
+        <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
         <pre id="checkCode"></pre>
         <pre id="checkComponent">${checkComponent(html, ctx)}</pre>
         <pre id="checkSource"></pre>
@@ -200,7 +201,7 @@ export const component = (html, ctx) => html`
 
     <section id="radio">
         <h3>Radio</h3>
-        <p>Boolean html attributes will treated as Boolean paramters and toggle the attribute.</p>
+        <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
         <pre id="radioCode"></pre>
         <pre id="radioComponent">${radioComponenet(html, ctx)}</pre>
         <pre id="radioSource"></pre>

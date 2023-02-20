@@ -5,8 +5,7 @@ type Route = {
 
     render?: any;
     context?: any;
-    // instance?: any;
-    component?: any;
+    content?: any;
     construct?: any;
 
     name?: string;
@@ -42,9 +41,9 @@ const transition = async function (route: Route) {
     // if (route.render) {
     //     route.render();
     // } else {
-    // route.render = await mount(route.root, route.context, route.component);
+    // route.render = await mount(route.root, route.context, route.content);
     // }
-    await render(route.root, route.context, route.component);
+    await render(route.root, route.context, route.content);
 };
 
 const navigate = function (event?: any) {
@@ -112,12 +111,11 @@ const navigate = function (event?: any) {
     }
 };
 
-const router = function (path: string, root: Element, context: any, component: any) {
+const router = function (path: string, root: Element, context: any, content: any) {
     if (!path) throw new Error('XElement - router path required');
     if (!root) throw new Error('XElement - router root required');
     if (!context) throw new Error('XElement - router context required');
-    if (!component) throw new Error('XElement - router component required');
-    // if (!(component instanceof Component || component.prototype instanceof Component) && !context) throw new Error('XElement - router context required');
+    if (!content) throw new Error('XElement - router content required');
 
     if (path === '/*') {
         for (const all of alls) {
@@ -126,7 +124,7 @@ const router = function (path: string, root: Element, context: any, component: a
             }
         }
 
-        alls.push({ path, root, context, component });
+        alls.push({ path, root, context, content });
     } else {
         for (const route of routes) {
             if (route.path === path && route.root === root) {
@@ -134,7 +132,7 @@ const router = function (path: string, root: Element, context: any, component: a
             }
         }
 
-        routes.push({ path, root, context, component });
+        routes.push({ path, root, context, content });
     }
 
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);

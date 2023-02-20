@@ -1,81 +1,163 @@
+/************************************************************************
+Name: XElement
+Version: 8.0.0
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
 // deno-fmt-ignore-file
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-const ContextCache = new WeakMap();
-const ContextNext = Promise.resolve();
-const ContextSet = function(method, target, key, value, receiver) {
+let busy = false;
+const sleep = ()=>new Promise((resolve)=>setTimeout(resolve, 0));
+const Actions = [];
+const OldValues = [];
+const NewValues = [];
+async function schedule(actions, oldValues, newValues) {
+    actions = actions ?? [];
+    oldValues = oldValues ?? [];
+    newValues = newValues ?? [];
+    Actions.push(...actions);
+    OldValues.push(...oldValues);
+    NewValues.push(...newValues);
+    if (busy) return;
+    busy = true;
+    let action;
+    let oldValue;
+    let newValue;
+    let max = performance.now() + 50;
+    while(Actions.length > 0){
+        if (navigator.scheduling?.isInputPending() || performance.now() >= max) {
+            await sleep();
+            max = performance.now() + 50;
+            continue;
+        }
+        action = Actions.shift();
+        oldValue = OldValues.shift();
+        newValue = NewValues.shift();
+        if (oldValue !== newValue) {
+            await action(oldValue, newValue);
+        }
+    }
+    busy = false;
+}
+function define(name, constructor) {
+    customElements.define(name, constructor);
+}
+const HtmlCache = new WeakMap();
+const HtmlSymbol = Symbol('html');
+function html(strings, ...values) {
+    if (HtmlCache.has(strings)) {
+        const template = HtmlCache.get(strings);
+        return {
+            strings,
+            values,
+            template,
+            symbol: HtmlSymbol
+        };
+    } else {
+        let data = '';
+        const length = strings.length - 1;
+        for(let index = 0; index < length; index++){
+            data += `${strings[index]}{{${index}}}`;
+        }
+        data += strings[length];
+        const template1 = document.createElement('template');
+        template1.innerHTML = data;
+        HtmlCache.set(strings, template1);
+        return {
+            strings,
+            values,
+            template: template1,
+            symbol: HtmlSymbol
+        };
+    }
+}
+function display(data) {
+    switch(typeof data){
+        case 'undefined':
+            return '';
+        case 'string':
+            return data;
+        case 'number':
+            return `${data}`;
+        case 'bigint':
+            return `${data}`;
+        case 'boolean':
+            return `${data}`;
+        case 'function':
+            return `${data()}`;
+        case 'symbol':
+            return String(data);
+        case 'object':
+            return JSON.stringify(data);
+        default:
+            throw new Error('display - type not handled');
+    }
+}
+const ObserveCache = new WeakMap();
+const ObserveNext = Promise.resolve();
+const ObserveSet = function(method, target, key, value, receiver) {
     if (typeof key === 'symbol') return Reflect.set(target, key, value, receiver);
     const from = Reflect.get(target, key, receiver);
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
     if (from && (from.constructor.name === 'Object' || from.constructor.name === 'Array' || from.constructor.name === 'Function')) {
-        const cache = ContextCache.get(from);
+        const cache = ObserveCache.get(from);
         if (cache === value) return true;
-        ContextCache.delete(from);
+        ObserveCache.delete(from);
     }
     Reflect.set(target, key, value, receiver);
-    ContextNext.then(method);
+    ObserveNext.then(method);
     return true;
 };
-const ContextGet = function(method, target, key, receiver) {
+const ObserveGet = function(method, target, key, receiver) {
     if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
     const value = Reflect.get(target, key, receiver);
     if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
-        const cache = ContextCache.get(value);
+        const cache = ObserveCache.get(value);
         if (cache) return cache;
         const proxy = new Proxy(value, {
-            get: ContextGet.bind(null, method),
-            set: ContextSet.bind(null, method),
-            deleteProperty: ContextDelete.bind(null, method)
+            get: ObserveGet.bind(null, method),
+            set: ObserveSet.bind(null, method),
+            deleteProperty: ObserveDelete.bind(null, method)
         });
-        ContextCache.set(value, proxy);
+        ObserveCache.set(value, proxy);
         return proxy;
     }
     if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
-        const cache1 = ContextCache.get(value);
+        const cache1 = ObserveCache.get(value);
         if (cache1) return cache1;
         const proxy1 = new Proxy(value, {
             apply (t, _, a) {
                 return Reflect.apply(t, receiver, a);
             }
         });
-        ContextCache.set(value, proxy1);
+        ObserveCache.set(value, proxy1);
         return proxy1;
     }
     return value;
 };
-const ContextDelete = function(method, target, key) {
+const ObserveDelete = function(method, target, key) {
     if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
     const from = Reflect.get(target, key);
-    ContextCache.delete(from);
+    ObserveCache.delete(from);
     Reflect.deleteProperty(target, key);
-    ContextNext.then(method);
+    ObserveNext.then(method);
     return true;
 };
-const ContextCreate = function(data, method) {
+const Observe = function(data, method) {
     return new Proxy(data, {
-        get: ContextGet.bind(null, method),
-        set: ContextSet.bind(null, method),
-        deleteProperty: ContextDelete.bind(null, method)
+        get: ObserveGet.bind(null, method),
+        set: ObserveSet.bind(null, method),
+        deleteProperty: ObserveDelete.bind(null, method)
     });
 };
-function Dash(data) {
-    return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
-}
-const $ = Symbol('$');
-const NameSymbol = Symbol('name');
-Symbol('value');
-Symbol('self');
-const CdataSymbol = Symbol('cdata');
-const CommentSymbol = Symbol('comment');
-const TypeSymbol = Symbol('type');
-const ElementSymbol = Symbol('element');
-const ChildrenSymbol = Symbol('children');
-const AttributesSymbol = Symbol('attributes');
-const ParametersSymbol = Symbol('parameters');
-const RenderCache = new WeakMap();
-const BooleanAttributes = [
+const booleans = [
     'allowfullscreen',
     'async',
     'autofocus',
@@ -101,7 +183,7 @@ const BooleanAttributes = [
     'multiple',
     'muted',
     'nohref',
-    'noresize',
+    'onresize',
     'noshade',
     'hidden',
     'novalidate',
@@ -121,364 +203,232 @@ const BooleanAttributes = [
     'typemustmatch',
     'visible'
 ];
-const __default = new Proxy({}, {
-    get (eTarget, eName, eReceiver) {
-        if (typeof eName === 'symbol') return Reflect.get(eTarget, eName, eReceiver);
-        if (eName === 'comment') {
-            return function CommentProxy(...value) {
-                return {
-                    name: eName,
-                    value: value.join(''),
-                    [TypeSymbol]: CommentSymbol
-                };
-            };
+const replaceChildren = function(element, ...nodes) {
+    while(element.lastChild){
+        element.removeChild(element.lastChild);
+    }
+    if (nodes?.length) {
+        for (const node of nodes){
+            element.appendChild(typeof node === 'string' ? element.ownerDocument.createTextNode(node) : node);
         }
-        if (eName === 'cdata') {
-            return function CdataProxy(...value) {
-                return {
-                    name: eName,
-                    value: value.join(''),
-                    [TypeSymbol]: CdataSymbol
-                };
-            };
+    }
+};
+const RootCache = new WeakMap();
+const ObjectAction = function(start, end, actions, oldValue, newValue) {
+    oldValue = oldValue ?? {};
+    newValue = newValue ?? {};
+    if (oldValue?.strings !== newValue.strings) {
+        let next;
+        let node = end.previousSibling;
+        while(node !== start){
+            next = node?.previousSibling;
+            node?.parentNode?.removeChild(node);
+            node = next;
         }
-        return function ElementProxy(...children) {
-            return new Proxy({
-                [AttributesSymbol]: {},
-                [ParametersSymbol]: {},
-                [ChildrenSymbol]: children,
-                [TypeSymbol]: ElementSymbol,
-                [NameSymbol]: Dash(eName).toUpperCase()
-            }, {
-                get (aTarget, aName, aReceiver) {
-                    if (typeof aName === 'symbol') return Reflect.get(aTarget, aName, aReceiver);
-                    return function AttributeProxy(aValue, ...aParameters) {
-                        Reflect.set(aTarget[AttributesSymbol], aName, aValue);
-                        Reflect.set(aTarget[ParametersSymbol], aName, aParameters);
-                        return aReceiver;
-                    };
+        const fragment = document.importNode(newValue.template.content, true);
+        RenderWalk(fragment, newValue.values, actions);
+        const l = actions.length;
+        for(let i = 0; i < l; i++){
+            actions[i](oldValue.values?.[i], newValue.values[i]);
+        }
+        end.parentNode?.insertBefore(fragment, end);
+    } else {
+        const l1 = actions.length;
+        for(let i1 = 0; i1 < l1; i1++){
+            actions[i1](oldValue.values?.[i1], newValue.values[i1]);
+        }
+    }
+};
+const ArrayAction = function(start, end, actions, oldValue, newValue) {
+    oldValue = oldValue ?? [];
+    newValue = newValue ?? [];
+    const oldLength = oldValue.length;
+    const newLength = newValue.length;
+    const common = Math.min(oldLength, newLength);
+    for(let i = 0; i < common; i++){
+        actions[i](oldValue[i], newValue[i]);
+    }
+    if (oldLength < newLength) {
+        const template = document.createElement('template');
+        for(let i1 = oldLength; i1 < newLength; i1++){
+            if (newValue[i1]?.constructor === Object && newValue[i1]?.symbol === HtmlSymbol) {
+                const start1 = document.createTextNode('');
+                const end1 = document.createTextNode('');
+                const action = ObjectAction.bind(null, start1, end1, []);
+                template.content.appendChild(start1);
+                template.content.appendChild(end1);
+                actions.push(action);
+                action(oldValue[i1], newValue[i1]);
+            } else {
+                const node = document.createTextNode('');
+                const action1 = StandardAction.bind(null, node);
+                template.content.appendChild(node);
+                actions.push(action1);
+                action1(oldValue[i1], newValue[i1]);
+            }
+        }
+        end.parentNode?.insertBefore(template.content, end);
+    } else if (oldLength > newLength) {
+        for(let i2 = oldLength - 1; i2 > newLength - 1; i2--){
+            if (oldValue[i2]?.constructor === Object && oldValue[i2]?.symbol === HtmlSymbol) {
+                const { template: template1  } = oldValue[i2];
+                let removes = template1.content.childNodes.length + 2;
+                while(removes--)end.parentNode?.removeChild(end.previousSibling);
+            } else {
+                end.parentNode?.removeChild(end.previousSibling);
+            }
+        }
+        actions.length = newLength;
+    }
+};
+const StandardAction = function(node, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    node.textContent = newValue;
+};
+const AttributeOn = function(element, attribute, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    if (typeof oldValue === 'function') element.removeEventListener(attribute.name.slice(2), oldValue);
+    element.addEventListener(attribute.name.slice(2), newValue);
+};
+const AttributeBoolean = function(element, attribute, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    const value = newValue ? true : false;
+    if (value) element.setAttribute(attribute.name, '');
+    else element.removeAttribute(attribute.name);
+    Reflect.set(element, attribute.name, value);
+};
+const AttributeValue = function(element, attribute, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    const value = display(newValue);
+    Reflect.set(element, attribute.name, value);
+    element.setAttribute(attribute.name, value);
+};
+const AttributeStandard = function(node, attribute, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    attribute.value = newValue;
+    node.setAttribute(attribute.name, attribute.value);
+};
+const AttributeName = function(element, attribute, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    attribute.name = newValue;
+    element.removeAttribute(oldValue);
+    element.setAttribute(attribute.name, attribute.value);
+};
+const RenderWalk = function(fragment, values, actions) {
+    const walker = document.createTreeWalker(document, 5, null);
+    walker.currentNode = fragment;
+    let index = 0;
+    let node = fragment.firstChild;
+    while((node = walker.nextNode()) !== null){
+        if (node.nodeType === Node.TEXT_NODE) {
+            const start = node.nodeValue?.indexOf('{{') ?? -1;
+            if (start == -1) continue;
+            if (start != 0) {
+                node.splitText(start);
+                node = walker.nextNode();
+            }
+            const end = node.nodeValue?.indexOf('}}') ?? -1;
+            if (end == -1) continue;
+            if (end + 2 != node.nodeValue?.length) {
+                node.splitText(end + 2);
+            }
+            const newValue = values[index++];
+            if (newValue?.constructor === Object && newValue?.symbol === HtmlSymbol) {
+                const start1 = document.createTextNode('');
+                const end1 = node;
+                end1.nodeValue = '';
+                end1.parentNode?.insertBefore(start1, end1);
+                actions.push(ObjectAction.bind(null, start1, end1, []));
+            } else if (newValue?.constructor === Array) {
+                const start2 = document.createTextNode('');
+                const end2 = node;
+                end2.nodeValue = '';
+                end2.parentNode?.insertBefore(start2, end2);
+                actions.push(ArrayAction.bind(null, start2, end2, []));
+            } else {
+                node.textContent = '';
+                actions.push(StandardAction.bind(null, node));
+            }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const names = node.getAttributeNames();
+            for (const name of names){
+                const value = node.getAttribute(name) ?? '';
+                const attribute = {
+                    name,
+                    value
+                };
+                if (name.includes('{{') && name.includes('}}')) {
+                    index++;
+                    node.removeAttribute(name);
+                    actions.push(AttributeName.bind(null, node, attribute));
                 }
-            });
-        };
-    }
-});
-const caches = new WeakMap();
-const tick = Promise.resolve();
-async function Schedule(target, update) {
-    let cache = caches.get(target);
-    if (!cache) {
-        cache = {};
-        caches.set(target, cache);
-    }
-    if (cache.current) {
-        cache.next = update;
-    } else {
-        cache.current = tick.then(async function() {
-            if (cache.next) await cache.next();
-            else await update();
-            if (cache.next) await cache.next();
-            cache.next = undefined;
-            cache.current = undefined;
-        });
-    }
-    await cache.current;
-}
-function Display(data) {
-    switch(typeof data){
-        case 'undefined':
-            return '';
-        case 'string':
-            return data;
-        case 'number':
-            return `${data}`;
-        case 'bigint':
-            return `${data}`;
-        case 'boolean':
-            return `${data}`;
-        case 'function':
-            return `${data()}`;
-        case 'symbol':
-            return String(data);
-        case 'object':
-            return JSON.stringify(data);
-        default:
-            throw new Error('Display - type not handled');
-    }
-}
-function Attribute(element, name, value, parameters) {
-    if (name === 'value') {
-        value = `${value == undefined ? '' : value}`;
-        if (element.getAttribute(name) === value) return;
-        Reflect.set(element, name, value);
-        element.setAttribute(name, value);
-    } else if (name.startsWith('on')) {
-        const original = Reflect.get(element, `xRaw${name}`);
-        if (original === value) return;
-        const wrapped = Reflect.get(element, `xWrap${name}`);
-        const wrap = function(e) {
-            if (parameters[0]?.prevent) e.preventDefault();
-            if (parameters[0]?.stop) e.stopPropagation();
-            return value(e);
-        };
-        Reflect.set(element, `xRaw${name}`, value);
-        Reflect.set(element, `xWrap${name}`, wrap);
-        element.addEventListener(name.slice(2), wrap, parameters?.[0]);
-        element.removeEventListener(name.slice(2), wrapped);
-        if (element.hasAttribute(name)) element.removeAttribute(name);
-    } else if (BooleanAttributes.includes(name)) {
-        const result = value ? true : false;
-        Reflect.set(element, name, result);
-        if (result) element.setAttribute(name, '');
-        else element.removeAttribute(name);
-    } else if (name === 'html') {
-        const original1 = Reflect.get(element, 'xHtml');
-        if (original1 === value) return;
-        Reflect.set(element, 'xHtml', value);
-        Reflect.set(element, 'innerHTML', value);
-    } else {
-        const display = Display(value);
-        if (element.getAttribute(name) !== display) {
-            element.setAttribute(name, display);
-        }
-    }
-}
-const PatchAttributes = function(element, item) {
-    const parameters = item[ParametersSymbol];
-    const attributes = item[AttributesSymbol];
-    if (attributes['type']) {
-        const value = attributes['type'];
-        Attribute(element, 'type', value, parameters['type']);
-    }
-    for(const name in attributes){
-        if (name === 'type') continue;
-        const value1 = attributes[name];
-        Attribute(element, name, value1, parameters[name]);
-    }
-    if (element.hasAttributes()) {
-        const names = element.getAttributeNames();
-        for (const name1 of names){
-            if (!(name1 in attributes)) {
-                element.removeAttribute(name1);
+                if (value.includes('{{') && value.includes('}}')) {
+                    index++;
+                    node.removeAttribute(name);
+                    if (name === 'value') {
+                        actions.push(AttributeValue.bind(null, node, attribute));
+                    } else if (booleans.includes(name)) {
+                        actions.push(AttributeBoolean.bind(null, node, attribute));
+                    } else if (name.startsWith('on')) {
+                        actions.push(AttributeOn.bind(null, node, attribute));
+                    } else {
+                        actions.push(AttributeStandard.bind(null, node, attribute));
+                    }
+                }
             }
+        } else {
+            console.warn('node type not handled ', node.nodeType);
         }
     }
 };
-const PatchCreateElement = function(owner, item) {
-    const element = owner.createElement(item[NameSymbol]);
-    const parameters = item[ParametersSymbol];
-    const attributes = item[AttributesSymbol];
-    const children = item[ChildrenSymbol];
-    if (attributes['html']) {
-        PatchAttributes(element, item);
-        return element;
-    }
-    for (const child of children){
-        PatchAppend(element, child);
-    }
-    for(const name in attributes){
-        const value = attributes[name];
-        Attribute(element, name, value, parameters[name]);
-    }
-    return element;
-};
-const PatchAppend = function(parent, child) {
-    const owner = parent.ownerDocument;
-    if (child?.[TypeSymbol] === ElementSymbol) {
-        parent.appendChild(PatchCreateElement(owner, child));
-    } else if (child?.[TypeSymbol] === CommentSymbol) {
-        parent.appendChild(owner.createComment(child.value));
-    } else if (child?.[TypeSymbol] === CdataSymbol) {
-        parent.appendChild(owner.createCDATASection(child.value));
-    } else {
-        parent.appendChild(owner.createTextNode(Display(child)));
-    }
-};
-const PatchRemove = function(parent) {
-    const child = parent.lastChild;
-    if (child) parent.removeChild(child);
-};
-const PatchCommon = function(node, target) {
-    const owner = node.ownerDocument;
-    const virtualType = target?.[TypeSymbol];
-    const virtualName = target?.[NameSymbol];
-    const virtualAttributes = target?.[AttributesSymbol];
-    if (virtualType === CommentSymbol) {
-        const value = Display(target);
-        if (node.nodeName !== '#comment') {
-            node.parentNode?.replaceChild(owner?.createComment(value), node);
-        } else if (node.nodeValue !== value) {
-            node.nodeValue = value;
-        }
-        return;
-    }
-    if (virtualType === CdataSymbol) {
-        const value1 = Display(target);
-        if (node.nodeName !== '#cdata-section') {
-            node.parentNode?.replaceChild(owner?.createCDATASection(value1), node);
-        } else if (node.nodeValue !== value1) {
-            node.nodeValue = value1;
-        }
-        return;
-    }
-    if (virtualType !== ElementSymbol) {
-        const value2 = Display(target);
-        if (node.nodeName !== '#text') {
-            node.parentNode?.replaceChild(owner?.createTextNode(value2), node);
-        } else if (node.nodeValue !== value2) {
-            node.nodeValue = value2;
-        }
-        return;
-    }
-    if (node.nodeName !== virtualName) {
-        node.parentNode?.replaceChild(PatchCreateElement(owner, target), node);
-        return;
-    }
-    if (!(node instanceof Element)) {
-        throw new Error('Patch - node type not handled');
-    }
-    if (virtualAttributes['html']) {
-        PatchAttributes(node, target);
-        return;
-    }
-    const targetChildren = target[ChildrenSymbol];
-    const targetLength = targetChildren.length;
-    const nodeChildren = [
-        ...node.childNodes
-    ];
-    const nodeLength = nodeChildren.length;
-    const commonLength = Math.min(nodeLength, targetLength);
-    let index;
-    for(index = 0; index < commonLength; index++){
-        PatchCommon(nodeChildren[index], targetChildren[index]);
-    }
-    if (nodeLength > targetLength) {
-        for(index = targetLength; index < nodeLength; index++){
-            PatchRemove(node);
-        }
-    } else if (nodeLength < targetLength) {
-        for(index = nodeLength; index < targetLength; index++){
-            PatchAppend(node, targetChildren[index]);
-        }
-    }
-    PatchAttributes(node, target);
-};
-function Patch(root, fragment) {
-    let index;
-    const virtualChildren = fragment;
-    const virtualLength = virtualChildren.length;
-    const rootChildren = [
-        ...root.childNodes
-    ];
-    const rootLength = rootChildren.length;
-    const commonLength = Math.min(rootLength, virtualLength);
-    for(index = 0; index < commonLength; index++){
-        PatchCommon(rootChildren[index], virtualChildren[index]);
-    }
-    if (rootLength > virtualLength) {
-        for(index = virtualLength; index < rootLength; index++){
-            PatchRemove(root);
-        }
-    } else if (rootLength < virtualLength) {
-        for(index = rootLength; index < virtualLength; index++){
-            PatchAppend(root, virtualChildren[index]);
-        }
-    }
-}
-class Component extends HTMLElement {
-    static define(name, constructor) {
-        constructor = constructor ?? this;
-        name = name ?? Dash(this.name);
-        customElements.define(name, constructor);
-    }
-    static defined(name) {
-        name = name ?? Dash(this.name);
-        return customElements.whenDefined(name);
-    }
-    [$] = {};
-    #root;
-    #shadow;
-    constructor(){
-        super();
-        this.#shadow = this.shadowRoot ?? this.attachShadow({
-            mode: 'open'
-        });
-        const options = Reflect.get(this.constructor, 'options') ?? {};
-        const context = Reflect.get(this.constructor, 'context');
-        const component = Reflect.get(this.constructor, 'component');
-        if (options.root === 'this') this.#root = this;
-        else if (options.root === 'shadow') this.#root = this.shadowRoot;
-        else this.#root = this.shadowRoot;
-        if (options.slot === 'default') this.#shadow.appendChild(document.createElement('slot'));
-        this[$].update = async ()=>{
-            if (this[$].context.upgrade) await this[$].context.upgrade()?.catch?.(console.error);
-            Patch(this.#root, this[$].component());
-            if (this[$].context.upgraded) await this[$].context.upgraded()?.catch(console.error);
-        };
-        this[$].change = async ()=>{
-            await Schedule(this.#root, this[$].update);
-        };
-        this[$].context = ContextCreate(context(__default), this[$].change);
-        this[$].component = component.bind(this[$].context, __default, this[$].context);
-        this[$].render = async ()=>{
-            if (this.parentNode) {
-                const cache = RenderCache.get(this.parentNode);
-                if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-                if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-                RenderCache.set(this.parentNode, this[$].context);
-            }
-            if (this[$].context.connect) await this[$].context.connect()?.catch?.(console.error);
-            await Schedule(this.#root, this[$].update);
-            if (this[$].context.connected) await this[$].context.connected()?.catch(console.error);
-        };
-    }
-}
-async function Render(target, context, component) {
+const sleep1 = (time)=>new Promise((resolve)=>setTimeout(resolve, time ?? 0));
+const render = async function(root, context, component) {
     const instance = {};
-    instance.update = async function() {
-        if (instance.context.upgrade) await instance.context.upgrade()?.catch?.(console.error);
-        Patch(target, instance.component());
-        if (instance.context.upgraded) await instance.context.upgraded()?.catch(console.error);
+    const update = async function() {
+        if (instance.busy) return;
+        else instance.busy = true;
+        await sleep1(50);
+        if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+        const { values  } = component(html, context);
+        const length = instance.actions.length;
+        for(let index = 0; index < length; index++){
+            instance.actions[index](instance.values[index], values[index]);
+        }
+        instance.values = values;
+        if (context.upgraded) await context.upgraded()?.catch(console.error);
+        instance.busy = false;
     };
-    instance.change = async function() {
-        await Schedule(target, instance.update);
-    };
-    instance.context = ContextCreate(context(__default), instance.change);
-    instance.component = component.bind(instance.context, __default, instance.context);
-    instance.render = async function() {
-        const cache = RenderCache.get(target);
-        if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-        if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-        RenderCache.set(target, instance.context);
-        if (instance.context.connect) await instance.context.connect()?.catch?.(console.error);
-        await Schedule(target, instance.update);
-        if (instance.context.connected) await instance.context.connected()?.catch(console.error);
-    };
-    await instance.render();
-    return instance;
-}
+    const cache = RootCache.get(root);
+    if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
+    if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
+    context = Observe(context(html), update);
+    RootCache.set(root, context);
+    if (context.connect) await context.connect()?.catch?.(console.error);
+    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
+    const { strings , values , template  } = component(html, context);
+    instance.busy = false;
+    instance.actions = [];
+    instance.values = values;
+    instance.strings = strings;
+    instance.template = template;
+    instance.fragment = document.importNode(template.content, true);
+    RenderWalk(instance.fragment, instance.values, instance.actions);
+    const length = instance.actions.length;
+    for(let index = 0; index < length; index++){
+        instance.actions[index](undefined, values[index]);
+    }
+    if (root.replaceChildren) {
+        root.replaceChildren(instance.fragment);
+    } else {
+        replaceChildren(root, instance.fragment);
+    }
+    if (context.upgraded) await context.upgraded()?.catch(console.error);
+    if (context.connected) await context.connected()?.catch(console.error);
+};
 const alls = [];
 const routes = [];
 const transition = async function(route) {
-    if (route.cache && route.instance) {
-        if (route.instance instanceof Component || route.instance.prototype instanceof Component) {
-            route.target.replaceChildren(route.instance);
-            await route.instance[$].render();
-        } else {
-            await route.instance.render();
-        }
-    } else {
-        if (route.component instanceof Component || route.component.prototype instanceof Component) {
-            route.name = route.name ?? Dash(route.component.name);
-            if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
-            if (!customElements.get(route.name)) customElements.define(route.name, route.component);
-            await customElements.whenDefined(route.name);
-            route.instance = document.createElement(route.name);
-            route.target.replaceChildren(route.instance);
-            route.instance[$].render();
-        } else {
-            route.instance = await Render(route.target, route.context, route.component);
-        }
-    }
+    await render(route.root, route.context, route.component);
 };
 const navigate = function(event) {
     if (event && 'canIntercept' in event && event.canIntercept === false) return;
@@ -493,21 +443,21 @@ const navigate = function(event) {
     const transitions = [];
     for (const route of routes){
         if (route.path !== pathname) continue;
-        if (!route.target) continue;
-        Reflect.set(route.target, 'xRouterPath', route.path);
+        if (!route.root) continue;
+        Reflect.set(route.root, 'xRouterPath', route.path);
         transitions.push(route);
     }
     for (const all of alls){
-        if (!all.target) continue;
+        if (!all.root) continue;
         let has = false;
         for (const transition1 of transitions){
-            if (transition1.target === all.target) {
+            if (transition1.root === all.root) {
                 has = true;
                 break;
             }
         }
         if (has) continue;
-        if (Reflect.get(all.target, 'xRouterPath') === pathname) continue;
+        if (Reflect.get(all.root, 'xRouterPath') === pathname) continue;
         transitions.push(all);
     }
     if (event?.intercept) {
@@ -520,68 +470,54 @@ const navigate = function(event) {
         transitions.map((route)=>transition(route));
     }
 };
-function router(path, target, component, context, cache) {
+const router = function(path, root, context, component) {
     if (!path) throw new Error('XElement - router path required');
-    if (!target) throw new Error('XElement - router target required');
+    if (!root) throw new Error('XElement - router root required');
+    if (!context) throw new Error('XElement - router context required');
     if (!component) throw new Error('XElement - router component required');
-    if (!(component instanceof Component || component.prototype instanceof Component) && !context) throw new Error('XElement - router context required');
     if (path === '/*') {
         for (const all of alls){
-            if (all.path === path && all.target === target) {
-                throw new Error('XElement - router duplicate path and target');
+            if (all.path === path && all.root === root) {
+                throw new Error('XElement - router duplicate path on root');
             }
         }
         alls.push({
             path,
-            target,
+            root,
             context,
-            component,
-            cache: cache ?? true
+            component
         });
     } else {
         for (const route of routes){
-            if (route.path === path && route.target === target) {
-                throw new Error('XElement - router duplicate path and target');
+            if (route.path === path && route.root === root) {
+                throw new Error('XElement - router duplicate path on root');
             }
         }
         routes.push({
             path,
-            target,
+            root,
             context,
-            component,
-            cache: cache ?? true
+            component
         });
     }
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);
-}
-export { __default as Virtual };
-export { __default as virtual };
-export { ContextCreate as Context };
-export { ContextCreate as context };
+};
+export { schedule as Schedule };
+export { schedule as schedule };
+export { define as Define };
+export { define as define };
 export { router as Router };
 export { router as router };
-export { Render as Render };
-export { Render as render };
-export { Schedule as Schedule };
-export { Schedule as schedule };
-export { Patch as Patch };
-export { Patch as patch };
-export { Component as Component };
-export { Component as component };
-const __default1 = {
-    Component,
-    Schedule,
-    Virtual: __default,
-    Context: ContextCreate,
+export { render as Render };
+export { render as render };
+const Index = {
+    Schedule: schedule,
+    Define: define,
     Router: router,
-    Render,
-    Patch,
-    component: Component,
-    schedule: Schedule,
-    virtual: __default,
-    context: ContextCreate,
+    Render: render,
+    schedule: schedule,
+    define: define,
     router: router,
-    render: Render,
-    patch: Patch
+    render: render
 };
-export { __default1 as default };
+export { Index as default };

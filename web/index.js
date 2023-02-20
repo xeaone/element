@@ -8,9 +8,9 @@ const main = document.querySelector('main');
 
 // navigation.addEventListener('navigate', () => console.log('nav before'));
 
-router('/', main, root.context, root.component);
-router('/guide', main, guide.context, guide.component);
-router('/*', main, all.context, all.component);
+router('/', main, root.context, root.content);
+router('/guide', main, guide.context, guide.content);
+router('/*', main, all.context, all.content);
 
 // navigation.addEventListener('navigate', () => console.log('nav after'));
 

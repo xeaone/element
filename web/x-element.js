@@ -191,8 +191,18 @@ const booleans = [
     'translate',
     'truespeed',
     'typemustmatch',
-    'visible', 
+    'visible'
 ];
+const replaceChildren = function(element, ...nodes) {
+    while(element.lastChild){
+        element.removeChild(element.lastChild);
+    }
+    if (nodes?.length) {
+        for (const node of nodes){
+            element.appendChild(typeof node === 'string' ? element.ownerDocument.createTextNode(node) : node);
+        }
+    }
+};
 const RootCache = new WeakMap();
 const ObjectAction = function(start, end, actions, oldValue, newValue) {
     oldValue = oldValue ?? {};
@@ -326,6 +336,7 @@ const RenderWalk = function(fragment, values, actions) {
                 end2.parentNode?.insertBefore(start2, end2);
                 actions.push(ArrayAction.bind(null, start2, end2, []));
             } else {
+                node.textContent = '';
                 actions.push(StandardAction.bind(null, node));
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -361,14 +372,14 @@ const RenderWalk = function(fragment, values, actions) {
     }
 };
 const sleep1 = (time)=>new Promise((resolve)=>setTimeout(resolve, time ?? 0));
-const render = async function(root, context, component) {
+const render = async function(root, context, content) {
     const instance = {};
     const update = async function() {
         if (instance.busy) return;
         else instance.busy = true;
         await sleep1(50);
         if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-        const { values  } = component(html, context);
+        const { values  } = content(html, context);
         const length = instance.actions.length;
         for(let index = 0; index < length; index++){
             instance.actions[index](instance.values[index], values[index]);
@@ -384,7 +395,7 @@ const render = async function(root, context, component) {
     RootCache.set(root, context);
     if (context.connect) await context.connect()?.catch?.(console.error);
     if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-    const { strings , values , template  } = component(html, context);
+    const { strings , values , template  } = content(html, context);
     instance.busy = false;
     instance.actions = [];
     instance.values = values;
@@ -396,14 +407,18 @@ const render = async function(root, context, component) {
     for(let index = 0; index < length; index++){
         instance.actions[index](undefined, values[index]);
     }
-    root.replaceChildren(instance.fragment);
+    if (root.replaceChildren) {
+        root.replaceChildren(instance.fragment);
+    } else {
+        replaceChildren(root, instance.fragment);
+    }
     if (context.upgraded) await context.upgraded()?.catch(console.error);
     if (context.connected) await context.connected()?.catch(console.error);
 };
 const alls = [];
 const routes = [];
 const transition = async function(route) {
-    await render(route.root, route.context, route.component);
+    await render(route.root, route.context, route.content);
 };
 const navigate = function(event) {
     if (event && 'canIntercept' in event && event.canIntercept === false) return;
@@ -445,11 +460,11 @@ const navigate = function(event) {
         transitions.map((route)=>transition(route));
     }
 };
-const router = function(path, root, context, component) {
+const router = function(path, root, context, content) {
     if (!path) throw new Error('XElement - router path required');
     if (!root) throw new Error('XElement - router root required');
     if (!context) throw new Error('XElement - router context required');
-    if (!component) throw new Error('XElement - router component required');
+    if (!content) throw new Error('XElement - router content required');
     if (path === '/*') {
         for (const all of alls){
             if (all.path === path && all.root === root) {
@@ -460,7 +475,7 @@ const router = function(path, root, context, component) {
             path,
             root,
             context,
-            component
+            content
         });
     } else {
         for (const route of routes){
@@ -472,7 +487,7 @@ const router = function(path, root, context, component) {
             path,
             root,
             context,
-            component
+            content
         });
     }
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);

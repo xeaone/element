@@ -1,6 +1,6 @@
 #! /usr/bin/env -S deno run -A
 
-import { Server, Cors, File, Handler, Normalize, Router } from 'https://deno.land/x/xserver/src/mod.ts';
+import { Server, Cors, File, Handler, Normalize, Router } from "https://deno.land/x/xserver@2.5.0/src/mod.ts";
 // import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
 
 // Deno.run({ cmd: ['npx', 'tsc', '--watch'] }).status();
@@ -67,4 +67,4 @@ handler.add(normalize);
 handler.add(cors);
 handler.add(router);
 
-await Server({ port }, (request) => handler.handle(request));
+await Server(request => handler.handle(request), { port });

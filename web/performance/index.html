@@ -39,7 +39,7 @@
                 },
             });
 
-            const component = (html, c) => html`
+            const content = (html, c) => html`
                 <h2>Count: ${c.count.toLocaleString()}</h2>
                 <input type="number" oninput=${c.oninput} value=${c.count} >
                 <button onclick=${c.overwrite}>overwrite</button>
@@ -55,7 +55,7 @@
             // <div ${'test'}>at</div>
 
             const root = document.querySelector('main');
-            render(root, context, component);
+            render(root, context, content);
 
         </script>
 

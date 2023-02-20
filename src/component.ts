@@ -1,6 +1,6 @@
 // import Context from './context.ts';
 import Schedule from './schedule.ts';
-import Patch from './patch.ts';
+// import Patch from './patch.ts';
 import Dash from './dash.ts';
 
 export const $ = Symbol('$');
@@ -74,7 +74,7 @@ export default class Component extends HTMLElement {
         // this.#shadow.addEventListener('slotchange', this.slottedCallback.bind(this));
 
         const context = Reflect.get(this.constructor, 'context');
-        const component = Reflect.get(this.constructor, 'component');
+        const content = Reflect.get(this.constructor, 'content');
         const options = Reflect.get(this.constructor, 'options') ?? {};
 
         if (options.root === 'this') this.#root = this;

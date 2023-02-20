@@ -8,14 +8,14 @@ const context = () => ({
     greet() { this.greeting = 'Updated Greeting'; }
 });
 
-const component = (html, { greeting, greet }) => html\`
+const content = (html, { greeting, greet }) => html\`
     <h1>greeting</h1>
     <button onclick=\${greet}>Greet</button>
 \`;
 
 const root = document.body;
 
-render(root, component, context);
+render(root, context, content);
 `);
 
 // import { Component } from '/x-element.js';
@@ -56,14 +56,14 @@ const context = () => ({
     greet() { this.greeting = 'Updated Greeting'; }
 });
 
-const component = (html, { greeting, greet }) => html\`
+const content = (html, { greeting, greet }) => html\`
     <h1>greeting</h1>
     <button onclick=\${greet}>Greet</button>
 \`;
 
 const root = document.body;
 
-router('/', root, context, component);
+router('/', root, context, content);
 `);
 
 export const context = () => ({
@@ -74,7 +74,7 @@ export const context = () => ({
     }
 });
 
-export const component = (html) => html`
+export const content = (html) => html`
 <section>
 
     <h2>Vision</h2>

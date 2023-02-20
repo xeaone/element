@@ -3,6 +3,7 @@ import display from './display.ts';
 import observe from './observe.ts';
 import booleans from './booleans.ts';
 import { HtmlSymbol } from './html.ts';
+import { replaceChildren } from './poly.ts';
 
 type Value = any;
 type OldValue = Value;
@@ -167,6 +168,7 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
                 end.parentNode?.insertBefore(start, end);
                 actions.push(ArrayAction.bind(null, start as Text, end as Text, []));
             } else {
+                (node as Text).textContent = '';
                 actions.push(StandardAction.bind(null, node as Text));
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -213,7 +215,7 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
 
 const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
 
-const render = async function (root: Element, context: any, component: any) {
+const render = async function (root: Element, context: any, content: any) {
     const instance: any = {};
 
     const update = async function () {
@@ -224,7 +226,7 @@ const render = async function (root: Element, context: any, component: any) {
 
         if (context.upgrade) await context.upgrade()?.catch?.(console.error);
 
-        const { values } = component(html, context);
+        const { values } = content(html, context);
 
         const length = instance.actions.length;
         for (let index = 0; index < length; index++) {
@@ -250,7 +252,7 @@ const render = async function (root: Element, context: any, component: any) {
     if (context.connect) await context.connect()?.catch?.(console.error);
     if (context.upgrade) await context.upgrade()?.catch?.(console.error);
 
-    const { strings, values, template } = component(html, context);
+    const { strings, values, template } = content(html, context);
 
     instance.busy = false;
     instance.actions = [];
@@ -267,7 +269,11 @@ const render = async function (root: Element, context: any, component: any) {
         instance.actions[index](undefined, values[index]);
     }
 
-    root.replaceChildren(instance.fragment);
+    if (root.replaceChildren) {
+        root.replaceChildren(instance.fragment);
+    } else {
+        replaceChildren(root, instance.fragment);
+    }
 
     if (context.upgraded) await context.upgraded()?.catch(console.error);
     if (context.connected) await context.connected()?.catch(console.error);
