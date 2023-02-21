@@ -26,9 +26,12 @@ const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValu
             node = next;
         }
 
-        const fragment = document.importNode(newValue.template.content, true);
-        // const fragment = newValue.template.content.cloneNode(true);
+        // const fragment = document.importNode(newValue.template.content, true);
+        // RenderWalk(fragment, newValue.values, actions);
+
+        const fragment = newValue.template.content.cloneNode(true);
         RenderWalk(fragment, newValue.values, actions);
+        document.adoptNode(fragment);
 
         const l = actions.length;
         for (let i = 0; i < l; i++) {
@@ -259,10 +262,12 @@ const render = async function (root: Element, context: any, content: any) {
     instance.values = values;
     instance.strings = strings;
     instance.template = template;
-    instance.fragment = document.importNode(template.content, true);
-    // instance.fragment = template.content.cloneNode(true);
+    // instance.fragment = document.importNode(template.content, true);
+    instance.fragment = template.content.cloneNode(true);
 
     RenderWalk(instance.fragment, instance.values, instance.actions);
+
+    document.adoptNode(instance.fragment);
 
     const length = instance.actions.length;
     for (let index = 0; index < length; index++) {

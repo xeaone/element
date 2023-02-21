@@ -1,3 +1,13 @@
+/************************************************************************
+Name: XElement
+Version: 8.0.0
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
 // deno-fmt-ignore-file
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
@@ -215,8 +225,9 @@ const ObjectAction = function(start, end, actions, oldValue, newValue) {
             node?.parentNode?.removeChild(node);
             node = next;
         }
-        const fragment = document.importNode(newValue.template.content, true);
+        const fragment = newValue.template.content.cloneNode(true);
         RenderWalk(fragment, newValue.values, actions);
+        document.adoptNode(fragment);
         const l = actions.length;
         for(let i = 0; i < l; i++){
             actions[i](oldValue.values?.[i], newValue.values[i]);
@@ -401,8 +412,9 @@ const render = async function(root, context, content) {
     instance.values = values;
     instance.strings = strings;
     instance.template = template;
-    instance.fragment = document.importNode(template.content, true);
+    instance.fragment = template.content.cloneNode(true);
     RenderWalk(instance.fragment, instance.values, instance.actions);
+    document.adoptNode(instance.fragment);
     const length = instance.actions.length;
     for(let index = 0; index < length; index++){
         instance.actions[index](undefined, values[index]);
