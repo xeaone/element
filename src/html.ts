@@ -1,3 +1,5 @@
+import parse from './parse.ts';
+
 export const HtmlCache = new WeakMap();
 export const HtmlSymbol = Symbol('html');
 
@@ -16,8 +18,9 @@ export default function html(strings: string[], ...values: unknown[]) {
 
         data += strings[length];
 
-        const template = document.createElement('template');
-        template.innerHTML = data;
+        // const template = document.createElement('template');
+        // template.innerHTML = data;
+        const template = parse(data);
 
         HtmlCache.set(strings, template);
 

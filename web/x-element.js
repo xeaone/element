@@ -1,13 +1,3 @@
-/************************************************************************
-Name: XElement
-Version: 8.0.0
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
 // deno-fmt-ignore-file
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
@@ -48,6 +38,201 @@ async function schedule(actions, oldValues, newValues) {
 function define(name, constructor) {
     customElements.define(name, constructor);
 }
+const TEXT = 'Text';
+const ELEMENT_OPEN = 'ElementOpen';
+const ELEMENT_CLOSE = 'ElementClose';
+const COMMENT = 'Comment';
+const ELEMENT_NAME = 'ElementName';
+const ATTRIBUTE_NAME = 'AttributeName';
+const ATTRIBUTE_VALUE = 'AttributeValue';
+const ELEMENT_CHILDREN = 'ElementChildren';
+const space = /\s|\t|\n|\f|\r/;
+const texted = /script|textarea/i;
+const closed = /area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param|embed/i;
+function parse(data) {
+    const template = document.createElement('template');
+    const content = template.content;
+    const l = data.length;
+    let i = 0;
+    let n = content;
+    let mode = ELEMENT_CHILDREN;
+    const elementChildrenMode = function() {
+        if (texted.test(elementName)) {
+            mode = TEXT;
+            n = elementNode ?? content;
+        } else if (closed.test(elementName)) {
+            mode = ELEMENT_CHILDREN;
+        } else {
+            n = elementNode ?? content;
+            mode = ELEMENT_CHILDREN;
+        }
+        elementNode = undefined;
+        elementName = '';
+        attributeValue = '';
+        attributeName = '';
+    };
+    const elementOpenMode = function() {
+        mode = ELEMENT_OPEN;
+        attributeName = '';
+        attributeValue = '';
+    };
+    const attributeNameValue = function() {
+        elementNode.setAttribute(attributeName, attributeValue);
+        attributeName = '';
+        attributeValue = '';
+    };
+    let elementNode;
+    let text = '';
+    let comment = '';
+    let elementName = '';
+    let attributeName = '';
+    let attributeValue = '';
+    for(i; i < l; i++){
+        const c = data[i];
+        if (mode === ELEMENT_CHILDREN) {
+            const next = data[i + 1];
+            if (c === '<' && next === '/') {
+                i++;
+                n = n.parentElement ?? content;
+                mode = ELEMENT_CLOSE;
+            } else if (c === '<' && next === '!') {
+                i++;
+                mode = COMMENT;
+            } else if (c === '<') {
+                mode = ELEMENT_NAME;
+            } else {
+                text += c;
+                mode = TEXT;
+            }
+        } else if (mode === ELEMENT_NAME) {
+            if (space.test(c)) {
+                elementNode = n.ownerDocument.createElement(elementName);
+                n.appendChild(elementNode);
+                elementOpenMode();
+            } else if (c === '/') {
+                elementNode = n.ownerDocument.createElement(elementName);
+                n.appendChild(elementNode);
+                elementChildrenMode();
+                i++;
+            } else if (c === '>') {
+                elementNode = n.ownerDocument.createElement(elementName);
+                n.appendChild(elementNode);
+                elementChildrenMode();
+            } else if (mode === ELEMENT_NAME) {
+                elementName += c;
+            }
+        } else if (mode === ATTRIBUTE_NAME) {
+            if (space.test(c)) {
+                elementNode.setAttribute(attributeName, '');
+                elementOpenMode();
+            } else if (c === '/') {
+                elementNode.setAttribute(attributeName, '');
+                elementChildrenMode();
+                i++;
+            } else if (c === '>') {
+                elementNode.setAttribute(attributeName, '');
+                elementChildrenMode();
+            } else if (c === '=') {
+                mode = ATTRIBUTE_VALUE;
+            } else {
+                attributeName += c;
+            }
+        } else if (mode === ATTRIBUTE_VALUE) {
+            if (attributeValue.startsWith(`"`) || attributeValue.startsWith(`'`)) {
+                if (attributeValue.startsWith(`"`) && c === `"` || attributeValue.startsWith(`'`) && c === `'`) {
+                    attributeValue = attributeValue.slice(1);
+                    attributeNameValue();
+                    elementOpenMode();
+                } else {
+                    attributeValue += c;
+                }
+            } else if (space.test(c)) {
+                attributeNameValue();
+                elementOpenMode();
+            } else if (c === '/') {
+                attributeNameValue();
+                elementChildrenMode();
+                i++;
+            } else if (c === '>') {
+                attributeNameValue();
+                elementChildrenMode();
+            } else if (c === '{' && data[i + 1] === '{') {
+                i++;
+                attributeValue += '{{';
+            } else if (c === '}' && data[i + 1] === '}') {
+                i++;
+                attributeValue += '}}';
+            } else {
+                attributeValue += c;
+            }
+        } else if (mode === ELEMENT_CLOSE) {
+            if (c === '>') {
+                elementChildrenMode();
+            } else {
+                continue;
+            }
+        } else if (mode === ELEMENT_OPEN) {
+            if (space.test(c)) {
+                continue;
+            } else if (c === '/') {
+                elementChildrenMode();
+                i++;
+            } else if (c === '>') {
+                elementChildrenMode();
+            } else {
+                attributeName += c;
+                mode = ATTRIBUTE_NAME;
+            }
+        } else if (mode === TEXT) {
+            const next = data[i + 1];
+            if (c === '<' && next === '/') {
+                if (text) n.appendChild(n.ownerDocument.createTextNode(text));
+                text = '';
+                text = '';
+                elementName = '';
+                elementNode = undefined;
+                n = n.parentElement ?? content;
+                i++;
+                mode = ELEMENT_CLOSE;
+            } else if (c === '<' && next === '!') {
+                if (text) n.appendChild(n.ownerDocument.createTextNode(text));
+                text = '';
+                comment = '';
+                mode = COMMENT;
+                i = i + 3;
+            } else if (c === '<') {
+                if (text) n.appendChild(n.ownerDocument.createTextNode(text));
+                text = '';
+                elementName = '';
+                elementNode = undefined;
+                n = n.parentElement ?? content;
+                mode = ELEMENT_NAME;
+            } else if (c === '{' && next === '{') {
+                if (text) n.appendChild(n.ownerDocument.createTextNode(text));
+                text = '{{';
+                i++;
+            } else if (c === '}' && next === '}') {
+                text += '}}';
+                n.appendChild(n.ownerDocument.createTextNode(text));
+                text = '';
+                i++;
+            } else {
+                text += c;
+            }
+        } else if (mode === COMMENT) {
+            if (c === '-' && data[i + 1] === '-' && data[i + 2] === '>') {
+                n.appendChild(n.ownerDocument.createComment(comment));
+                i = i + 2;
+                mode = ELEMENT_CHILDREN;
+            } else {
+                comment += c;
+            }
+        } else {
+            throw new Error('parse mode error');
+        }
+    }
+    return template;
+}
 const HtmlCache = new WeakMap();
 const HtmlSymbol = Symbol('html');
 function html(strings, ...values) {
@@ -66,13 +251,12 @@ function html(strings, ...values) {
             data += `${strings[index]}{{${index}}}`;
         }
         data += strings[length];
-        const template1 = document.createElement('template');
-        template1.innerHTML = data;
-        HtmlCache.set(strings, template1);
+        const template = parse(data);
+        HtmlCache.set(strings, template);
         return {
             strings,
             values,
-            template: template1,
+            template,
             symbol: HtmlSymbol
         };
     }
@@ -130,15 +314,15 @@ const ObserveGet = function(method, target, key, receiver) {
         return proxy;
     }
     if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
-        const cache1 = ObserveCache.get(value);
-        if (cache1) return cache1;
-        const proxy1 = new Proxy(value, {
+        const cache = ObserveCache.get(value);
+        if (cache) return cache;
+        const proxy = new Proxy(value, {
             apply (t, _, a) {
                 return Reflect.apply(t, receiver, a);
             }
         });
-        ObserveCache.set(value, proxy1);
-        return proxy1;
+        ObserveCache.set(value, proxy);
+        return proxy;
     }
     return value;
 };
@@ -234,9 +418,9 @@ const ObjectAction = function(start, end, actions, oldValue, newValue) {
         }
         end.parentNode?.insertBefore(fragment, end);
     } else {
-        const l1 = actions.length;
-        for(let i1 = 0; i1 < l1; i1++){
-            actions[i1](oldValue.values?.[i1], newValue.values[i1]);
+        const l = actions.length;
+        for(let i = 0; i < l; i++){
+            actions[i](oldValue.values?.[i], newValue.values[i]);
         }
     }
 };
@@ -251,29 +435,29 @@ const ArrayAction = function(start, end, actions, oldValue, newValue) {
     }
     if (oldLength < newLength) {
         const template = document.createElement('template');
-        for(let i1 = oldLength; i1 < newLength; i1++){
-            if (newValue[i1]?.constructor === Object && newValue[i1]?.symbol === HtmlSymbol) {
-                const start1 = document.createTextNode('');
-                const end1 = document.createTextNode('');
-                const action = ObjectAction.bind(null, start1, end1, []);
-                template.content.appendChild(start1);
-                template.content.appendChild(end1);
+        for(let i = oldLength; i < newLength; i++){
+            if (newValue[i]?.constructor === Object && newValue[i]?.symbol === HtmlSymbol) {
+                const start = document.createTextNode('');
+                const end = document.createTextNode('');
+                const action = ObjectAction.bind(null, start, end, []);
+                template.content.appendChild(start);
+                template.content.appendChild(end);
                 actions.push(action);
-                action(oldValue[i1], newValue[i1]);
+                action(oldValue[i], newValue[i]);
             } else {
                 const node = document.createTextNode('');
-                const action1 = StandardAction.bind(null, node);
+                const action = StandardAction.bind(null, node);
                 template.content.appendChild(node);
-                actions.push(action1);
-                action1(oldValue[i1], newValue[i1]);
+                actions.push(action);
+                action(oldValue[i], newValue[i]);
             }
         }
         end.parentNode?.insertBefore(template.content, end);
     } else if (oldLength > newLength) {
-        for(let i2 = oldLength - 1; i2 > newLength - 1; i2--){
-            if (oldValue[i2]?.constructor === Object && oldValue[i2]?.symbol === HtmlSymbol) {
-                const { template: template1  } = oldValue[i2];
-                let removes = template1.content.childNodes.length + 2;
+        for(let i = oldLength - 1; i > newLength - 1; i--){
+            if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === HtmlSymbol) {
+                const { template  } = oldValue[i];
+                let removes = template.content.childNodes.length + 2;
                 while(removes--)end.parentNode?.removeChild(end.previousSibling);
             } else {
                 end.parentNode?.removeChild(end.previousSibling);
@@ -335,17 +519,17 @@ const RenderWalk = function(fragment, values, actions) {
             }
             const newValue = values[index++];
             if (newValue?.constructor === Object && newValue?.symbol === HtmlSymbol) {
-                const start1 = document.createTextNode('');
-                const end1 = node;
-                end1.nodeValue = '';
-                end1.parentNode?.insertBefore(start1, end1);
-                actions.push(ObjectAction.bind(null, start1, end1, []));
+                const start = document.createTextNode('');
+                const end = node;
+                end.nodeValue = '';
+                end.parentNode?.insertBefore(start, end);
+                actions.push(ObjectAction.bind(null, start, end, []));
             } else if (newValue?.constructor === Array) {
-                const start2 = document.createTextNode('');
-                const end2 = node;
-                end2.nodeValue = '';
-                end2.parentNode?.insertBefore(start2, end2);
-                actions.push(ArrayAction.bind(null, start2, end2, []));
+                const start = document.createTextNode('');
+                const end = node;
+                end.nodeValue = '';
+                end.parentNode?.insertBefore(start, end);
+                actions.push(ArrayAction.bind(null, start, end, []));
             } else {
                 node.textContent = '';
                 actions.push(StandardAction.bind(null, node));
@@ -452,8 +636,8 @@ const navigate = function(event) {
     for (const all of alls){
         if (!all.root) continue;
         let has = false;
-        for (const transition1 of transitions){
-            if (transition1.root === all.root) {
+        for (const transition of transitions){
+            if (transition.root === all.root) {
                 has = true;
                 break;
             }
