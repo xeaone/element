@@ -179,7 +179,6 @@ const booleans = [
     'multiple',
     'muted',
     'nohref',
-    'onresize',
     'noshade',
     'hidden',
     'novalidate',
@@ -208,6 +207,15 @@ const replaceChildren = function(element, ...nodes) {
             element.appendChild(typeof node === 'string' ? element.ownerDocument.createTextNode(node) : node);
         }
     }
+};
+const links = [
+    'src',
+    'href',
+    'xlink:href'
+];
+const safeLink = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+const dangerousLink = function(data) {
+    return typeof data !== 'string' || !safeLink.test(data);
 };
 const RootCache = new WeakMap();
 const ObjectAction = function(start, end, actions, oldValue, newValue) {
@@ -292,24 +300,51 @@ const AttributeBoolean = function(element, attribute, oldValue, newValue) {
     const value = newValue ? true : false;
     if (value) element.setAttribute(attribute.name, '');
     else element.removeAttribute(attribute.name);
-    Reflect.set(element, attribute.name, value);
+    attribute.value = value;
+    Reflect.set(element, attribute.name, attribute.value);
 };
 const AttributeValue = function(element, attribute, oldValue, newValue) {
     if (oldValue === newValue) return;
     const value = display(newValue);
-    Reflect.set(element, attribute.name, value);
-    element.setAttribute(attribute.name, value);
+    attribute.value = value;
+    Reflect.set(element, attribute.name, attribute.value);
+    element.setAttribute(attribute.name, attribute.value);
 };
-const AttributeStandard = function(node, attribute, oldValue, newValue) {
+const AttributeLink = function(element, attribute, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    if (dangerousLink(newValue)) {
+        element.removeAttribute(attribute.name);
+        console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
+        return;
+    }
+    attribute.value = newValue;
+    Reflect.set(element, attribute.name, attribute.value);
+    element.setAttribute(attribute.name, attribute.value);
+};
+const AttributeStandard = function(element, attribute, oldValue, newValue) {
     if (oldValue === newValue) return;
     attribute.value = newValue;
-    node.setAttribute(attribute.name, attribute.value);
+    Reflect.set(element, attribute.name, attribute.value);
+    element.setAttribute(attribute.name, attribute.value);
 };
 const AttributeName = function(element, attribute, oldValue, newValue) {
     if (oldValue === newValue) return;
-    attribute.name = newValue;
     element.removeAttribute(oldValue);
-    element.setAttribute(attribute.name, attribute.value);
+    const name = newValue?.toLowerCase();
+    if (name === 'value') {
+        attribute.name = name;
+        AttributeValue(element, attribute, attribute.value, attribute.value);
+    } else if (name.startsWith('on')) {
+        console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
+    } else if (links.includes(name)) {
+        console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
+    } else if (booleans.includes(name)) {
+        attribute.name = name;
+        AttributeBoolean(element, attribute, attribute.value, attribute.value);
+    } else {
+        attribute.name = name;
+        AttributeStandard(element, attribute, attribute.value, attribute.value);
+    }
 };
 const RenderWalk = function(fragment, values, actions) {
     const walker = document.createTreeWalker(document, 5, null);
@@ -354,22 +389,37 @@ const RenderWalk = function(fragment, values, actions) {
                     name,
                     value
                 };
-                if (name.includes('{{') && name.includes('}}')) {
+                const dynamicName = name.includes('{{') && name.includes('}}');
+                const dynamicValue = value.includes('{{') && value.includes('}}');
+                if (dynamicName) {
                     index++;
                     node.removeAttribute(name);
                     actions.push(AttributeName.bind(null, node, attribute));
                 }
-                if (value.includes('{{') && value.includes('}}')) {
+                if (dynamicValue) {
                     index++;
                     node.removeAttribute(name);
                     if (name === 'value') {
                         actions.push(AttributeValue.bind(null, node, attribute));
-                    } else if (booleans.includes(name)) {
-                        actions.push(AttributeBoolean.bind(null, node, attribute));
                     } else if (name.startsWith('on')) {
                         actions.push(AttributeOn.bind(null, node, attribute));
+                    } else if (links.includes(name)) {
+                        actions.push(AttributeLink.bind(null, node, attribute));
+                    } else if (booleans.includes(name)) {
+                        actions.push(AttributeBoolean.bind(null, node, attribute));
                     } else {
                         actions.push(AttributeStandard.bind(null, node, attribute));
+                    }
+                }
+                if (!dynamicName && !dynamicValue) {
+                    if (links.includes(name)) {
+                        if (dangerousLink(value)) {
+                            node.removeAttribute(name);
+                            console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
+                        }
+                    } else if (name.startsWith('on')) {
+                        node.removeAttribute(name);
+                        console.warn(`XElement - attribute name "${name}" not allowed`);
                     }
                 }
             }

@@ -24,7 +24,6 @@ const booleans = [
     'multiple',
     'muted',
     'nohref',
-    'onresize',
     'noshade',
     'hidden',
     'novalidate',
