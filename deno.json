@@ -16,8 +16,7 @@
                 "deploy.ts",
                 "watch.ts",
                 "test.ts",
-                "docs.ts",
-                "src/"
+                "docs.ts"
             ]
         }
     },
@@ -28,8 +27,7 @@
                 "deploy.ts",
                 "watch.ts",
                 "test.ts",
-                "docs.ts",
-                "src/"
+                "docs.ts"
             ]
         },
         "options": {

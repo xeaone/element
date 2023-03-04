@@ -1,7 +1,7 @@
-// import Context from './context.ts';
-import Schedule from './schedule.ts';
-// import Patch from './patch.ts';
-import Dash from './dash.ts';
+// import Context from './context';
+import Schedule from './schedule';
+// import Patch from './patch';
+import Dash from './dash';
 
 export const $ = Symbol('$');
 // const UPGRADE = Symbol('upgrade');

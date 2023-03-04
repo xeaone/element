@@ -3,4 +3,5 @@
     "deno.enable": true,
     "deno.unstable": true,
     "deno.config": "./deno.json",
+    "deno.enablePaths": ["server.ts", "deploy.ts", "watch.ts", "test.ts", "docs.ts"]
 }

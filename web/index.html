@@ -4,6 +4,7 @@
     <head>
 
         <base href="/element/">
+        <script>if (location.host.startsWith('localhost')) document.querySelector('base').href="/";</script>
 
         <meta charset="UTF-8">
         <meta name="theme-color" content="#2299ff">
@@ -29,6 +30,7 @@
             <div class="menu">
                 <a href="./">Home</a>
                 <a href="./guide">Guide</a>
+                <a href="./security">Security</a>
                 <a href="https://github.com/xeaone/element" target="_blank">Github</a>
                 <a href="./performance" target="_blank">Performance</a>
             </div>

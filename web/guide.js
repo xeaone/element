@@ -66,14 +66,6 @@ const selectNumberComponenet = (html, ctx) => html`
     </select>
 `;
 
-const securityComponenet = (html, ctx) => html`
-    <button onclick="alert('bad')">Bad Button</button>
-    <a href="javascript:alert('bad')">Bad Link</a>
-    <img src="javascript:alert('bad')" alt="Bad Image 1" />
-    <img alt="Bad Image 2" onerror="javascript:alert('bad')" />
-`;
-
-
 const routeCode = Highlight(`;
 import { Router } from './x-element.js';
 
@@ -128,7 +120,6 @@ const values = {
     cars: Highlight(carsComponenet.toString()),
     selectBoolean: Highlight(selectBooleanComponenet.toString()),
     selectNumber: Highlight(selectNumberComponenet.toString()),
-    security: Highlight(securityComponenet.toString()),
 };
 
 export const context = () => ({
@@ -256,19 +247,6 @@ export const content = (html, ctx) => html`
         <pre id="selectNumberComponent">${selectNumberComponenet(html, ctx)}</pre>
         <pre id="selectNumberSource"></pre>
 
-    </section>
-
-    <section id="security">
-        <h3>Security</h3>
-        <p>
-        HTML string is parsed into DOM using a Template Element's DocumentFragment.
-        The sanitization on the value of "src, href, xlink:href" attributes and attributes starting with "on".
-        Future DOM modification that takes places is createElement, setAttribute, removeAttribute which are considered safe sinks.
-        Other possible dangers not yet handled script tags, style tags, style attribute, comments are allowed currently.
-        </p>
-        <pre id="securityCode"></pre>
-        <pre id="securityComponent">${securityComponenet(html, ctx)}</pre>
-        <pre id="securitySource"></pre>
     </section>
 
 `;

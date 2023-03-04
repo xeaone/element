@@ -1,11 +1,13 @@
-#! /usr/bin/env -S deno run -A
-
 import { inc, ReleaseType } from 'https://deno.land/std@0.151.0/semver/mod.ts';
 import { copy, emptyDir } from 'https://deno.land/std@0.152.0/fs/mod.ts';
-// import { build, stop } from 'https://deno.land/x/esbuild@v0.15.1/mod.js';
+import * as esbuild from "https://deno.land/x/esbuild@v0.17.10/mod.js";
 
 const { run, readTextFile, writeTextFile, args } = Deno;
 const [release] = args;
+if (!release) {
+    console.warn('requires: pre, major, premajor, minor, preminor, patch, prepatch, prerelease', );
+    Deno.exit();
+}
 
 const f = await run({ cmd: ['git', 'fetch'] }).status();
 if (!f.success) throw new Error('git auth');
@@ -32,53 +34,68 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/`;
 
-await run({ cmd: ['deno', 'bundle', 'src/index.ts', 'tmp/x-element.js'] }).status();
+await Promise.all([
+    esbuild.build({
+        color: true,
+        logLevel: 'debug',
+        minify: false,
+        bundle: true,
+        format: 'esm',
+        target: 'es2015',
+        sourcemap: true,
+        banner: { js: banner },
+        treeShaking: true,
+        platform: 'browser',
+        tsconfig: 'tsconfig.json',
+        outfile: 'web/x-element.js',
+        entryPoints: [ 'src/index.ts' ],
+    }),
+    esbuild.build({
+        color: true,
+        logLevel: 'debug',
+        minify: true,
+        bundle: true,
+        format: 'esm',
+        target: 'es2015',
+        banner: { js: banner },
+        treeShaking: true,
+        platform: 'browser',
+        sourcemap: true,
+        tsconfig: 'tsconfig.json',
+        outfile: 'pro/x-element.min.js',
+        entryPoints: [ 'src/index.ts' ],
+    }),
+    esbuild.build({
+        color: true,
+        logLevel: 'debug',
+        minify: false,
+        bundle: true,
+        format: 'esm',
+        target: 'es2015',
+        sourcemap: true,
+        banner: { js: banner },
+        treeShaking: true,
+        platform: 'browser',
+        tsconfig: 'tsconfig.json',
+        outfile: 'pro/x-element.js',
+        entryPoints: [ 'src/index.ts' ],
+    }),
+]);
 
-const bundle = await readTextFile('tmp/x-element.js');
+esbuild.stop();
 
-await writeTextFile('pro/x-element.js', banner + bundle);
-await writeTextFile('web/x-element.js', banner + bundle);
+// await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
 
-// await Promise.all([
-//     build({
-//         // minify: true,
-//         bundle: true,
-//         format: 'esm',
-//         target: 'es2020',
-//         treeShaking: true,
-//         platform: 'browser',
-//         banner: { js: banner },
-//         outfile: './pro/x-element.js',
-//         tsconfig: './tsconfig.json',
-//         entryPoints: ['src/element.ts'],
-//     }),
-//     build({
-//         // minify: true,
-//         bundle: true,
-//         format: 'esm',
-//         target: 'es2020',
-//         treeShaking: true,
-//         platform: 'browser',
-//         banner: { js: banner },
-//         outfile: './web/x-element.js',
-//         tsconfig: './tsconfig.json',
-//         entryPoints: ['src/element.ts'],
-//     }),
-// ]).then(console.log);
+// await copy('./web/index.html', './web/404.html', { overwrite: true });
+// await copy('./web/index.html', './web/guide/index.html', { overwrite: true });
+// await copy('./web/index.html', './web/security/index.html', { overwrite: true });
 
-await copy('./pro/x-poly.js', './web/x-poly.js', { overwrite: true });
+// await emptyDir('./docs/');
+// await copy('./web', './docs', { overwrite: true });
 
-await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
+// await run({ cmd: ['git', 'commit', '-a', '-m', version] }).status();
+// await run({ cmd: ['git', 'push'] }).status();
+// await run({ cmd: ['git', 'tag', version] }).status();
+// await run({ cmd: ['git', 'push', '--tag'] }).status();
 
-await copy('./web/index.html', './web/404.html', { overwrite: true });
-await emptyDir('./docs/');
-await copy('./web', './docs', { overwrite: true });
-
-await run({ cmd: ['git', 'commit', '-a', '-m', version] }).status();
-await run({ cmd: ['git', 'push'] }).status();
-await run({ cmd: ['git', 'tag', version] }).status();
-await run({ cmd: ['git', 'push', '--tag'] }).status();
-
-await run({ cmd: ['npm', 'publish', '--access', 'public'] }).status();
-
-// stop();
+// await run({ cmd: ['npm', 'publish', '--access', 'public'] }).status();

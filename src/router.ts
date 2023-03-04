@@ -1,4 +1,4 @@
-import render from './render.ts';
+import render from './render';
 
 type Route = {
     path?: string;

@@ -1,9 +1,9 @@
-import html from './html.ts';
-import display from './display.ts';
-import observe from './observe.ts';
-import booleans from './booleans.ts';
-import { HtmlSymbol } from './html.ts';
-import { replaceChildren } from './poly.ts';
+import html from './html';
+import display from './display';
+import observe from './observe';
+import booleans from './booleans';
+import { HtmlSymbol } from './html';
+import { includes, replaceChildren } from './poly';
 
 type Value = any;
 type OldValue = Value;
@@ -12,10 +12,11 @@ type Values = Array<Value>;
 type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
 
 const links= [ 'src', 'href', 'xlink:href' ];
-const safeLink = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 // const dangerousPattern = /j\s*a\s*v\s*s\s*c\s*r\s*i\s*p\s*t\s*:|d\s*a\s*t\s*a\s*:\s*t\s*e\s*x\s*t\s*\/\s*h\s*t\s*m\s*l/i;
 const dangerousLink = function (data: string) {
-    return typeof data !== 'string' || !safeLink.test(data);
+    return typeof data !== 'string' || !safePattern.test(data);
+    // return typeof data !== 'string' || !safePattern.test(data) || dangerousPattern.test(data);
 };
 
 const RootCache = new WeakMap();
@@ -108,6 +109,7 @@ const StandardAction = function (node: Text, oldValue: OldValue, newValue: NewVa
 const AttributeOn = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     if (typeof oldValue === 'function') element.removeEventListener(attribute.name.slice(2), oldValue);
+    if (typeof newValue !== 'function') return console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
     element.addEventListener(attribute.name.slice(2), newValue);
 };
 
@@ -162,9 +164,9 @@ const AttributeName = function (element: Element, attribute: { name: string; val
         AttributeValue(element, attribute, attribute.value, attribute.value);
     } else if (name.startsWith('on')) {
         console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
-    } else if (links.includes(name)) {
+    } else if (includes(links, name)) {
         console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
-    } else if (booleans.includes(name)) {
+    } else if (includes(booleans, name)) {
         attribute.name = name;
         AttributeBoolean(element, attribute, attribute.value, attribute.value);
     } else {
@@ -192,14 +194,18 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
 
     while ((node = walker.nextNode()) !== null) {
         if (node.nodeType === Node.TEXT_NODE) {
+
             const start = node.nodeValue?.indexOf('{{') ?? -1;
+
             if (start == -1) continue;
+
             if (start != 0) {
                 (node as Text).splitText(start);
                 node = walker.nextNode() as Node;
             }
 
             const end = node.nodeValue?.indexOf('}}') ?? -1;
+
             if (end == -1) continue;
 
             if (end + 2 != node.nodeValue?.length) {
@@ -252,11 +258,11 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
                         actions.push(
                             AttributeOn.bind(null, node as Element, attribute),
                         );
-                    } else if (links.includes(name)) {
+                    } else if (includes(links, name)) {
                         actions.push(
                             AttributeLink.bind(null, node as Element, attribute),
                         );
-                    } else if (booleans.includes(name)) {
+                    } else if (includes(booleans, name)) {
                         actions.push(
                             AttributeBoolean.bind(null, node as Element, attribute),
                         );
@@ -268,7 +274,7 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
                 }
 
                 if (!dynamicName && !dynamicValue) {
-                    if (links.includes(name)) {
+                    if (includes(links, name)) {
                         if (dangerousLink(value)) {
                             (node as Element).removeAttribute(name);
                             console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);

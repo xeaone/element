@@ -1,11 +1,11 @@
-// import Component from './component.ts';
-import Schedule from './schedule.ts';
-// import Context from './context.ts';
-import Define from './define.ts';
-import Router from './router.ts';
-import Render from './render.ts';
-// import Patch from './patch.ts';
-// import Mount from './mount.ts';
+// import Component from './component';
+import Schedule from './schedule';
+// import Context from './context';
+import Define from './define';
+import Router from './router';
+import Render from './render';
+// import Patch from './patch';
+// import Mount from './mount';
 
 // export { Component };
 // export { Component as component };

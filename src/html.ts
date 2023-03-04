@@ -1,13 +1,8 @@
-import parse from './parse.ts';
+import { createHTML } from './poly';
+// import parse from './parse';
 
 export const HtmlCache = new WeakMap();
 export const HtmlSymbol = Symbol('html');
-
-const trustedTypes = (globalThis as any).trustedTypes;
-
-const policy = trustedTypes ?
-    trustedTypes.createPolicy('default', { createHTML: (data:unknown) => data, }) :
-    { createHTML: (data:unknown) => data, };
 
 export default function html(strings: string[], ...values: unknown[]) {
     if (HtmlCache.has(strings)) {
@@ -24,9 +19,9 @@ export default function html(strings: string[], ...values: unknown[]) {
 
         data += strings[length];
 
-
         const template = document.createElement('template');
-        template.innerHTML = policy.createHTML(data);
+        template.innerHTML = createHTML(data);
+
         // const template = parse(data);
 
         HtmlCache.set(strings, template);
