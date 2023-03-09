@@ -1,4 +1,4 @@
-// import Component from './component';
+import Component from './component';
 import Schedule from './schedule';
 // import Context from './context';
 import Define from './define';
@@ -7,8 +7,8 @@ import Render from './render';
 // import Patch from './patch';
 // import Mount from './mount';
 
-// export { Component };
-// export { Component as component };
+export { Component };
+export { Component as component };
 
 export { Schedule };
 export { Schedule as schedule };
@@ -32,7 +32,7 @@ export { Render as render };
 // export { Mount as mount };
 
 const Index = {
-    // Component,
+    Component,
     Schedule,
     // Context,
     Define,
@@ -40,7 +40,7 @@ const Index = {
     Render,
     // Patch,
     // Mount,
-    // component: Component,
+    component: Component,
     schedule: Schedule,
     // context: Context,
     define: Define,

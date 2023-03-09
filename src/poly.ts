@@ -31,3 +31,18 @@ export const createHTML = function (data: string) {
         return data;
     }
 }
+
+export const getOwnPropertyDescriptors = function (object:any) {
+    if (Object.hasOwnProperty('getOwnPropertyDescriptors')) {
+        return Reflect.get(Object, 'getOwnPropertyDescriptors')(object);
+    } else {
+        return Reflect.ownKeys(object).reduce((descriptors, key) => {
+            return Object.defineProperty(descriptors, key, {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: Object.getOwnPropertyDescriptor(object, key)
+            });
+        });
+    }
+}

@@ -1,76 +1,6 @@
-/************************************************************************
-Name: XElement
-Version: 8.0.0
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-
-// src/schedule.ts
-var busy = false;
-var sleep = () => new Promise((resolve) => setTimeout(resolve, 0));
-var Actions = [];
-var OldValues = [];
-var NewValues = [];
-function schedule(actions, oldValues, newValues) {
-  return __async(this, null, function* () {
-    var _a;
-    actions = actions != null ? actions : [];
-    oldValues = oldValues != null ? oldValues : [];
-    newValues = newValues != null ? newValues : [];
-    Actions.push(...actions);
-    OldValues.push(...oldValues);
-    NewValues.push(...newValues);
-    if (busy)
-      return;
-    busy = true;
-    let action;
-    let oldValue;
-    let newValue;
-    let max = performance.now() + 50;
-    while (Actions.length > 0) {
-      if (((_a = navigator.scheduling) == null ? void 0 : _a.isInputPending()) || performance.now() >= max) {
-        yield sleep();
-        max = performance.now() + 50;
-        continue;
-      }
-      action = Actions.shift();
-      oldValue = OldValues.shift();
-      newValue = NewValues.shift();
-      if (oldValue !== newValue) {
-        yield action(oldValue, newValue);
-      }
-    }
-    busy = false;
-  });
-}
-
-// src/define.ts
-function define(name, constructor) {
-  customElements.define(name, constructor);
+// src/dash.ts
+function dash(data) {
+  return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
 // src/poly.ts
@@ -78,7 +8,7 @@ var replaceChildren = function(element, ...nodes) {
   while (element.lastChild) {
     element.removeChild(element.lastChild);
   }
-  if (nodes == null ? void 0 : nodes.length) {
+  if (nodes?.length) {
     for (const node of nodes) {
       element.appendChild(
         typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
@@ -97,14 +27,28 @@ var createHTML = function(data) {
     return data;
   }
 };
+var getOwnPropertyDescriptors = function(object) {
+  if (Object.hasOwnProperty("getOwnPropertyDescriptors")) {
+    return Reflect.get(Object, "getOwnPropertyDescriptors")(object);
+  } else {
+    return Reflect.ownKeys(object).reduce((descriptors, key) => {
+      return Object.defineProperty(descriptors, key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: Object.getOwnPropertyDescriptor(object, key)
+      });
+    });
+  }
+};
 
 // src/html.ts
 var HtmlCache = /* @__PURE__ */ new WeakMap();
 var HtmlSymbol = Symbol("html");
-function html(strings, ...values) {
+function html(strings, ...expressions) {
   if (HtmlCache.has(strings)) {
     const template = HtmlCache.get(strings);
-    return { strings, values, template, symbol: HtmlSymbol };
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
   } else {
     let data = "";
     const length = strings.length - 1;
@@ -115,7 +59,7 @@ function html(strings, ...values) {
     const template = document.createElement("template");
     template.innerHTML = createHTML(data);
     HtmlCache.set(strings, template);
-    return { strings, values, template, symbol: HtmlSymbol };
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
   }
 }
 
@@ -268,15 +212,14 @@ var dangerousLink = function(data) {
 };
 var RootCache = /* @__PURE__ */ new WeakMap();
 var ObjectAction = function(start, end, actions, oldValue, newValue) {
-  var _a, _b, _c, _d;
-  oldValue = oldValue != null ? oldValue : {};
-  newValue = newValue != null ? newValue : {};
-  if ((oldValue == null ? void 0 : oldValue.strings) !== newValue.strings) {
+  oldValue = oldValue ?? {};
+  newValue = newValue ?? {};
+  if (oldValue?.strings !== newValue.strings) {
     let next;
     let node = end.previousSibling;
     while (node !== start) {
-      next = node == null ? void 0 : node.previousSibling;
-      (_a = node == null ? void 0 : node.parentNode) == null ? void 0 : _a.removeChild(node);
+      next = node?.previousSibling;
+      node?.parentNode?.removeChild(node);
       node = next;
     }
     const fragment = newValue.template.content.cloneNode(true);
@@ -284,20 +227,19 @@ var ObjectAction = function(start, end, actions, oldValue, newValue) {
     document.adoptNode(fragment);
     const l = actions.length;
     for (let i = 0; i < l; i++) {
-      actions[i]((_b = oldValue.values) == null ? void 0 : _b[i], newValue.values[i]);
+      actions[i](oldValue.values?.[i], newValue.values[i]);
     }
-    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(fragment, end);
+    end.parentNode?.insertBefore(fragment, end);
   } else {
     const l = actions.length;
     for (let i = 0; i < l; i++) {
-      actions[i]((_d = oldValue.values) == null ? void 0 : _d[i], newValue.values[i]);
+      actions[i](oldValue.values?.[i], newValue.values[i]);
     }
   }
 };
 var ArrayAction = function(start, end, actions, oldValue, newValue) {
-  var _a, _b, _c, _d, _e, _f, _g;
-  oldValue = oldValue != null ? oldValue : [];
-  newValue = newValue != null ? newValue : [];
+  oldValue = oldValue ?? [];
+  newValue = newValue ?? [];
   const oldLength = oldValue.length;
   const newLength = newValue.length;
   const common = Math.min(oldLength, newLength);
@@ -307,7 +249,7 @@ var ArrayAction = function(start, end, actions, oldValue, newValue) {
   if (oldLength < newLength) {
     const template = document.createElement("template");
     for (let i = oldLength; i < newLength; i++) {
-      if (((_a = newValue[i]) == null ? void 0 : _a.constructor) === Object && ((_b = newValue[i]) == null ? void 0 : _b.symbol) === HtmlSymbol) {
+      if (newValue[i]?.constructor === Object && newValue[i]?.symbol === HtmlSymbol) {
         const start2 = document.createTextNode("");
         const end2 = document.createTextNode("");
         const action = ObjectAction.bind(null, start2, end2, []);
@@ -323,16 +265,16 @@ var ArrayAction = function(start, end, actions, oldValue, newValue) {
         action(oldValue[i], newValue[i]);
       }
     }
-    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(template.content, end);
+    end.parentNode?.insertBefore(template.content, end);
   } else if (oldLength > newLength) {
     for (let i = oldLength - 1; i > newLength - 1; i--) {
-      if (((_d = oldValue[i]) == null ? void 0 : _d.constructor) === Object && ((_e = oldValue[i]) == null ? void 0 : _e.symbol) === HtmlSymbol) {
+      if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === HtmlSymbol) {
         const { template } = oldValue[i];
         let removes = template.content.childNodes.length + 2;
         while (removes--)
-          (_f = end.parentNode) == null ? void 0 : _f.removeChild(end.previousSibling);
+          end.parentNode?.removeChild(end.previousSibling);
       } else {
-        (_g = end.parentNode) == null ? void 0 : _g.removeChild(end.previousSibling);
+        end.parentNode?.removeChild(end.previousSibling);
       }
     }
     actions.length = newLength;
@@ -394,7 +336,7 @@ var AttributeName = function(element, attribute, oldValue, newValue) {
   if (oldValue === newValue)
     return;
   element.removeAttribute(oldValue);
-  const name = newValue == null ? void 0 : newValue.toLowerCase();
+  const name = newValue?.toLowerCase();
   if (name === "value") {
     attribute.name = name;
     AttributeValue(element, attribute, attribute.value, attribute.value);
@@ -411,38 +353,37 @@ var AttributeName = function(element, attribute, oldValue, newValue) {
   }
 };
 var RenderWalk = function(fragment, values, actions) {
-  var _a, _b, _c, _d, _e, _f, _g, _h;
   const walker = document.createTreeWalker(document, 5, null);
   walker.currentNode = fragment;
   let index = 0;
   let node = fragment.firstChild;
   while ((node = walker.nextNode()) !== null) {
     if (node.nodeType === Node.TEXT_NODE) {
-      const start = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf("{{")) != null ? _b : -1;
+      const start = node.nodeValue?.indexOf("{{") ?? -1;
       if (start == -1)
         continue;
       if (start != 0) {
         node.splitText(start);
         node = walker.nextNode();
       }
-      const end = (_d = (_c = node.nodeValue) == null ? void 0 : _c.indexOf("}}")) != null ? _d : -1;
+      const end = node.nodeValue?.indexOf("}}") ?? -1;
       if (end == -1)
         continue;
-      if (end + 2 != ((_e = node.nodeValue) == null ? void 0 : _e.length)) {
+      if (end + 2 != node.nodeValue?.length) {
         node.splitText(end + 2);
       }
       const newValue = values[index++];
-      if ((newValue == null ? void 0 : newValue.constructor) === Object && (newValue == null ? void 0 : newValue.symbol) === HtmlSymbol) {
+      if (newValue?.constructor === Object && newValue?.symbol === HtmlSymbol) {
         const start2 = document.createTextNode("");
         const end2 = node;
         end2.nodeValue = "";
-        (_f = end2.parentNode) == null ? void 0 : _f.insertBefore(start2, end2);
+        end2.parentNode?.insertBefore(start2, end2);
         actions.push(ObjectAction.bind(null, start2, end2, []));
-      } else if ((newValue == null ? void 0 : newValue.constructor) === Array) {
+      } else if (newValue?.constructor === Array) {
         const start2 = document.createTextNode("");
         const end2 = node;
         end2.nodeValue = "";
-        (_g = end2.parentNode) == null ? void 0 : _g.insertBefore(start2, end2);
+        end2.parentNode?.insertBefore(start2, end2);
         actions.push(ArrayAction.bind(null, start2, end2, []));
       } else {
         node.textContent = "";
@@ -451,7 +392,7 @@ var RenderWalk = function(fragment, values, actions) {
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const names = node.getAttributeNames();
       for (const name of names) {
-        const value = (_h = node.getAttribute(name)) != null ? _h : "";
+        const value = node.getAttribute(name) ?? "";
         const attribute = { name, value };
         const dynamicName = name.includes("{{") && name.includes("}}");
         const dynamicValue = value.includes("{{") && value.includes("}}");
@@ -504,85 +445,286 @@ var RenderWalk = function(fragment, values, actions) {
     }
   }
 };
-var sleep2 = (time) => new Promise((resolve) => setTimeout(resolve, time != null ? time : 0));
-var render = function(root, context, content) {
-  return __async(this, null, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
-    const instance = {};
-    const update = function() {
-      return __async(this, null, function* () {
-        var _a2, _b2, _c2;
-        if (instance.busy)
-          return;
-        else
-          instance.busy = true;
-        yield sleep2(50);
-        if (context.upgrade)
-          yield (_b2 = (_a2 = context.upgrade()) == null ? void 0 : _a2.catch) == null ? void 0 : _b2.call(_a2, console.error);
-        const { values: values2 } = content(html, context);
-        const length2 = instance.actions.length;
-        for (let index = 0; index < length2; index++) {
-          instance.actions[index](instance.values[index], values2[index]);
-        }
-        instance.values = values2;
-        if (context.upgraded)
-          yield (_c2 = context.upgraded()) == null ? void 0 : _c2.catch(console.error);
-        instance.busy = false;
-      });
-    };
-    const cache = RootCache.get(root);
-    if (cache && cache.disconnect)
-      yield (_b = (_a = cache.disconnect()) == null ? void 0 : _a.catch) == null ? void 0 : _b.call(_a, console.error);
-    if (cache && cache.disconnected)
-      yield (_c = cache.disconnected()) == null ? void 0 : _c.catch(console.error);
-    context = observe_default(context(html), update);
-    RootCache.set(root, context);
-    if (context.connect)
-      yield (_e = (_d = context.connect()) == null ? void 0 : _d.catch) == null ? void 0 : _e.call(_d, console.error);
+var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
+var render = async function(root, context, content) {
+  const instance = {};
+  const update2 = async function() {
+    if (instance.busy)
+      return;
+    else
+      instance.busy = true;
+    await sleep(50);
     if (context.upgrade)
-      yield (_g = (_f = context.upgrade()) == null ? void 0 : _f.catch) == null ? void 0 : _g.call(_f, console.error);
-    const { strings, values, template } = content(html, context);
-    instance.busy = false;
-    instance.actions = [];
-    instance.values = values;
-    instance.strings = strings;
-    instance.template = template;
-    instance.fragment = template.content.cloneNode(true);
-    RenderWalk(instance.fragment, instance.values, instance.actions);
-    document.adoptNode(instance.fragment);
-    const length = instance.actions.length;
-    for (let index = 0; index < length; index++) {
-      instance.actions[index](void 0, values[index]);
+      await context.upgrade()?.catch?.(console.error);
+    const { values: values2 } = content(html, context);
+    const length2 = instance.actions.length;
+    for (let index = 0; index < length2; index++) {
+      instance.actions[index](instance.values[index], values2[index]);
     }
-    if (root.replaceChildren) {
-      root.replaceChildren(instance.fragment);
-    } else {
-      replaceChildren(root, instance.fragment);
-    }
+    instance.values = values2;
     if (context.upgraded)
-      yield (_h = context.upgraded()) == null ? void 0 : _h.catch(console.error);
-    if (context.connected)
-      yield (_i = context.connected()) == null ? void 0 : _i.catch(console.error);
-  });
+      await context.upgraded()?.catch(console.error);
+    instance.busy = false;
+  };
+  const cache = RootCache.get(root);
+  if (cache && cache.disconnect)
+    await cache.disconnect()?.catch?.(console.error);
+  if (cache && cache.disconnected)
+    await cache.disconnected()?.catch(console.error);
+  context = observe_default(context(html), update2);
+  RootCache.set(root, context);
+  if (context.connect)
+    await context.connect()?.catch?.(console.error);
+  if (context.upgrade)
+    await context.upgrade()?.catch?.(console.error);
+  const { strings, values, template } = content(html, context);
+  instance.busy = false;
+  instance.actions = [];
+  instance.values = values;
+  instance.strings = strings;
+  instance.template = template;
+  instance.fragment = template.content.cloneNode(true);
+  RenderWalk(instance.fragment, instance.values, instance.actions);
+  document.adoptNode(instance.fragment);
+  const length = instance.actions.length;
+  for (let index = 0; index < length; index++) {
+    instance.actions[index](void 0, values[index]);
+  }
+  if (root.replaceChildren) {
+    root.replaceChildren(instance.fragment);
+  } else {
+    replaceChildren(root, instance.fragment);
+  }
+  if (context.upgraded)
+    await context.upgraded()?.catch(console.error);
+  if (context.connected)
+    await context.connected()?.catch(console.error);
 };
 var render_default = render;
+
+// src/component.ts
+var ROOT = Symbol("root");
+var MOUNT = Symbol("mount");
+var UPDATE = Symbol("update");
+var BUSY = Symbol("busy");
+var ACTIONS = Symbol("actions");
+var FRAGMENT = Symbol("fragment");
+var EXPRESSIONS = Symbol("expressions");
+var create = function() {
+  const tag = this.tag ?? dash(this.name);
+  if (!customElements.get(tag)) {
+    customElements.define(tag, this);
+  }
+  const element = document.createElement(tag);
+  element[MOUNT]();
+  return element;
+};
+var define = function() {
+  const tag = this.tag ?? dash(this.name);
+  if (!customElements.get(tag))
+    return;
+  customElements.define(tag, this);
+};
+var defined = function() {
+  const tag = this.tag ?? dash(this.name);
+  return customElements.whenDefined(tag);
+};
+var update = async function() {
+  if (this[BUSY])
+    return;
+  else
+    this[BUSY] = true;
+  const { values } = this.template();
+  const expressions = values;
+  const length = this[ACTIONS].length;
+  for (let index = 0; index < length; index++) {
+    this[ACTIONS][index](this[EXPRESSIONS][index], expressions[index]);
+  }
+  this[EXPRESSIONS] = expressions;
+  this[BUSY] = false;
+};
+var mount = async function() {
+  console.log(this);
+  const { values, template } = this.template();
+  this[EXPRESSIONS] = values;
+  this[FRAGMENT] = template.content.cloneNode(true);
+  RenderWalk(this[FRAGMENT], this[EXPRESSIONS], this[ACTIONS]);
+  document.adoptNode(this[FRAGMENT]);
+  const length = this[ACTIONS].length;
+  for (let index = 0; index < length; index++) {
+    this[ACTIONS][index](void 0, this[EXPRESSIONS][index]);
+  }
+  if (this[ROOT].replaceChildren) {
+    this[ROOT].replaceChildren(this[FRAGMENT]);
+  } else {
+    replaceChildren(this[ROOT], this[FRAGMENT]);
+  }
+};
+function component(Class) {
+  Class.create = create;
+  Class.define = define;
+  Class.defined = defined;
+  Class.tag = Class.tag || dash(Class.name);
+  Object.defineProperties(Class.prototype, {
+    [UPDATE]: {
+      value: update,
+      writable: false,
+      enumerable: false,
+      configurable: false
+    },
+    [MOUNT]: {
+      value: mount,
+      writable: false,
+      enumerable: false,
+      configurable: false
+    }
+  });
+  const proxy = new Proxy(Class, {
+    construct(target, args, extender) {
+      const self = Reflect.construct(target, args, extender);
+      Object.defineProperties(self, {
+        [BUSY]: {
+          value: false,
+          writable: true,
+          enumerable: false,
+          configurable: false
+        },
+        [ACTIONS]: {
+          value: [],
+          writable: true,
+          enumerable: false,
+          configurable: false
+        },
+        [EXPRESSIONS]: {
+          value: [],
+          writable: true,
+          enumerable: false,
+          configurable: false
+        },
+        [FRAGMENT]: {
+          value: void 0,
+          writable: true,
+          enumerable: false,
+          configurable: false
+        },
+        [ROOT]: {
+          value: target.shadow === true ? self.shadowRoot ?? self.attachShadow({ mode: "open" }) : self,
+          writable: true,
+          enumerable: false,
+          configurable: false
+        }
+      });
+      const prototype = Object.getPrototypeOf(self);
+      const properties = target.observedProperties ? target.observedProperties ?? [] : [
+        ...Object.getOwnPropertyNames(self),
+        ...Object.getOwnPropertyNames(prototype)
+      ];
+      for (const property of properties) {
+        if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "template" === property)
+          continue;
+        const descriptor = Object.getOwnPropertyDescriptor(self, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
+        if (!descriptor)
+          continue;
+        if (!descriptor.configurable)
+          continue;
+        Object.defineProperty(self, `_${property}`, {
+          ...descriptor,
+          enumerable: false
+        });
+        Object.defineProperty(self, property, {
+          enumerable: descriptor.enumerable,
+          configurable: descriptor.configurable,
+          get: () => self[`_${property}`],
+          set: (value) => {
+            const result = self[`_${property}`] = value;
+            self[UPDATE]();
+            return result;
+          }
+        });
+      }
+      console.log(Object.getOwnPropertyNames(self));
+      console.log(getOwnPropertyDescriptors(self));
+      customElements.upgrade(self);
+      customElements.whenDefined(Class.tag).then(() => self[MOUNT]());
+      return self;
+    }
+  });
+  return proxy;
+}
+var XTest = class extends HTMLElement {
+  // static tag = 'x-test';
+  // static shadow = true;
+  // static observedProperties = ['message'];
+  message = "hello world";
+  // #message = 'hello world';
+  // get message (){return this.#message};
+  // set message (value){ this.#message=value};
+  template = () => html`
+        <h1>${this.message}</h1>
+        <input value=${this.message} oninput=${(e2) => this.message = e2.target.value} />
+    `;
+};
+component(XTest);
+var e = document.createElement("x-test");
+setTimeout(() => {
+  console.log(e.outerHTML);
+  document.body.append(e);
+}, 2e3);
+
+// src/schedule.ts
+var busy = false;
+var sleep2 = () => new Promise((resolve) => setTimeout(resolve, 0));
+var Actions = [];
+var OldValues = [];
+var NewValues = [];
+async function schedule(actions, oldValues, newValues) {
+  actions = actions ?? [];
+  oldValues = oldValues ?? [];
+  newValues = newValues ?? [];
+  Actions.push(...actions);
+  OldValues.push(...oldValues);
+  NewValues.push(...newValues);
+  if (busy)
+    return;
+  busy = true;
+  let action;
+  let oldValue;
+  let newValue;
+  let max = performance.now() + 50;
+  while (Actions.length > 0) {
+    if (navigator.scheduling?.isInputPending() || performance.now() >= max) {
+      await sleep2();
+      max = performance.now() + 50;
+      continue;
+    }
+    action = Actions.shift();
+    oldValue = OldValues.shift();
+    newValue = NewValues.shift();
+    if (oldValue !== newValue) {
+      await action(oldValue, newValue);
+    }
+  }
+  busy = false;
+}
+
+// src/define.ts
+function define2(name, constructor) {
+  customElements.define(name, constructor);
+}
 
 // src/router.ts
 var alls = [];
 var routes = [];
-var transition = function(route) {
-  return __async(this, null, function* () {
-    yield render_default(route.root, route.context, route.content);
-  });
+var transition = async function(route) {
+  await render_default(route.root, route.context, route.content);
 };
 var navigate = function(event) {
-  var _a, _b, _c;
   if (event && "canIntercept" in event && event.canIntercept === false)
     return;
   if (event && "canTransition" in event && event.canTransition === false)
     return;
-  const destination = new URL((_a = event == null ? void 0 : event.destination.url) != null ? _a : location.href);
-  const base = new URL((_c = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c : location.origin);
+  const destination = new URL(event?.destination.url ?? location.href);
+  const base = new URL(document.querySelector("base")?.href ?? location.origin);
   base.hash = "";
   base.search = "";
   destination.hash = "";
@@ -613,9 +755,9 @@ var navigate = function(event) {
       continue;
     transitions.push(all);
   }
-  if (event == null ? void 0 : event.intercept) {
+  if (event?.intercept) {
     return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
-  } else if (event == null ? void 0 : event.transitionWhile) {
+  } else if (event?.transitionWhile) {
     return event.transitionWhile(transitions.map((route) => transition(route)));
   } else {
     transitions.map((route) => transition(route));
@@ -651,18 +793,18 @@ var router_default = router;
 
 // src/index.ts
 var Index = {
-  // Component,
+  Component: component,
   Schedule: schedule,
   // Context,
-  Define: define,
+  Define: define2,
   Router: router_default,
   Render: render_default,
   // Patch,
   // Mount,
-  // component: Component,
+  component,
   schedule,
   // context: Context,
-  define,
+  define: define2,
   router: router_default,
   render: render_default
   // patch: Patch,
@@ -670,12 +812,14 @@ var Index = {
 };
 var src_default = Index;
 export {
-  define as Define,
+  component as Component,
+  define2 as Define,
   render_default as Render,
   router_default as Router,
   schedule as Schedule,
+  component,
   src_default as default,
-  define,
+  define2 as define,
   render_default as render,
   router_default as router,
   schedule

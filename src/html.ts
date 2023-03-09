@@ -4,10 +4,24 @@ import { createHTML } from './poly';
 export const HtmlCache = new WeakMap();
 export const HtmlSymbol = Symbol('html');
 
-export default function html(strings: string[], ...values: unknown[]) {
+type TemplateExpressionsArray = any[];
+
+// export class H {
+//     strings:TemplateStringsArray;
+//     expressions:TemplateExpressionsArray;
+//     template: HTMLTemplateElement;
+//     constructor(strings: TemplateStringsArray, expressions: TemplateExpressionsArray, template: HTMLTemplateElement) {
+//         this.strings = strings;
+//         this.expressions = expressions;
+//         this.template = template;
+//     }
+// }
+
+export default function html(strings: TemplateStringsArray, ...expressions: TemplateExpressionsArray) {
     if (HtmlCache.has(strings)) {
         const template = HtmlCache.get(strings);
-        return { strings, values, template, symbol: HtmlSymbol };
+        // return new H(strings, expressions, template);
+        return { strings, expressions, values:expressions, template, symbol: HtmlSymbol };
     } else {
         let data = '';
 
@@ -26,6 +40,7 @@ export default function html(strings: string[], ...values: unknown[]) {
 
         HtmlCache.set(strings, template);
 
-        return { strings, values, template, symbol: HtmlSymbol };
+        // return new H(strings, expressions, template);
+        return { strings, expressions, values:expressions, template, symbol: HtmlSymbol };
     }
 }

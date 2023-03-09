@@ -184,7 +184,7 @@ const AttributeName = function (element: Element, attribute: { name: string; val
     // element.setAttribute(attribute.name, attribute.value);
 };
 
-const RenderWalk = function (fragment: DocumentFragment, values: Values, actions: Actions) {
+export const RenderWalk = function (fragment: DocumentFragment, values: Values, actions: Actions) {
     const walker = document.createTreeWalker(document, 5, null);
 
     walker.currentNode = fragment;
@@ -294,7 +294,13 @@ const RenderWalk = function (fragment: DocumentFragment, values: Values, actions
 
 const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
 
-const render = async function (root: Element, context: any, content: any) {
+const render = async function (
+        root: Element | ShadowRoot,
+        // context: () => Record<any,any>,
+        // content: (context: Record<any,any>) => any
+        context: any,
+        content: any
+    ) {
     const instance: any = {};
 
     const update = async function () {
@@ -320,7 +326,6 @@ const render = async function (root: Element, context: any, content: any) {
     };
 
     const cache = RootCache.get(root);
-
     if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
     if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
 
