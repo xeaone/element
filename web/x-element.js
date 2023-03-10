@@ -1,3 +1,10 @@
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
+
 // src/dash.ts
 function dash(data) {
   return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
@@ -25,20 +32,6 @@ var createHTML = function(data) {
     return policy.createHTML(data);
   } else {
     return data;
-  }
-};
-var getOwnPropertyDescriptors = function(object) {
-  if (Object.hasOwnProperty("getOwnPropertyDescriptors")) {
-    return Reflect.get(Object, "getOwnPropertyDescriptors")(object);
-  } else {
-    return Reflect.ownKeys(object).reduce((descriptors, key) => {
-      return Object.defineProperty(descriptors, key, {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        value: Object.getOwnPropertyDescriptor(object, key)
-      });
-    });
   }
 };
 
@@ -503,20 +496,18 @@ var render = async function(root, context, content) {
 var render_default = render;
 
 // src/component.ts
-var ROOT = Symbol("root");
-var MOUNT = Symbol("mount");
-var UPDATE = Symbol("update");
-var BUSY = Symbol("busy");
-var ACTIONS = Symbol("actions");
-var FRAGMENT = Symbol("fragment");
-var EXPRESSIONS = Symbol("expressions");
+var Expressions = /* @__PURE__ */ new WeakMap();
+var Actions = /* @__PURE__ */ new WeakMap();
+var Busy = /* @__PURE__ */ new WeakMap();
+var Fragment = /* @__PURE__ */ new WeakMap();
+var Root = /* @__PURE__ */ new WeakMap();
 var create = function() {
   const tag = this.tag ?? dash(this.name);
   if (!customElements.get(tag)) {
     customElements.define(tag, this);
   }
   const element = document.createElement(tag);
-  element[MOUNT]();
+  mount(element);
   return element;
 };
 var define = function() {
@@ -529,93 +520,57 @@ var defined = function() {
   const tag = this.tag ?? dash(this.name);
   return customElements.whenDefined(tag);
 };
-var update = async function() {
-  if (this[BUSY])
+var update = async function(self) {
+  if (Busy.get(self))
     return;
   else
-    this[BUSY] = true;
-  const { values } = this.template();
-  const expressions = values;
-  const length = this[ACTIONS].length;
+    Busy.set(self, true);
+  const result = self.template();
+  const actions = Actions.get(self);
+  const oldExpressions = Expressions.get(self);
+  const newExpressions = result.expressions;
+  const length = actions.length ?? 0;
   for (let index = 0; index < length; index++) {
-    this[ACTIONS][index](this[EXPRESSIONS][index], expressions[index]);
+    actions[index](oldExpressions[index], newExpressions[index]);
   }
-  this[EXPRESSIONS] = expressions;
-  this[BUSY] = false;
+  oldExpressions.splice(0, -1, ...newExpressions);
+  Busy.set(self, false);
 };
-var mount = async function() {
-  console.log(this);
-  const { values, template } = this.template();
-  this[EXPRESSIONS] = values;
-  this[FRAGMENT] = template.content.cloneNode(true);
-  RenderWalk(this[FRAGMENT], this[EXPRESSIONS], this[ACTIONS]);
-  document.adoptNode(this[FRAGMENT]);
-  const length = this[ACTIONS].length;
+var mount = async function(self) {
+  const result = self.template();
+  const expressions = result.values;
+  Expressions.set(self, expressions);
+  const fragment = result.template.content.cloneNode(true);
+  Fragment.set(self, fragment);
+  const actions = [];
+  Actions.set(self, actions);
+  RenderWalk(fragment, expressions, actions);
+  document.adoptNode(fragment);
+  const length = actions.length;
   for (let index = 0; index < length; index++) {
-    this[ACTIONS][index](void 0, this[EXPRESSIONS][index]);
+    actions[index](void 0, expressions[index]);
   }
-  if (this[ROOT].replaceChildren) {
-    this[ROOT].replaceChildren(this[FRAGMENT]);
-  } else {
-    replaceChildren(this[ROOT], this[FRAGMENT]);
-  }
+  const root = Root.get(self);
+  replaceChildren(root, fragment);
 };
 function component(Class) {
   Class.create = create;
   Class.define = define;
   Class.defined = defined;
-  Class.tag = Class.tag || dash(Class.name);
-  Object.defineProperties(Class.prototype, {
-    [UPDATE]: {
-      value: update,
-      writable: false,
-      enumerable: false,
-      configurable: false
-    },
-    [MOUNT]: {
-      value: mount,
-      writable: false,
-      enumerable: false,
-      configurable: false
-    }
-  });
-  const proxy = new Proxy(Class, {
-    construct(target, args, extender) {
-      const self = Reflect.construct(target, args, extender);
-      Object.defineProperties(self, {
-        [BUSY]: {
-          value: false,
-          writable: true,
-          enumerable: false,
-          configurable: false
-        },
-        [ACTIONS]: {
-          value: [],
-          writable: true,
-          enumerable: false,
-          configurable: false
-        },
-        [EXPRESSIONS]: {
-          value: [],
-          writable: true,
-          enumerable: false,
-          configurable: false
-        },
-        [FRAGMENT]: {
-          value: void 0,
-          writable: true,
-          enumerable: false,
-          configurable: false
-        },
-        [ROOT]: {
-          value: target.shadow === true ? self.shadowRoot ?? self.attachShadow({ mode: "open" }) : self,
-          writable: true,
-          enumerable: false,
-          configurable: false
-        }
-      });
-      const prototype = Object.getPrototypeOf(self);
-      const properties = target.observedProperties ? target.observedProperties ?? [] : [
+  const tag = Class.tag;
+  const shadow = Class.shadow;
+  const observedProperties = Class.observedProperties;
+  const prototype = Class.prototype;
+  class Result extends Class {
+    constructor() {
+      super();
+      const self = this;
+      if (shadow) {
+        Root.set(self, self.shadowRoot ?? self.attachShadow({ mode: "open" }));
+      } else {
+        Root.set(self, self);
+      }
+      const properties = observedProperties ? observedProperties ?? [] : [
         ...Object.getOwnPropertyNames(self),
         ...Object.getOwnPropertyNames(prototype)
       ];
@@ -634,54 +589,62 @@ function component(Class) {
         Object.defineProperty(self, property, {
           enumerable: descriptor.enumerable,
           configurable: descriptor.configurable,
-          get: () => self[`_${property}`],
-          set: (value) => {
-            const result = self[`_${property}`] = value;
-            self[UPDATE]();
-            return result;
+          get() {
+            return this[`_${property}`];
+          },
+          set(value) {
+            this[`_${property}`] = value;
+            update(self);
           }
         });
       }
-      console.log(Object.getOwnPropertyNames(self));
-      console.log(getOwnPropertyDescriptors(self));
-      customElements.upgrade(self);
-      customElements.whenDefined(Class.tag).then(() => self[MOUNT]());
-      return self;
+      if (tag) {
+        customElements.upgrade(self);
+        customElements.whenDefined(tag).then(() => mount(self));
+      }
     }
-  });
-  return proxy;
+    // async connectedCallback() {
+    //     await customElements.whenDefined(tag as string);
+    //     mount(this as any);
+    //     await super.connectedCallback?.();
+    // }
+  }
+  ;
+  if (tag && !customElements.get(tag)) {
+    customElements.define(tag, Result);
+  }
+  return Result;
 }
-var XTest = class extends HTMLElement {
-  // static tag = 'x-test';
-  // static shadow = true;
-  // static observedProperties = ['message'];
-  message = "hello world";
-  // #message = 'hello world';
-  // get message (){return this.#message};
-  // set message (value){ this.#message=value};
-  template = () => html`
+var _a;
+component(
+  (_a = class extends HTMLElement {
+    // static shadow = true;
+    // static observedProperties = ['message'];
+    message = "hello world";
+    template = () => html`
         <h1>${this.message}</h1>
         <input value=${this.message} oninput=${(e2) => this.message = e2.target.value} />
     `;
-};
-component(XTest);
+    connectedCallback() {
+      console.log("xtest");
+    }
+  }, __publicField(_a, "tag", "x-test"), _a)
+);
 var e = document.createElement("x-test");
-setTimeout(() => {
-  console.log(e.outerHTML);
-  document.body.append(e);
-}, 2e3);
+console.log(e.outerHTML);
+document.body.append(e);
 
 // src/schedule.ts
 var busy = false;
 var sleep2 = () => new Promise((resolve) => setTimeout(resolve, 0));
-var Actions = [];
+var Actions2 = [];
 var OldValues = [];
 var NewValues = [];
 async function schedule(actions, oldValues, newValues) {
   actions = actions ?? [];
   oldValues = oldValues ?? [];
   newValues = newValues ?? [];
-  Actions.push(...actions);
+  Actions2.push(...actions);
   OldValues.push(...oldValues);
   NewValues.push(...newValues);
   if (busy)
@@ -691,13 +654,13 @@ async function schedule(actions, oldValues, newValues) {
   let oldValue;
   let newValue;
   let max = performance.now() + 50;
-  while (Actions.length > 0) {
+  while (Actions2.length > 0) {
     if (navigator.scheduling?.isInputPending() || performance.now() >= max) {
       await sleep2();
       max = performance.now() + 50;
       continue;
     }
-    action = Actions.shift();
+    action = Actions2.shift();
     oldValue = OldValues.shift();
     newValue = NewValues.shift();
     if (oldValue !== newValue) {
