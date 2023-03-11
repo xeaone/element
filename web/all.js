@@ -1,21 +1,12 @@
+import { component, html } from './x-element.js';
 
-export const context = () => ({});
+export default component(class XAll extends HTMLElement {
 
-export const content = (html) => html`
-    <section>
-        <h1>404</h1>
-        <h2>Page Not Found</h2>
-    </section>
-`;
+    template = () => html`
+        <section>
+            <h1>404</h1>
+            <h2>Page Not Found</h2>
+        </section>
+    `;
 
-/*
-export default ((c, a, b) => html`
-    <section>
-        ${a} ${b} ${c.foo}
-        <h1>404</h1>
-        <h2>Page Not Found</h2>
-    </section>
-`)({
-    foo: 'bar'
 });
-*/

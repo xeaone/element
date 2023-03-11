@@ -1,9 +1,7 @@
-import html from './html';
 import display from './display';
-import observe from './observe';
 import booleans from './booleans';
 import { HtmlSymbol } from './html';
-import { includes, replaceChildren } from './poly';
+import { includes } from './poly';
 
 type Value = any;
 type OldValue = Value;
@@ -13,13 +11,10 @@ type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
 
 const links= [ 'src', 'href', 'xlink:href' ];
 const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
-// const dangerousPattern = /j\s*a\s*v\s*s\s*c\s*r\s*i\s*p\s*t\s*:|d\s*a\s*t\s*a\s*:\s*t\s*e\s*x\s*t\s*\/\s*h\s*t\s*m\s*l/i;
+
 const dangerousLink = function (data: string) {
     return typeof data !== 'string' || !safePattern.test(data);
-    // return typeof data !== 'string' || !safePattern.test(data) || dangerousPattern.test(data);
 };
-
-const RootCache = new WeakMap();
 
 const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
     oldValue = oldValue ?? {};
@@ -33,9 +28,6 @@ const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValu
             node?.parentNode?.removeChild(node);
             node = next;
         }
-
-        // const fragment = document.importNode(newValue.template.content, true);
-        // RenderWalk(fragment, newValue.values, actions);
 
         const fragment = newValue.template.content.cloneNode(true);
         RenderWalk(fragment, newValue.values, actions);
@@ -292,77 +284,4 @@ export const RenderWalk = function (fragment: DocumentFragment, values: Values, 
     }
 };
 
-const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
-
-const render = async function (
-        root: Element | ShadowRoot,
-        // context: () => Record<any,any>,
-        // content: (context: Record<any,any>) => any
-        context: any,
-        content: any
-    ) {
-    const instance: any = {};
-
-    const update = async function () {
-        if (instance.busy) return;
-        else instance.busy = true;
-
-        await sleep(50);
-
-        if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-
-        const { values } = content(html, context);
-
-        const length = instance.actions.length;
-        for (let index = 0; index < length; index++) {
-            instance.actions[index](instance.values[index], values[index]);
-        }
-
-        instance.values = values;
-
-        if (context.upgraded) await context.upgraded()?.catch(console.error);
-
-        instance.busy = false;
-    };
-
-    const cache = RootCache.get(root);
-    if (cache && cache.disconnect) await cache.disconnect()?.catch?.(console.error);
-    if (cache && cache.disconnected) await cache.disconnected()?.catch(console.error);
-
-    context = observe(context(html), update);
-
-    RootCache.set(root, context);
-
-    if (context.connect) await context.connect()?.catch?.(console.error);
-    if (context.upgrade) await context.upgrade()?.catch?.(console.error);
-
-    const { strings, values, template } = content(html, context);
-
-    instance.busy = false;
-    instance.actions = [];
-    instance.values = values;
-    instance.strings = strings;
-    instance.template = template;
-    // instance.fragment = document.importNode(template.content, true);
-    instance.fragment = template.content.cloneNode(true);
-
-    RenderWalk(instance.fragment, instance.values, instance.actions);
-
-    document.adoptNode(instance.fragment);
-
-    const length = instance.actions.length;
-    for (let index = 0; index < length; index++) {
-        instance.actions[index](undefined, values[index]);
-    }
-
-    if (root.replaceChildren) {
-        root.replaceChildren(instance.fragment);
-    } else {
-        replaceChildren(root, instance.fragment);
-    }
-
-    if (context.upgraded) await context.upgraded()?.catch(console.error);
-    if (context.connected) await context.connected()?.catch(console.error);
-};
-
-export default render;
+export default RenderWalk;

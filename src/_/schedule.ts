@@ -1,6 +1,6 @@
 let busy = false;
 
-const sleep = () => new Promise((resolve) => setTimeout(resolve, 0));
+const sleep = (time?: number) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
 
 const Actions: any = [];
 const OldValues: any = [];

@@ -1,120 +1,81 @@
+import { component, html } from './x-element.js';
 import Highlight from './modules/highlight.js';
 
 const componentExample = Highlight(`
-import { render } from '/x-element.js';
+import { component, html } from '/x-element.js';
 
-const context = () => ({
-    greeting: 'Default Greeting',
-    greet() { this.greeting = 'Updated Greeting'; }
-});
+class XGreet extends HTMLElement {
 
-const content = (html, { greeting, greet }) => html\`
-    <h1>greeting</h1>
-    <button onclick=\${greet}>Greet</button>
-\`;
+    greeting = 'Default Greeting';
+    greet() { this.greeting = 'Updated Greeting'; };
 
-const root = document.body;
+    template = () => html\`
+        <h1>this.greeting</h1>
+        <button onclick=\${this.greet}>Greet</button>
+    \`;
 
-render(root, context, content);
-`);
+}
 
-// import { Component } from '/x-element.js';
-
-// export class MyGreeting extends Component {
-
-//     static context = () => ({
-//         greeting: 'Default Greeting',
-//         greet() { this.greeting = 'Updated Greeting'; }
-//     });
-
-//     static component = (
-//         { h1, button },
-//         { greeting, greet }
-//     ) => [
-//         h1(greeting),
-//         button('Greet').onclick(greet)
-//     ];
-
-// }
-
-// MyGreeting.define();
-
-// const target = document.querySelector('main');
-// const instance = document.createElement('my-greeting');
-
-// target.replaceChildren(instance);
-
-const elementExample = Highlight(`
-    Comming
+export default component(XGreet);
 `);
 
 const routerExample = Highlight(`
 import { router } from '/x-element.js';
 
-const context = () => ({
-    greeting: 'Default Greeting',
-    greet() { this.greeting = 'Updated Greeting'; }
-});
-
-const content = (html, { greeting, greet }) => html\`
-    <h1>greeting</h1>
-    <button onclick=\${greet}>Greet</button>
-\`;
-
-const root = document.body;
-
-router('/', root, context, content);
+router('/', container, () => import('/greet.js'));
 `);
 
-export const context = () => ({
+export default component(class XRoot extends HTMLElement {
+
     upgraded () {
-        document.querySelector('#component').innerHTML = componentExample;
-        document.querySelector('#router').innerHTML = routerExample;
-        document.querySelector('#element').innerHTML = elementExample;
+        this.querySelector('#router').innerHTML = routerExample;
+        this.querySelector('#component').innerHTML = componentExample;
     }
+
+    template = () => html`
+    <section>
+
+        <h2>Vision</h2>
+        <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
+
+        <h3>Features</h3>
+        <div class="tiles">
+            <div class="tile">
+                <h4>\u{1F476} Simple</h4>
+                <span>Simple to learning if you know custom elements you know XElement.</span>
+            </div>
+            <div class="tile">
+                <h4>\u{1F4E6} Shareable</h4>
+                <span>A single class to build a single component or an entire app.</span>
+            </div>
+            <div class="tile">
+                <h4>\u{26A1} Fast</h4>
+                <span>Tiny footprint ~15KB (minified and compressed).</span>
+            </div>
+            <div class="tile">
+                <h4>\u{1F477} Framework Agnostic</h4>
+                <span>Use XElement with any framework - React, Vue, Angular...</span>
+            </div>
+            <div class="tile">
+                <h4>\u{1F9ED} Client Side Routing</h4>
+                <span>
+                    Using the new
+                    <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
+                </span>
+            </div>
+        </div>
+
+        <h3>Component</h3>
+        <p>
+            Pass a Custom Element Constructor to <code>component()</code> and it be decorated with XElement super powers.
+            Use Template Literal with the <code>html</code> Template Tag to give your Custom Element HTML.
+        </p>
+        <pre id="component"></pre>
+
+        <h3>Router</h3>
+        <pre id="router"></pre>
+
+    </section>
+    `;
+
 });
-
-export const content = (html) => html`
-<section>
-
-    <h2>Vision</h2>
-    <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
-
-    <h2>Features</h2>
-    <div class="tiles">
-        <div class="tile">
-            <h4>\u{1F476} Simple</h4>
-            <span>Simple to learning if you know custom elements you know XElement.</span>
-        </div>
-        <div class="tile">
-            <h4>\u{1F4E6} Shareable</h4>
-            <span>A single class to build a single component or an entire app.</span>
-        </div>
-        <div class="tile">
-            <h4>\u{26A1} Fast</h4>
-            <span>Tiny footprint ~15KB (minified and compressed).</span>
-        </div>
-        <div class="tile">
-            <h4>\u{1F477} Framework Agnostic</h4>
-            <span>Use XElement with any framework - React, Vue, Angular...</span>
-        </div>
-        <div class="tile">
-            <h4>\u{1F9ED} Client Side Routing</h4>
-            <span>
-                Using the new
-                <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
-            </span>
-        </div>
-    </div>
-
-    <h2>Component Example</h2>
-    <pre id="component"></pre>
-
-    <h2>Router Example</h2>
-    <pre id="router"></pre>
-
-    <h2>Element Example</h2>
-    <pre id="element"></pre>
-
-</section>
-`;

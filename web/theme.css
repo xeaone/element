@@ -17,7 +17,8 @@ pre code.hljs {
     color: var(--font);
 }
 .hljs-subst {
-    color: var(--pink);
+    color: var(--blue);
+    /* color: var(--pink); */
 }
 .hljs-operator,.hljs-punctuation {
     color: #80868b;

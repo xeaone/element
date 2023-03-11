@@ -4,16 +4,23 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <base href="/element/">
+
+        <script>
+            const base = document.createElement('base');
+            if (location.host.startsWith('localhost')) base.href="/performance/";
+            else base.href="/element/";
+            document.head.prepend(base);
+        </script>
+
         <title>XElement Performance</title>
-        <link rel="stylesheet" href="./performance/index.css">
+        <link rel="stylesheet" href="./index.css">
     </head>
     <body>
         <h1>XElement Performance</h1>
 
         <main></main>
 
-        <script type="module" src="./performance/index.js" defer></script>
+        <script type="module" src="./index.js" defer></script>
 
     </body>
 </html>

@@ -1,3 +1,4 @@
 tmp
 cov
 deno.lock
+node_modules

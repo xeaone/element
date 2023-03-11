@@ -1,3 +1,4 @@
+import { component, html } from './x-element.js';
 import Highlight from './modules/highlight.js';
 
 // https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html#on-error-alert
@@ -5,7 +6,8 @@ import Highlight from './modules/highlight.js';
 // causes page reload
 
     // <style>body {background: url("javascript:alert('XSS')"); }</style>
-const overviewComponent = (e) => e`
+const h = html;
+const overviewComponent = () => h`
 
     <div background="javascript:alert('XSS')"></div>
     <body background="javascript:alert('XSS')"></body>
@@ -147,15 +149,15 @@ const overviewComponent = (e) => e`
 
 `;
 
-const polygotComponent = (e) => e`
+const polygotComponent = () => h`
     javascript:/*--></title></style></textarea></script></xmp><svg/onload='+/"/+/onmouseover=1/+/[*/[]/+alert(1)//'>
 `;
 
-const malformedAComponent = (e) => e`
+const malformedAComponent = () => h`
     \<a onmouseover="alert(document.cookie)"\>xxs link\</a\>
 `;
 
-const malformedImgComponent = (e) => e`
+const malformedImgComponent = () => h`
     <img """><script>alert("XSS")</script>"\>
     <img src=javascript:alert(String.fromCharCode(88,83,83))>
 `;
@@ -174,7 +176,8 @@ const values = {
     malformedImg: Highlight(malformedImgComponent.toString()),
 };
 
-export const context = () => ({
+export default component(class XSecurity extends HTMLElement {
+
     upgraded () {
         for (const name of names) {
             const codeElement = document.querySelector(`#${name}Code`);
@@ -190,11 +193,10 @@ export const context = () => ({
             }
         }
     }
-});
 
-export const content = (html, ctx) => html`
+    template = () => html`
 
-     <section id="overview">
+    <section id="overview">
         <h3>Security Overview</h3>
         <p>
         HTML string is parsed into DOM using a Template Element's DocumentFragment.
@@ -206,7 +208,7 @@ export const content = (html, ctx) => html`
             <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html">XSS Filter Evasion Cheat Sheet</a></li>
         </ul>
         <pre id="overviewCode"></pre>
-        <pre id="overviewComponent">${overviewComponent(html,ctx)}</pre>
+        <pre id="overviewComponent">${overviewComponent()}</pre>
         <pre id="overviewSource"></pre>
     </section>
 
@@ -216,7 +218,7 @@ export const content = (html, ctx) => html`
             <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html#xss-locator-polygot">Owasp - Polygot</a></li>
         </ul>
         <pre id="polygotCode"></pre>
-        <pre id="polygotComponent">${polygotComponent(html,ctx)}</pre>
+        <pre id="polygotComponent">${polygotComponent()}</pre>
         <pre id="polygotSource"></pre>
     </section>
 
@@ -226,7 +228,7 @@ export const content = (html, ctx) => html`
             <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html#malformed-a-tags">Owasp - Malformed A Tag</a></li>
         </ul>
         <pre id="malformedACode"></pre>
-        <pre id="malformedAComponent">${malformedAComponent(html,ctx)}</pre>
+        <pre id="malformedAComponent">${malformedAComponent()}</pre>
         <pre id="malformedASource"></pre>
     </section>
 
@@ -236,8 +238,10 @@ export const content = (html, ctx) => html`
             <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html#malformed-img-tags">Owasp - Malformed Img Tag</a></li>
         </ul>
         <pre id="malformedImgCode"></pre>
-        <pre id="malformedImgComponent">${malformedImgComponent(html,ctx)}</pre>
+        <pre id="malformedImgComponent">${malformedImgComponent()}</pre>
         <pre id="malformedImgSource"></pre>
     </section>
 
-`;
+    `;
+
+});

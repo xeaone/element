@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&family=Noto+Sans:ital,wght@0,100;0,400;0,700;1,400&display=swap');
 * {
     box-sizing: border-box;
 }
@@ -24,12 +26,12 @@
 }
 @media (prefers-color-scheme: dark) {
     :root {
-        --blue: hsl(200deg, 100%, 78%, 1);
-        --orange: hsl(30deg, 100%, 78%, 1);
-        --green: hsl(150deg, 100%, 78%, 1);
-        --pink: hsl(300deg, 100%, 78%, 1);
-        --purple: hsl(270deg, 100%, 78%, 1);
-        --yellow: hsl(50deg, 100%, 78%, 1);
+        --blue: hsl(200deg, 100%, 80%, 1);
+        --orange: hsl(30deg, 100%, 80%, 1);
+        --green: hsl(150deg, 100%, 80%, 1);
+        --pink: hsl(300deg, 100%, 80%, 1);
+        --purple: hsl(270deg, 100%, 80%, 1);
+        --yellow: hsl(50deg, 100%, 80%, 1);
 
         --layer0: hsl(0deg, 0%, 0%, 1);
         --layer1: hsl(0deg, 0%, 10%, 1);
@@ -55,10 +57,12 @@
     */
 
     --shade0: rgba(255, 255, 255, 0.1);
+    --font-family-mono: 'Noto Sans Mono', monospace;
+    --font-family-default: 'Noto Sans', sans-serif;
 
-    color: var(--font);
     font-size: 16px;
-    font-family: sans-serif;
+    color: var(--font);
+    font-family: var(--font-family-default);
 }
 
 /* :defined {
@@ -85,11 +89,15 @@ body {
     background-color: var(--layer0);
 }
 
+main {
+    font-family: inherit;
+}
+
 a {
     cursor: pointer;
     color: var(--accent);
     text-decoration: none;
-    font-family: sans-serif;
+    font-family: inherit;
 }
 
 p {
@@ -103,9 +111,17 @@ span {
     font-family: inherit;
 }
 
+code {
+    font-size: 1rem;
+    border-radius: 4px;
+    padding: 0.1rem 0.25rem;
+    background: var(--layer2);
+    font-family: var(--font-family-mono);
+}
+
 i {
-    font-weight: 200;
-    font-family: monospace;
+    font-weight: thin;
+    font-family: var(--font-family-mono);
 }
 
 li {
@@ -115,35 +131,35 @@ li {
 h1 {
     margin: 1rem 0;
     font-size: 3rem;
-    font-weight: 300;
     color: var(--font);
-    font-family: sans-serif;
+    font-weight: normal;
+    font-family: inherit;
 }
 
 h2 {
-    font-weight: 300;
     font-size: 2.5rem;
     color: var(--font);
     margin: 3rem 0 1rem 0;
-    font-family: sans-serif;
+    font-weight: normal;
+    font-family: inherit;
 }
 
 h3 {
     padding: 1rem 0;
-    font-weight: 300;
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: var(--font);
+    font-weight: normal;
+    font-family: inherit;
     margin: 3rem 0 1rem 0;
-    font-family: sans-serif;
     border-bottom: solid 2px var(--layer6);
 }
 
 h4 {
     margin: 0.5rem 0;
-    font-weight: 100;
     font-size: 1.5rem;
     color: var(--font);
-    font-family: sans-serif;
+    font-weight: normal;
+    font-family: inherit;
 }
 
 pre,
@@ -154,9 +170,9 @@ article {
     display: block;
     overflow-x: auto;
     border-radius: 4px;
-    font-family: monospace;
     color: var(--font);
     background-color: var(--layer1);
+    font-family: var(--font-family-mono);
 }
 
 /* pre > * {
@@ -183,7 +199,7 @@ input[type="submit"],
 input[type="button"] {
     cursor: pointer;
     font-size: 1rem;
-    font-weight: 100;
+    font-weight: thin;
     background: none;
     border-radius: 3px;
     margin: 0.5rem auto;
@@ -235,11 +251,11 @@ main > * {
 }
 
 .title > h1 {
-    font-weight: 100;
+    font-weight: thin;
 }
 
 .title > h2 {
-    font-weight: 100;
+    font-weight: thin;
     font-size: 1.5rem;
     color: var(--layer6);
 }
@@ -260,7 +276,7 @@ main > * {
 }
 
 .menu a {
-    font-weight: 100;
+    font-weight: normal;
     font-size: 1.25rem;
     color: var(--accent);
     padding: 1rem 1.5rem;

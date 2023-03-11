@@ -1,49 +1,34 @@
-import render from './render';
+import { replaceChildren  } from './poly';
+
+type Handler = () => CustomElementConstructor | Promise<CustomElementConstructor>;
 
 type Route = {
-    path?: string;
-
-    render?: any;
-    context?: any;
-    content?: any;
-    construct?: any;
-
-    name?: string;
-    root: Element;
+    path: string;
+    instance: any;
+    handler: Handler;
+    container: Element;
 };
 
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
 
+const notModule = function (module:any) {
+    return (!Object.keys(module).length) || (!!module.default && typeof module.default === 'object' && !Object.keys(module.default).length);
+};
+
 const transition = async function (route: Route) {
-    // if (route.cache && route.instance) {
-    //     if (route.instance instanceof Component || route.instance.prototype instanceof Component) {
-    //         route.root.replaceChildren(route.instance);
-    //         await route.instance[$].render();
-    //     } else {
-    //         await route.instance.render();
-    //     }
-    // }
-
-    // if (route.component instanceof Component || route.component.prototype instanceof Component) {
-    //     route.name = route.name ?? Dash(route.component.name);
-
-    //     if (!/^\w+-\w+/.test(route.name)) route.name = `x-${route.name}`;
-
-    //     if (!customElements.get(route.name)) customElements.define(route.name, route.component);
-    //     await customElements.whenDefined(route.name);
-
-    //     route.instance = document.createElement(route.name);
-    //     route.root.replaceChildren(route.instance);
-    //     route.instance[$].render();
-
-    // }
-    // if (route.render) {
-    //     route.render();
-    // } else {
-    // route.render = await mount(route.root, route.context, route.content);
-    // }
-    await render(route.root, route.context, route.content);
+    if (route.instance) {
+        replaceChildren(route.container, route.instance);
+    } else {
+        const tag = 'x-' + (route.path.replace(/\/+/g,'-').replace(/^-|-$|\.*/g, '') || 'root');
+        const result = await route.handler() as any;
+        const constructor = notModule(result) ? result : result.default;
+        if (!customElements.get(tag)) {
+            customElements.define(tag, constructor);
+        }
+        route.instance = document.createElement(tag);
+        replaceChildren(route.container, route.instance);
+    }
 };
 
 const navigate = function (event?: any) {
@@ -63,44 +48,23 @@ const navigate = function (event?: any) {
 
     for (const route of routes) {
         if (route.path !== pathname) continue;
-        if (!route.root) continue;
-
-        // const current = Reflect.get(route.root, 'xRouterCurrent');
-        // if (current === route) continue;
-
-        // const busy = Reflect.get(route.root, 'xRouterBusy');
-        // if (busy) continue;
-
-        // if (Reflect.get(route.root, 'xRouterPath') === route.path) continue;
-
-        // const current = Reflect.get(route.root, 'xRouterCurrent');
-        // if (current) current.instance.childNodes = Array.from(current.root.childNodes);
-
-        // Reflect.set(route.root, 'xRouterBusy', true);
-        Reflect.set(route.root, 'xRouterPath', route.path);
         transitions.push(route);
     }
 
     for (const all of alls) {
-        if (!all.root) continue;
         let has = false;
 
         for (const transition of transitions) {
-            if (transition.root === all.root) {
+            if (transition.container === all.container) {
                 has = true;
                 break;
             }
         }
 
         if (has) continue;
-        if (Reflect.get(all.root, 'xRouterPath') === pathname) continue;
-        // if (all.root && Reflect.get(all.root, 'xRouterBusy')) continue;
-        // if (all.root) Reflect.set(all.root, 'xRouterBusy', true);
 
         transitions.push(all);
     }
-
-    // if (!transitions.length) return;
 
     if (event?.intercept) {
         return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
@@ -111,28 +75,27 @@ const navigate = function (event?: any) {
     }
 };
 
-const router = function (path: string, root: Element, context: any, content: any) {
+const router = function (path: string, container: Element, handler: Handler) {
     if (!path) throw new Error('XElement - router path required');
-    if (!root) throw new Error('XElement - router root required');
-    if (!context) throw new Error('XElement - router context required');
-    if (!content) throw new Error('XElement - router content required');
+    if (!handler) throw new Error('XElement - router handler required');
+    if (!container) throw new Error('XElement - router container required');
 
     if (path === '/*') {
         for (const all of alls) {
-            if (all.path === path && all.root === root) {
-                throw new Error('XElement - router duplicate path on root');
+            if (all.path === path && all.container === container) {
+                throw new Error('XElement - router duplicate path on container');
             }
         }
 
-        alls.push({ path, root, context, content });
+        alls.push({ path, container, handler, instance: undefined });
     } else {
         for (const route of routes) {
-            if (route.path === path && route.root === root) {
-                throw new Error('XElement - router duplicate path on root');
+            if (route.path === path && route.container === container) {
+                throw new Error('XElement - router duplicate path on container');
             }
         }
 
-        routes.push({ path, root, context, content });
+        routes.push({ path, container, handler, instance: undefined });
     }
 
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);

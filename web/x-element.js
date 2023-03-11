@@ -1,15 +1,3 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-
-// src/dash.ts
-function dash(data) {
-  return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
-}
-
 // src/poly.ts
 var replaceChildren = function(element, ...nodes) {
   while (element.lastChild) {
@@ -35,27 +23,6 @@ var createHTML = function(data) {
   }
 };
 
-// src/html.ts
-var HtmlCache = /* @__PURE__ */ new WeakMap();
-var HtmlSymbol = Symbol("html");
-function html(strings, ...expressions) {
-  if (HtmlCache.has(strings)) {
-    const template = HtmlCache.get(strings);
-    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
-  } else {
-    let data = "";
-    const length = strings.length - 1;
-    for (let index = 0; index < length; index++) {
-      data += `${strings[index]}{{${index}}}`;
-    }
-    data += strings[length];
-    const template = document.createElement("template");
-    template.innerHTML = createHTML(data);
-    HtmlCache.set(strings, template);
-    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
-  }
-}
-
 // src/display.ts
 function display(data) {
   switch (typeof data) {
@@ -79,75 +46,6 @@ function display(data) {
       throw new Error("display - type not handled");
   }
 }
-
-// src/observe.ts
-var ObserveCache = /* @__PURE__ */ new WeakMap();
-var ObserveNext = Promise.resolve();
-var ObserveSet = function(method, target, key, value, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.set(target, key, value, receiver);
-  const from = Reflect.get(target, key, receiver);
-  if (from === value)
-    return true;
-  if (Number.isNaN(from) && Number.isNaN(value))
-    return true;
-  if (from && (from.constructor.name === "Object" || from.constructor.name === "Array" || from.constructor.name === "Function")) {
-    const cache = ObserveCache.get(from);
-    if (cache === value)
-      return true;
-    ObserveCache.delete(from);
-  }
-  Reflect.set(target, key, value, receiver);
-  ObserveNext.then(method);
-  return true;
-};
-var ObserveGet = function(method, target, key, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.get(target, key, receiver);
-  const value = Reflect.get(target, key, receiver);
-  if (value && (value.constructor.name === "Object" || value.constructor.name === "Array")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      get: ObserveGet.bind(null, method),
-      set: ObserveSet.bind(null, method),
-      deleteProperty: ObserveDelete.bind(null, method)
-    });
-    ObserveCache.set(value, proxy);
-    return proxy;
-  }
-  if (value && target.constructor.name === "Object" && (value.constructor.name === "Function" || value.constructor.name === "AsyncFunction")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      apply(t, _, a) {
-        return Reflect.apply(t, receiver, a);
-      }
-    });
-    ObserveCache.set(value, proxy);
-    return proxy;
-  }
-  return value;
-};
-var ObserveDelete = function(method, target, key) {
-  if (typeof key === "symbol")
-    return Reflect.deleteProperty(target, key);
-  const from = Reflect.get(target, key);
-  ObserveCache.delete(from);
-  Reflect.deleteProperty(target, key);
-  ObserveNext.then(method);
-  return true;
-};
-var Observe = function(data, method) {
-  return new Proxy(data, {
-    get: ObserveGet.bind(null, method),
-    set: ObserveSet.bind(null, method),
-    deleteProperty: ObserveDelete.bind(null, method)
-  });
-};
-var observe_default = Observe;
 
 // src/booleans.ts
 var booleans = [
@@ -197,13 +95,33 @@ var booleans = [
 ];
 var booleans_default = booleans;
 
+// src/html.ts
+var HtmlCache = /* @__PURE__ */ new WeakMap();
+var HtmlSymbol = Symbol("html");
+function html(strings, ...expressions) {
+  if (HtmlCache.has(strings)) {
+    const template = HtmlCache.get(strings);
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+  } else {
+    let data = "";
+    const length = strings.length - 1;
+    for (let index = 0; index < length; index++) {
+      data += `${strings[index]}{{${index}}}`;
+    }
+    data += strings[length];
+    const template = document.createElement("template");
+    template.innerHTML = createHTML(data);
+    HtmlCache.set(strings, template);
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+  }
+}
+
 // src/render.ts
 var links = ["src", "href", "xlink:href"];
 var safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 var dangerousLink = function(data) {
   return typeof data !== "string" || !safePattern.test(data);
 };
-var RootCache = /* @__PURE__ */ new WeakMap();
 var ObjectAction = function(start, end, actions, oldValue, newValue) {
   oldValue = oldValue ?? {};
   newValue = newValue ?? {};
@@ -438,76 +356,100 @@ var RenderWalk = function(fragment, values, actions) {
     }
   }
 };
-var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
-var render = async function(root, context, content) {
-  const instance = {};
-  const update2 = async function() {
-    if (instance.busy)
-      return;
-    else
-      instance.busy = true;
-    await sleep(50);
-    if (context.upgrade)
-      await context.upgrade()?.catch?.(console.error);
-    const { values: values2 } = content(html, context);
-    const length2 = instance.actions.length;
-    for (let index = 0; index < length2; index++) {
-      instance.actions[index](instance.values[index], values2[index]);
-    }
-    instance.values = values2;
-    if (context.upgraded)
-      await context.upgraded()?.catch(console.error);
-    instance.busy = false;
-  };
-  const cache = RootCache.get(root);
-  if (cache && cache.disconnect)
-    await cache.disconnect()?.catch?.(console.error);
-  if (cache && cache.disconnected)
-    await cache.disconnected()?.catch(console.error);
-  context = observe_default(context(html), update2);
-  RootCache.set(root, context);
-  if (context.connect)
-    await context.connect()?.catch?.(console.error);
-  if (context.upgrade)
-    await context.upgrade()?.catch?.(console.error);
-  const { strings, values, template } = content(html, context);
-  instance.busy = false;
-  instance.actions = [];
-  instance.values = values;
-  instance.strings = strings;
-  instance.template = template;
-  instance.fragment = template.content.cloneNode(true);
-  RenderWalk(instance.fragment, instance.values, instance.actions);
-  document.adoptNode(instance.fragment);
-  const length = instance.actions.length;
-  for (let index = 0; index < length; index++) {
-    instance.actions[index](void 0, values[index]);
+var render_default = RenderWalk;
+
+// src/observe.ts
+var ObserveCache = /* @__PURE__ */ new WeakMap();
+var ObserveNext = Promise.resolve();
+var ObserveSet = function(method, target, key, value, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.set(target, key, value, receiver);
+  const from = Reflect.get(target, key, receiver);
+  if (from === value)
+    return true;
+  if (Number.isNaN(from) && Number.isNaN(value))
+    return true;
+  if (from && (from.constructor.name === "Object" || from.constructor.name === "Array" || from.constructor.name === "Function")) {
+    const cache = ObserveCache.get(from);
+    if (cache === value)
+      return true;
+    ObserveCache.delete(from);
   }
-  if (root.replaceChildren) {
-    root.replaceChildren(instance.fragment);
-  } else {
-    replaceChildren(root, instance.fragment);
-  }
-  if (context.upgraded)
-    await context.upgraded()?.catch(console.error);
-  if (context.connected)
-    await context.connected()?.catch(console.error);
+  Reflect.set(target, key, value, receiver);
+  ObserveNext.then(method);
+  return true;
 };
-var render_default = render;
+var ObserveGet = function(method, target, key, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.get(target, key, receiver);
+  const value = Reflect.get(target, key, receiver);
+  if (value && (value.constructor.name === "Object" || value.constructor.name === "Array")) {
+    const cache = ObserveCache.get(value);
+    if (cache)
+      return cache;
+    const proxy = new Proxy(value, {
+      get: ObserveGet.bind(null, method),
+      set: ObserveSet.bind(null, method),
+      deleteProperty: ObserveDelete.bind(null, method)
+    });
+    ObserveCache.set(value, proxy);
+    return proxy;
+  }
+  if (value && target.constructor.name === "Object" && (value.constructor.name === "Function" || value.constructor.name === "AsyncFunction")) {
+    const cache = ObserveCache.get(value);
+    if (cache)
+      return cache;
+    const proxy = new Proxy(value, {
+      apply(t, _, a) {
+        return Reflect.apply(t, receiver, a);
+      }
+    });
+    ObserveCache.set(value, proxy);
+    return proxy;
+  }
+  return value;
+};
+var ObserveDelete = function(method, target, key) {
+  if (typeof key === "symbol")
+    return Reflect.deleteProperty(target, key);
+  const from = Reflect.get(target, key);
+  ObserveCache.delete(from);
+  Reflect.deleteProperty(target, key);
+  ObserveNext.then(method);
+  return true;
+};
+var Observe = function(data, method) {
+  return new Proxy(data, {
+    get: ObserveGet.bind(null, method),
+    set: ObserveSet.bind(null, method),
+    deleteProperty: ObserveDelete.bind(null, method)
+  });
+};
+var observe_default = Observe;
+
+// src/dash.ts
+function dash(data) {
+  return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
+}
 
 // src/component.ts
-var Expressions = /* @__PURE__ */ new WeakMap();
-var Actions = /* @__PURE__ */ new WeakMap();
-var Busy = /* @__PURE__ */ new WeakMap();
-var Fragment = /* @__PURE__ */ new WeakMap();
-var Root = /* @__PURE__ */ new WeakMap();
-var create = function() {
+var Components = /* @__PURE__ */ new WeakMap();
+var adoptedEvent = new Event("adopted");
+var adoptingEvent = new Event("adopting");
+var upgradedEvent = new Event("upgraded");
+var upgradingEvent = new Event("upgrading");
+var connectedEvent = new Event("connected");
+var connectingEvent = new Event("connecting");
+var attributedEvent = new Event("attributed");
+var attributingEvent = new Event("attributing");
+var disconnectedEvent = new Event("disconnected");
+var disconnectingEvent = new Event("disconnecting");
+var create = async function() {
   const tag = this.tag ?? dash(this.name);
   if (!customElements.get(tag)) {
     customElements.define(tag, this);
   }
   const element = document.createElement(tag);
-  mount(element);
   return element;
 };
 var define = function() {
@@ -516,170 +458,150 @@ var define = function() {
     return;
   customElements.define(tag, this);
 };
-var defined = function() {
+var defined = async function() {
   const tag = this.tag ?? dash(this.name);
   return customElements.whenDefined(tag);
 };
-var update = async function(self) {
-  if (Busy.get(self))
+var upgrade = async function(self) {
+  const instance = Components.get(self);
+  if (instance.busy)
     return;
   else
-    Busy.set(self, true);
+    instance.busy = true;
+  self.dispatchEvent(upgradingEvent);
+  await self.upgrading?.()?.catch(console.error);
   const result = self.template();
-  const actions = Actions.get(self);
-  const oldExpressions = Expressions.get(self);
-  const newExpressions = result.expressions;
-  const length = actions.length ?? 0;
+  const length = instance.actions.length ?? 0;
   for (let index = 0; index < length; index++) {
-    actions[index](oldExpressions[index], newExpressions[index]);
+    instance.actions[index](instance.expressions[index], result.expressions[index]);
   }
-  oldExpressions.splice(0, -1, ...newExpressions);
-  Busy.set(self, false);
+  instance.expressions.splice(0, -1, ...result.expressions);
+  instance.busy = false;
+  await self.upgraded?.()?.catch(console.error);
+  self.dispatchEvent(upgradedEvent);
 };
 var mount = async function(self) {
+  const instance = Components.get(self);
+  if (instance.mounted)
+    return;
+  else
+    instance.mounted = true;
+  self.dispatchEvent(upgradingEvent);
+  await self.upgrading?.()?.catch(console.error);
   const result = self.template();
-  const expressions = result.values;
-  Expressions.set(self, expressions);
-  const fragment = result.template.content.cloneNode(true);
-  Fragment.set(self, fragment);
-  const actions = [];
-  Actions.set(self, actions);
-  RenderWalk(fragment, expressions, actions);
-  document.adoptNode(fragment);
-  const length = actions.length;
+  instance.expressions.splice(0, -1, ...result.values);
+  instance.fragment = result.template.content.cloneNode(true);
+  render_default(instance.fragment, instance.expressions, instance.actions);
+  document.adoptNode(instance.fragment);
+  const length = instance.actions.length;
   for (let index = 0; index < length; index++) {
-    actions[index](void 0, expressions[index]);
+    instance.actions[index](void 0, instance.expressions[index]);
   }
-  const root = Root.get(self);
-  replaceChildren(root, fragment);
+  replaceChildren(instance.root, instance.fragment);
+  await self.upgraded?.()?.catch(console.error);
+  self.dispatchEvent(upgradedEvent);
+};
+var construct = function(t, a, e) {
+  const self = Reflect.construct(t, a, e);
+  const constructor = self.constructor;
+  const shadow = constructor.shadow;
+  const tag = constructor.tag ?? dash(constructor.name);
+  const observedProperties = constructor.observedProperties;
+  const prototype = Object.getPrototypeOf(self);
+  const instance = {
+    tag,
+    context: {},
+    busy: false,
+    actions: [],
+    mounted: false,
+    expressions: [],
+    fragment: void 0,
+    shadow: shadow || false,
+    root: shadow ? self.shadowRoot ?? self.attachShadow({ mode: "open" }) : self
+  };
+  instance.observed = observe_default(instance.context, () => upgrade(self)), Components.set(self, instance);
+  const properties = observedProperties ? observedProperties ?? [] : [
+    ...Object.getOwnPropertyNames(self),
+    ...Object.getOwnPropertyNames(prototype)
+  ];
+  for (const property of properties) {
+    if ("attributeChangedCallback" === property || "attributing" === property || "attributed" === property || "adoptedCallback" === property || "adopting" === property || "adopted" === property || "disconnectedCallback" === property || "disconnecting" === property || "disconnected" === property || "connectedCallback" === property || "connecting" === property || "connected" === property || "upgradedCallback" === property || "upgrading" === property || "upgraded" === property || "constructor" === property || "template" === property)
+      continue;
+    const descriptor = Object.getOwnPropertyDescriptor(self, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
+    if (!descriptor)
+      continue;
+    if (!descriptor.configurable)
+      continue;
+    Object.defineProperty(instance.context, property, { ...descriptor, enumerable: false });
+    Object.defineProperty(self, property, {
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      get() {
+        return instance.observed[property];
+      },
+      set(value) {
+        instance.observed[property] = value;
+      }
+    });
+  }
+  return self;
 };
 function component(Class) {
   Class.create = create;
   Class.define = define;
   Class.defined = defined;
-  const tag = Class.tag;
-  const shadow = Class.shadow;
-  const observedProperties = Class.observedProperties;
-  const prototype = Class.prototype;
-  class Result extends Class {
-    constructor() {
-      super();
-      const self = this;
-      if (shadow) {
-        Root.set(self, self.shadowRoot ?? self.attachShadow({ mode: "open" }));
-      } else {
-        Root.set(self, self);
-      }
-      const properties = observedProperties ? observedProperties ?? [] : [
-        ...Object.getOwnPropertyNames(self),
-        ...Object.getOwnPropertyNames(prototype)
-      ];
-      for (const property of properties) {
-        if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "template" === property)
-          continue;
-        const descriptor = Object.getOwnPropertyDescriptor(self, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
-        if (!descriptor)
-          continue;
-        if (!descriptor.configurable)
-          continue;
-        Object.defineProperty(self, `_${property}`, {
-          ...descriptor,
-          enumerable: false
-        });
-        Object.defineProperty(self, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          get() {
-            return this[`_${property}`];
-          },
-          set(value) {
-            this[`_${property}`] = value;
-            update(self);
-          }
-        });
-      }
-      if (tag) {
-        customElements.upgrade(self);
-        customElements.whenDefined(tag).then(() => mount(self));
-      }
-    }
-    // async connectedCallback() {
-    //     await customElements.whenDefined(tag as string);
-    //     mount(this as any);
-    //     await super.connectedCallback?.();
-    // }
-  }
-  ;
+  const tag = Class.tag ?? dash(Class.name);
+  const upgradedCallback = Class.prototype.upgradedCallback;
+  const connectedCallback = Class.prototype.connectedCallback;
+  const disconnectedCallback = Class.prototype.disconnectedCallback;
+  Class.prototype.upgradedCallback = async function() {
+    this.dispatchEvent(upgradingEvent);
+    await this.upgrading?.();
+    await this.upgraded?.();
+    this.dispatchEvent(upgradedEvent);
+    await upgradedCallback?.();
+  };
+  Class.prototype.connectedCallback = async function() {
+    this.dispatchEvent(connectingEvent);
+    await this.connecting?.();
+    await mount(this);
+    await this.connected?.();
+    this.dispatchEvent(connectedEvent);
+    await connectedCallback?.();
+  };
+  Class.prototype.disconnectedCallback = async function() {
+    this.dispatchEvent(disconnectingEvent);
+    await this.disconnecting?.();
+    await this.disconnected?.();
+    this.dispatchEvent(disconnectedEvent);
+    await disconnectedCallback?.();
+  };
+  const Wrap = new Proxy(Class, { construct });
   if (tag && !customElements.get(tag)) {
-    customElements.define(tag, Result);
+    customElements.define(tag, Wrap);
   }
-  return Result;
-}
-var _a;
-component(
-  (_a = class extends HTMLElement {
-    // static shadow = true;
-    // static observedProperties = ['message'];
-    message = "hello world";
-    template = () => html`
-        <h1>${this.message}</h1>
-        <input value=${this.message} oninput=${(e2) => this.message = e2.target.value} />
-    `;
-    connectedCallback() {
-      console.log("xtest");
-    }
-  }, __publicField(_a, "tag", "x-test"), _a)
-);
-var e = document.createElement("x-test");
-console.log(e.outerHTML);
-document.body.append(e);
-
-// src/schedule.ts
-var busy = false;
-var sleep2 = () => new Promise((resolve) => setTimeout(resolve, 0));
-var Actions2 = [];
-var OldValues = [];
-var NewValues = [];
-async function schedule(actions, oldValues, newValues) {
-  actions = actions ?? [];
-  oldValues = oldValues ?? [];
-  newValues = newValues ?? [];
-  Actions2.push(...actions);
-  OldValues.push(...oldValues);
-  NewValues.push(...newValues);
-  if (busy)
-    return;
-  busy = true;
-  let action;
-  let oldValue;
-  let newValue;
-  let max = performance.now() + 50;
-  while (Actions2.length > 0) {
-    if (navigator.scheduling?.isInputPending() || performance.now() >= max) {
-      await sleep2();
-      max = performance.now() + 50;
-      continue;
-    }
-    action = Actions2.shift();
-    oldValue = OldValues.shift();
-    newValue = NewValues.shift();
-    if (oldValue !== newValue) {
-      await action(oldValue, newValue);
-    }
-  }
-  busy = false;
-}
-
-// src/define.ts
-function define2(name, constructor) {
-  customElements.define(name, constructor);
+  return Wrap;
 }
 
 // src/router.ts
 var alls = [];
 var routes = [];
+var notModule = function(module) {
+  return !Object.keys(module).length || !!module.default && typeof module.default === "object" && !Object.keys(module.default).length;
+};
 var transition = async function(route) {
-  await render_default(route.root, route.context, route.content);
+  if (route.instance) {
+    replaceChildren(route.container, route.instance);
+  } else {
+    const tag = "x-" + (route.path.replace(/\/+/g, "-").replace(/^-|-$|\.*/g, "") || "root");
+    const result = await route.handler();
+    const constructor = notModule(result) ? result : result.default;
+    if (!customElements.get(tag)) {
+      customElements.define(tag, constructor);
+    }
+    route.instance = document.createElement(tag);
+    replaceChildren(route.container, route.instance);
+  }
 };
 var navigate = function(event) {
   if (event && "canIntercept" in event && event.canIntercept === false)
@@ -697,24 +619,17 @@ var navigate = function(event) {
   for (const route of routes) {
     if (route.path !== pathname)
       continue;
-    if (!route.root)
-      continue;
-    Reflect.set(route.root, "xRouterPath", route.path);
     transitions.push(route);
   }
   for (const all of alls) {
-    if (!all.root)
-      continue;
     let has = false;
     for (const transition2 of transitions) {
-      if (transition2.root === all.root) {
+      if (transition2.container === all.container) {
         has = true;
         break;
       }
     }
     if (has)
-      continue;
-    if (Reflect.get(all.root, "xRouterPath") === pathname)
       continue;
     transitions.push(all);
   }
@@ -726,29 +641,27 @@ var navigate = function(event) {
     transitions.map((route) => transition(route));
   }
 };
-var router = function(path, root, context, content) {
+var router = function(path, container, handler) {
   if (!path)
     throw new Error("XElement - router path required");
-  if (!root)
-    throw new Error("XElement - router root required");
-  if (!context)
-    throw new Error("XElement - router context required");
-  if (!content)
-    throw new Error("XElement - router content required");
+  if (!handler)
+    throw new Error("XElement - router handler required");
+  if (!container)
+    throw new Error("XElement - router container required");
   if (path === "/*") {
     for (const all of alls) {
-      if (all.path === path && all.root === root) {
-        throw new Error("XElement - router duplicate path on root");
+      if (all.path === path && all.container === container) {
+        throw new Error("XElement - router duplicate path on container");
       }
     }
-    alls.push({ path, root, context, content });
+    alls.push({ path, container, handler, instance: void 0 });
   } else {
     for (const route of routes) {
-      if (route.path === path && route.root === root) {
-        throw new Error("XElement - router duplicate path on root");
+      if (route.path === path && route.container === container) {
+        throw new Error("XElement - router duplicate path on container");
       }
     }
-    routes.push({ path, root, context, content });
+    routes.push({ path, container, handler, instance: void 0 });
   }
   Reflect.get(window, "navigation").addEventListener("navigate", navigate);
 };
@@ -757,34 +670,32 @@ var router_default = router;
 // src/index.ts
 var Index = {
   Component: component,
-  Schedule: schedule,
+  // Schedule,
   // Context,
-  Define: define2,
+  // Define,
   Router: router_default,
   Render: render_default,
   // Patch,
   // Mount,
   component,
-  schedule,
+  // schedule: Schedule,
   // context: Context,
-  define: define2,
+  // define: Define,
   router: router_default,
-  render: render_default
+  render: render_default,
   // patch: Patch,
   // mount: Mount,
+  html
 };
 var src_default = Index;
 export {
   component as Component,
-  define2 as Define,
   render_default as Render,
   router_default as Router,
-  schedule as Schedule,
   component,
   src_default as default,
-  define2 as define,
+  html,
   render_default as render,
-  router_default as router,
-  schedule
+  router_default as router
 };
 //# sourceMappingURL=x-element.js.map

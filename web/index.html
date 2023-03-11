@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
     <head>
-
-        <base href="/element/">
-        <script>if (location.host.startsWith('localhost')) document.querySelector('base').href="/";</script>
 
         <meta charset="UTF-8">
         <meta name="theme-color" content="#2299ff">
@@ -13,13 +9,19 @@
         <meta name="keywords" content="XElement, x, element, tiny, web, components, framework, library">
         <meta name="description" content="A mighty tiny web components framework">
 
+        <script>
+            const base = document.createElement('base');
+            if (location.host.startsWith('localhost')) base.href="/";
+            else base.href="/element/";
+            document.head.prepend(base);
+        </script>
+
         <title>X-Element</title>
 
         <!-- <script type="importmap">{"imports":{"abort-controller":"https://cdn.skypack.dev/abort-controller","uuid":"https://cdn.skypack.dev/uuid"}}</script> -->
         <link href="./index.css" rel="stylesheet">
         <script src="./index.js" type="module" defer></script>
     </head>
-
     <body>
 
         <header>
@@ -41,5 +43,4 @@
         <footer></footer>
 
     </body>
-
 </html>
