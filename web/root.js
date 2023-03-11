@@ -1,7 +1,7 @@
 import { component, html } from './x-element.js';
-import Highlight from './modules/highlight.js';
+import highlight from './modules/highlight.js';
 
-const componentExample = Highlight(`
+const componentExample = highlight(`
 import { component, html } from '/x-element.js';
 
 class XGreet extends HTMLElement {
@@ -19,13 +19,13 @@ class XGreet extends HTMLElement {
 export default component(XGreet);
 `);
 
-const routerExample = Highlight(`
+const routerExample = highlight(`
 import { router } from '/x-element.js';
 
 router('/', container, () => import('/greet.js'));
 `);
 
-export default component(class XRoot extends HTMLElement {
+class XRoot extends HTMLElement {
 
     upgraded () {
         this.querySelector('#router').innerHTML = routerExample;
@@ -67,7 +67,7 @@ export default component(class XRoot extends HTMLElement {
 
             <h3>Component</h3>
             <p>
-                Pass a Custom Element Constructor to <code>component()</code> and it be decorated with XElement super powers.
+                Pass a Custom Element Constructor to <code>component()</code> and it is decorated with XElement super powers.
                 Use Template Literal with the <code>html</code> Template Tag to give your Custom Element HTML.
             </p>
             <pre id="component"></pre>
@@ -78,4 +78,6 @@ export default component(class XRoot extends HTMLElement {
         </section>
     `;
 
-});
+}
+
+export default component(XRoot);

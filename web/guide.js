@@ -1,6 +1,6 @@
 import { component, html } from './x-element.js';
-import Highlight from './modules/highlight.js';
-import Color from './modules/color.js';
+import highlight from './modules/highlight.js';
+import color from './modules/color.js';
 
 const names = [
     'cycle',
@@ -17,11 +17,11 @@ const names = [
     'security',
 ];
 
-export default component(class XGuide extends HTMLElement {
+class XGuide extends HTMLElement {
 
     input = 'hello world';
     checked = true;
-    color = Color();
+    color = color();
     active = true;
     radioShared = 'two';
     radioOne = 'one';
@@ -46,7 +46,7 @@ export default component(class XGuide extends HTMLElement {
             }
             if (sourceElement) {
                 const componentElement = this.querySelector(`#${name}Component`);
-                const source = Highlight(componentElement.innerHTML, 'html');
+                const source = highlight(componentElement.innerHTML, 'html');
                 sourceElement.innerHTML = source;
             }
         }
@@ -65,43 +65,43 @@ export default component(class XGuide extends HTMLElement {
         disconnected () { console.log('disconnected'); }
     }
     `;
-    cycleCode = Highlight(this.cycleComponent.toString());
+    cycleCode = highlight(this.cycleComponent.toString());
 
     inputComponent = () => html`
     <div>${this.input}</div>
     <input value=${this.input} oninput=${(e) => this.input = e.target.value} />
     `;
-    inputCode = Highlight(this.inputComponent.toString());
+    inputCode = highlight(this.inputComponent.toString());
 
     mapComponent = () => html`
     ${this.fruits.map(fruit => html`<div>${fruit}</div>`)}
     `;
-    mapCode = Highlight(this.mapComponent.toString());
+    mapCode = highlight(this.mapComponent.toString());
 
     checkComponent = () => html`
     <div>${this.checked ? 'Is Checked' : 'Is Not Checked'}</div>
     <input type="checkbox" checked=${this.checked} oninput=${(e) => this.checked = e.target.checked} >
     `;
-    checkCode = Highlight(this.checkComponent.toString());
+    checkCode = highlight(this.checkComponent.toString());
 
     radioComponent = () => html`
     <div>${this.radioShared}</div>
     <input type="radio" name="radio" checked=${this.radioShared === this.radioOne} oninput=${() => this.radioShared = 'one'} />
     <input type="radio" name="radio" checked=${this.radioShared === this.radioTwo} oninput=${() => this.radioShared = 'two'} />
     `;
-    radioCode = Highlight(this.radioComponent.toString());
+    radioCode = highlight(this.radioComponent.toString());
 
     styleComponent = () => html`
     <div style=${`color: ${this.color}`}>Look at my style</div>
     <button onclick=${() => this.color = Color()}>Change Color</button>
     `;
-    styleCode = Highlight(this.styleComponent.toString());
+    styleCode = highlight(this.styleComponent.toString());
 
     classComponent = () => html`
     <div class=${this.active ? 'default class-color' : 'default'}>Look at my class</div >
     <button onclick=${() => this.active = !this.active}>Toggle Class</button>
     `;
-    classCode = Highlight(this.classComponent.toString());
+    classCode = highlight(this.classComponent.toString());
 
     fruitsComponent = () => html`
     <div>${this.fruit}</div>
@@ -111,7 +111,7 @@ export default component(class XGuide extends HTMLElement {
         `)}
     </select>
     `;
-    fruitsCode = Highlight(this.fruitsComponent.toString());
+    fruitsCode = highlight(this.fruitsComponent.toString());
 
     carsComponent = () => html`
     <div>${this.car}</div>
@@ -121,7 +121,7 @@ export default component(class XGuide extends HTMLElement {
         `)}
     </select>
     `;
-    carsCode = Highlight(this.carsComponent.toString());
+    carsCode = highlight(this.carsComponent.toString());
 
     selectBooleanComponent = () => html`
     <div>${this.boolean}</div>
@@ -130,7 +130,7 @@ export default component(class XGuide extends HTMLElement {
         <option value="false">no</option>
     </select>
     `;
-    selectBooleanCode = Highlight(this.selectBooleanComponent.toString());
+    selectBooleanCode = highlight(this.selectBooleanComponent.toString());
 
     selectNumberComponent = () => html`
     <div>${this.number}</div>
@@ -140,7 +140,7 @@ export default component(class XGuide extends HTMLElement {
         <option value="2">two</option>
     </select>
     `;
-    selectNumberCode = Highlight(this.selectNumberComponent.toString());
+    selectNumberCode = highlight(this.selectNumberComponent.toString());
 
     template = () => html`
 
@@ -231,4 +231,6 @@ export default component(class XGuide extends HTMLElement {
 
     `;
 
-});
+}
+
+export default component(XGuide);

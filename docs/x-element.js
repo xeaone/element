@@ -7,1007 +7,775 @@ Email: alex.steven.elis@gmail.com
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/// deno-fmt-ignore-file
-// deno-lint-ignore-file
-// This code was bundled using `deno bundle` and it's not recommended to edit it manually
+************************************************************************/
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
 
-const promise = Promise.resolve();
-const tick = function(method) {
-    return promise.then(method);
+// src/poly.ts
+var replaceChildren = function(element, ...nodes) {
+  while (element.lastChild) {
+    element.removeChild(element.lastChild);
+  }
+  if (nodes == null ? void 0 : nodes.length) {
+    for (const node of nodes) {
+      element.appendChild(
+        typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
+      );
+    }
+  }
 };
-const parseable = function(value) {
-    return !isNaN(value) && value !== undefined && typeof value !== 'string';
+var includes = function(item, search) {
+  return item.indexOf(search) !== -1;
 };
-const display = function(data) {
-    if (typeof data == 'string') return data;
-    if (typeof data == 'undefined') return '';
-    if (typeof data == 'object') return JSON.stringify(data);
+var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : null;
+var createHTML = function(data) {
+  if (policy) {
+    return policy.createHTML(data);
+  } else {
     return data;
+  }
 };
-const dash = function(data) {
-    return data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2').toLowerCase();
-};
-const toolDefault = Object.freeze({
-    checked: Symbol('checked'),
-    value: Symbol('value'),
-    parseable,
-    display,
-    dash,
-    tick
-});
-const ContextGet = function(event, reference, target, key, receiver) {
-    if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
-    const value = Reflect.get(target, key, receiver);
-    if (value && typeof value === 'object') {
-        reference = reference ? `${reference}.${key}` : `${key}`;
-        return new Proxy(value, {
-            get: ContextGet.bind(null, event, reference),
-            set: ContextSet.bind(null, event, reference),
-            deleteProperty: ContextDelete.bind(null, event, reference)
-        });
-    }
-    return value;
-};
-const ContextDelete = function(event, reference, target, key) {
-    if (typeof key === 'symbol') return Reflect.deleteProperty(target, key);
-    Reflect.deleteProperty(target, key);
-    tick(async function contextTick() {
-        await event(reference ? `${reference}.${key}` : `${key}`, 'reset');
-    });
-    return true;
-};
-const ContextSet = function(event, reference, target, key, to, receiver) {
-    if (typeof key === 'symbol') return Reflect.set(target, key, to, receiver);
-    if (key === 'length') {
-        Reflect.set(target, key, to, receiver);
-        tick(async function contextTick() {
-            await event(reference, 'render');
-        });
-        tick(async function contextTick() {
-            await event(reference ? `${reference}.${key}` : `${key}`, 'render');
-        });
-        return true;
-    }
-    const from = Reflect.get(target, key, receiver);
-    if (from === to) return true;
-    if (Number.isNaN(from) && Number.isNaN(to)) return true;
-    Reflect.set(target, key, to, receiver);
-    tick(async function contextTick() {
-        await event(reference ? `${reference}.${key}` : `${key}`, 'render');
-    });
-    return true;
-};
-const navigators = new Map();
-const transition = async function(options) {
-    if (options.cache && options.instance) return options.target.replaceChildren(options.instance);
-    if (options.navigating) return;
-    else options.navigating = true;
-    options.construct = options.construct ?? (await import(options.file)).default;
-    if (!options.construct?.prototype) throw new Error('XElement - navigation construct not valid');
-    options.name = options.name ?? dash(options.construct.name);
-    if (!/^\w+-\w+/.test(options.name)) options.name = `x-${options.name}`;
-    if (!customElements.get(options.name)) customElements.define(options.name, options.construct);
-    options.instance = document.createElement(options.name);
-    options.target.replaceChildren(options.instance);
-    options.navigating = false;
-};
-const navigate = function(event) {
-    if (event && ('canTransition' in event && !event.canTransition || 'canIntercept' in event && !event.canIntercept)) return;
-    const destination = new URL(event?.destination.url ?? location.href);
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    destination.hash = '';
-    destination.search = '';
-    const pathname = destination.href.replace(base.href, '/');
-    const options = navigators.get(pathname) ?? navigators.get('/*');
-    if (!options) return;
-    options.target = options.target ?? document.querySelector(options.query);
-    if (!options.target) throw new Error('XElement - navigation target not found');
-    if (event?.intercept) {
-        if (options.instance === options.target.lastElementChild) return event.intercept();
-        return event.intercept({
-            handler: ()=>transition(options)
-        });
-    } else if (event?.transitionWhile) {
-        if (options.instance === options.target.lastElementChild) return event.transitionWhile((()=>undefined)());
-        return event.transitionWhile(transition(options));
-    } else {
-        transition(options);
-    }
-};
-function navigation(path, file, options) {
-    if (!path) throw new Error('XElement - navigation path required');
-    if (!file) throw new Error('XElement - navigation file required');
-    const base = new URL(document.querySelector('base')?.href ?? location.origin);
-    base.hash = '';
-    base.search = '';
-    options = options ?? {};
-    options.path = path;
-    options.cache = options.cache ?? true;
-    options.query = options.query ?? 'main';
-    options.file = new URL(file, base.href).href;
-    navigators.set(path, options);
-    navigate();
-    window.navigation.addEventListener('navigate', navigate);
+
+// src/display.ts
+function display(data) {
+  switch (typeof data) {
+    case "undefined":
+      return "";
+    case "string":
+      return data;
+    case "number":
+      return `${data}`;
+    case "bigint":
+      return `${data}`;
+    case "boolean":
+      return `${data}`;
+    case "function":
+      return `${data()}`;
+    case "symbol":
+      return String(data);
+    case "object":
+      return JSON.stringify(data);
+    default:
+      throw new Error("display - type not handled");
+  }
 }
-const booleanDefault = Object.freeze([
-    'allowfullscreen',
-    'async',
-    'autofocus',
-    'autoplay',
-    'checked',
-    'compact',
-    'controls',
-    'declare',
-    'default',
-    'defaultchecked',
-    'defaultmuted',
-    'defaultselected',
-    'defer',
-    'disabled',
-    'draggable',
-    'enabled',
-    'formnovalidate',
-    'indeterminate',
-    'inert',
-    'ismap',
-    'itemscope',
-    'loop',
-    'multiple',
-    'muted',
-    'nohref',
-    'noresize',
-    'noshade',
-    'hidden',
-    'novalidate',
-    'nowrap',
-    'open',
-    'pauseonexit',
-    'readonly',
-    'required',
-    'reversed',
-    'scoped',
-    'seamless',
-    'selected',
-    'sortable',
-    'spellcheck',
-    'translate',
-    'truespeed',
-    'typemustmatch',
-    'visible', 
-]);
-const standardSetup = function(binder) {
-    binder.meta.boolean = booleanDefault.includes(binder.name);
-};
-const standardRender = async function(binder) {
-    if (binder.name == 'text') {
-        const data = await binder.compute();
-        binder.node.textContent = toolDefault.display(data);
-    } else if (binder.meta.boolean) {
-        const data1 = await binder.compute() ? true : false;
-        if (data1) binder.owner.setAttributeNode(binder.node);
-        else binder.owner.removeAttribute(binder.name);
-    } else {
-        let data2 = await binder.compute();
-        data2 = toolDefault.display(data2);
-        binder.owner[binder.name] = data2;
-        binder.owner.setAttribute(binder.name, data2);
+
+// src/booleans.ts
+var booleans = [
+  "allowfullscreen",
+  "async",
+  "autofocus",
+  "autoplay",
+  "checked",
+  "compact",
+  "controls",
+  "declare",
+  "default",
+  "defaultchecked",
+  "defaultmuted",
+  "defaultselected",
+  "defer",
+  "disabled",
+  "draggable",
+  "enabled",
+  "formnovalidate",
+  "indeterminate",
+  "inert",
+  "ismap",
+  "itemscope",
+  "loop",
+  "multiple",
+  "muted",
+  "nohref",
+  "noshade",
+  "hidden",
+  "novalidate",
+  "nowrap",
+  "open",
+  "pauseonexit",
+  "readonly",
+  "required",
+  "reversed",
+  "scoped",
+  "seamless",
+  "selected",
+  "sortable",
+  "spellcheck",
+  "translate",
+  "truespeed",
+  "typemustmatch",
+  "visible"
+];
+var booleans_default = booleans;
+
+// src/html.ts
+var HtmlCache = /* @__PURE__ */ new WeakMap();
+var HtmlSymbol = Symbol("html");
+function html(strings, ...expressions) {
+  if (HtmlCache.has(strings)) {
+    const template = HtmlCache.get(strings);
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+  } else {
+    let data = "";
+    const length = strings.length - 1;
+    for (let index = 0; index < length; index++) {
+      data += `${strings[index]}{{${index}}}`;
     }
+    data += strings[length];
+    const template = document.createElement("template");
+    template.innerHTML = createHTML(data);
+    HtmlCache.set(strings, template);
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+  }
+}
+
+// src/render.ts
+var links = ["src", "href", "xlink:href"];
+var safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+var dangerousLink = function(data) {
+  return typeof data !== "string" || !safePattern.test(data);
 };
-const standardReset = function(binder) {
-    if (binder.name == 'text') {
-        binder.node.textContent = '';
-    } else if (binder.meta.boolean) {
-        binder.owner.removeAttribute(binder.name);
-    } else {
-        binder.owner[binder.name] = undefined;
-        binder.owner?.setAttribute(binder.name, '');
+var ObjectAction = function(start, end, actions, oldValue, newValue) {
+  var _a, _b, _c, _d;
+  oldValue = oldValue != null ? oldValue : {};
+  newValue = newValue != null ? newValue : {};
+  if ((oldValue == null ? void 0 : oldValue.strings) !== newValue.strings) {
+    let next;
+    let node = end.previousSibling;
+    while (node !== start) {
+      next = node == null ? void 0 : node.previousSibling;
+      (_a = node == null ? void 0 : node.parentNode) == null ? void 0 : _a.removeChild(node);
+      node = next;
     }
-};
-const standardDefault = {
-    setup: standardSetup,
-    render: standardRender,
-    reset: standardReset
-};
-const checkedEvent = new CustomEvent('xRadioInputHandler');
-const checkedHandler = async function(event, binder) {
-    const owner = binder.owner;
-    const checked = event === undefined ? undefined : owner.checked;
-    binder.instance.event = event;
-    binder.instance.$event = event;
-    binder.instance.$assign = !!event;
-    binder.instance.$checked = checked;
-    const computed = await binder.compute();
-    if (computed) {
-        owner.setAttributeNode(binder.node);
-    } else {
-        owner.removeAttribute('checked');
+    const fragment = newValue.template.content.cloneNode(true);
+    RenderWalk(fragment, newValue.values, actions);
+    document.adoptNode(fragment);
+    const l = actions.length;
+    for (let i = 0; i < l; i++) {
+      actions[i]((_b = oldValue.values) == null ? void 0 : _b[i], newValue.values[i]);
     }
-};
-const checkedSetup = function(binder) {
-    if (binder.owner.type === 'radio') {
-        binder.owner.addEventListener('xRadioInputHandler', (event)=>checkedHandler(event, binder));
-        binder.owner.addEventListener('input', async (event)=>{
-            const parent = binder.owner.form || binder.owner.getRootNode();
-            const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
-            await checkedHandler(event, binder);
-            for (const radio of radios){
-                if (radio === event.target) continue;
-                radio.checked = false;
-                radio.dispatchEvent(checkedEvent);
-            }
-        });
-    } else {
-        binder.owner.addEventListener('input', (event)=>checkedHandler(event, binder));
+    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(fragment, end);
+  } else {
+    const l = actions.length;
+    for (let i = 0; i < l; i++) {
+      actions[i]((_d = oldValue.values) == null ? void 0 : _d[i], newValue.values[i]);
     }
+  }
 };
-const checkedRender = async function(binder) {
-    await checkedHandler(undefined, binder);
-};
-const checkedReset = function(binder) {
-    binder.owner?.removeAttribute('checked');
-};
-const checkedDefault = {
-    setup: checkedSetup,
-    render: checkedRender,
-    reset: checkedReset
-};
-const inheritSetup = function(binder) {};
-const inheritRender = async function(binder) {
-    if (typeof binder.owner.inherited !== 'function') {
-        return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
+var ArrayAction = function(start, end, actions, oldValue, newValue) {
+  var _a, _b, _c, _d, _e, _f, _g;
+  oldValue = oldValue != null ? oldValue : [];
+  newValue = newValue != null ? newValue : [];
+  const oldLength = oldValue.length;
+  const newLength = newValue.length;
+  const common = Math.min(oldLength, newLength);
+  for (let i = 0; i < common; i++) {
+    actions[i](oldValue[i], newValue[i]);
+  }
+  if (oldLength < newLength) {
+    const template = document.createElement("template");
+    for (let i = oldLength; i < newLength; i++) {
+      if (((_a = newValue[i]) == null ? void 0 : _a.constructor) === Object && ((_b = newValue[i]) == null ? void 0 : _b.symbol) === HtmlSymbol) {
+        const start2 = document.createTextNode("");
+        const end2 = document.createTextNode("");
+        const action = ObjectAction.bind(null, start2, end2, []);
+        template.content.appendChild(start2);
+        template.content.appendChild(end2);
+        actions.push(action);
+        action(oldValue[i], newValue[i]);
+      } else {
+        const node = document.createTextNode("");
+        const action = StandardAction.bind(null, node);
+        template.content.appendChild(node);
+        actions.push(action);
+        action(oldValue[i], newValue[i]);
+      }
     }
-    const inherited = await binder.compute();
-    await binder.owner.inherited(inherited);
-    await binder.container.register(binder.owner, binder.context, binder.rewrites);
-};
-const inheritReset = async function(binder) {
-    if (typeof binder.owner.inherited !== 'function') {
-        return console.error(`XElement - Inherit Binder ${binder.name} ${binder.value} requires Function`);
+    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(template.content, end);
+  } else if (oldLength > newLength) {
+    for (let i = oldLength - 1; i > newLength - 1; i--) {
+      if (((_d = oldValue[i]) == null ? void 0 : _d.constructor) === Object && ((_e = oldValue[i]) == null ? void 0 : _e.symbol) === HtmlSymbol) {
+        const { template } = oldValue[i];
+        let removes = template.content.childNodes.length + 2;
+        while (removes--)
+          (_f = end.parentNode) == null ? void 0 : _f.removeChild(end.previousSibling);
+      } else {
+        (_g = end.parentNode) == null ? void 0 : _g.removeChild(end.previousSibling);
+      }
     }
-    await binder.owner.inherited?.();
+    actions.length = newLength;
+  }
 };
-const inheritDefault = {
-    setup: inheritSetup,
-    render: inheritRender,
-    reset: inheritReset
+var StandardAction = function(node, oldValue, newValue) {
+  if (oldValue === newValue)
+    return;
+  node.textContent = newValue;
 };
-const dateDefault = Object.freeze([
-    'datetime-local',
-    'date',
-    'month',
-    'time',
-    'week', 
-]);
-const valueEvent = new Event('input');
-const valueInput = async function(binder, event) {
-    binder.instance.event = event;
-    binder.instance.$event = event;
-    binder.instance.$assign = true;
-    const owner = binder.owner;
-    if (owner.type === 'select-one') {
-        const option = owner.selectedOptions[0];
-        if (option) {
-            if (toolDefault.value in option) {
-                binder.instance.$value = option[toolDefault.value];
-            } else {
-                binder.instance.$value = option.value;
-            }
-        } else {
-            binder.instance.$value = undefined;
-        }
-    } else if (owner.type === 'select-multiple') {
-        binder.instance.$value = Array.prototype.map.call(owner.selectedOptions, (option)=>toolDefault.value in option ? option[toolDefault.value] : option.value);
-    } else if (owner.type === 'number' || owner.type === 'range' || dateDefault.includes(owner.type)) {
-        if (toolDefault.value in binder.owner && typeof owner[toolDefault.value] === 'number') {
-            binder.instance.$value = owner.valueAsNumber;
-        } else {
-            binder.instance.$value = owner.value;
-        }
-    } else if (owner.nodeName == 'OPTION') {
-        throw 'option event';
-    } else {
-        if (toolDefault.value in binder.owner && toolDefault.parseable(owner[toolDefault.value])) {
-            binder.instance.$value = JSON.parse(owner.value);
-        } else {
-            binder.instance.$value = owner.value;
-        }
-    }
-    owner[toolDefault.value] = await binder.compute();
+var AttributeOn = function(element, attribute, oldValue, newValue) {
+  if (oldValue === newValue)
+    return;
+  if (typeof oldValue === "function")
+    element.removeEventListener(attribute.name.slice(2), oldValue);
+  if (typeof newValue !== "function")
+    return console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
+  element.addEventListener(attribute.name.slice(2), newValue);
 };
-const valueSetup = function(binder) {
-    binder.owner.addEventListener('input', (event)=>valueInput(binder, event));
+var AttributeBoolean = function(element, attribute, oldValue, newValue) {
+  if (oldValue === newValue)
+    return;
+  const value = newValue ? true : false;
+  if (value)
+    element.setAttribute(attribute.name, "");
+  else
+    element.removeAttribute(attribute.name);
+  attribute.value = value;
+  Reflect.set(element, attribute.name, attribute.value);
 };
-const valueRender = async function(binder) {
-    binder.instance.$assign = false;
-    binder.instance.event = undefined;
-    binder.instance.$event = undefined;
-    binder.instance.$value = undefined;
-    const computed = await binder.compute();
-    const owner = binder.owner;
-    owner.value = '';
-    let display;
-    if (owner.type === 'select-one') {
-        for(let i = 0; i < owner.options.length; i++){
-            const option = owner.options[i];
-            option.selected = toolDefault.value in option ? option[toolDefault.value] === computed : option.value === computed;
-        }
-        if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
-            owner.options[0].selected = true;
-            return owner.dispatchEvent(valueEvent);
-        }
-        display = toolDefault.display(computed);
-    } else if (owner.type === 'select-multiple') {
-        for(let i1 = 0; i1 < owner.options.length; i1++){
-            const option1 = owner.options[i1];
-            option1.selected = computed?.includes(toolDefault.value in option1 ? option1[toolDefault.value] : option1.value);
-        }
-        display = toolDefault.display(computed);
-    } else if (owner.type === 'number' || owner.type === 'range' || dateDefault.includes(owner.type)) {
-        if (typeof computed === 'string') owner.value = computed;
-        else if (typeof computed === 'number' && !isNaN(computed)) owner.valueAsNumber = computed;
-        else owner.value = '';
-        display = owner.value;
-    } else {
-        display = toolDefault.display(computed);
-        owner.value = display;
-    }
-    owner[toolDefault.value] = computed;
-    owner.setAttribute('value', display);
+var AttributeValue = function(element, attribute, oldValue, newValue) {
+  if (oldValue === newValue)
+    return;
+  const value = display(newValue);
+  attribute.value = value;
+  Reflect.set(element, attribute.name, attribute.value);
+  element.setAttribute(attribute.name, attribute.value);
 };
-const valueReset = function(binder) {
-    const owner = binder.owner;
-    if (owner.type === 'select-one' || owner.type === 'select-multiple') {
-        for (const option of owner.options){
-            option.selected = false;
-        }
-    }
-    owner.value = '';
-    owner.setAttribute('value', '');
-    owner[toolDefault.value] = undefined;
+var AttributeLink = function(element, attribute, oldValue, newValue) {
+  if (oldValue === newValue)
+    return;
+  if (dangerousLink(newValue)) {
+    element.removeAttribute(attribute.name);
+    console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
+    return;
+  }
+  attribute.value = newValue;
+  Reflect.set(element, attribute.name, attribute.value);
+  element.setAttribute(attribute.name, attribute.value);
 };
-const valueDefault = {
-    setup: valueSetup,
-    render: valueRender,
-    reset: valueReset
+var AttributeStandard = function(element, attribute, oldValue, newValue) {
+  if (oldValue === newValue)
+    return;
+  attribute.value = newValue;
+  Reflect.set(element, attribute.name, attribute.value);
+  element.setAttribute(attribute.name, attribute.value);
 };
-const htmlRender = async function(binder) {
-    const data = await binder.compute();
-    let fragment, node, tasks = [];
-    if (typeof data == 'string') {
-        const template = document.createElement('template');
-        template.innerHTML = data;
-        fragment = template.content;
-    } else if (data instanceof HTMLTemplateElement) {
-        fragment = data.content.cloneNode(true);
-    } else {
-        return console.error(`XElement - Html Binder ${binder.name} ${binder.value} requires a string or Template`);
-    }
-    node = binder.owner.lastChild;
-    while(node){
-        binder.owner.removeChild(node);
-        binder.container.release(node);
-        node = binder.owner.lastChild;
-    }
-    node = fragment.firstChild;
-    while(node){
-        tasks.push(binder.container.register(node, binder.context));
-        node = node.nextSibling;
-    }
-    await Promise.all(tasks);
-    binder.owner.appendChild(fragment);
+var AttributeName = function(element, attribute, oldValue, newValue) {
+  if (oldValue === newValue)
+    return;
+  element.removeAttribute(oldValue);
+  const name = newValue == null ? void 0 : newValue.toLowerCase();
+  if (name === "value") {
+    attribute.name = name;
+    AttributeValue(element, attribute, attribute.value, attribute.value);
+  } else if (name.startsWith("on")) {
+    console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
+  } else if (includes(links, name)) {
+    console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
+  } else if (includes(booleans_default, name)) {
+    attribute.name = name;
+    AttributeBoolean(element, attribute, attribute.value, attribute.value);
+  } else {
+    attribute.name = name;
+    AttributeStandard(element, attribute, attribute.value, attribute.value);
+  }
 };
-const htmlReset = function(binder) {
-    let node = binder.owner.lastChild;
-    while(node){
-        binder.owner.removeChild(node);
-        binder.container.release(node);
-        node = binder.owner.lastChild;
-    }
-};
-const htmlDefault = {
-    render: htmlRender,
-    reset: htmlReset
-};
-const whitespace = /\s+/;
-const eachSetup = function(binder) {
-    binder.meta.targetLength = 0;
-    binder.meta.currentLength = 0;
-    binder.meta.templateLength = 0;
-    binder.meta.queueElement = document.createElement('template');
-    binder.meta.templateElement = document.createElement('template');
-    let node = binder.owner.firstChild;
-    while(node){
-        if (node.nodeType === Node.TEXT_NODE && whitespace.test(node.nodeValue)) {
-            binder.owner.removeChild(node);
-        } else {
-            binder.meta.templateLength++;
-            binder.meta.templateElement.content.appendChild(node);
-        }
-        node = binder.owner.firstChild;
-    }
-};
-const eachRender = async function(binder) {
-    const tasks = [];
-    const [data, variable, key, index] = await binder.compute();
-    const [reference] = binder.references;
-    binder.meta.data = data;
-    binder.meta.keyName = key;
-    binder.meta.indexName = index;
-    binder.meta.variable = variable;
-    binder.meta.reference = reference;
-    if (data?.constructor === Array) {
-        binder.meta.targetLength = data.length;
-    } else if (data?.constructor === Object) {
-        binder.meta.keys = Object.keys(data || {});
-        binder.meta.targetLength = binder.meta.keys.length;
-    } else {
-        return console.error(`XElement - Each Binder ${binder.name} ${binder.value} requires Array or Object`);
-    }
-    if (binder.meta.currentLength > binder.meta.targetLength) {
-        while(binder.meta.currentLength > binder.meta.targetLength){
-            let count = binder.meta.templateLength, node;
-            while(count--){
-                node = binder.owner.lastChild;
-                if (node) {
-                    binder.owner.removeChild(node);
-                    tasks.push(binder.container.release(node));
-                }
-            }
-            binder.meta.currentLength--;
-        }
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(tasks);
-        }
-    } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        let clone, context, rewrites;
-        while(binder.meta.currentLength < binder.meta.targetLength){
-            const keyValue = binder.meta.keys?.[binder.meta.currentLength] ?? binder.meta.currentLength;
-            const indexValue = binder.meta.currentLength++;
-            rewrites = [
-                ...binder.rewrites,
-                [
-                    binder.meta.variable,
-                    `${binder.meta.reference}.${keyValue}`
-                ], 
-            ];
-            context = new Proxy(binder.context, {
-                has: function eachHas(target, key) {
-                    if (key === binder.meta.variable) return true;
-                    if (key === binder.meta.keyName) return true;
-                    if (key === binder.meta.indexName) return true;
-                    return Reflect.has(target, key);
-                },
-                get: function eachGet(target, key, receiver) {
-                    if (key === binder.meta.keyName) return keyValue;
-                    if (key === binder.meta.indexName) return indexValue;
-                    if (key === binder.meta.variable) return Reflect.get(binder.meta.data, keyValue);
-                    return Reflect.get(target, key, receiver);
-                },
-                set: function eachSet(target, key, value, receiver) {
-                    if (key === binder.meta.keyName) return true;
-                    if (key === binder.meta.indexName) return true;
-                    if (key === binder.meta.variable) return Reflect.set(binder.meta.data, keyValue, value);
-                    return Reflect.set(target, key, value, receiver);
-                }
-            });
-            let node1 = binder.meta.templateElement.content.firstChild;
-            while(node1){
-                clone = node1.cloneNode(true);
-                tasks.push(binder.container.register(clone, context, rewrites));
-                binder.meta.queueElement.content.appendChild(clone);
-                node1 = node1.nextSibling;
-            }
-        }
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(tasks);
-            binder.owner.appendChild(binder.meta.queueElement.content);
-        }
-    }
-};
-const eachReset = function(binder) {
-    binder.meta.targetLength = 0;
-    binder.meta.currentLength = 0;
-    while(binder.owner.lastChild)binder.container.release(binder.owner.removeChild(binder.owner.lastChild));
-    while(binder.meta.queueElement.content.lastChild)binder.meta.queueElement.content.removeChild(binder.meta.queueElement.content.lastChild);
-};
-const eachDefault = {
-    setup: eachSetup,
-    render: eachRender,
-    reset: eachReset
-};
-const onValue = function(element) {
-    if (!element) return undefined;
-    if (toolDefault.value in element) {
-        return toolDefault.parseable(element[toolDefault.value]) ? JSON.parse(JSON.stringify(element[toolDefault.value])) : element[toolDefault.value];
-    }
-    if (element.type === 'number' || element.type === 'range') {
-        return element.valueAsNumber;
-    }
-    return element.value;
-};
-const onSubmitHandler = async function(event, binder) {
-    event.preventDefault();
-    const form = {};
-    const target = event.target?.form || event.target;
-    const elements = target?.querySelectorAll('[name]');
-    for (const element of elements){
-        const { type , name , checked  } = element;
-        if (!name) continue;
-        if (type === 'radio' && !checked) continue;
-        if (type === 'submit' || type === 'button') continue;
-        let value;
-        if (type === 'select-multiple') {
-            value = [];
-            for (const option of element.selectedOptions){
-                value.push(onValue(option));
-            }
-        } else if (type === 'select-one') {
-            const [option1] = element.selectedOptions;
-            value = onValue(option1);
-        } else {
-            value = onValue(element);
-        }
-        let data = form;
-        const parts = name.split(/\s*\.\s*/);
-        for(let index = 0; index < parts.length; index++){
-            const part = parts[index];
-            const next = parts[index + 1];
-            if (next) {
-                if (!data[part]) {
-                    data[part] = /[0-9]+/.test(next) ? [] : {};
-                }
-                data = data[part];
-            } else {
-                data[part] = value;
-            }
-        }
-    }
-    binder.instance.event = event;
-    binder.instance.$event = event;
-    binder.instance.$form = form;
-    await binder.compute();
-    if (target.hasAttribute('reset')) {
-        for (const element1 of elements){
-            const { type: type1 , name: name1  } = element1;
-            if (!name1) continue;
-            else if (type1 === 'submit' || type1 === 'button') continue;
-            else if (type1 === 'select-one') element1.selectedIndex = 0;
-            else if (type1 === 'select-multiple') element1.selectedIndex = -1;
-            else if (type1 === 'radio' || type1 === 'checkbox') element1.checked = false;
-            else element1.value = '';
-            element1.dispatchEvent(new Event('input'));
-        }
-    }
-    return false;
-};
-const onResetHandler = async function(event, binder) {
-    event.preventDefault();
-    const target = event.target?.form || event.target;
-    const elements = target?.querySelectorAll('[name]');
-    for (const element of elements){
-        const { type , name  } = element;
-        if (!name) continue;
-        else if (type === 'submit' || type === 'button') continue;
-        else if (type === 'select-one') element.selectedIndex = 0;
-        else if (type === 'select-multiple') element.selectedIndex = -1;
-        else if (type === 'radio' || type === 'checkbox') element.checked = false;
-        else element.value = '';
-        element.dispatchEvent(new Event('input'));
-    }
-    binder.instance.event = event;
-    binder.instance.$event = event;
-    await binder.compute();
-    return false;
-};
-const onSetup = function(binder) {
-    binder.owner[binder.name] = undefined;
-    binder.meta.name = binder.name.slice(2);
-};
-const onRender = function(binder) {
-    if (binder.meta.method) {
-        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
-    }
-    binder.meta.method = (event)=>{
-        if (binder.meta.name === 'reset') {
-            return onResetHandler(event, binder);
-        } else if (binder.meta.name === 'submit') {
-            return onSubmitHandler(event, binder);
-        } else {
-            binder.instance.event = event;
-            binder.instance.$event = event;
-            return binder.compute();
-        }
-    };
-    binder.owner.addEventListener(binder.meta.name, binder.meta.method);
-};
-const onReset = function(binder) {
-    if (binder.meta.method) {
-        binder.owner.removeEventListener(binder.meta.name, binder.meta.method);
-    }
-};
-const onDefault = {
-    setup: onSetup,
-    render: onRender,
-    reset: onReset
-};
-const ignoreString = `
-(\\b\\$context|\\$instance|\\$assign|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-event|this|window|document|console|location|navigation|
-globalThis|Infinity|NaN|undefined|
-isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-Object|Function|Boolean|Symbole|Array|
-Number|Math|Date|BigInt|
-String|RegExp|
-Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-Map|Set|WeakMap|WeakSet|
-ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-Reflect|Proxy|
-true|false|null|of|in|do|if|for|new|try|case|else|with|async|await|break|catch|class|super|throw|while|
-yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
-(([.][a-zA-Z0-9$_.? ]*)?\\b)
-`.replace(/\t|\n/g, '');
-const ignorePattern = new RegExp(ignoreString, 'g');
-const referencePattern = /(\b[a-zA-Z$_][a-zA-Z0-9$_.? ]*\b)/g;
-const stringPattern = /".*?[^\\]*"|'.*?[^\\]*'|`.*?[^\\]*`/;
-const regularFunctionPattern = /function\s*\([a-zA-Z0-9$_,]*\)/g;
-const arrowFunctionPattern = /(\([a-zA-Z0-9$_,]*\)|[a-zA-Z0-9$_]+)\s*=>/g;
-const referenceNormalize = /\s*(\s*\??\.?\s*\[\s*([0-9]+)\s*\]\s*\??(\.?)\s*|\?\.)\s*/g;
-const assignmentPattern = /\(.*?([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*)\)/;
-const Cache = new Map();
-function Binder(node, container, context, rewrites) {
-    let name, value, owner;
+var RenderWalk = function(fragment, values, actions) {
+  var _a, _b, _c, _d, _e, _f, _g, _h;
+  const walker = document.createTreeWalker(document, 5, null);
+  walker.currentNode = fragment;
+  let index = 0;
+  let node = fragment.firstChild;
+  while ((node = walker.nextNode()) !== null) {
     if (node.nodeType === Node.TEXT_NODE) {
-        const text = node;
-        value = text.textContent ?? '';
-        name = 'text';
-        owner = text;
-        text.textContent = '';
-    } else if (node.nodeType === Node.ATTRIBUTE_NODE) {
-        const attr = node;
-        owner = attr.ownerElement;
-        value = attr.value ?? '';
-        name = attr.name ?? '';
-        attr.value = '';
+      const start = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf("{{")) != null ? _b : -1;
+      if (start == -1)
+        continue;
+      if (start != 0) {
+        node.splitText(start);
+        node = walker.nextNode();
+      }
+      const end = (_d = (_c = node.nodeValue) == null ? void 0 : _c.indexOf("}}")) != null ? _d : -1;
+      if (end == -1)
+        continue;
+      if (end + 2 != ((_e = node.nodeValue) == null ? void 0 : _e.length)) {
+        node.splitText(end + 2);
+      }
+      const newValue = values[index++];
+      if ((newValue == null ? void 0 : newValue.constructor) === Object && (newValue == null ? void 0 : newValue.symbol) === HtmlSymbol) {
+        const start2 = document.createTextNode("");
+        const end2 = node;
+        end2.nodeValue = "";
+        (_f = end2.parentNode) == null ? void 0 : _f.insertBefore(start2, end2);
+        actions.push(ObjectAction.bind(null, start2, end2, []));
+      } else if ((newValue == null ? void 0 : newValue.constructor) === Array) {
+        const start2 = document.createTextNode("");
+        const end2 = node;
+        end2.nodeValue = "";
+        (_g = end2.parentNode) == null ? void 0 : _g.insertBefore(start2, end2);
+        actions.push(ArrayAction.bind(null, start2, end2, []));
+      } else {
+        node.textContent = "";
+        actions.push(StandardAction.bind(null, node));
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const names = node.getAttributeNames();
+      for (const name of names) {
+        const value = (_h = node.getAttribute(name)) != null ? _h : "";
+        const attribute = { name, value };
+        const dynamicName = name.includes("{{") && name.includes("}}");
+        const dynamicValue = value.includes("{{") && value.includes("}}");
+        if (dynamicName) {
+          index++;
+          node.removeAttribute(name);
+          actions.push(
+            AttributeName.bind(null, node, attribute)
+          );
+        }
+        if (dynamicValue) {
+          index++;
+          node.removeAttribute(name);
+          if (name === "value") {
+            actions.push(
+              AttributeValue.bind(null, node, attribute)
+            );
+          } else if (name.startsWith("on")) {
+            actions.push(
+              AttributeOn.bind(null, node, attribute)
+            );
+          } else if (includes(links, name)) {
+            actions.push(
+              AttributeLink.bind(null, node, attribute)
+            );
+          } else if (includes(booleans_default, name)) {
+            actions.push(
+              AttributeBoolean.bind(null, node, attribute)
+            );
+          } else {
+            actions.push(
+              AttributeStandard.bind(null, node, attribute)
+            );
+          }
+        }
+        if (!dynamicName && !dynamicValue) {
+          if (includes(links, name)) {
+            if (dangerousLink(value)) {
+              node.removeAttribute(name);
+              console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
+            }
+          } else if (name.startsWith("on")) {
+            node.removeAttribute(name);
+            console.warn(`XElement - attribute name "${name}" not allowed`);
+          }
+        }
+      }
     } else {
-        throw new Error('XElement - Node not valid');
+      console.warn("node type not handled ", node.nodeType);
     }
-    let handler;
-    if (name === 'html') handler = htmlDefault;
-    else if (name === 'each') handler = eachDefault;
-    else if (name === 'value') handler = valueDefault;
-    else if (name === 'checked') handler = checkedDefault;
-    else if (name === 'inherit') handler = inheritDefault;
-    else if (name.startsWith('on')) handler = onDefault;
-    else handler = standardDefault;
-    let cache = Cache.get(value);
-    if (!cache) {
-        const code = ('\'' + value.replace(/\s*{{/g, '\'+(').replace(/}}\s*/g, ')+\'') + '\'').replace(/^''\+|\+''$/g, '');
-        const clean = code.replace(stringPattern, '').replace(arrowFunctionPattern, '').replace(regularFunctionPattern, '');
-        const assignment = clean.match(assignmentPattern);
-        const references = clean.replace(ignorePattern, '').replace(referenceNormalize, '.$2$3').match(referencePattern) ?? [];
-        const isValue = name === 'value';
-        const isChecked = name === 'checked';
-        let wrapped;
-        if (assignment && isValue) {
-            wrapped = `
-            with ($context) {
-                with ($instance) {
-                    $value = $assign ? $value : ${assignment?.[1]};
-                    return $assign ? ${code} : ${assignment?.[3]};
-                }
-            }
-            `;
-        } else if (assignment && isChecked) {
-            wrapped = `
-            with ($context) {
-                with ($instance) {
-                    $checked = $assign ? $checked : ${assignment?.[1]};
-                    return $assign ? ${code} : ${assignment?.[3]};
-                }
-            }
-            `;
-        } else {
-            wrapped = `
-            with ($context) {
-                with ($instance) {
-                   return ${code};
-                }
-            }
-            `;
-        }
-        const compute = new Function('$context', '$instance', wrapped);
-        cache = {
-            compute,
-            references
-        };
-        Cache.set(value, cache);
-    }
-    const instance = {};
-    const references1 = new Set();
-    let reference, nameRewrite, valueRewrite;
-    for (reference of cache.references){
-        if (rewrites) {
-            for ([nameRewrite, valueRewrite] of rewrites){
-                if (reference === nameRewrite) {
-                    reference = valueRewrite;
-                } else if (reference.startsWith(nameRewrite + '.')) {
-                    reference = valueRewrite + reference.slice(nameRewrite.length);
-                }
-            }
-        }
-        references1.add(reference);
-    }
-    const binder = {
-        name,
-        node,
-        value,
-        owner,
-        handler,
-        context,
-        instance,
-        container,
-        references: references1,
-        meta: {},
-        setup: handler.setup,
-        reset: handler.reset,
-        render: handler.render,
-        rewrites: rewrites ? [
-            ...rewrites
-        ] : [],
-        compute: cache.compute.bind(owner, context, instance)
-    };
-    binder.setup?.(binder);
-    return binder;
-}
-class XElement extends HTMLElement {
-    static observedProperties;
-    static navigation = navigation;
-    static syntaxLength = 2;
-    static syntaxEnd = '}}';
-    static syntaxStart = '{{';
-    static syntaxMatch = new RegExp('{{.*?}}');
-    static adoptedEvent = new Event('adopted');
-    static adoptingEvent = new Event('adopting');
-    static preparedEvent = new Event('prepared');
-    static preparingEvent = new Event('preparing');
-    static connectedEvent = new Event('connected');
-    static connectingEvent = new Event('connecting');
-    static attributedEvent = new Event('attributed');
-    static attributingEvent = new Event('attributing');
-    static disconnectedEvent = new Event('disconnected');
-    static disconnectingEvent = new Event('disconnecting');
-    static define(name, constructor) {
-        constructor = constructor ?? this;
-        name = name ?? dash(this.name);
-        customElements.define(name, constructor);
-    }
-    static defined(name) {
-        name = name ?? dash(this.name);
-        return customElements.whenDefined(name);
-    }
-    get isPrepared() {
-        return this.#prepared;
-    }
-    #prepared = false;
-    #preparing = false;
-    #binders = new Map();
-    #mutator = new MutationObserver(this.#mutation.bind(this));
-    #context = new Proxy({}, {
-        get: ContextGet.bind(null, this.#change.bind(this), ''),
-        set: ContextSet.bind(null, this.#change.bind(this), ''),
-        deleteProperty: ContextDelete.bind(null, this.#change.bind(this), '')
+  }
+};
+var render_default = RenderWalk;
+
+// src/observe.ts
+var ObserveCache = /* @__PURE__ */ new WeakMap();
+var ObserveNext = Promise.resolve();
+var ObserveSet = function(method, target, key, value, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.set(target, key, value, receiver);
+  const from = Reflect.get(target, key, receiver);
+  if (from === value)
+    return true;
+  if (Number.isNaN(from) && Number.isNaN(value))
+    return true;
+  if (from && (from.constructor.name === "Object" || from.constructor.name === "Array" || from.constructor.name === "Function")) {
+    const cache = ObserveCache.get(from);
+    if (cache === value)
+      return true;
+    ObserveCache.delete(from);
+  }
+  Reflect.set(target, key, value, receiver);
+  ObserveNext.then(method);
+  return true;
+};
+var ObserveGet = function(method, target, key, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.get(target, key, receiver);
+  const value = Reflect.get(target, key, receiver);
+  if (value && (value.constructor.name === "Object" || value.constructor.name === "Array")) {
+    const cache = ObserveCache.get(value);
+    if (cache)
+      return cache;
+    const proxy = new Proxy(value, {
+      get: ObserveGet.bind(null, method),
+      set: ObserveSet.bind(null, method),
+      deleteProperty: ObserveDelete.bind(null, method)
     });
-    constructor(){
-        super();
-        if (!this.shadowRoot) this.attachShadow({
-            mode: 'open'
-        });
-        this.#mutator.observe(this, {
-            childList: true
-        });
-        this.#mutator.observe(this.shadowRoot, {
-            childList: true
-        });
-    }
-    async #change(reference, type) {
-        const parents = [];
-        const children = [];
-        let key, binder, binders;
-        for ([key, binders] of this.#binders){
-            if (binders) {
-                if (key === reference) {
-                    for (binder of binders){
-                        parents.push(binder);
-                    }
-                } else if (key?.startsWith?.(`${reference}.`)) {
-                    for (binder of binders){
-                        children.push(binder);
-                    }
-                }
-            }
-        }
-        await Promise.all(parents.map(async (binder)=>await binder[type]?.(binder)));
-        await Promise.all(children.map(async (binder)=>await binder[type]?.(binder)));
-    }
-    #mutation(mutations) {
-        if (this.#prepared) {
-            let mutation, node;
-            for (mutation of mutations){
-                for (node of mutation.addedNodes){
-                    this.register(node, this.#context, []);
-                }
-                for (node of mutation.removedNodes){
-                    this.release(node);
-                }
-            }
-        } else {
-            this.prepare();
-        }
-    }
-    #remove(node1) {
-        const binders1 = this.#binders.get(node1);
-        if (!binders1) return;
-        let binder1, reference1;
-        for (binder1 of binders1){
-            for (reference1 of binder1.references){
-                if (this.#binders.has(reference1)) {
-                    binder1.reset = undefined;
-                    binder1.render = undefined;
-                    this.#binders.get(reference1)?.delete(binder1);
-                    if (!this.#binders.get(reference1)?.size) this.#binders.delete(reference1);
-                }
-            }
-        }
-        this.#binders.delete(node1);
-    }
-    async #add(node2, context, rewrites) {
-        const binder2 = Binder(node2, this, context, rewrites);
-        let binders2, reference2;
-        for (reference2 of binder2.references){
-            binders2 = this.#binders.get(reference2);
-            if (binders2) {
-                binders2.add(binder2);
-            } else {
-                this.#binders.set(reference2, new Set([
-                    binder2
-                ]));
-            }
-        }
-        const nodes = this.#binders.get(binder2.owner ?? binder2.node);
-        if (nodes) {
-            nodes.add(binder2);
-        } else {
-            this.#binders.set(binder2.owner ?? binder2.node, new Set([
-                binder2
-            ]));
-        }
-        await binder2.render(binder2);
-    }
-    async prepare() {
-        if (this.#prepared) return;
-        if (this.#preparing) return new Promise((resolve)=>this.addEventListener('preparing', ()=>resolve(undefined)));
-        this.#preparing = true;
-        this.dispatchEvent(XElement.preparingEvent);
-        const prototype = Object.getPrototypeOf(this);
-        const descriptors = {};
-        const properties = this.constructor.observedProperties;
-        if (properties) {
-            properties.forEach((property)=>descriptors[property] = Object.getOwnPropertyDescriptor(this, property) ?? {});
-        } else {
-            Object.assign(descriptors, Object.getOwnPropertyDescriptors(this));
-            Object.assign(descriptors, Object.getOwnPropertyDescriptors(prototype));
-        }
-        for(const property in descriptors){
-            if ('attributeChangedCallback' === property || 'disconnectedCallback' === property || 'connectedCallback' === property || 'adoptedCallback' === property || 'disconnected' === property || 'constructor' === property || 'attributed' === property || 'connected' === property || 'adopted' === property || property.startsWith('#')) continue;
-            const descriptor = descriptors[property];
-            if (!descriptor.configurable) continue;
-            if (descriptor.set) descriptor.set = descriptor.set?.bind(this);
-            if (descriptor.get) descriptor.get = descriptor.get?.bind(this);
-            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
-            Object.defineProperty(this.#context, property, descriptor);
-            Object.defineProperty(this, property, {
-                enumerable: descriptor.enumerable,
-                configurable: descriptor.configurable,
-                get: ()=>this.#context[property],
-                set: (value)=>this.#context[property] = value
-            });
-        }
-        await this.register(this.shadowRoot, this.#context);
-        await this.register(this, this.#context);
-        this.#prepared = true;
-        this.#preparing = false;
-        this.dispatchEvent(XElement.preparedEvent);
-    }
-    async release(node) {
-        const tasks = [];
-        if (node.nodeType == Node.TEXT_NODE) {
-            tasks.push(this.#remove(node));
-        } else if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-            let child = node.firstChild;
-            while(child){
-                tasks.push(this.release(child));
-                child = child.nextSibling;
-            }
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            tasks.push(this.#remove(node));
-            let attribute;
-            for (attribute of node.attributes){
-                tasks.push(this.#remove(attribute));
-            }
-            let child1 = node.firstChild;
-            while(child1){
-                tasks.push(this.release(child1));
-                child1 = child1.nextSibling;
-            }
-        }
-        await Promise.all(tasks);
-    }
-    async register(node, context, rewrites) {
-        const tasks = [];
-        if (node.nodeType == Node.DOCUMENT_FRAGMENT_NODE) {
-            let child = node.firstChild;
-            while(child){
-                tasks.push(this.register(child, context, rewrites));
-                child = child.nextSibling;
-            }
-        } else if (node.nodeType == node.TEXT_NODE) {
-            const start = node.nodeValue?.indexOf(XElement.syntaxStart) ?? -1;
-            if (start == -1) return;
-            if (start != 0) node = node.splitText(start);
-            const end = node.nodeValue?.indexOf(XElement.syntaxEnd) ?? -1;
-            if (end == -1) return;
-            if (end + XElement.syntaxLength != node.nodeValue?.length) {
-                tasks.push(this.register(node.splitText(end + XElement.syntaxLength), context, rewrites));
-            }
-            tasks.push(this.#add(node, context, rewrites));
-        } else if (node.nodeType == node.ELEMENT_NODE) {
-            let attribute;
-            const html = node.attributes.html;
-            const each = node.attributes.each;
-            if (html) await this.#add(html, context, rewrites);
-            if (each) await this.#add(each, context, rewrites);
-            for (attribute of node.attributes){
-                if (html === attribute) continue;
-                if (each === attribute) continue;
-                if (XElement.syntaxMatch.test(attribute.value)) {
-                    tasks.push(this.#add(attribute, context, rewrites));
-                }
-            }
-            if (!html && !each) {
-                let child1 = node.firstChild;
-                while(child1){
-                    tasks.push(this.register(child1, context, rewrites));
-                    child1 = child1.nextSibling;
-                }
-            }
-        }
-        await Promise.all(tasks);
-    }
-    async connectedCallback() {
-        await this.prepare();
-        this.dispatchEvent(XElement.connectingEvent);
-        await this.connected?.();
-        this.dispatchEvent(XElement.connectedEvent);
-    }
-    async disconnectedCallback() {
-        this.dispatchEvent(XElement.disconnectingEvent);
-        await this.disconnected?.();
-        this.dispatchEvent(XElement.disconnectedEvent);
-    }
-    async adoptedCallback() {
-        this.dispatchEvent(XElement.adoptingEvent);
-        await this.adopted?.();
-        this.dispatchEvent(XElement.adoptedEvent);
-    }
-    async attributeChangedCallback(name, from, to) {
-        this.dispatchEvent(XElement.attributingEvent);
-        await this.attributed?.(name, from, to);
-        this.dispatchEvent(XElement.attributedEvent);
-    }
+    ObserveCache.set(value, proxy);
+    return proxy;
+  }
+  if (value && target.constructor.name === "Object" && (value.constructor.name === "Function" || value.constructor.name === "AsyncFunction")) {
+    const cache = ObserveCache.get(value);
+    if (cache)
+      return cache;
+    const proxy = new Proxy(value, {
+      apply(t, _, a) {
+        return Reflect.apply(t, receiver, a);
+      }
+    });
+    ObserveCache.set(value, proxy);
+    return proxy;
+  }
+  return value;
+};
+var ObserveDelete = function(method, target, key) {
+  if (typeof key === "symbol")
+    return Reflect.deleteProperty(target, key);
+  const from = Reflect.get(target, key);
+  ObserveCache.delete(from);
+  Reflect.deleteProperty(target, key);
+  ObserveNext.then(method);
+  return true;
+};
+var Observe = function(data, method) {
+  return new Proxy(data, {
+    get: ObserveGet.bind(null, method),
+    set: ObserveSet.bind(null, method),
+    deleteProperty: ObserveDelete.bind(null, method)
+  });
+};
+var observe_default = Observe;
+
+// src/dash.ts
+function dash(data) {
+  return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
 }
-export { XElement as default };
+
+// src/component.ts
+var Components = /* @__PURE__ */ new WeakMap();
+var adoptedEvent = new Event("adopted");
+var adoptingEvent = new Event("adopting");
+var upgradedEvent = new Event("upgraded");
+var upgradingEvent = new Event("upgrading");
+var connectedEvent = new Event("connected");
+var connectingEvent = new Event("connecting");
+var attributedEvent = new Event("attributed");
+var attributingEvent = new Event("attributing");
+var disconnectedEvent = new Event("disconnected");
+var disconnectingEvent = new Event("disconnecting");
+var create = function() {
+  return __async(this, null, function* () {
+    var _a;
+    const tag = (_a = this.tag) != null ? _a : dash(this.name);
+    if (!customElements.get(tag)) {
+      customElements.define(tag, this);
+    }
+    const element = document.createElement(tag);
+    return element;
+  });
+};
+var define = function() {
+  var _a;
+  const tag = (_a = this.tag) != null ? _a : dash(this.name);
+  if (!customElements.get(tag))
+    return;
+  customElements.define(tag, this);
+};
+var defined = function() {
+  return __async(this, null, function* () {
+    var _a;
+    const tag = (_a = this.tag) != null ? _a : dash(this.name);
+    return customElements.whenDefined(tag);
+  });
+};
+var upgrade = function(self) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d, _e;
+    const instance = Components.get(self);
+    if (instance.busy)
+      return;
+    else
+      instance.busy = true;
+    self.dispatchEvent(upgradingEvent);
+    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
+    const result = self.template();
+    const length = (_c = instance.actions.length) != null ? _c : 0;
+    for (let index = 0; index < length; index++) {
+      instance.actions[index](instance.expressions[index], result.expressions[index]);
+    }
+    instance.expressions.splice(0, -1, ...result.expressions);
+    instance.busy = false;
+    yield (_e = (_d = self.upgraded) == null ? void 0 : _d.call(self)) == null ? void 0 : _e.catch(console.error);
+    self.dispatchEvent(upgradedEvent);
+  });
+};
+var mount = function(self) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d;
+    const instance = Components.get(self);
+    if (instance.mounted)
+      return;
+    else
+      instance.mounted = true;
+    self.dispatchEvent(upgradingEvent);
+    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
+    const result = self.template();
+    instance.expressions.splice(0, -1, ...result.values);
+    instance.fragment = result.template.content.cloneNode(true);
+    render_default(instance.fragment, instance.expressions, instance.actions);
+    document.adoptNode(instance.fragment);
+    const length = instance.actions.length;
+    for (let index = 0; index < length; index++) {
+      instance.actions[index](void 0, instance.expressions[index]);
+    }
+    replaceChildren(instance.root, instance.fragment);
+    yield (_d = (_c = self.upgraded) == null ? void 0 : _c.call(self)) == null ? void 0 : _d.catch(console.error);
+    self.dispatchEvent(upgradedEvent);
+  });
+};
+var construct = function(t, a, e) {
+  var _a, _b, _c;
+  const self = Reflect.construct(t, a, e);
+  const constructor = self.constructor;
+  const shadow = constructor.shadow;
+  const tag = (_a = constructor.tag) != null ? _a : dash(constructor.name);
+  const observedProperties = constructor.observedProperties;
+  const prototype = Object.getPrototypeOf(self);
+  const instance = {
+    tag,
+    context: {},
+    busy: false,
+    actions: [],
+    mounted: false,
+    expressions: [],
+    fragment: void 0,
+    shadow: shadow || false,
+    root: shadow ? (_b = self.shadowRoot) != null ? _b : self.attachShadow({ mode: "open" }) : self
+  };
+  instance.observed = observe_default(instance.context, () => upgrade(self)), Components.set(self, instance);
+  const properties = observedProperties ? observedProperties != null ? observedProperties : [] : [
+    ...Object.getOwnPropertyNames(self),
+    ...Object.getOwnPropertyNames(prototype)
+  ];
+  for (const property of properties) {
+    if ("attributeChangedCallback" === property || "attributing" === property || "attributed" === property || "adoptedCallback" === property || "adopting" === property || "adopted" === property || "disconnectedCallback" === property || "disconnecting" === property || "disconnected" === property || "connectedCallback" === property || "connecting" === property || "connected" === property || "upgradedCallback" === property || "upgrading" === property || "upgraded" === property || "constructor" === property || "template" === property)
+      continue;
+    const descriptor = (_c = Object.getOwnPropertyDescriptor(self, property)) != null ? _c : Object.getOwnPropertyDescriptor(prototype, property);
+    if (!descriptor)
+      continue;
+    if (!descriptor.configurable)
+      continue;
+    Object.defineProperty(instance.context, property, __spreadProps(__spreadValues({}, descriptor), { enumerable: false }));
+    Object.defineProperty(self, property, {
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      get() {
+        return instance.observed[property];
+      },
+      set(value) {
+        instance.observed[property] = value;
+      }
+    });
+  }
+  return self;
+};
+function component(Class) {
+  var _a;
+  Class.create = create;
+  Class.define = define;
+  Class.defined = defined;
+  const tag = (_a = Class.tag) != null ? _a : dash(Class.name);
+  const upgradedCallback = Class.prototype.upgradedCallback;
+  const connectedCallback = Class.prototype.connectedCallback;
+  const disconnectedCallback = Class.prototype.disconnectedCallback;
+  Class.prototype.upgradedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(upgradingEvent);
+      yield (_a2 = this.upgrading) == null ? void 0 : _a2.call(this);
+      yield (_b = this.upgraded) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(upgradedEvent);
+      yield upgradedCallback == null ? void 0 : upgradedCallback();
+    });
+  };
+  Class.prototype.connectedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(connectingEvent);
+      yield (_a2 = this.connecting) == null ? void 0 : _a2.call(this);
+      yield mount(this);
+      yield (_b = this.connected) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(connectedEvent);
+      yield connectedCallback == null ? void 0 : connectedCallback();
+    });
+  };
+  Class.prototype.disconnectedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(disconnectingEvent);
+      yield (_a2 = this.disconnecting) == null ? void 0 : _a2.call(this);
+      yield (_b = this.disconnected) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(disconnectedEvent);
+      yield disconnectedCallback == null ? void 0 : disconnectedCallback();
+    });
+  };
+  const Wrap = new Proxy(Class, { construct });
+  if (tag && !customElements.get(tag)) {
+    customElements.define(tag, Wrap);
+  }
+  return Wrap;
+}
+
+// src/router.ts
+var alls = [];
+var routes = [];
+var notModule = function(module) {
+  return !Object.keys(module).length || !!module.default && typeof module.default === "object" && !Object.keys(module.default).length;
+};
+var transition = function(route) {
+  return __async(this, null, function* () {
+    if (route.instance) {
+      replaceChildren(route.container, route.instance);
+    } else {
+      const tag = "x-" + (route.path.replace(/\/+/g, "-").replace(/^-|-$|\.*/g, "") || "root");
+      const result = yield route.handler();
+      const constructor = notModule(result) ? result : result.default;
+      if (!customElements.get(tag)) {
+        customElements.define(tag, constructor);
+      }
+      route.instance = document.createElement(tag);
+      replaceChildren(route.container, route.instance);
+    }
+  });
+};
+var navigate = function(event) {
+  var _a, _b, _c;
+  if (event && "canIntercept" in event && event.canIntercept === false)
+    return;
+  if (event && "canTransition" in event && event.canTransition === false)
+    return;
+  const destination = new URL((_a = event == null ? void 0 : event.destination.url) != null ? _a : location.href);
+  const base = new URL((_c = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c : location.origin);
+  base.hash = "";
+  base.search = "";
+  destination.hash = "";
+  destination.search = "";
+  const pathname = destination.href.replace(base.href, "/");
+  const transitions = [];
+  for (const route of routes) {
+    if (route.path !== pathname)
+      continue;
+    transitions.push(route);
+  }
+  for (const all of alls) {
+    let has = false;
+    for (const transition2 of transitions) {
+      if (transition2.container === all.container) {
+        has = true;
+        break;
+      }
+    }
+    if (has)
+      continue;
+    transitions.push(all);
+  }
+  if (event == null ? void 0 : event.intercept) {
+    return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
+  } else if (event == null ? void 0 : event.transitionWhile) {
+    return event.transitionWhile(transitions.map((route) => transition(route)));
+  } else {
+    transitions.map((route) => transition(route));
+  }
+};
+var router = function(path, container, handler) {
+  if (!path)
+    throw new Error("XElement - router path required");
+  if (!handler)
+    throw new Error("XElement - router handler required");
+  if (!container)
+    throw new Error("XElement - router container required");
+  if (path === "/*") {
+    for (const all of alls) {
+      if (all.path === path && all.container === container) {
+        throw new Error("XElement - router duplicate path on container");
+      }
+    }
+    alls.push({ path, container, handler, instance: void 0 });
+  } else {
+    for (const route of routes) {
+      if (route.path === path && route.container === container) {
+        throw new Error("XElement - router duplicate path on container");
+      }
+    }
+    routes.push({ path, container, handler, instance: void 0 });
+  }
+  Reflect.get(window, "navigation").addEventListener("navigate", navigate);
+};
+var router_default = router;
+
+// src/index.ts
+var Index = {
+  Component: component,
+  // Schedule,
+  // Context,
+  // Define,
+  Router: router_default,
+  Render: render_default,
+  // Patch,
+  // Mount,
+  component,
+  // schedule: Schedule,
+  // context: Context,
+  // define: Define,
+  router: router_default,
+  render: render_default,
+  // patch: Patch,
+  // mount: Mount,
+  html
+};
+var src_default = Index;
+export {
+  component as Component,
+  render_default as Render,
+  router_default as Router,
+  component,
+  src_default as default,
+  html,
+  render_default as render,
+  router_default as router
+};
+//# sourceMappingURL=x-element.js.map

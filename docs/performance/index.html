@@ -1,91 +1,26 @@
-<base href="/">
-<title>XElement Performance</title>
-<script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/';</script>
-<link rel="stylesheet" href="./index.css">
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<h1>XElement Performance</h1>
+        <script>
+            const base = document.createElement('base');
+            if (location.host.startsWith('localhost')) base.href="/performance/";
+            else base.href="/element/";
+            document.head.prepend(base);
+        </script>
 
-<o-loop>
-    <template shadowroot="open">
-        <span>{{count.toLocaleString()}}</span>
-        <slot></slot>
-    </template>
+        <title>XElement Performance</title>
+        <link rel="stylesheet" href="./index.css">
+    </head>
+    <body>
+        <h1>XElement Performance</h1>
 
-    <h3><span>{{count.toLocaleString()}}</span> bound elements</h3>
-    <input value="{{count=$value}}" type="number">
+        <main></main>
 
-    <br>
-    <button onclick="{{push()}}">push</button>
-    <button onclick="{{overwrite()}}">overwrite</button>
-    <button onclick="{{raw()}}">raw</button>
-    <button onclick="{{clear()}}">clear</button>
+        <script type="module" src="./index.js" defer></script>
 
-    <div id="raw"></div>
-
-    <div each="{{[items,'item']}}">
-        <div class="box">{{item.number}}</div>
-    </div>
-</o-loop>
-
-<script type="module">
-    import XElement from '../x-element.js';
-
-    class OLoop extends XElement {
-
-        items = [];
-        message = '';
-        count = 100000;
-
-        raw() {
-            console.time('raw');
-            const template = document.createElement('template');
-
-            let html = '';
-
-            // const bp = document.createElement('div');
-            // const bc = document.createElement('div');
-            // bp.classList.add('box');
-            // bp.appendChild(bc);
-
-            const count = this.count;
-            for (var i = 0; i < count; i++) {
-                // const clone = bp.cloneNode(true);
-                // clone.firstElementChild.textContent = `${i}`;
-                // template.content.appendChild(clone);
-                html += `<div class="box"><div>${i}</div></div>`;
-            }
-            template.innerHTML = html;
-            // const raw = this.querySelector('#raw');
-            raw.appendChild(template.content);
-            console.timeEnd('raw');
-        }
-        push() {
-            console.time('push');
-            for (var i = 0; i < this.count; i++) {
-                this.items.push({ number: i });
-            }
-            console.timeEnd('push');
-        }
-        overwrite() {
-            console.time('overwrite');
-            var items = [];
-            for (var i = 0; i < this.count; i++) {
-                items.push({ number: i });
-            }
-            this.items = items;
-            console.timeEnd('overwrite');
-        }
-        clear() {
-            this.items = [];
-        }
-        // async connected() {
-        // async connectedCallback() {
-        // await super.connectedCallback();
-        // this.shadowRoot.innerHTML = '<slot></slot>';
-        // console.log('child');
-        // }
-    }
-
-    OLoop.define();
-
-</script>
+    </body>
+</html>

@@ -1,75 +1,83 @@
-import XElement from './x-element.js';
-import Highlight from './highlight.js';
+import { component, html } from './x-element.js';
+import highlight from './modules/highlight.js';
 
-export default class XRoot extends XElement {
+const componentExample = highlight(`
+import { component, html } from '/x-element.js';
 
-    #rendered = false;
-    #highlighted = false;
+class XGreet extends HTMLElement {
 
-    example = `
-        import XElement from '/x-element.js';
+    greeting = 'Default Greeting';
+    greet() { this.greeting = 'Updated Greeting'; };
 
-        MyElement extends XElement {
-
-            greeting = '';
-            greet () { this.greeting = 'Greeting'; }
-
-            constructor () {
-                super();
-                this.greeting = 'Hello World';
-                this.shadowRoot.innerHTML = \`
-                    <h1>{{title}}</h1 >
-                    <button onclick="{{greet()}}">Greet</button>;
-                \`;
-            }
-
-        }
-
-        MyElement.define();
-    `;
-
-    #html = /*html*/`
-    <section>
-        <h2>Vision</h2>
-        <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
-
-        <h2>Features</h2>
-        <div class="tiles">
-            <div class="tile">
-                <h4>&#128118; Simple</h4>
-                <span>Simple to learning if you know custom elements you know XElement.</span>
-            </div>
-            <div class="tile">
-                <h4>&#128230; Shareable</h4>
-                <span>A single class to build a single component or an entire app.</span>
-            </div>
-            <div class="tile">
-                <h4>&#9889; Fast</h4>
-                <span>Tiny footprint ~15KB (minified and compressed).</span>
-            </div>
-            <div class="tile">
-                <h4>&#127959; Framework Agnostic</h4>
-                <span>Use XElement with any framework - React, Vue, Angular...</span>
-            </div>
-        </div>
-
-        <h2>Example</h2>
-        <pre><code class="language-js">{{example}}</code></pre>
-    </section>
-    `;
-
-    async connectedCallback() {
-        if (!this.#rendered && (this.#rendered = true)) this.innerHTML = this.#html;
-        await super.connectedCallback();
-        this.shadowRoot.innerHTML = '<slot></slot>';
-        if (!this.#highlighted && (this.#highlighted = true)) Highlight();
-    }
-
-    async disconnectedCallback() {
-        this.shadowRoot.innerHTML = '';
-        await super.disconnectedCallback();
-    }
+    template = () => html\`
+        <h1>this.greeting</h1>
+        <button onclick=\${this.greet}>Greet</button>
+    \`;
 
 }
 
-// XRoot.define();
+export default component(XGreet);
+`);
+
+const routerExample = highlight(`
+import { router } from '/x-element.js';
+
+router('/', container, () => import('/greet.js'));
+`);
+
+class XRoot extends HTMLElement {
+
+    upgraded () {
+        this.querySelector('#router').innerHTML = routerExample;
+        this.querySelector('#component').innerHTML = componentExample;
+    }
+
+    template = () => html`
+        <section>
+
+            <h2>Vision</h2>
+            <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
+
+            <h3>Features</h3>
+            <div class="tiles">
+                <div class="tile">
+                    <h4>\u{1F476} Simple</h4>
+                    <span>Simple to learning if you know custom elements you know XElement.</span>
+                </div>
+                <div class="tile">
+                    <h4>\u{1F4E6} Shareable</h4>
+                    <span>A single class to build a single component or an entire app.</span>
+                </div>
+                <div class="tile">
+                    <h4>\u{26A1} Fast</h4>
+                    <span>Tiny footprint ~15KB (minified and compressed).</span>
+                </div>
+                <div class="tile">
+                    <h4>\u{1F477} Framework Agnostic</h4>
+                    <span>Use XElement with any framework - React, Vue, Angular...</span>
+                </div>
+                <div class="tile">
+                    <h4>\u{1F9ED} Client Side Routing</h4>
+                    <span>
+                        Using the new
+                        <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
+                    </span>
+                </div>
+            </div>
+
+            <h3>Component</h3>
+            <p>
+                Pass a Custom Element Constructor to <code>component()</code> and it is decorated with XElement super powers.
+                Use Template Literal with the <code>html</code> Template Tag to give your Custom Element HTML.
+            </p>
+            <pre id="component"></pre>
+
+            <h3>Router</h3>
+            <pre id="router"></pre>
+
+        </section>
+    `;
+
+}
+
+export default component(XRoot);

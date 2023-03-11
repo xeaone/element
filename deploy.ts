@@ -37,14 +37,14 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 await Promise.all([
     esbuild.build({
         color: true,
-        logLevel: 'debug',
-        minify: false,
         bundle: true,
+        minify: false,
+        sourcemap: true,
+        treeShaking: true,
+        banner: { js: banner },
         format: 'esm',
         target: 'es2015',
-        sourcemap: true,
-        banner: { js: banner },
-        treeShaking: true,
+        logLevel: 'debug',
         platform: 'browser',
         tsconfig: 'tsconfig.json',
         outfile: 'web/x-element.js',
@@ -52,29 +52,29 @@ await Promise.all([
     }),
     esbuild.build({
         color: true,
-        logLevel: 'debug',
-        minify: true,
         bundle: true,
+        minify: true,
+        sourcemap: true,
+        treeShaking: true,
+        banner: { js: banner },
         format: 'esm',
         target: 'es2015',
-        banner: { js: banner },
-        treeShaking: true,
+        logLevel: 'debug',
         platform: 'browser',
-        sourcemap: true,
         tsconfig: 'tsconfig.json',
         outfile: 'pro/x-element.min.js',
         entryPoints: [ 'src/index.ts' ],
     }),
     esbuild.build({
         color: true,
-        logLevel: 'debug',
-        minify: false,
         bundle: true,
+        minify: false,
+        sourcemap: true,
+        treeShaking: true,
+        banner: { js: banner },
         format: 'esm',
         target: 'es2015',
-        sourcemap: true,
-        banner: { js: banner },
-        treeShaking: true,
+        logLevel: 'debug',
         platform: 'browser',
         tsconfig: 'tsconfig.json',
         outfile: 'pro/x-element.js',
@@ -86,12 +86,12 @@ esbuild.stop();
 
 // await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
 
-// await copy('./web/index.html', './web/404.html', { overwrite: true });
-// await copy('./web/index.html', './web/guide/index.html', { overwrite: true });
-// await copy('./web/index.html', './web/security/index.html', { overwrite: true });
+await copy('./web/index.html', './web/404.html', { overwrite: true });
+await copy('./web/index.html', './web/guide/index.html', { overwrite: true });
+await copy('./web/index.html', './web/security/index.html', { overwrite: true });
 
-// await emptyDir('./docs/');
-// await copy('./web', './docs', { overwrite: true });
+await emptyDir('./docs/');
+await copy('./web', './docs', { overwrite: true });
 
 // await run({ cmd: ['git', 'commit', '-a', '-m', version] }).status();
 // await run({ cmd: ['git', 'push'] }).status();

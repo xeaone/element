@@ -1,6 +1,7 @@
 import { replaceChildren  } from './poly';
 
-type Handler = () => CustomElementConstructor | Promise<CustomElementConstructor>;
+type Module = { default: CustomElementConstructor }
+type Handler = () => Module | CustomElementConstructor | Promise<CustomElementConstructor | Module>;
 
 type Route = {
     path: string;

@@ -3,7 +3,7 @@ pre code.hljs {
     overflow-x: auto;
 }
 .hljs {
-    color: var(--white);
+    color: var(--font);
     background: var(--forground);
 }
 .hljs ::selection,.hljs::selection {
@@ -14,9 +14,13 @@ pre code.hljs {
     color: #44464d;
 }
 .hljs-tag {
-    color: var(--white);
+    color: var(--font);
 }
-.hljs-operator,.hljs-punctuation,.hljs-subst {
+.hljs-subst {
+    color: var(--blue);
+    /* color: var(--pink); */
+}
+.hljs-operator,.hljs-punctuation {
     color: #80868b;
 }
 .hljs-operator {

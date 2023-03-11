@@ -7,7 +7,13 @@
 
 <div id="scope">
 
-    <h3>{{count.toLocaleString()}} bound elements</h3>
+    <!-- <span>{{text}}</span>
+    <input v-model="text" :value="text.toLowerCase()">
+    <input v-model="text" :value="text.toUpperCase()"> -->
+
+    {{count}}
+
+    <h3>{{count}} bound elements</h3>
     <input v-model="count" type="number">
     <br>
 
@@ -27,15 +33,16 @@
 <script src="https://unpkg.com/vue@next"></script>
 <script>
     Vue.createApp({
-        data () {
+        data() {
             return {
+                text: 'Hello World',
                 items: [],
                 message: '',
                 count: 100000,
             };
         },
         methods: {
-            raw () {
+            raw() {
                 console.time('raw');
                 const template = document.createElement('template');
                 let html = '';
@@ -52,14 +59,14 @@
                 raw.appendChild(template.content);
                 console.timeEnd('raw');
             },
-            push () {
+            push() {
                 console.time('push');
                 for (var i = 0; i < this.count; i++) {
                     this.items.push({ number: i });
                 }
                 console.timeEnd('push');
             },
-            overwrite () {
+            overwrite() {
                 console.time('overwrite');
                 var items = [];
                 for (var i = 0; i < this.count; i++) {
@@ -69,7 +76,7 @@
                 console.timeEnd('overwrite');
                 window.model = this;
             },
-            clear () {
+            clear() {
                 this.items = [];
             }
         }

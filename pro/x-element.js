@@ -8,6 +8,25 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -29,50 +48,6 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 
-// src/schedule.ts
-var busy = false;
-var sleep = () => new Promise((resolve) => setTimeout(resolve, 0));
-var Actions = [];
-var OldValues = [];
-var NewValues = [];
-function schedule(actions, oldValues, newValues) {
-  return __async(this, null, function* () {
-    var _a;
-    actions = actions != null ? actions : [];
-    oldValues = oldValues != null ? oldValues : [];
-    newValues = newValues != null ? newValues : [];
-    Actions.push(...actions);
-    OldValues.push(...oldValues);
-    NewValues.push(...newValues);
-    if (busy)
-      return;
-    busy = true;
-    let action;
-    let oldValue;
-    let newValue;
-    let max = performance.now() + 50;
-    while (Actions.length > 0) {
-      if (((_a = navigator.scheduling) == null ? void 0 : _a.isInputPending()) || performance.now() >= max) {
-        yield sleep();
-        max = performance.now() + 50;
-        continue;
-      }
-      action = Actions.shift();
-      oldValue = OldValues.shift();
-      newValue = NewValues.shift();
-      if (oldValue !== newValue) {
-        yield action(oldValue, newValue);
-      }
-    }
-    busy = false;
-  });
-}
-
-// src/define.ts
-function define(name, constructor) {
-  customElements.define(name, constructor);
-}
-
 // src/poly.ts
 var replaceChildren = function(element, ...nodes) {
   while (element.lastChild) {
@@ -89,7 +64,7 @@ var replaceChildren = function(element, ...nodes) {
 var includes = function(item, search) {
   return item.indexOf(search) !== -1;
 };
-var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("default", { createHTML: (data) => data }) : null;
+var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : null;
 var createHTML = function(data) {
   if (policy) {
     return policy.createHTML(data);
@@ -97,27 +72,6 @@ var createHTML = function(data) {
     return data;
   }
 };
-
-// src/html.ts
-var HtmlCache = /* @__PURE__ */ new WeakMap();
-var HtmlSymbol = Symbol("html");
-function html(strings, ...values) {
-  if (HtmlCache.has(strings)) {
-    const template = HtmlCache.get(strings);
-    return { strings, values, template, symbol: HtmlSymbol };
-  } else {
-    let data = "";
-    const length = strings.length - 1;
-    for (let index = 0; index < length; index++) {
-      data += `${strings[index]}{{${index}}}`;
-    }
-    data += strings[length];
-    const template = document.createElement("template");
-    template.innerHTML = createHTML(data);
-    HtmlCache.set(strings, template);
-    return { strings, values, template, symbol: HtmlSymbol };
-  }
-}
 
 // src/display.ts
 function display(data) {
@@ -142,75 +96,6 @@ function display(data) {
       throw new Error("display - type not handled");
   }
 }
-
-// src/observe.ts
-var ObserveCache = /* @__PURE__ */ new WeakMap();
-var ObserveNext = Promise.resolve();
-var ObserveSet = function(method, target, key, value, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.set(target, key, value, receiver);
-  const from = Reflect.get(target, key, receiver);
-  if (from === value)
-    return true;
-  if (Number.isNaN(from) && Number.isNaN(value))
-    return true;
-  if (from && (from.constructor.name === "Object" || from.constructor.name === "Array" || from.constructor.name === "Function")) {
-    const cache = ObserveCache.get(from);
-    if (cache === value)
-      return true;
-    ObserveCache.delete(from);
-  }
-  Reflect.set(target, key, value, receiver);
-  ObserveNext.then(method);
-  return true;
-};
-var ObserveGet = function(method, target, key, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.get(target, key, receiver);
-  const value = Reflect.get(target, key, receiver);
-  if (value && (value.constructor.name === "Object" || value.constructor.name === "Array")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      get: ObserveGet.bind(null, method),
-      set: ObserveSet.bind(null, method),
-      deleteProperty: ObserveDelete.bind(null, method)
-    });
-    ObserveCache.set(value, proxy);
-    return proxy;
-  }
-  if (value && target.constructor.name === "Object" && (value.constructor.name === "Function" || value.constructor.name === "AsyncFunction")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      apply(t, _, a) {
-        return Reflect.apply(t, receiver, a);
-      }
-    });
-    ObserveCache.set(value, proxy);
-    return proxy;
-  }
-  return value;
-};
-var ObserveDelete = function(method, target, key) {
-  if (typeof key === "symbol")
-    return Reflect.deleteProperty(target, key);
-  const from = Reflect.get(target, key);
-  ObserveCache.delete(from);
-  Reflect.deleteProperty(target, key);
-  ObserveNext.then(method);
-  return true;
-};
-var Observe = function(data, method) {
-  return new Proxy(data, {
-    get: ObserveGet.bind(null, method),
-    set: ObserveSet.bind(null, method),
-    deleteProperty: ObserveDelete.bind(null, method)
-  });
-};
-var observe_default = Observe;
 
 // src/booleans.ts
 var booleans = [
@@ -260,13 +145,33 @@ var booleans = [
 ];
 var booleans_default = booleans;
 
+// src/html.ts
+var HtmlCache = /* @__PURE__ */ new WeakMap();
+var HtmlSymbol = Symbol("html");
+function html(strings, ...expressions) {
+  if (HtmlCache.has(strings)) {
+    const template = HtmlCache.get(strings);
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+  } else {
+    let data = "";
+    const length = strings.length - 1;
+    for (let index = 0; index < length; index++) {
+      data += `${strings[index]}{{${index}}}`;
+    }
+    data += strings[length];
+    const template = document.createElement("template");
+    template.innerHTML = createHTML(data);
+    HtmlCache.set(strings, template);
+    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+  }
+}
+
 // src/render.ts
 var links = ["src", "href", "xlink:href"];
 var safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 var dangerousLink = function(data) {
   return typeof data !== "string" || !safePattern.test(data);
 };
-var RootCache = /* @__PURE__ */ new WeakMap();
 var ObjectAction = function(start, end, actions, oldValue, newValue) {
   var _a, _b, _c, _d;
   oldValue = oldValue != null ? oldValue : {};
@@ -504,75 +409,277 @@ var RenderWalk = function(fragment, values, actions) {
     }
   }
 };
-var sleep2 = (time) => new Promise((resolve) => setTimeout(resolve, time != null ? time : 0));
-var render = function(root, context, content) {
+var render_default = RenderWalk;
+
+// src/observe.ts
+var ObserveCache = /* @__PURE__ */ new WeakMap();
+var ObserveNext = Promise.resolve();
+var ObserveSet = function(method, target, key, value, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.set(target, key, value, receiver);
+  const from = Reflect.get(target, key, receiver);
+  if (from === value)
+    return true;
+  if (Number.isNaN(from) && Number.isNaN(value))
+    return true;
+  if (from && (from.constructor.name === "Object" || from.constructor.name === "Array" || from.constructor.name === "Function")) {
+    const cache = ObserveCache.get(from);
+    if (cache === value)
+      return true;
+    ObserveCache.delete(from);
+  }
+  Reflect.set(target, key, value, receiver);
+  ObserveNext.then(method);
+  return true;
+};
+var ObserveGet = function(method, target, key, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.get(target, key, receiver);
+  const value = Reflect.get(target, key, receiver);
+  if (value && (value.constructor.name === "Object" || value.constructor.name === "Array")) {
+    const cache = ObserveCache.get(value);
+    if (cache)
+      return cache;
+    const proxy = new Proxy(value, {
+      get: ObserveGet.bind(null, method),
+      set: ObserveSet.bind(null, method),
+      deleteProperty: ObserveDelete.bind(null, method)
+    });
+    ObserveCache.set(value, proxy);
+    return proxy;
+  }
+  if (value && target.constructor.name === "Object" && (value.constructor.name === "Function" || value.constructor.name === "AsyncFunction")) {
+    const cache = ObserveCache.get(value);
+    if (cache)
+      return cache;
+    const proxy = new Proxy(value, {
+      apply(t, _, a) {
+        return Reflect.apply(t, receiver, a);
+      }
+    });
+    ObserveCache.set(value, proxy);
+    return proxy;
+  }
+  return value;
+};
+var ObserveDelete = function(method, target, key) {
+  if (typeof key === "symbol")
+    return Reflect.deleteProperty(target, key);
+  const from = Reflect.get(target, key);
+  ObserveCache.delete(from);
+  Reflect.deleteProperty(target, key);
+  ObserveNext.then(method);
+  return true;
+};
+var Observe = function(data, method) {
+  return new Proxy(data, {
+    get: ObserveGet.bind(null, method),
+    set: ObserveSet.bind(null, method),
+    deleteProperty: ObserveDelete.bind(null, method)
+  });
+};
+var observe_default = Observe;
+
+// src/dash.ts
+function dash(data) {
+  return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+// src/component.ts
+var Components = /* @__PURE__ */ new WeakMap();
+var adoptedEvent = new Event("adopted");
+var adoptingEvent = new Event("adopting");
+var upgradedEvent = new Event("upgraded");
+var upgradingEvent = new Event("upgrading");
+var connectedEvent = new Event("connected");
+var connectingEvent = new Event("connecting");
+var attributedEvent = new Event("attributed");
+var attributingEvent = new Event("attributing");
+var disconnectedEvent = new Event("disconnected");
+var disconnectingEvent = new Event("disconnecting");
+var create = function() {
   return __async(this, null, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
-    const instance = {};
-    const update = function() {
-      return __async(this, null, function* () {
-        var _a2, _b2, _c2;
-        if (instance.busy)
-          return;
-        else
-          instance.busy = true;
-        yield sleep2(50);
-        if (context.upgrade)
-          yield (_b2 = (_a2 = context.upgrade()) == null ? void 0 : _a2.catch) == null ? void 0 : _b2.call(_a2, console.error);
-        const { values: values2 } = content(html, context);
-        const length2 = instance.actions.length;
-        for (let index = 0; index < length2; index++) {
-          instance.actions[index](instance.values[index], values2[index]);
-        }
-        instance.values = values2;
-        if (context.upgraded)
-          yield (_c2 = context.upgraded()) == null ? void 0 : _c2.catch(console.error);
-        instance.busy = false;
-      });
-    };
-    const cache = RootCache.get(root);
-    if (cache && cache.disconnect)
-      yield (_b = (_a = cache.disconnect()) == null ? void 0 : _a.catch) == null ? void 0 : _b.call(_a, console.error);
-    if (cache && cache.disconnected)
-      yield (_c = cache.disconnected()) == null ? void 0 : _c.catch(console.error);
-    context = observe_default(context(html), update);
-    RootCache.set(root, context);
-    if (context.connect)
-      yield (_e = (_d = context.connect()) == null ? void 0 : _d.catch) == null ? void 0 : _e.call(_d, console.error);
-    if (context.upgrade)
-      yield (_g = (_f = context.upgrade()) == null ? void 0 : _f.catch) == null ? void 0 : _g.call(_f, console.error);
-    const { strings, values, template } = content(html, context);
+    var _a;
+    const tag = (_a = this.tag) != null ? _a : dash(this.name);
+    if (!customElements.get(tag)) {
+      customElements.define(tag, this);
+    }
+    const element = document.createElement(tag);
+    return element;
+  });
+};
+var define = function() {
+  var _a;
+  const tag = (_a = this.tag) != null ? _a : dash(this.name);
+  if (!customElements.get(tag))
+    return;
+  customElements.define(tag, this);
+};
+var defined = function() {
+  return __async(this, null, function* () {
+    var _a;
+    const tag = (_a = this.tag) != null ? _a : dash(this.name);
+    return customElements.whenDefined(tag);
+  });
+};
+var upgrade = function(self) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d, _e;
+    const instance = Components.get(self);
+    if (instance.busy)
+      return;
+    else
+      instance.busy = true;
+    self.dispatchEvent(upgradingEvent);
+    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
+    const result = self.template();
+    const length = (_c = instance.actions.length) != null ? _c : 0;
+    for (let index = 0; index < length; index++) {
+      instance.actions[index](instance.expressions[index], result.expressions[index]);
+    }
+    instance.expressions.splice(0, -1, ...result.expressions);
     instance.busy = false;
-    instance.actions = [];
-    instance.values = values;
-    instance.strings = strings;
-    instance.template = template;
-    instance.fragment = template.content.cloneNode(true);
-    RenderWalk(instance.fragment, instance.values, instance.actions);
+    yield (_e = (_d = self.upgraded) == null ? void 0 : _d.call(self)) == null ? void 0 : _e.catch(console.error);
+    self.dispatchEvent(upgradedEvent);
+  });
+};
+var mount = function(self) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d;
+    const instance = Components.get(self);
+    if (instance.mounted)
+      return;
+    else
+      instance.mounted = true;
+    self.dispatchEvent(upgradingEvent);
+    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
+    const result = self.template();
+    instance.expressions.splice(0, -1, ...result.values);
+    instance.fragment = result.template.content.cloneNode(true);
+    render_default(instance.fragment, instance.expressions, instance.actions);
     document.adoptNode(instance.fragment);
     const length = instance.actions.length;
     for (let index = 0; index < length; index++) {
-      instance.actions[index](void 0, values[index]);
+      instance.actions[index](void 0, instance.expressions[index]);
     }
-    if (root.replaceChildren) {
-      root.replaceChildren(instance.fragment);
-    } else {
-      replaceChildren(root, instance.fragment);
-    }
-    if (context.upgraded)
-      yield (_h = context.upgraded()) == null ? void 0 : _h.catch(console.error);
-    if (context.connected)
-      yield (_i = context.connected()) == null ? void 0 : _i.catch(console.error);
+    replaceChildren(instance.root, instance.fragment);
+    yield (_d = (_c = self.upgraded) == null ? void 0 : _c.call(self)) == null ? void 0 : _d.catch(console.error);
+    self.dispatchEvent(upgradedEvent);
   });
 };
-var render_default = render;
+var construct = function(t, a, e) {
+  var _a, _b, _c;
+  const self = Reflect.construct(t, a, e);
+  const constructor = self.constructor;
+  const shadow = constructor.shadow;
+  const tag = (_a = constructor.tag) != null ? _a : dash(constructor.name);
+  const observedProperties = constructor.observedProperties;
+  const prototype = Object.getPrototypeOf(self);
+  const instance = {
+    tag,
+    context: {},
+    busy: false,
+    actions: [],
+    mounted: false,
+    expressions: [],
+    fragment: void 0,
+    shadow: shadow || false,
+    root: shadow ? (_b = self.shadowRoot) != null ? _b : self.attachShadow({ mode: "open" }) : self
+  };
+  instance.observed = observe_default(instance.context, () => upgrade(self)), Components.set(self, instance);
+  const properties = observedProperties ? observedProperties != null ? observedProperties : [] : [
+    ...Object.getOwnPropertyNames(self),
+    ...Object.getOwnPropertyNames(prototype)
+  ];
+  for (const property of properties) {
+    if ("attributeChangedCallback" === property || "attributing" === property || "attributed" === property || "adoptedCallback" === property || "adopting" === property || "adopted" === property || "disconnectedCallback" === property || "disconnecting" === property || "disconnected" === property || "connectedCallback" === property || "connecting" === property || "connected" === property || "upgradedCallback" === property || "upgrading" === property || "upgraded" === property || "constructor" === property || "template" === property)
+      continue;
+    const descriptor = (_c = Object.getOwnPropertyDescriptor(self, property)) != null ? _c : Object.getOwnPropertyDescriptor(prototype, property);
+    if (!descriptor)
+      continue;
+    if (!descriptor.configurable)
+      continue;
+    Object.defineProperty(instance.context, property, __spreadProps(__spreadValues({}, descriptor), { enumerable: false }));
+    Object.defineProperty(self, property, {
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      get() {
+        return instance.observed[property];
+      },
+      set(value) {
+        instance.observed[property] = value;
+      }
+    });
+  }
+  return self;
+};
+function component(Class) {
+  var _a;
+  Class.create = create;
+  Class.define = define;
+  Class.defined = defined;
+  const tag = (_a = Class.tag) != null ? _a : dash(Class.name);
+  const upgradedCallback = Class.prototype.upgradedCallback;
+  const connectedCallback = Class.prototype.connectedCallback;
+  const disconnectedCallback = Class.prototype.disconnectedCallback;
+  Class.prototype.upgradedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(upgradingEvent);
+      yield (_a2 = this.upgrading) == null ? void 0 : _a2.call(this);
+      yield (_b = this.upgraded) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(upgradedEvent);
+      yield upgradedCallback == null ? void 0 : upgradedCallback();
+    });
+  };
+  Class.prototype.connectedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(connectingEvent);
+      yield (_a2 = this.connecting) == null ? void 0 : _a2.call(this);
+      yield mount(this);
+      yield (_b = this.connected) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(connectedEvent);
+      yield connectedCallback == null ? void 0 : connectedCallback();
+    });
+  };
+  Class.prototype.disconnectedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(disconnectingEvent);
+      yield (_a2 = this.disconnecting) == null ? void 0 : _a2.call(this);
+      yield (_b = this.disconnected) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(disconnectedEvent);
+      yield disconnectedCallback == null ? void 0 : disconnectedCallback();
+    });
+  };
+  const Wrap = new Proxy(Class, { construct });
+  if (tag && !customElements.get(tag)) {
+    customElements.define(tag, Wrap);
+  }
+  return Wrap;
+}
 
 // src/router.ts
 var alls = [];
 var routes = [];
+var notModule = function(module) {
+  return !Object.keys(module).length || !!module.default && typeof module.default === "object" && !Object.keys(module.default).length;
+};
 var transition = function(route) {
   return __async(this, null, function* () {
-    yield render_default(route.root, route.context, route.content);
+    if (route.instance) {
+      replaceChildren(route.container, route.instance);
+    } else {
+      const tag = "x-" + (route.path.replace(/\/+/g, "-").replace(/^-|-$|\.*/g, "") || "root");
+      const result = yield route.handler();
+      const constructor = notModule(result) ? result : result.default;
+      if (!customElements.get(tag)) {
+        customElements.define(tag, constructor);
+      }
+      route.instance = document.createElement(tag);
+      replaceChildren(route.container, route.instance);
+    }
   });
 };
 var navigate = function(event) {
@@ -592,24 +699,17 @@ var navigate = function(event) {
   for (const route of routes) {
     if (route.path !== pathname)
       continue;
-    if (!route.root)
-      continue;
-    Reflect.set(route.root, "xRouterPath", route.path);
     transitions.push(route);
   }
   for (const all of alls) {
-    if (!all.root)
-      continue;
     let has = false;
     for (const transition2 of transitions) {
-      if (transition2.root === all.root) {
+      if (transition2.container === all.container) {
         has = true;
         break;
       }
     }
     if (has)
-      continue;
-    if (Reflect.get(all.root, "xRouterPath") === pathname)
       continue;
     transitions.push(all);
   }
@@ -621,29 +721,27 @@ var navigate = function(event) {
     transitions.map((route) => transition(route));
   }
 };
-var router = function(path, root, context, content) {
+var router = function(path, container, handler) {
   if (!path)
     throw new Error("XElement - router path required");
-  if (!root)
-    throw new Error("XElement - router root required");
-  if (!context)
-    throw new Error("XElement - router context required");
-  if (!content)
-    throw new Error("XElement - router content required");
+  if (!handler)
+    throw new Error("XElement - router handler required");
+  if (!container)
+    throw new Error("XElement - router container required");
   if (path === "/*") {
     for (const all of alls) {
-      if (all.path === path && all.root === root) {
-        throw new Error("XElement - router duplicate path on root");
+      if (all.path === path && all.container === container) {
+        throw new Error("XElement - router duplicate path on container");
       }
     }
-    alls.push({ path, root, context, content });
+    alls.push({ path, container, handler, instance: void 0 });
   } else {
     for (const route of routes) {
-      if (route.path === path && route.root === root) {
-        throw new Error("XElement - router duplicate path on root");
+      if (route.path === path && route.container === container) {
+        throw new Error("XElement - router duplicate path on container");
       }
     }
-    routes.push({ path, root, context, content });
+    routes.push({ path, container, handler, instance: void 0 });
   }
   Reflect.get(window, "navigation").addEventListener("navigate", navigate);
 };
@@ -651,33 +749,33 @@ var router_default = router;
 
 // src/index.ts
 var Index = {
-  // Component,
-  Schedule: schedule,
+  Component: component,
+  // Schedule,
   // Context,
-  Define: define,
+  // Define,
   Router: router_default,
   Render: render_default,
   // Patch,
   // Mount,
-  // component: Component,
-  schedule,
+  component,
+  // schedule: Schedule,
   // context: Context,
-  define,
+  // define: Define,
   router: router_default,
-  render: render_default
+  render: render_default,
   // patch: Patch,
   // mount: Mount,
+  html
 };
 var src_default = Index;
 export {
-  define as Define,
+  component as Component,
   render_default as Render,
   router_default as Router,
-  schedule as Schedule,
+  component,
   src_default as default,
-  define,
+  html,
   render_default as render,
-  router_default as router,
-  schedule
+  router_default as router
 };
 //# sourceMappingURL=x-element.js.map

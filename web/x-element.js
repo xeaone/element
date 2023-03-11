@@ -1,9 +1,59 @@
+/************************************************************************
+Name: XElement
+Version: 8.0.0
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+
 // src/poly.ts
 var replaceChildren = function(element, ...nodes) {
   while (element.lastChild) {
     element.removeChild(element.lastChild);
   }
-  if (nodes?.length) {
+  if (nodes == null ? void 0 : nodes.length) {
     for (const node of nodes) {
       element.appendChild(
         typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
@@ -14,7 +64,7 @@ var replaceChildren = function(element, ...nodes) {
 var includes = function(item, search) {
   return item.indexOf(search) !== -1;
 };
-var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("default", { createHTML: (data) => data }) : null;
+var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : null;
 var createHTML = function(data) {
   if (policy) {
     return policy.createHTML(data);
@@ -123,14 +173,15 @@ var dangerousLink = function(data) {
   return typeof data !== "string" || !safePattern.test(data);
 };
 var ObjectAction = function(start, end, actions, oldValue, newValue) {
-  oldValue = oldValue ?? {};
-  newValue = newValue ?? {};
-  if (oldValue?.strings !== newValue.strings) {
+  var _a, _b, _c, _d;
+  oldValue = oldValue != null ? oldValue : {};
+  newValue = newValue != null ? newValue : {};
+  if ((oldValue == null ? void 0 : oldValue.strings) !== newValue.strings) {
     let next;
     let node = end.previousSibling;
     while (node !== start) {
-      next = node?.previousSibling;
-      node?.parentNode?.removeChild(node);
+      next = node == null ? void 0 : node.previousSibling;
+      (_a = node == null ? void 0 : node.parentNode) == null ? void 0 : _a.removeChild(node);
       node = next;
     }
     const fragment = newValue.template.content.cloneNode(true);
@@ -138,19 +189,20 @@ var ObjectAction = function(start, end, actions, oldValue, newValue) {
     document.adoptNode(fragment);
     const l = actions.length;
     for (let i = 0; i < l; i++) {
-      actions[i](oldValue.values?.[i], newValue.values[i]);
+      actions[i]((_b = oldValue.values) == null ? void 0 : _b[i], newValue.values[i]);
     }
-    end.parentNode?.insertBefore(fragment, end);
+    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(fragment, end);
   } else {
     const l = actions.length;
     for (let i = 0; i < l; i++) {
-      actions[i](oldValue.values?.[i], newValue.values[i]);
+      actions[i]((_d = oldValue.values) == null ? void 0 : _d[i], newValue.values[i]);
     }
   }
 };
 var ArrayAction = function(start, end, actions, oldValue, newValue) {
-  oldValue = oldValue ?? [];
-  newValue = newValue ?? [];
+  var _a, _b, _c, _d, _e, _f, _g;
+  oldValue = oldValue != null ? oldValue : [];
+  newValue = newValue != null ? newValue : [];
   const oldLength = oldValue.length;
   const newLength = newValue.length;
   const common = Math.min(oldLength, newLength);
@@ -160,7 +212,7 @@ var ArrayAction = function(start, end, actions, oldValue, newValue) {
   if (oldLength < newLength) {
     const template = document.createElement("template");
     for (let i = oldLength; i < newLength; i++) {
-      if (newValue[i]?.constructor === Object && newValue[i]?.symbol === HtmlSymbol) {
+      if (((_a = newValue[i]) == null ? void 0 : _a.constructor) === Object && ((_b = newValue[i]) == null ? void 0 : _b.symbol) === HtmlSymbol) {
         const start2 = document.createTextNode("");
         const end2 = document.createTextNode("");
         const action = ObjectAction.bind(null, start2, end2, []);
@@ -176,16 +228,16 @@ var ArrayAction = function(start, end, actions, oldValue, newValue) {
         action(oldValue[i], newValue[i]);
       }
     }
-    end.parentNode?.insertBefore(template.content, end);
+    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(template.content, end);
   } else if (oldLength > newLength) {
     for (let i = oldLength - 1; i > newLength - 1; i--) {
-      if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === HtmlSymbol) {
+      if (((_d = oldValue[i]) == null ? void 0 : _d.constructor) === Object && ((_e = oldValue[i]) == null ? void 0 : _e.symbol) === HtmlSymbol) {
         const { template } = oldValue[i];
         let removes = template.content.childNodes.length + 2;
         while (removes--)
-          end.parentNode?.removeChild(end.previousSibling);
+          (_f = end.parentNode) == null ? void 0 : _f.removeChild(end.previousSibling);
       } else {
-        end.parentNode?.removeChild(end.previousSibling);
+        (_g = end.parentNode) == null ? void 0 : _g.removeChild(end.previousSibling);
       }
     }
     actions.length = newLength;
@@ -247,7 +299,7 @@ var AttributeName = function(element, attribute, oldValue, newValue) {
   if (oldValue === newValue)
     return;
   element.removeAttribute(oldValue);
-  const name = newValue?.toLowerCase();
+  const name = newValue == null ? void 0 : newValue.toLowerCase();
   if (name === "value") {
     attribute.name = name;
     AttributeValue(element, attribute, attribute.value, attribute.value);
@@ -264,37 +316,38 @@ var AttributeName = function(element, attribute, oldValue, newValue) {
   }
 };
 var RenderWalk = function(fragment, values, actions) {
+  var _a, _b, _c, _d, _e, _f, _g, _h;
   const walker = document.createTreeWalker(document, 5, null);
   walker.currentNode = fragment;
   let index = 0;
   let node = fragment.firstChild;
   while ((node = walker.nextNode()) !== null) {
     if (node.nodeType === Node.TEXT_NODE) {
-      const start = node.nodeValue?.indexOf("{{") ?? -1;
+      const start = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf("{{")) != null ? _b : -1;
       if (start == -1)
         continue;
       if (start != 0) {
         node.splitText(start);
         node = walker.nextNode();
       }
-      const end = node.nodeValue?.indexOf("}}") ?? -1;
+      const end = (_d = (_c = node.nodeValue) == null ? void 0 : _c.indexOf("}}")) != null ? _d : -1;
       if (end == -1)
         continue;
-      if (end + 2 != node.nodeValue?.length) {
+      if (end + 2 != ((_e = node.nodeValue) == null ? void 0 : _e.length)) {
         node.splitText(end + 2);
       }
       const newValue = values[index++];
-      if (newValue?.constructor === Object && newValue?.symbol === HtmlSymbol) {
+      if ((newValue == null ? void 0 : newValue.constructor) === Object && (newValue == null ? void 0 : newValue.symbol) === HtmlSymbol) {
         const start2 = document.createTextNode("");
         const end2 = node;
         end2.nodeValue = "";
-        end2.parentNode?.insertBefore(start2, end2);
+        (_f = end2.parentNode) == null ? void 0 : _f.insertBefore(start2, end2);
         actions.push(ObjectAction.bind(null, start2, end2, []));
-      } else if (newValue?.constructor === Array) {
+      } else if ((newValue == null ? void 0 : newValue.constructor) === Array) {
         const start2 = document.createTextNode("");
         const end2 = node;
         end2.nodeValue = "";
-        end2.parentNode?.insertBefore(start2, end2);
+        (_g = end2.parentNode) == null ? void 0 : _g.insertBefore(start2, end2);
         actions.push(ArrayAction.bind(null, start2, end2, []));
       } else {
         node.textContent = "";
@@ -303,7 +356,7 @@ var RenderWalk = function(fragment, values, actions) {
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const names = node.getAttributeNames();
       for (const name of names) {
-        const value = node.getAttribute(name) ?? "";
+        const value = (_h = node.getAttribute(name)) != null ? _h : "";
         const attribute = { name, value };
         const dynamicName = name.includes("{{") && name.includes("}}");
         const dynamicValue = value.includes("{{") && value.includes("}}");
@@ -444,68 +497,82 @@ var attributedEvent = new Event("attributed");
 var attributingEvent = new Event("attributing");
 var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
-var create = async function() {
-  const tag = this.tag ?? dash(this.name);
-  if (!customElements.get(tag)) {
-    customElements.define(tag, this);
-  }
-  const element = document.createElement(tag);
-  return element;
+var create = function() {
+  return __async(this, null, function* () {
+    var _a;
+    const tag = (_a = this.tag) != null ? _a : dash(this.name);
+    if (!customElements.get(tag)) {
+      customElements.define(tag, this);
+    }
+    const element = document.createElement(tag);
+    return element;
+  });
 };
 var define = function() {
-  const tag = this.tag ?? dash(this.name);
+  var _a;
+  const tag = (_a = this.tag) != null ? _a : dash(this.name);
   if (!customElements.get(tag))
     return;
   customElements.define(tag, this);
 };
-var defined = async function() {
-  const tag = this.tag ?? dash(this.name);
-  return customElements.whenDefined(tag);
+var defined = function() {
+  return __async(this, null, function* () {
+    var _a;
+    const tag = (_a = this.tag) != null ? _a : dash(this.name);
+    return customElements.whenDefined(tag);
+  });
 };
-var upgrade = async function(self) {
-  const instance = Components.get(self);
-  if (instance.busy)
-    return;
-  else
-    instance.busy = true;
-  self.dispatchEvent(upgradingEvent);
-  await self.upgrading?.()?.catch(console.error);
-  const result = self.template();
-  const length = instance.actions.length ?? 0;
-  for (let index = 0; index < length; index++) {
-    instance.actions[index](instance.expressions[index], result.expressions[index]);
-  }
-  instance.expressions.splice(0, -1, ...result.expressions);
-  instance.busy = false;
-  await self.upgraded?.()?.catch(console.error);
-  self.dispatchEvent(upgradedEvent);
+var upgrade = function(self) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d, _e;
+    const instance = Components.get(self);
+    if (instance.busy)
+      return;
+    else
+      instance.busy = true;
+    self.dispatchEvent(upgradingEvent);
+    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
+    const result = self.template();
+    const length = (_c = instance.actions.length) != null ? _c : 0;
+    for (let index = 0; index < length; index++) {
+      instance.actions[index](instance.expressions[index], result.expressions[index]);
+    }
+    instance.expressions.splice(0, -1, ...result.expressions);
+    instance.busy = false;
+    yield (_e = (_d = self.upgraded) == null ? void 0 : _d.call(self)) == null ? void 0 : _e.catch(console.error);
+    self.dispatchEvent(upgradedEvent);
+  });
 };
-var mount = async function(self) {
-  const instance = Components.get(self);
-  if (instance.mounted)
-    return;
-  else
-    instance.mounted = true;
-  self.dispatchEvent(upgradingEvent);
-  await self.upgrading?.()?.catch(console.error);
-  const result = self.template();
-  instance.expressions.splice(0, -1, ...result.values);
-  instance.fragment = result.template.content.cloneNode(true);
-  render_default(instance.fragment, instance.expressions, instance.actions);
-  document.adoptNode(instance.fragment);
-  const length = instance.actions.length;
-  for (let index = 0; index < length; index++) {
-    instance.actions[index](void 0, instance.expressions[index]);
-  }
-  replaceChildren(instance.root, instance.fragment);
-  await self.upgraded?.()?.catch(console.error);
-  self.dispatchEvent(upgradedEvent);
+var mount = function(self) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d;
+    const instance = Components.get(self);
+    if (instance.mounted)
+      return;
+    else
+      instance.mounted = true;
+    self.dispatchEvent(upgradingEvent);
+    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
+    const result = self.template();
+    instance.expressions.splice(0, -1, ...result.values);
+    instance.fragment = result.template.content.cloneNode(true);
+    render_default(instance.fragment, instance.expressions, instance.actions);
+    document.adoptNode(instance.fragment);
+    const length = instance.actions.length;
+    for (let index = 0; index < length; index++) {
+      instance.actions[index](void 0, instance.expressions[index]);
+    }
+    replaceChildren(instance.root, instance.fragment);
+    yield (_d = (_c = self.upgraded) == null ? void 0 : _c.call(self)) == null ? void 0 : _d.catch(console.error);
+    self.dispatchEvent(upgradedEvent);
+  });
 };
 var construct = function(t, a, e) {
+  var _a, _b, _c;
   const self = Reflect.construct(t, a, e);
   const constructor = self.constructor;
   const shadow = constructor.shadow;
-  const tag = constructor.tag ?? dash(constructor.name);
+  const tag = (_a = constructor.tag) != null ? _a : dash(constructor.name);
   const observedProperties = constructor.observedProperties;
   const prototype = Object.getPrototypeOf(self);
   const instance = {
@@ -517,22 +584,22 @@ var construct = function(t, a, e) {
     expressions: [],
     fragment: void 0,
     shadow: shadow || false,
-    root: shadow ? self.shadowRoot ?? self.attachShadow({ mode: "open" }) : self
+    root: shadow ? (_b = self.shadowRoot) != null ? _b : self.attachShadow({ mode: "open" }) : self
   };
   instance.observed = observe_default(instance.context, () => upgrade(self)), Components.set(self, instance);
-  const properties = observedProperties ? observedProperties ?? [] : [
+  const properties = observedProperties ? observedProperties != null ? observedProperties : [] : [
     ...Object.getOwnPropertyNames(self),
     ...Object.getOwnPropertyNames(prototype)
   ];
   for (const property of properties) {
     if ("attributeChangedCallback" === property || "attributing" === property || "attributed" === property || "adoptedCallback" === property || "adopting" === property || "adopted" === property || "disconnectedCallback" === property || "disconnecting" === property || "disconnected" === property || "connectedCallback" === property || "connecting" === property || "connected" === property || "upgradedCallback" === property || "upgrading" === property || "upgraded" === property || "constructor" === property || "template" === property)
       continue;
-    const descriptor = Object.getOwnPropertyDescriptor(self, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
+    const descriptor = (_c = Object.getOwnPropertyDescriptor(self, property)) != null ? _c : Object.getOwnPropertyDescriptor(prototype, property);
     if (!descriptor)
       continue;
     if (!descriptor.configurable)
       continue;
-    Object.defineProperty(instance.context, property, { ...descriptor, enumerable: false });
+    Object.defineProperty(instance.context, property, __spreadProps(__spreadValues({}, descriptor), { enumerable: false }));
     Object.defineProperty(self, property, {
       enumerable: descriptor.enumerable,
       configurable: descriptor.configurable,
@@ -547,34 +614,44 @@ var construct = function(t, a, e) {
   return self;
 };
 function component(Class) {
+  var _a;
   Class.create = create;
   Class.define = define;
   Class.defined = defined;
-  const tag = Class.tag ?? dash(Class.name);
+  const tag = (_a = Class.tag) != null ? _a : dash(Class.name);
   const upgradedCallback = Class.prototype.upgradedCallback;
   const connectedCallback = Class.prototype.connectedCallback;
   const disconnectedCallback = Class.prototype.disconnectedCallback;
-  Class.prototype.upgradedCallback = async function() {
-    this.dispatchEvent(upgradingEvent);
-    await this.upgrading?.();
-    await this.upgraded?.();
-    this.dispatchEvent(upgradedEvent);
-    await upgradedCallback?.();
+  Class.prototype.upgradedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(upgradingEvent);
+      yield (_a2 = this.upgrading) == null ? void 0 : _a2.call(this);
+      yield (_b = this.upgraded) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(upgradedEvent);
+      yield upgradedCallback == null ? void 0 : upgradedCallback();
+    });
   };
-  Class.prototype.connectedCallback = async function() {
-    this.dispatchEvent(connectingEvent);
-    await this.connecting?.();
-    await mount(this);
-    await this.connected?.();
-    this.dispatchEvent(connectedEvent);
-    await connectedCallback?.();
+  Class.prototype.connectedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(connectingEvent);
+      yield (_a2 = this.connecting) == null ? void 0 : _a2.call(this);
+      yield mount(this);
+      yield (_b = this.connected) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(connectedEvent);
+      yield connectedCallback == null ? void 0 : connectedCallback();
+    });
   };
-  Class.prototype.disconnectedCallback = async function() {
-    this.dispatchEvent(disconnectingEvent);
-    await this.disconnecting?.();
-    await this.disconnected?.();
-    this.dispatchEvent(disconnectedEvent);
-    await disconnectedCallback?.();
+  Class.prototype.disconnectedCallback = function() {
+    return __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(disconnectingEvent);
+      yield (_a2 = this.disconnecting) == null ? void 0 : _a2.call(this);
+      yield (_b = this.disconnected) == null ? void 0 : _b.call(this);
+      this.dispatchEvent(disconnectedEvent);
+      yield disconnectedCallback == null ? void 0 : disconnectedCallback();
+    });
   };
   const Wrap = new Proxy(Class, { construct });
   if (tag && !customElements.get(tag)) {
@@ -589,27 +666,30 @@ var routes = [];
 var notModule = function(module) {
   return !Object.keys(module).length || !!module.default && typeof module.default === "object" && !Object.keys(module.default).length;
 };
-var transition = async function(route) {
-  if (route.instance) {
-    replaceChildren(route.container, route.instance);
-  } else {
-    const tag = "x-" + (route.path.replace(/\/+/g, "-").replace(/^-|-$|\.*/g, "") || "root");
-    const result = await route.handler();
-    const constructor = notModule(result) ? result : result.default;
-    if (!customElements.get(tag)) {
-      customElements.define(tag, constructor);
+var transition = function(route) {
+  return __async(this, null, function* () {
+    if (route.instance) {
+      replaceChildren(route.container, route.instance);
+    } else {
+      const tag = "x-" + (route.path.replace(/\/+/g, "-").replace(/^-|-$|\.*/g, "") || "root");
+      const result = yield route.handler();
+      const constructor = notModule(result) ? result : result.default;
+      if (!customElements.get(tag)) {
+        customElements.define(tag, constructor);
+      }
+      route.instance = document.createElement(tag);
+      replaceChildren(route.container, route.instance);
     }
-    route.instance = document.createElement(tag);
-    replaceChildren(route.container, route.instance);
-  }
+  });
 };
 var navigate = function(event) {
+  var _a, _b, _c;
   if (event && "canIntercept" in event && event.canIntercept === false)
     return;
   if (event && "canTransition" in event && event.canTransition === false)
     return;
-  const destination = new URL(event?.destination.url ?? location.href);
-  const base = new URL(document.querySelector("base")?.href ?? location.origin);
+  const destination = new URL((_a = event == null ? void 0 : event.destination.url) != null ? _a : location.href);
+  const base = new URL((_c = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c : location.origin);
   base.hash = "";
   base.search = "";
   destination.hash = "";
@@ -633,9 +713,9 @@ var navigate = function(event) {
       continue;
     transitions.push(all);
   }
-  if (event?.intercept) {
+  if (event == null ? void 0 : event.intercept) {
     return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
-  } else if (event?.transitionWhile) {
+  } else if (event == null ? void 0 : event.transitionWhile) {
     return event.transitionWhile(transitions.map((route) => transition(route)));
   } else {
     transitions.map((route) => transition(route));

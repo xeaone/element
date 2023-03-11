@@ -1,21 +1,12 @@
-import XElement from './x-element.js';
+import { component, html } from './x-element.js';
 
-export default class XAll extends XElement {
+export default component(class XAll extends HTMLElement {
 
-    #html = /*html*/`
-        <h1>404</h1>
-        <h2>This page does not exists</h2>
+    template = () => html`
+        <section>
+            <h1>404</h1>
+            <h2>Page Not Found</h2>
+        </section>
     `;
 
-    async connectedCallback() {
-        if (!this.hasChildNodes()) this.innerHTML = this.#html;
-        await super.connectedCallback();
-        this.shadowRoot.innerHTML = '<slot></slot>';
-    }
-
-    async disconnectedCallback() {
-        this.shadowRoot.innerHTML = '';
-        await super.disconnectedCallback();
-    }
-
-}
+});
