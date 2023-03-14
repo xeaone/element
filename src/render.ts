@@ -3,11 +3,13 @@ import booleans from './booleans';
 import { HtmlSymbol } from './html';
 import { includes } from './poly';
 
-type Value = any;
-type OldValue = Value;
-type NewValue = Value;
-type Values = Array<Value>;
-type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
+export type Value = any;
+export type OldValue = Value;
+export type NewValue = Value;
+export type Expressions = Array<Value>;
+export type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
+
+const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 
 const links= [ 'src', 'href', 'xlink:href' ];
 const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
@@ -17,10 +19,13 @@ const dangerousLink = function (data: string) {
 };
 
 const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
+    // console.log('Object Action');
+
     oldValue = oldValue ?? {};
     newValue = newValue ?? {};
 
     if (oldValue?.strings !== newValue.strings) {
+
         let next;
         let node = end.previousSibling;
         while (node !== start) {
@@ -30,24 +35,26 @@ const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValu
         }
 
         const fragment = newValue.template.content.cloneNode(true);
-        RenderWalk(fragment, newValue.values, actions);
+        Render(fragment, newValue.expressions, actions);
         document.adoptNode(fragment);
 
         const l = actions.length;
         for (let i = 0; i < l; i++) {
-            actions[i](oldValue.values?.[i], newValue.values[i]);
+            actions[i](oldValue.expressions?.[i], newValue.expressions[i]);
         }
 
         end.parentNode?.insertBefore(fragment, end);
     } else {
         const l = actions.length;
         for (let i = 0; i < l; i++) {
-            actions[i](oldValue.values?.[i], newValue.values[i]);
+            actions[i](oldValue.expressions?.[i], newValue.expressions[i]);
         }
     }
 };
 
 const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
+    // console.log('Array Action');
+
     oldValue = oldValue ?? [];
     newValue = newValue ?? [];
 
@@ -61,7 +68,9 @@ const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue
 
     if (oldLength < newLength) {
         const template = document.createElement('template');
+
         for (let i = oldLength; i < newLength; i++) {
+
             if (newValue[i]?.constructor === Object && newValue[i]?.symbol === HtmlSymbol) {
                 const start = document.createTextNode('');
                 const end = document.createTextNode('');
@@ -77,10 +86,14 @@ const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue
                 actions.push(action);
                 action(oldValue[i], newValue[i]);
             }
+
         }
+
         end.parentNode?.insertBefore(template.content as Node, end);
     } else if (oldLength > newLength) {
+
         for (let i = oldLength-1; i > newLength-1; i--) {
+
             if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === HtmlSymbol) {
                 const { template } = oldValue[i];
                 let removes = template.content.childNodes.length + 2;
@@ -88,7 +101,9 @@ const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue
             } else {
                 end.parentNode?.removeChild(end.previousSibling as Node);
             }
+
         }
+
         actions.length = newLength;
     }
 };
@@ -127,13 +142,15 @@ const AttributeValue = function (element: Element, attribute: { name: string; va
 const AttributeLink = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
 
-    if (dangerousLink(newValue)) {
+    const value = encodeURI(newValue);
+
+    if (dangerousLink(value)) {
         element.removeAttribute(attribute.name);
-        console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
+        console.warn(`XElement - attribute name "${attribute.name}" and value "${value}" not allowed`);
         return;
     }
 
-    attribute.value = newValue;
+    attribute.value = value;
     Reflect.set(element, attribute.name, attribute.value);
     element.setAttribute(attribute.name, attribute.value);
 };
@@ -166,18 +183,10 @@ const AttributeName = function (element: Element, attribute: { name: string; val
         AttributeStandard(element, attribute, attribute.value, attribute.value);
     }
 
-    // if (
-    //     typeof newValue !== 'string' ||
-    //     newValue.startsWith('on') ||
-    //     links.includes(newValue)
-    // ) return console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
-
-    // attribute.name = newValue;
-    // element.setAttribute(attribute.name, attribute.value);
 };
 
-export const RenderWalk = function (fragment: DocumentFragment, values: Values, actions: Actions) {
-    const walker = document.createTreeWalker(document, 5, null);
+export const Render = function (fragment: DocumentFragment, expressions: Expressions, actions: Actions) {
+    const walker = document.createTreeWalker(document, filter, null);
 
     walker.currentNode = fragment;
 
@@ -204,7 +213,7 @@ export const RenderWalk = function (fragment: DocumentFragment, values: Values, 
                 (node as Text).splitText(end + 2);
             }
 
-            const newValue = values[index++];
+            const newValue = expressions[index++];
 
             if (newValue?.constructor === Object && newValue?.symbol === HtmlSymbol) {
                 const start = document.createTextNode('');
@@ -223,6 +232,11 @@ export const RenderWalk = function (fragment: DocumentFragment, values: Values, 
                 actions.push(StandardAction.bind(null, node as Text));
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
+
+            if (node.nodeName === 'SCRIPT' || node.nodeName === 'STYLE') {
+                walker.nextSibling();
+            }
+
             const names = (node as Element).getAttributeNames();
             for (const name of names) {
                 const value = (node as Element).getAttribute(name) ?? '';
@@ -279,9 +293,9 @@ export const RenderWalk = function (fragment: DocumentFragment, values: Values, 
 
             }
         } else {
-            console.warn('node type not handled ', node.nodeType);
+            console.warn(`XElement - node type "${node.nodeType}" not handled`);
         }
     }
 };
 
-export default RenderWalk;
+export default Render;

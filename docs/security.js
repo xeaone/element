@@ -196,14 +196,21 @@ export default component(class XSecurity extends HTMLElement {
 
     template = () => html`
 
+    <section>
+        <div style="background-image: url(javascript:alert('Style BG Img XSS'))"></div>
+        <!-- Comment -->
+        <p>hello</p>
+    </section>
+
     <section id="overview">
         <h3>Security Overview</h3>
         <p>
-        HTML string is parsed into DOM using a Template Element's DocumentFragment.
+        HTML template strings is parsed into DOM using a Template Element's DocumentFragment.
         The sanitization on the value of "src, href, xlink:href" attributes and attributes starting with "on".
         Future DOM modification that takes places is createElement, setAttribute, removeAttribute which are considered safe sinks.
-        Other possible dangers not yet handled script tags, style tags, style attribute, comments are allowed currently.
         </p>
+        <p>Elements that are handled differently include the "Script" and "Style" these do not currently allow any template literal variables rendering.</p>
+        <p>Other possible concerns could include the style attribute and comments these are both allowed allowed currently.</p>
         <ul>
             <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html">XSS Filter Evasion Cheat Sheet</a></li>
         </ul>

@@ -2,6 +2,7 @@ import { replaceChildren } from './poly';
 import render from './render';
 import observe from './observe';
 import dash from './dash';
+import { html, HtmlInstance } from './html';
 
 interface ComponentInstance extends HTMLElement {
 
@@ -25,18 +26,16 @@ interface ComponentInstance extends HTMLElement {
     // attributing?:any;
     attributeChangedCallback?:any;
 
-    template:()=>any;
+    template: () => HtmlInstance;
+    // template:()=>any;
 }
 
 interface ComponentConstructor {
 
-    tag?:string;
-    shadow?:boolean;
+    tag?: string;
+    define?: boolean;
+    shadow?: boolean;
     observedProperties?: string[];
-
-    create?: typeof create;
-    define?: typeof define;
-    defined?: typeof defined;
 
     new (): ComponentInstance;
 }
@@ -81,29 +80,23 @@ const attributingEvent = new Event('attributing');
 const disconnectedEvent = new Event('disconnected');
 const disconnectingEvent = new Event('disconnecting');
 
-const create = async function (this:ComponentConstructor) {
-    const tag = this.tag ?? dash(this.name);
+// const create = async function (this:ComponentConstructor) {
+//     const tag = this.tag ?? dash(this.name);
 
-    if (!customElements.get(tag)) {
-        customElements.define(tag, this);
-    }
+//     if (!customElements.get(tag)) {
+//         customElements.define(tag, this);
+//     }
 
-    const element = document.createElement(tag) as ComponentInstance;
-    // await mount(element);
+//     const element = document.createElement(tag) as ComponentInstance;
+//     // await mount(element);
 
-    return element;
-};
+//     return element;
+// };
 
-const define = function (this:ComponentConstructor) {
-    const tag = this.tag ?? dash(this.name);
-    if (!customElements.get(tag)) return;
-    customElements.define(tag, this);
-};
-
-const defined = async function (this:ComponentConstructor) {
-    const tag = this.tag ?? dash(this.name);
-    return customElements.whenDefined(tag);
-};
+// const defined = async function (this:ComponentConstructor) {
+//     const tag = this.tag ?? dash(this.name);
+//     return customElements.whenDefined(tag);
+// };
 
 const upgrade = async function (self:ComponentInstance) {
     const instance = Components.get(self);
@@ -111,7 +104,6 @@ const upgrade = async function (self:ComponentInstance) {
     if (instance.busy) return;
     else instance.busy = true;
 
-    // await sleep(50);
     self.dispatchEvent(upgradingEvent);
     await self.upgrading?.()?.catch(console.error);
 
@@ -119,10 +111,17 @@ const upgrade = async function (self:ComponentInstance) {
 
     const length = instance.actions.length ?? 0;
     for (let index = 0; index < length; index++) {
-        instance.actions[index](instance.expressions[index], result.expressions[index]);
+        const newExpression = result.expressions[index];
+        const oldExpressions = instance.expressions[index];
+        instance.actions[index](oldExpressions, newExpression);
+        instance.expressions[index] = newExpression;
     }
 
-    instance.expressions.splice(0, -1, ...result.expressions);
+    // const task = schedule(instance.actions, instance.expressions, result.expressions);
+
+    // instance.expressions.splice(0, -1, ...result.expressions);
+
+    // await task;
 
     instance.busy = false;
 
@@ -141,17 +140,23 @@ const mount = async function (self:ComponentInstance) {
 
     const result = self.template();
 
-    instance.expressions.splice(0, -1, ...result.values);
+    // instance.expressions.splice(0, -1, ...result.values);
     instance.fragment = result.template.content.cloneNode(true);
 
-    render(instance.fragment, instance.expressions, instance.actions);
+    render(instance.fragment, result.expressions, instance.actions);
+    // render(instance.fragment, instance.expressions, instance.actions);
 
     document.adoptNode(instance.fragment);
 
     const length = instance.actions.length;
     for (let index = 0; index < length; index++) {
-        instance.actions[index](undefined, instance.expressions[index]);
+        const newExpression = result.expressions[index];
+        instance.actions[index](undefined, newExpression);
+        instance.expressions[index] = newExpression;
     }
+
+    // const task = schedule(instance.actions, Array(instance.actions.length).fill(undefined), instance.expressions);
+    // await task;
 
     replaceChildren(instance.root, instance.fragment);
 
@@ -169,24 +174,25 @@ const mount = async function (self:ComponentInstance) {
 //     return Reflect.set(t,k,v,r);
 // };
 
-const construct = function (t:any, a:any, e:any) {
-    const self = Reflect.construct(t, a, e) as ComponentInstance;
+const construct = function (self:ComponentInstance) {
     const constructor = self.constructor as ComponentConstructor;
 
-    const shadow = constructor.shadow;
+    const define = constructor.define || false;
+    const shadow = constructor.shadow || false;
     const tag = constructor.tag ?? dash(constructor.name);
     const observedProperties = constructor.observedProperties;
     const prototype = Object.getPrototypeOf(self);
 
     const instance:any = {
         tag,
+        define,
+        shadow,
         context: {},
         busy: false,
         actions: [],
         mounted: false,
         expressions: [],
         fragment: undefined,
-        shadow: shadow || false,
         root: shadow ?  self.shadowRoot ?? self.attachShadow({ mode: 'open' }) : self
     };
 
@@ -248,19 +254,12 @@ const construct = function (t:any, a:any, e:any) {
 
     }
 
-    // if (tag) {
-        // customElements.upgrade(self);
-        // customElements.whenDefined(tag).then(()=> mount(self));
-    // }
-
     return self;
 };
 
 export default function component (Class:ComponentConstructor):ComponentConstructor {
-    Class.create = create;
-    Class.define = define;
-    Class.defined = defined;
 
+    const define = Class.define ?? false;
     const tag = Class.tag ?? dash(Class.name);
     const upgradedCallback = Class.prototype.upgradedCallback;
     const connectedCallback = Class.prototype.connectedCallback;
@@ -291,40 +290,24 @@ export default function component (Class:ComponentConstructor):ComponentConstruc
         await disconnectedCallback?.();
     };
 
-    const Wrap = new Proxy(Class, { construct });
-    // const Wrap = new Proxy(Class, { get, set, construct });
+    const Wrap = new Proxy(Class, {
+        // get, set,
+        construct(t, a, e) {
+            return construct(Reflect.construct(t, a, e));
+        }
+    });
+    // const Wrap = class extends Class {
+    //     constructor() {
+    //         super();
+    //         construct(this);
+    //     }
+    // };
 
-    if (tag && !customElements.get(tag)) {
-        customElements.define(tag, Wrap as any);
+    if (define) {
+        if (!customElements.get(tag)) {
+            customElements.define(tag, Wrap as any);
+        }
     }
 
     return Wrap;
 };
-
-// component(
-// class XTest extends HTMLElement {
-//     // static tag = 'x-test';
-//     // static shadow = true;
-//     // static observedProperties = ['message'];
-
-//     message = 'hello world';
-
-//     template = () => html`
-//         <h1>${this.message}</h1>
-//         <input value=${this.message} oninput=${(e:any)=>this.message=e.target.value} />
-//     `;
-
-//     connectedCallback(){console.log('connectedCallback');}
-//     disconnectedCallback(){console.log('disconnectedCallback');}
-//     connecting(){console.log('connecting');}
-//     connected(){console.log('connected');}
-//     upgrading(){console.log('upgrading');}
-//     upgraded(){console.log('upgraded');}
-//     disconnecting(){console.log('disconnecting');}
-//     disconnected(){console.log('disconnected');}
-// }
-// );
-
-// const e = document.createElement('x-test');
-// console.log(e.outerHTML);
-// document.body.append(e);

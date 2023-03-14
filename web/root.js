@@ -22,7 +22,7 @@ export default component(XGreet);
 const routerExample = highlight(`
 import { router } from '/x-element.js';
 
-router('/', container, () => import('/greet.js'));
+router('/', document.body, ()=> import('/greet.js'));
 `);
 
 class XRoot extends HTMLElement {
@@ -36,21 +36,13 @@ class XRoot extends HTMLElement {
         <section>
 
             <h2>Vision</h2>
-            <h4>X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
+            <h4>Provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
 
             <h3>Features</h3>
             <div class="tiles">
                 <div class="tile">
                     <h4>\u{1F476} Simple</h4>
-                    <span>Simple to learning if you know custom elements you know XElement.</span>
-                </div>
-                <div class="tile">
-                    <h4>\u{1F4E6} Shareable</h4>
-                    <span>A single class to build a single component or an entire app.</span>
-                </div>
-                <div class="tile">
-                    <h4>\u{26A1} Fast</h4>
-                    <span>Tiny footprint ~15KB (minified and compressed).</span>
+                    <span>If you know HTML, JS, and Custom Elements then you know X-Element.</span>
                 </div>
                 <div class="tile">
                     <h4>\u{1F477} Framework Agnostic</h4>
@@ -63,6 +55,14 @@ class XRoot extends HTMLElement {
                         <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
                     </span>
                 </div>
+                <div class="tile">
+                    <h4>\u{26A1} Data Binding</h4>
+                    <span>Efficient two way databing be default.</span>
+                </div>
+                <div class="tile">
+                    <h4>\u{1F4E6} Small</h4>
+                    <span>Tiny footprint ~15KB (minified and compressed).</span>
+                </div>
             </div>
 
             <h3>Component</h3>
@@ -73,6 +73,9 @@ class XRoot extends HTMLElement {
             <pre id="component"></pre>
 
             <h3>Router</h3>
+            <p>
+                The last parameter takes a <code>function</code> and expects it to retrun any Custom Element <code>class</code> or a module with a <code>export default</code> which should also return any Custom Element <code>class</code>.
+            </p>
             <pre id="router"></pre>
 
         </section>

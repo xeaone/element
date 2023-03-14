@@ -148,10 +148,10 @@ var booleans_default = booleans;
 // src/html.ts
 var HtmlCache = /* @__PURE__ */ new WeakMap();
 var HtmlSymbol = Symbol("html");
-function html(strings, ...expressions) {
-  if (HtmlCache.has(strings)) {
-    const template = HtmlCache.get(strings);
-    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+var html = function(strings, ...expressions) {
+  const template = HtmlCache.get(strings);
+  if (template) {
+    return { strings, expressions, template, symbol: HtmlSymbol };
   } else {
     let data = "";
     const length = strings.length - 1;
@@ -159,14 +159,16 @@ function html(strings, ...expressions) {
       data += `${strings[index]}{{${index}}}`;
     }
     data += strings[length];
-    const template = document.createElement("template");
-    template.innerHTML = createHTML(data);
-    HtmlCache.set(strings, template);
-    return { strings, expressions, values: expressions, template, symbol: HtmlSymbol };
+    const template2 = document.createElement("template");
+    template2.innerHTML = createHTML(data);
+    HtmlCache.set(strings, template2);
+    return { strings, expressions, template: template2, symbol: HtmlSymbol };
   }
-}
+};
+var html_default = html;
 
 // src/render.ts
+var filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 var links = ["src", "href", "xlink:href"];
 var safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 var dangerousLink = function(data) {
@@ -185,17 +187,17 @@ var ObjectAction = function(start, end, actions, oldValue, newValue) {
       node = next;
     }
     const fragment = newValue.template.content.cloneNode(true);
-    RenderWalk(fragment, newValue.values, actions);
+    Render(fragment, newValue.expressions, actions);
     document.adoptNode(fragment);
     const l = actions.length;
     for (let i = 0; i < l; i++) {
-      actions[i]((_b = oldValue.values) == null ? void 0 : _b[i], newValue.values[i]);
+      actions[i]((_b = oldValue.expressions) == null ? void 0 : _b[i], newValue.expressions[i]);
     }
     (_c = end.parentNode) == null ? void 0 : _c.insertBefore(fragment, end);
   } else {
     const l = actions.length;
     for (let i = 0; i < l; i++) {
-      actions[i]((_d = oldValue.values) == null ? void 0 : _d[i], newValue.values[i]);
+      actions[i]((_d = oldValue.expressions) == null ? void 0 : _d[i], newValue.expressions[i]);
     }
   }
 };
@@ -279,12 +281,13 @@ var AttributeValue = function(element, attribute, oldValue, newValue) {
 var AttributeLink = function(element, attribute, oldValue, newValue) {
   if (oldValue === newValue)
     return;
-  if (dangerousLink(newValue)) {
+  const value = encodeURI(newValue);
+  if (dangerousLink(value)) {
     element.removeAttribute(attribute.name);
-    console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
+    console.warn(`XElement - attribute name "${attribute.name}" and value "${value}" not allowed`);
     return;
   }
-  attribute.value = newValue;
+  attribute.value = value;
   Reflect.set(element, attribute.name, attribute.value);
   element.setAttribute(attribute.name, attribute.value);
 };
@@ -315,9 +318,9 @@ var AttributeName = function(element, attribute, oldValue, newValue) {
     AttributeStandard(element, attribute, attribute.value, attribute.value);
   }
 };
-var RenderWalk = function(fragment, values, actions) {
+var Render = function(fragment, expressions, actions) {
   var _a, _b, _c, _d, _e, _f, _g, _h;
-  const walker = document.createTreeWalker(document, 5, null);
+  const walker = document.createTreeWalker(document, filter, null);
   walker.currentNode = fragment;
   let index = 0;
   let node = fragment.firstChild;
@@ -336,7 +339,7 @@ var RenderWalk = function(fragment, values, actions) {
       if (end + 2 != ((_e = node.nodeValue) == null ? void 0 : _e.length)) {
         node.splitText(end + 2);
       }
-      const newValue = values[index++];
+      const newValue = expressions[index++];
       if ((newValue == null ? void 0 : newValue.constructor) === Object && (newValue == null ? void 0 : newValue.symbol) === HtmlSymbol) {
         const start2 = document.createTextNode("");
         const end2 = node;
@@ -354,6 +357,9 @@ var RenderWalk = function(fragment, values, actions) {
         actions.push(StandardAction.bind(null, node));
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
+        walker.nextSibling();
+      }
       const names = node.getAttributeNames();
       for (const name of names) {
         const value = (_h = node.getAttribute(name)) != null ? _h : "";
@@ -405,11 +411,11 @@ var RenderWalk = function(fragment, values, actions) {
         }
       }
     } else {
-      console.warn("node type not handled ", node.nodeType);
+      console.warn(`XElement - node type "${node.nodeType}" not handled`);
     }
   }
 };
-var render_default = RenderWalk;
+var render_default = Render;
 
 // src/observe.ts
 var ObserveCache = /* @__PURE__ */ new WeakMap();
@@ -497,31 +503,6 @@ var attributedEvent = new Event("attributed");
 var attributingEvent = new Event("attributing");
 var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
-var create = function() {
-  return __async(this, null, function* () {
-    var _a;
-    const tag = (_a = this.tag) != null ? _a : dash(this.name);
-    if (!customElements.get(tag)) {
-      customElements.define(tag, this);
-    }
-    const element = document.createElement(tag);
-    return element;
-  });
-};
-var define = function() {
-  var _a;
-  const tag = (_a = this.tag) != null ? _a : dash(this.name);
-  if (!customElements.get(tag))
-    return;
-  customElements.define(tag, this);
-};
-var defined = function() {
-  return __async(this, null, function* () {
-    var _a;
-    const tag = (_a = this.tag) != null ? _a : dash(this.name);
-    return customElements.whenDefined(tag);
-  });
-};
 var upgrade = function(self) {
   return __async(this, null, function* () {
     var _a, _b, _c, _d, _e;
@@ -535,9 +516,11 @@ var upgrade = function(self) {
     const result = self.template();
     const length = (_c = instance.actions.length) != null ? _c : 0;
     for (let index = 0; index < length; index++) {
-      instance.actions[index](instance.expressions[index], result.expressions[index]);
+      const newExpression = result.expressions[index];
+      const oldExpressions = instance.expressions[index];
+      instance.actions[index](oldExpressions, newExpression);
+      instance.expressions[index] = newExpression;
     }
-    instance.expressions.splice(0, -1, ...result.expressions);
     instance.busy = false;
     yield (_e = (_d = self.upgraded) == null ? void 0 : _d.call(self)) == null ? void 0 : _e.catch(console.error);
     self.dispatchEvent(upgradedEvent);
@@ -554,36 +537,38 @@ var mount = function(self) {
     self.dispatchEvent(upgradingEvent);
     yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
     const result = self.template();
-    instance.expressions.splice(0, -1, ...result.values);
     instance.fragment = result.template.content.cloneNode(true);
-    render_default(instance.fragment, instance.expressions, instance.actions);
+    render_default(instance.fragment, result.expressions, instance.actions);
     document.adoptNode(instance.fragment);
     const length = instance.actions.length;
     for (let index = 0; index < length; index++) {
-      instance.actions[index](void 0, instance.expressions[index]);
+      const newExpression = result.expressions[index];
+      instance.actions[index](void 0, newExpression);
+      instance.expressions[index] = newExpression;
     }
     replaceChildren(instance.root, instance.fragment);
     yield (_d = (_c = self.upgraded) == null ? void 0 : _c.call(self)) == null ? void 0 : _d.catch(console.error);
     self.dispatchEvent(upgradedEvent);
   });
 };
-var construct = function(t, a, e) {
+var construct = function(self) {
   var _a, _b, _c;
-  const self = Reflect.construct(t, a, e);
   const constructor = self.constructor;
-  const shadow = constructor.shadow;
+  const define = constructor.define || false;
+  const shadow = constructor.shadow || false;
   const tag = (_a = constructor.tag) != null ? _a : dash(constructor.name);
   const observedProperties = constructor.observedProperties;
   const prototype = Object.getPrototypeOf(self);
   const instance = {
     tag,
+    define,
+    shadow,
     context: {},
     busy: false,
     actions: [],
     mounted: false,
     expressions: [],
     fragment: void 0,
-    shadow: shadow || false,
     root: shadow ? (_b = self.shadowRoot) != null ? _b : self.attachShadow({ mode: "open" }) : self
   };
   instance.observed = observe_default(instance.context, () => upgrade(self)), Components.set(self, instance);
@@ -614,48 +599,53 @@ var construct = function(t, a, e) {
   return self;
 };
 function component(Class) {
-  var _a;
-  Class.create = create;
-  Class.define = define;
-  Class.defined = defined;
-  const tag = (_a = Class.tag) != null ? _a : dash(Class.name);
+  var _a, _b;
+  const define = (_a = Class.define) != null ? _a : false;
+  const tag = (_b = Class.tag) != null ? _b : dash(Class.name);
   const upgradedCallback = Class.prototype.upgradedCallback;
   const connectedCallback = Class.prototype.connectedCallback;
   const disconnectedCallback = Class.prototype.disconnectedCallback;
   Class.prototype.upgradedCallback = function() {
     return __async(this, null, function* () {
-      var _a2, _b;
+      var _a2, _b2;
       this.dispatchEvent(upgradingEvent);
       yield (_a2 = this.upgrading) == null ? void 0 : _a2.call(this);
-      yield (_b = this.upgraded) == null ? void 0 : _b.call(this);
+      yield (_b2 = this.upgraded) == null ? void 0 : _b2.call(this);
       this.dispatchEvent(upgradedEvent);
       yield upgradedCallback == null ? void 0 : upgradedCallback();
     });
   };
   Class.prototype.connectedCallback = function() {
     return __async(this, null, function* () {
-      var _a2, _b;
+      var _a2, _b2;
       this.dispatchEvent(connectingEvent);
       yield (_a2 = this.connecting) == null ? void 0 : _a2.call(this);
       yield mount(this);
-      yield (_b = this.connected) == null ? void 0 : _b.call(this);
+      yield (_b2 = this.connected) == null ? void 0 : _b2.call(this);
       this.dispatchEvent(connectedEvent);
       yield connectedCallback == null ? void 0 : connectedCallback();
     });
   };
   Class.prototype.disconnectedCallback = function() {
     return __async(this, null, function* () {
-      var _a2, _b;
+      var _a2, _b2;
       this.dispatchEvent(disconnectingEvent);
       yield (_a2 = this.disconnecting) == null ? void 0 : _a2.call(this);
-      yield (_b = this.disconnected) == null ? void 0 : _b.call(this);
+      yield (_b2 = this.disconnected) == null ? void 0 : _b2.call(this);
       this.dispatchEvent(disconnectedEvent);
       yield disconnectedCallback == null ? void 0 : disconnectedCallback();
     });
   };
-  const Wrap = new Proxy(Class, { construct });
-  if (tag && !customElements.get(tag)) {
-    customElements.define(tag, Wrap);
+  const Wrap = new Proxy(Class, {
+    // get, set,
+    construct(t, a, e) {
+      return construct(Reflect.construct(t, a, e));
+    }
+  });
+  if (define) {
+    if (!customElements.get(tag)) {
+      customElements.define(tag, Wrap);
+    }
   }
   return Wrap;
 }
@@ -765,7 +755,7 @@ var Index = {
   render: render_default,
   // patch: Patch,
   // mount: Mount,
-  html
+  html: html_default
 };
 var src_default = Index;
 export {
@@ -774,7 +764,7 @@ export {
   router_default as Router,
   component,
   src_default as default,
-  html,
+  html_default as html,
   render_default as render,
   router_default as router
 };

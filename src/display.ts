@@ -1,3 +1,4 @@
+
 export default function display(data: any): string {
     switch (typeof data) {
         case 'undefined':

@@ -17,6 +17,8 @@ const names = [
     'security',
 ];
 
+const cache = new WeakMap();
+
 class XGuide extends HTMLElement {
 
     input = 'hello world';
@@ -42,12 +44,18 @@ class XGuide extends HTMLElement {
             const sourceElement = this.querySelector(`#${name}Source`);
             if (codeElement) {
                 const code = this[`${name}Code`];
-                codeElement.innerHTML = code;
+                if (cache.get(codeElement) !== code) {
+                    cache.set(codeElement, code);
+                    codeElement.innerHTML = code;
+                }
             }
             if (sourceElement) {
                 const componentElement = this.querySelector(`#${name}Component`);
                 const source = highlight(componentElement.innerHTML, 'html');
-                sourceElement.innerHTML = source;
+                if (cache.get(sourceElement) !== source) {
+                    cache.set(sourceElement, source);
+                    sourceElement.innerHTML = source;
+                }
             }
         }
     }
@@ -55,12 +63,28 @@ class XGuide extends HTMLElement {
     disconnecting () { console.log('disconnecting'); }
     disconnected () { console.log('disconnected'); }
 
-    cycleComponent = `
+    cycleComponent = /*js*/`
     class XElement extends HTMLElement {
+
+        // Optional: Tag name to be used for customElement.define and document.createElement.
+        //           If not defined then the class name will be used for dynamic declarative customElement.define and document.createElement.
+        static tag?: string;
+
+        // Optional: Declarative way to define the Component when decoration. Uses the tag name or the class name.
+        static define?: boolean;
+
+        // Optional: Declarative way to create shadowRoot and attach to the Component.
+        static shadow?: boolean;
+
+        // Optional: Declarative way to observe only specific properties on the Component. Default is a two way observation of all props except the reserved names.
+        static observedProperties?: string[];
+
         connecting () { console.log('connecting'); }
+        connected () { console.log('connected'); }
+
         upgrading () { console.log('upgrading'); }
         upgraded () { console.log('upgraded'); }
-        connected () { console.log('connected'); }
+
         disconnecting () { console.log('disconnecting'); }
         disconnected () { console.log('disconnected'); }
     }
@@ -93,7 +117,7 @@ class XGuide extends HTMLElement {
 
     styleComponent = () => html`
     <div style=${`color: ${this.color}`}>Look at my style</div>
-    <button onclick=${() => this.color = Color()}>Change Color</button>
+    <button onclick=${() => this.color = color()}>Change Color</button>
     `;
     styleCode = highlight(this.styleComponent.toString());
 

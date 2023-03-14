@@ -39,7 +39,8 @@ pre code.hljs {
     font-weight: 700;
     color: var(--yellow);
 }
-.hljs-addition,.hljs-code,.hljs-string,.hljs-title.class_.inherited__ {
+/* .hljs-addition,.hljs-code,.hljs-string,.hljs-title.class_.inherited__ { */
+.hljs-addition,.hljs-code,.hljs-string {
     color: var(--green);
 }
 .hljs-built_in,.hljs-doctag,.hljs-keyword.hljs-atrule,.hljs-quote,.hljs-regexp {

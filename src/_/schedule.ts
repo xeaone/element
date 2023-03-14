@@ -1,46 +1,55 @@
-let busy = false;
+let task:any = undefined;
 
 const sleep = (time?: number) => new Promise((resolve) => setTimeout(resolve, time ?? 0));
 
 const Actions: any = [];
-const OldValues: any = [];
-const NewValues: any = [];
+const OldExpressions: any = [];
+const NewExpressions: any = [];
 
-export default async function schedule(actions: any[], oldValues: any[], newValues: any[]) {
-    actions = actions ?? [];
-    oldValues = oldValues ?? [];
-    newValues = newValues ?? [];
+export default function schedule(actions: any[], oldExpressions: any[], newExpressions: any[]): Promise<void> {
+    // actions = actions ?? [];
+    // oldExpressions = oldExpressions ?? [];
+    // newExpressions = newExpressions ?? [];
 
     Actions.push(...actions);
-    OldValues.push(...oldValues);
-    NewValues.push(...newValues);
+    OldExpressions.push(...oldExpressions);
+    NewExpressions.push(...newExpressions);
 
-    if (busy) return;
-    busy = true;
+    if (task) return task;
+    // task = true;
 
-    let action;
-    let oldValue;
-    let newValue;
-    let max = performance.now() + 50;
+    task = (async () => {
+        let action;
+        let oldValue;
+        let newValue;
+        let max = performance.now() + 50;
 
-    while (Actions.length > 0) {
-        if (
-            (navigator as any).scheduling?.isInputPending() ||
-            performance.now() >= max
-        ) {
-            await sleep();
-            max = performance.now() + 50;
-            continue;
+        while (Actions.length > 0) {
+            if (
+                (navigator as any).scheduling?.isInputPending()
+                // ||
+                // performance.now() >= max
+            ) {
+                await sleep(10);
+                // max = performance.now() + 50;
+                continue;
+            }
+
+            action = Actions.shift();
+            oldValue = OldExpressions.shift();
+            newValue = NewExpressions.shift();
+
+            if (oldValue !== newValue) {
+                await action(oldValue, newValue);
+            }
         }
 
-        action = Actions.shift();
-        oldValue = OldValues.shift();
-        newValue = NewValues.shift();
+        task = undefined;
+    })();
 
-        if (oldValue !== newValue) {
-            await action(oldValue, newValue);
-        }
-    }
+    return task;
 
-    busy = false;
+    // await future;
+
+    // busy = false;
 }

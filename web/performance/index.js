@@ -1,6 +1,7 @@
 import { component, html } from '../x-element.js';
 
-const XPerformance = component(class XPerformance extends HTMLElement {
+class XPerformance extends HTMLElement {
+    static define = true;
 
     items = [ 1, 2 ];
     count = 100000;
@@ -36,7 +37,9 @@ const XPerformance = component(class XPerformance extends HTMLElement {
 
         <style>h2{color:red;}</style>
     `;
-});
+}
+
+const XElement = component(XPerformance);
 
 /*
     <script>alert('main')</script>
@@ -52,7 +55,7 @@ const XPerformance = component(class XPerformance extends HTMLElement {
 // <div ${'test'}>at</div>
 
 const main = document.querySelector('main');
-main.replaceChildren(new XPerformance);
+main.replaceChildren(new XElement());
 // main.replaceChildren(document.createElement('x-performance'));
 // render(root, context, content);
 
