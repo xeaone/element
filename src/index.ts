@@ -1,6 +1,6 @@
 import Component from './component';
 // import Schedule from './schedule';
-// import Context from './context';
+// import state from './state';
 // import Define from './define';
 import Router from './router';
 import Render from './render';
@@ -14,8 +14,8 @@ export { Component as component };
 // export { Schedule };
 // export { Schedule as schedule };
 
-// export { Context };
-// export { Context as context };
+// export { state };
+// export { state as state };
 
 // export { Define };
 // export { Define as define };
@@ -37,7 +37,7 @@ export { html };
 const Index = {
     Component,
     // Schedule,
-    // Context,
+    // state,
     // Define,
     Router,
     Render,
@@ -45,7 +45,7 @@ const Index = {
     // Mount,
     component: Component,
     // schedule: Schedule,
-    // context: Context,
+    // state: state,
     // define: Define,
     router: Router,
     render: Render,

@@ -13,7 +13,6 @@ export type HtmlInstance = {
 export const HtmlCache = new WeakMap();
 export const HtmlSymbol = Symbol('html');
 
-
 // export class H {
 //     strings:TemplateStringsArray;
 //     expressions:TemplateExpressionsArray;

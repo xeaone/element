@@ -1,4 +1,5 @@
 import { replaceChildren  } from './poly';
+import mount from './mount';
 
 type Module = { default: CustomElementConstructor }
 type Handler = () => Module | CustomElementConstructor | Promise<CustomElementConstructor | Module>;
@@ -7,7 +8,7 @@ type Route = {
     path: string;
     instance: any;
     handler: Handler;
-    container: Element;
+    root: Element;
 };
 
 const alls: Array<Route> = [];
@@ -19,16 +20,25 @@ const notModule = function (module:any) {
 
 const transition = async function (route: Route) {
     if (route.instance) {
-        replaceChildren(route.container, route.instance);
+        replaceChildren(route.root, route.instance);
     } else {
         const tag = 'x-' + (route.path.replace(/\/+/g,'-').replace(/^-|-$|\.*/g, '') || 'root');
         const result = await route.handler() as any;
-        const constructor = notModule(result) ? result : result.default;
-        if (!customElements.get(tag)) {
-            customElements.define(tag, constructor);
+        const data = notModule(result) ? result : result?.default ?? result;
+
+        if (data?.prototype instanceof HTMLElement) {
+            if (!customElements.get(tag)) {
+                customElements.define(tag, data);
+            }
+            route.instance = document.createElement(tag);
+            replaceChildren(route.root, route.instance);
+        } else {
+            const options:any = { root: route.root };
+            if (data.state) options.state = data.state;
+            if (data.content) options.content = data.content;
+            else options.content = data;
+            await mount(options);
         }
-        route.instance = document.createElement(tag);
-        replaceChildren(route.container, route.instance);
     }
 };
 
@@ -56,7 +66,7 @@ const navigate = function (event?: any) {
         let has = false;
 
         for (const transition of transitions) {
-            if (transition.container === all.container) {
+            if (transition.root === all.root) {
                 has = true;
                 break;
             }
@@ -76,27 +86,27 @@ const navigate = function (event?: any) {
     }
 };
 
-const router = function (path: string, container: Element, handler: Handler) {
+const router = function (path: string, root: Element, handler: Handler) {
     if (!path) throw new Error('XElement - router path required');
     if (!handler) throw new Error('XElement - router handler required');
-    if (!container) throw new Error('XElement - router container required');
+    if (!root) throw new Error('XElement - router root required');
 
     if (path === '/*') {
         for (const all of alls) {
-            if (all.path === path && all.container === container) {
-                throw new Error('XElement - router duplicate path on container');
+            if (all.path === path && all.root === root) {
+                throw new Error('XElement - router duplicate path on root');
             }
         }
 
-        alls.push({ path, container, handler, instance: undefined });
+        alls.push({ path, root, handler, instance: undefined });
     } else {
         for (const route of routes) {
-            if (route.path === path && route.container === container) {
-                throw new Error('XElement - router duplicate path on container');
+            if (route.path === path && route.root === root) {
+                throw new Error('XElement - router duplicate path on root');
             }
         }
 
-        routes.push({ path, container, handler, instance: undefined });
+        routes.push({ path, root, handler, instance: undefined });
     }
 
     Reflect.get(window, 'navigation').addEventListener('navigate', navigate);

@@ -8,6 +8,7 @@ export type OldValue = Value;
 export type NewValue = Value;
 export type Expressions = Array<Value>;
 export type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
+export type Attribute = { name: string, value: string };
 
 const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 
@@ -53,7 +54,7 @@ const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValu
 };
 
 const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
-    // console.log('Array Action');
+    // console.log('Array Action', actions);
 
     oldValue = oldValue ?? [];
     newValue = newValue ?? [];
@@ -75,15 +76,19 @@ const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue
                 const start = document.createTextNode('');
                 const end = document.createTextNode('');
                 const action = ObjectAction.bind(null, start, end, []);
+
                 template.content.appendChild(start);
                 template.content.appendChild(end);
                 actions.push(action);
+
                 action(oldValue[i], newValue[i]);
             } else {
                 const node = document.createTextNode('');
                 const action = StandardAction.bind(null, node as Text);
+
                 template.content.appendChild(node);
                 actions.push(action);
+
                 action(oldValue[i], newValue[i]);
             }
 
@@ -113,7 +118,7 @@ const StandardAction = function (node: Text, oldValue: OldValue, newValue: NewVa
     node.textContent = newValue;
 };
 
-const AttributeOn = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
+const AttributeOn = function (element: Element, attribute: Attribute, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     if (typeof oldValue === 'function') element.removeEventListener(attribute.name.slice(2), oldValue);
     if (typeof newValue !== 'function') return console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
@@ -131,7 +136,7 @@ const AttributeBoolean = function (element: Element, attribute: { name: string; 
     Reflect.set(element, attribute.name, attribute.value);
 };
 
-const AttributeValue = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
+const AttributeValue = function (element: Element, attribute: Attribute, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     const value = display(newValue);
     attribute.value = value;
@@ -139,7 +144,7 @@ const AttributeValue = function (element: Element, attribute: { name: string; va
     element.setAttribute(attribute.name, attribute.value);
 };
 
-const AttributeLink = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
+const AttributeLink = function (element: Element, attribute: Attribute, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
 
     const value = encodeURI(newValue);
@@ -155,14 +160,14 @@ const AttributeLink = function (element: Element, attribute: { name: string; val
     element.setAttribute(attribute.name, attribute.value);
 };
 
-const AttributeStandard = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
+const AttributeStandard = function (element: Element, attribute: Attribute, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     attribute.value = newValue;
     Reflect.set(element, attribute.name, attribute.value);
     element.setAttribute(attribute.name, attribute.value);
 };
 
-const AttributeName = function (element: Element, attribute: { name: string; value: string }, oldValue: OldValue, newValue: NewValue) {
+const AttributeName = function (element: Element, attribute: Attribute, oldValue: OldValue, newValue: NewValue) {
     if (oldValue === newValue) return;
     element.removeAttribute(oldValue);
 
