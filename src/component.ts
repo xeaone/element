@@ -188,7 +188,7 @@ export default function component (Class:ComponentConstructor):ComponentConstruc
         } else {
             console.log(this);
             this.mounted = true;
-            await mount({ root: this, state: this.state, content: this.content });
+            await mount({ root: this, state: this.state, template: this.template });
         }
 
         await connectedCallback?.();

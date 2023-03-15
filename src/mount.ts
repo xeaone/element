@@ -22,7 +22,7 @@ import html from './html';
 type Options = {
     root: Element;
     state?: (instance:any) => any;
-    content: (instance:any) => any;
+    template: (instance:any) => any;
 }
 
 const mount = async function (options: Options) {
@@ -39,12 +39,13 @@ const mount = async function (options: Options) {
         busy: true,
         actions: [],
         expressions: [],
-        content: options.content,
+        template: options.template,
         root: options.root,
         state: undefined,
         get s () { return this.state; },
         get r () { return this.root; },
         get h () { return this.html; },
+        get t () { return this.template },
     };
 
     if (options.state) {
@@ -59,7 +60,7 @@ const mount = async function (options: Options) {
     instance.root.dispatchEvent(upgradingEvent);
     await instance.state?.upgrading?.()?.catch(console.error);
 
-    const result = instance.content(instance);
+    const result = instance.template(instance);
 
     // root.expressions.splice(0, -1, ...result.values);
     // root.fragment = result.template.content.cloneNode(true);

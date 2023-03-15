@@ -145,7 +145,7 @@ var upgrade = function(options) {
       instance.busy = true;
     instance.root.dispatchEvent(upgradingEvent);
     yield (_c = (_b = (_a = instance.state) == null ? void 0 : _a.upgrading) == null ? void 0 : _b.call(_a)) == null ? void 0 : _c.catch(console.error);
-    const result = instance.content(instance);
+    const result = instance.template(instance);
     const length = (_d = instance.actions.length) != null ? _d : 0;
     for (let index = 0; index < length; index++) {
       const newExpression = result.expressions[index];
@@ -514,7 +514,7 @@ var mount = function(options) {
       busy: true,
       actions: [],
       expressions: [],
-      content: options.content,
+      template: options.template,
       root: options.root,
       state: void 0,
       get s() {
@@ -525,6 +525,9 @@ var mount = function(options) {
       },
       get h() {
         return this.html;
+      },
+      get t() {
+        return this.template;
       }
     };
     if (options.state) {
@@ -535,7 +538,7 @@ var mount = function(options) {
     yield (_b = (_a = instance.state) == null ? void 0 : _a.connecting) == null ? void 0 : _b.call(_a);
     instance.root.dispatchEvent(upgradingEvent);
     yield (_e = (_d = (_c = instance.state) == null ? void 0 : _c.upgrading) == null ? void 0 : _d.call(_c)) == null ? void 0 : _e.catch(console.error);
-    const result = instance.content(instance);
+    const result = instance.template(instance);
     const fragment = result.template.content.cloneNode(true);
     render_default(fragment, result.expressions, instance.actions);
     document.adoptNode(fragment);
@@ -582,7 +585,7 @@ function component(Class) {
       } else {
         console.log(this);
         this.mounted = true;
-        yield mount_default({ root: this, state: this.state, content: this.content });
+        yield mount_default({ root: this, state: this.state, template: this.template });
       }
       yield connectedCallback == null ? void 0 : connectedCallback();
     });

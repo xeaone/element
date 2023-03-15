@@ -3,14 +3,14 @@ import highlight from './modules/highlight.js';
 
 const withoutCustomElement = highlight(`
 
-export const state = ({ html, c }) => ({
+export const state = ({ html, s }) => ({
     greeting: 'Default Greeting',
-    greet() { c.greeting = 'Updated Greeting'; }
+    greet() { s.greeting = 'Updated Greeting'; }
 });
 
-export const template = ({ html, c }) => html\`
-    <h1>c.greeting</h1>
-    <button onclick=\${c.greet}>Greet</button>
+export const template = ({ html, s }) => html\`
+    <h1>s.greeting</h1>
+    <button onclick=\${s.greet}>Greet</button>
 \`;
 
 `);
@@ -51,7 +51,7 @@ const state = ({ root }) => ({
 
 });
 
-const content = () => html`
+const template = () => html`
     <section>
 
         <h2>Vision</h2>
@@ -112,7 +112,7 @@ const content = () => html`
 class XRoot extends HTMLElement {
     static define = true;
     state = state;
-    content = content;
+    template = template;
 }
 
 export default component(XRoot);

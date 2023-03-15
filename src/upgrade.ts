@@ -14,7 +14,7 @@ const upgrade = async function (options: UpgradeOptions) {
     instance.root.dispatchEvent(upgradingEvent);
     await instance.state?.upgrading?.()?.catch(console.error);
 
-    const result = instance.content(instance);
+    const result = instance.template(instance);
 
     const length = instance.actions.length ?? 0;
     for (let index = 0; index < length; index++) {
