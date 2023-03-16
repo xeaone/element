@@ -21,12 +21,56 @@ import html from './html';
 
 type Options = {
     root: Element;
-    state?: (instance:any) => any;
-    template: (instance:any) => any;
+    state?: (instance: any) => any;
+    template: (instance: any) => any;
+}
+type Root = Element | ShadowRoot | DocumentFragment;
+class Self extends Function {
+    // expressions = [];
+    // actions = [];
+    html = html;
+    // busy = true;
+    self = this;
+    root: Element | DocumentFragment | ShadowRoot;
+    // component: any;
+    // template: any;
+    connecting?: (root: Root) => void | Promise<void>;
+    upgrading?: (root: Root) => void | Promise<void>;
+    upgraded?: (root: Root) => void | Promise<void>;
+    connected?: (root: Root) => void | Promise<void>;
+    // [key: string]: any;
+    constructor(root: Element) {
+        super();
+        this.root = root;
+        // this.self = this;
+        // this.root = root;
+        // this.component = component;
+        return new Proxy(this, {
+            apply(_t, _s, [strings, expressions]) {
+                return html(strings, ...expressions);
+            },
+            get(t, k, r) {
+                if (k === 'html' || k === 'h') return html;
+                if (k === 'root' || k === 'r') return root;
+                if (k === 'self' || k === 's') return t;
+                return Reflect.get(t, k, r);
+            },
+            set(t, k, v, r) {
+                if (k === 'html' || k === 'h') return false;
+                if (k === 'root' || k === 'r') return false;
+                if (k === 'self' || k === 's') return false;
+                return Reflect.set(t, k, v, r);
+            },
+        });
+    }
 }
 
-const mount = async function (options: Options) {
-    console.log(options);
+// let state = function () {
+//     return new
+// };
+
+const mount = async function (root: Element, component: any) {
+    // const mount = async function (options: Options) {
 
     // const source = roots.get(root);
     // call disconnect
@@ -34,64 +78,63 @@ const mount = async function (options: Options) {
     // if (root.mounted) return;
     // else root.mounted = true;
 
-    const instance:any = {
-        html,
+    const actions: any[] = [];
+    const expressions: any[] = [];
+    const self = new Self(root);
+    const template = component(self, self);
+    const data = {
+        root,
+        self,
+        template,
+        component,
+        actions,
+        expressions,
         busy: true,
-        actions: [],
-        expressions: [],
-        template: options.template,
-        root: options.root,
-        state: undefined,
-        get s () { return this.state; },
-        get r () { return this.root; },
-        get h () { return this.html; },
-        get t () { return this.template },
     };
 
-    if (options.state) {
-        instance.state = observe(options.state(instance), () => upgrade(instance));
-    }
+    roots.set(root, data);
 
-    roots.set(instance.root, instance);
+    // if (options.state) {
+    // instance.state = observe(options.state(instance), () => {
+    // instance.state = observe({}, async () => {
+    //     console.log('upgrade', instance.busy);
+    //     if (instance.busy === false) {
+    //         console.log(instance.state)
+    //         return upgrade(instance);
+    //     }
+    // });
+    // options.state(instance);
+    // }
 
-    instance.root.dispatchEvent(connectingEvent);
-    await instance.state?.connecting?.();
+    const hyper = template();
+    const fragment = hyper.template.content.cloneNode(true) as DocumentFragment;
 
-    instance.root.dispatchEvent(upgradingEvent);
-    await instance.state?.upgrading?.()?.catch(console.error);
+    root.dispatchEvent(connectingEvent);
+    await self?.connecting?.(fragment)?.catch(console.error);
 
-    const result = instance.template(instance);
+    root.dispatchEvent(upgradingEvent);
+    await self?.upgrading?.(fragment)?.catch(console.error);
 
-    // root.expressions.splice(0, -1, ...result.values);
-    // root.fragment = result.template.content.cloneNode(true);
-    const fragment = result.template.content.cloneNode(true);
-
-    render(fragment, result.expressions, instance.actions);
-    // render(root.fragment, result.expressions, root.actions);
-    // render(root.fragment, root.expressions, root.actions);
+    render(fragment, hyper.expressions, actions);
 
     document.adoptNode(fragment);
-    // document.adoptNode(root.fragment);
 
-    const length = instance.actions.length;
+    const length = actions.length;
     for (let index = 0; index < length; index++) {
-        const newExpression = result.expressions[index];
-        instance.actions[index](undefined, newExpression);
-        instance.expressions[index] = newExpression;
+        const newExpression = hyper.expressions[index];
+        actions[index](undefined, newExpression);
+        expressions[index] = newExpression;
     }
 
-    // const task = schedule(root.actions, Array(root.actions.length).fill(undefined), root.expressions);
-    // await task;
+    await self?.upgraded?.(fragment)?.catch(console.error);
+    root.dispatchEvent(upgradedEvent);
 
-    replaceChildren(instance.root?.shadowRoot ?? instance.root, fragment);
+    replaceChildren(root?.shadowRoot ?? root, fragment);
 
-    instance.busy = false;
+    await self?.connected?.(root)?.catch(console.error);
+    root.dispatchEvent(connectedEvent);
 
-    await instance.state?.upgraded?.()?.catch(console.error);
-    instance.root.dispatchEvent(upgradedEvent);
-
-    await instance.state?.connected?.();
-    instance.root.dispatchEvent(connectedEvent);
+    data.busy = false;
 };
 
 export default mount;

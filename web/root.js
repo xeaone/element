@@ -41,55 +41,57 @@ import { router } from '/x-element.js';
 router('/', document.body, ()=> import('/greet.js'));
 `);
 
-const state = ({ root }) => ({
-
-    upgraded () {
+export default ({ html, self }) => (
+    self.upgraded = (root) => {
         root.querySelector('#router').innerHTML = routerExample;
         root.querySelector('#withoutCustomElement').innerHTML = withoutCustomElement;
         root.querySelector('#withCustomElement').innerHTML = withCustomElement;
-    }
+    },
 
-});
+    () => html`
 
-const template = () => html`
     <section>
 
         <h2>Vision</h2>
         <h4>Provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
 
-        <h3>Features</h3>
         <div class="tiles">
             <div class="tile">
-                <h4>\u{1F476} Simple</h4>
-                <span>If you know HTML, JS, and Custom Elements then you know X-Element.</span>
+                <h4><span class="material-symbols-rounded">child_care</span> Simple</h4>
+                <span>If you know HTML, JS, and Template Literals then you know how to use X-Element.</span>
             </div>
             <div class="tile">
-                <h4>\u{1F477} Framework Agnostic</h4>
-                <span>Use XElement with any framework - React, Vue, Angular...</span>
+                <h4><span class="material-symbols-rounded">magic_exchange</span> Agnostic</h4>
+                <span>Use XElement with any framework or library - React, Vue, Angular...</span>
             </div>
             <div class="tile">
-                <h4>\u{1F9ED} Client Side Routing</h4>
+                <h4><span class="material-symbols-rounded">explore</span> Routing</h4>
                 <span>
-                    Using the new
+                    Client side routing using the new
                     <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
                 </span>
             </div>
             <div class="tile">
-                <h4>\u{26A1} Data Binding</h4>
-                <span>Efficient two way databing be default.</span>
+                <h4><span class="material-symbols-rounded">commit</span> Data Binding</h4>
+                <span>Efficient two way databing by default.</span>
             </div>
             <div class="tile">
-                <h4>\u{1F4E6} Small</h4>
-                <span>Tiny footprint ~15KB (minified and compressed).</span>
+                <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
+                <span>Rendering is blazing fast, because XElement only interacts with the dynamic DOM elemens of the UI.</span>
+            </div>
+            <div class="tile">
+                <h4><span class="material-symbols-rounded">deployed_code</span> Small</h4>
+                <span>Tiny footprint ~()KB (minified and compressed).</span>
             </div>
         </div>
 
         <h3>Without Custom Element</h3>
         <p>
-            If you don't need ShadowDOM then you could use this approach to create entire apps and components.
+            If you don't need ShadowDOM then you could use this fancy approach to create apps and components.
         </p>
         <ul>
-            <li>There are NO global or module depencency required.</li>
+            <li>No global or module depencency.</li>
+            <li>No Custom Elements reducing unnecessary overhead.</li>
         </ul>
         <pre id="withoutCustomElement"></pre>
 
@@ -98,6 +100,9 @@ const template = () => html`
             Pass a Custom Element Constructor to <code>component()</code> and it is decorated with XElement super powers.
             Use Template Literal with the <code>html</code> Template Tag to give your Custom Element HTML.
         </p>
+        <ul>
+            <li>Using the <code>component()</code> decorator instead of extending a class allows the ability to extend any Element type.</li>
+        </ul>
         <pre id="withCustomElement"></pre>
 
         <h3>Router</h3>
@@ -107,12 +112,13 @@ const template = () => html`
         <pre id="router"></pre>
 
     </section>
-`;
 
-class XRoot extends HTMLElement {
-    static define = true;
-    state = state;
-    template = template;
-}
+`);
 
-export default component(XRoot);
+// class XRoot extends HTMLElement {
+//     static define = true;
+//     state = state;
+//     template = template;
+// }
+
+// export default component(XRoot);

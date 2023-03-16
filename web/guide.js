@@ -19,38 +19,38 @@ const names = [
 
 const cache = new WeakMap();
 
-class XGuide extends HTMLElement {
+export default ({ html, s, r }) => (
+    console.log(r),
+    s.input = 'hello world',
+    s.checked = true,
+    s.color = color(),
+    s.active = true,
+    s.radioShared = 'two',
+    s.radioOne = 'one',
+    s.radioTwo = 'two',
+    s.boolean = true,
+    s.number = 1,
+    s.fruit = 'Orange',
+    s.fruits = [ 'Apple', 'Orange', 'Tomato' ],
+    s.car = [ 'ford' ],
+    s.cars = [ 'tesla', 'ford', 'chevy' ],
 
-    input = 'hello world';
-    checked = true;
-    color = color();
-    active = true;
-    radioShared = 'two';
-    radioOne = 'one';
-    radioTwo = 'two';
-    boolean = true;
-    number = 1;
-    fruit = 'Orange';
-    fruits = [ 'Apple', 'Orange', 'Tomato' ];
-    car = [ 'ford' ];
-    cars = [ 'tesla', 'ford', 'chevy' ];
-
-    connecting () { console.log('connecting'); }
-    upgrading () { console.log('upgrading'); }
-    upgraded () {
+    s.connecting = () => { console.log('connecting'); },
+    s.upgrading = () => { console.log('upgrading'); },
+    s.upgraded = () => {
         console.log('upgraded');
         for (const name of names) {
-            const codeElement = this.querySelector(`#${name}Code`);
-            const sourceElement = this.querySelector(`#${name}Source`);
+            const codeElement = r.querySelector(`#${name}Code`);
+            const sourceElement = r.querySelector(`#${name}Source`);
             if (codeElement) {
-                const code = this[`${name}Code`];
+                const code = s[ `${name}Code` ];
                 if (cache.get(codeElement) !== code) {
                     cache.set(codeElement, code);
                     codeElement.innerHTML = code;
                 }
             }
             if (sourceElement) {
-                const componentElement = this.querySelector(`#${name}Component`);
+                const componentElement = r.querySelector(`#${name}Component`);
                 const source = highlight(componentElement.innerHTML, 'html');
                 if (cache.get(sourceElement) !== source) {
                     cache.set(sourceElement, source);
@@ -58,12 +58,12 @@ class XGuide extends HTMLElement {
                 }
             }
         }
-    }
-    connected () { console.log('connected'); }
-    disconnecting () { console.log('disconnecting'); }
-    disconnected () { console.log('disconnected'); }
+    },
+    s.connected = () => { console.log('connected'); },
+    s.disconnecting = () => { console.log('disconnecting'); },
+    s.disconnected = () => { console.log('disconnected'); },
 
-    cycleComponent = /*js*/`
+    s.cycleComponent = `
     class XElement extends HTMLElement {
 
         // Optional: Tag name to be used for customElement.define and document.createElement.
@@ -88,173 +88,170 @@ class XGuide extends HTMLElement {
         disconnecting () { console.log('disconnecting'); }
         disconnected () { console.log('disconnected'); }
     }
-    `;
-    cycleCode = highlight(this.cycleComponent.toString());
+    `,
+    s.cycleCode = highlight(s.cycleComponent.toString()),
 
-    inputComponent = () => html`
-    <div>${this.input}</div>
-    <input value=${this.input} oninput=${(e) => this.input = e.target.value} />
-    `;
-    inputCode = highlight(this.inputComponent.toString());
+    s.inputComponent = () => html`
+    <div>${s.input}</div>
+    <input value=${s.input} oninput=${(e) => s.input = e.target.value} />
+    `,
+    s.inputCode = highlight(s.inputComponent.toString()),
 
-    mapComponent = () => html`
-    ${this.fruits.map(fruit => html`<div>${fruit}</div>`)}
-    `;
-    mapCode = highlight(this.mapComponent.toString());
+    s.mapComponent = () => html`
+    ${s.fruits.map(fruit => html`<div>${fruit}</div>`)}
+    `,
+    s.mapCode = highlight(s.mapComponent.toString()),
 
-    checkComponent = () => html`
-    <div>${this.checked ? 'Is Checked' : 'Is Not Checked'}</div>
-    <input type="checkbox" checked=${this.checked} oninput=${(e) => this.checked = e.target.checked} >
-    `;
-    checkCode = highlight(this.checkComponent.toString());
+    s.checkComponent = () => html`
+    <div>${s.checked ? 'Is Checked' : 'Is Not Checked'}</div>
+    <input type="checkbox" checked=${s.checked} oninput=${(e) => s.checked = e.target.checked} >
+    `,
+    s.checkCode = highlight(s.checkComponent.toString()),
 
-    radioComponent = () => html`
-    <div>${this.radioShared}</div>
-    <input type="radio" name="radio" checked=${this.radioShared === this.radioOne} oninput=${() => this.radioShared = 'one'} />
-    <input type="radio" name="radio" checked=${this.radioShared === this.radioTwo} oninput=${() => this.radioShared = 'two'} />
-    `;
-    radioCode = highlight(this.radioComponent.toString());
+    s.radioComponent = () => html`
+    <div>${s.radioShared}</div>
+    <input type="radio" name="radio" checked=${s.radioShared === s.radioOne} oninput=${() => s.radioShared = 'one'} />
+    <input type="radio" name="radio" checked=${s.radioShared === s.radioTwo} oninput=${() => s.radioShared = 'two'} />
+    `,
+    s.radioCode = highlight(s.radioComponent.toString()),
 
-    styleComponent = () => html`
-    <div style=${`color: ${this.color}`}>Look at my style</div>
-    <button onclick=${() => this.color = color()}>Change Color</button>
-    `;
-    styleCode = highlight(this.styleComponent.toString());
+    s.styleComponent = () => html`
+    <div style=${`color: ${s.color}`}>Look at my style</div>
+    <button onclick=${() => s.color = color()}>Change Color</button>
+    `,
+    s.styleCode = highlight(s.styleComponent.toString()),
 
-    classComponent = () => html`
-    <div class=${this.active ? 'default class-color' : 'default'}>Look at my class</div >
-    <button onclick=${() => this.active = !this.active}>Toggle Class</button>
-    `;
-    classCode = highlight(this.classComponent.toString());
+    s.classComponent = () => html`
+    <div class=${s.active ? 'default class-color' : 'default'}>Look at my class</div >
+    <button onclick=${() => s.active = !s.active}>Toggle Class</button>
+    `,
+    s.classCode = highlight(s.classComponent.toString()),
 
-    fruitsComponent = () => html`
-    <div>${this.fruit}</div>
-    <select value=${this.fruit} oninput=${(e) => this.fruit = e.target.value}>
-        ${this.fruits.map(fruit => html`
-            <option value=${fruit} selected=${this.fruit===fruit}>${fruit}</option>
+    s.fruitsComponent = () => html`
+    <div>${s.fruit}</div>
+    <select value=${s.fruit} oninput=${(e) => s.fruit = e.target.value}>
+        ${s.fruits.map(fruit => html`
+            <option value=${fruit} selected=${s.fruit === fruit}>${fruit}</option>
         `)}
     </select>
-    `;
-    fruitsCode = highlight(this.fruitsComponent.toString());
+    `,
+    s.fruitsCode = highlight(s.fruitsComponent.toString()),
 
-    carsComponent = () => html`
-    <div>${this.car}</div>
-    <select oninput=${(e) => this.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
-        ${this.cars.map(car => html`
-            <option value=${car} selected=${this.car.includes(car)}>${car}</option>
+    s.carsComponent = () => html`
+    <div>${s.car}</div>
+    <select oninput=${(e) => s.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
+        ${s.cars.map(car => html`
+            <option value=${car} selected=${s.car.includes(car)}>${car}</option>
         `)}
     </select>
-    `;
-    carsCode = highlight(this.carsComponent.toString());
+    `,
+    s.carsCode = highlight(s.carsComponent.toString()),
 
-    selectBooleanComponent = () => html`
-    <div>${this.boolean}</div>
-    <select value=${this.boolean} oninput=${(e) => this.boolean = JSON.parse(e.target.value)}>
+    s.selectBooleanComponent = () => html`
+    <div>${s.boolean}</div>
+    <select value=${s.boolean} oninput=${(e) => s.boolean = JSON.parse(e.target.value)}>
         <option value="true">yes</option>
         <option value="false">no</option>
     </select>
-    `;
-    selectBooleanCode = highlight(this.selectBooleanComponent.toString());
+    `,
+    s.selectBooleanCode = highlight(s.selectBooleanComponent.toString()),
 
-    selectNumberComponent = () => html`
-    <div>${this.number}</div>
-    <select value=${this.number} oninput=${(e) => this.number = JSON.parse(e.target.value)}>
+    s.selectNumberComponent = () => html`
+    <div>${s.number}</div>
+    <select value=${s.number} oninput=${(e) => s.number = JSON.parse(e.target.value)}>
         <option value="0">zero</option>
         <option value="1">one</option>
         <option value="2">two</option>
     </select>
-    `;
-    selectNumberCode = highlight(this.selectNumberComponent.toString());
+    `,
 
-    template = () => html`
+    s.selectNumberCode = highlight(s.selectNumberComponent.toString()),
 
-        <style>
-            .default {
-                border: solid 5px transparent;
-            }
-            .class-color {
-                border-color: var(--accent);
-            }
-        </style>
+    () => html`
 
-        <section>
-            <h3>Life Cycle</h3>
-            <pre id="cycleCode"></pre>
-        </section>
+    <style>
+        .default {
+            border: solid 5px transparent;
+        }
+        .class-color {
+            border-color: var(--accent);
+        }
+    </style>
 
-        <section id="input">
-            <h3>Input</h3>
-            <pre id="inputCode"></pre>
-            <pre id="inputComponent">${this.inputComponent()}</pre>
-            <pre id="inputSource"></pre>
-        </section>
+    <section>
+        <h3>Life Cycle</h3>
+        <pre id="cycleCode"></pre>
+    </section>
 
-        <section id="map">
-            <h3>Map</h3>
-            <pre id="mapCode"></pre>
-            <pre id="mapComponent">${this.mapComponent()}</pre>
-            <pre id="mapSource"></pre>
-        </section>
+    <section id="input">
+        <h3>Input</h3>
+        <pre id="inputCode"></pre>
+        <pre id="inputComponent">${s.inputComponent()}</pre>
+        <pre id="inputSource"></pre>
+    </section>
 
-        <section id="check">
-            <h3>Check</h3>
-            <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
-            <pre id="checkCode"></pre>
-            <pre id="checkComponent">${this.checkComponent()}</pre>
-            <pre id="checkSource"></pre>
-        </section>
+    <section id="map">
+        <h3>Map</h3>
+        <pre id="mapCode"></pre>
+        <pre id="mapComponent">${s.mapComponent()}</pre>
+        <pre id="mapSource"></pre>
+    </section>
 
-        <section id="radio">
-            <h3>Radio</h3>
-            <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
-            <pre id="radioCode"></pre>
-            <pre id="radioComponent">${this.radioComponent()}</pre>
-            <pre id="radioSource"></pre>
-        </section>
+    <section id="check">
+        <h3>Check</h3>
+        <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
+        <pre id="checkCode"></pre>
+        <pre id="checkComponent">${s.checkComponent()}</pre>
+        <pre id="checkSource"></pre>
+    </section>
 
-        <section id="class">
-            <h3>Class</h3>
-            <pre id="classCode"></pre>
-            <pre id="classComponent">${this.classComponent()}</pre>
-            <pre id="classSource"></pre>
-        </section>
+    <section id="radio">
+        <h3>Radio</h3>
+        <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
+        <pre id="radioCode"></pre>
+        <pre id="radioComponent">${s.radioComponent()}</pre>
+        <pre id="radioSource"></pre>
+    </section>
 
-        <section id="style">
-            <h3>Style</h3>
-            <pre id="styleCode"></pre>
-            <pre id="styleComponent">${this.styleComponent()}</pre>
-            <pre id="styleSource"></pre>
-        </section>
+    <section id="class">
+        <h3>Class</h3>
+        <pre id="classCode"></pre>
+        <pre id="classComponent">${s.classComponent()}</pre>
+        <pre id="classSource"></pre>
+    </section>
 
-        <section id="select">
-            <h3>Select</h3>
+    <section id="style">
+        <h3>Style</h3>
+        <pre id="styleCode"></pre>
+        <pre id="styleComponent">${s.styleComponent()}</pre>
+        <pre id="styleSource"></pre>
+    </section>
 
-            <pre id="fruitsCode"></pre>
-            <pre id="fruitsComponent">${this.fruitsComponent()}</pre>
-            <pre id="fruitsSource"></pre>
+    <section id="select">
+        <h3>Select</h3>
 
-            <br>
+        <pre id="fruitsCode"></pre>
+        <pre id="fruitsComponent">${s.fruitsComponent()}</pre>
+        <pre id="fruitsSource"></pre>
 
-            <pre id="carsCode"></pre>
-            <pre id="carsComponent">${this.carsComponent()}</pre>
-            <pre id="carsSource"></pre>
+        <br>
 
-            <br>
+        <pre id="carsCode"></pre>
+        <pre id="carsComponent">${s.carsComponent()}</pre>
+        <pre id="carsSource"></pre>
 
-            <pre id="selectBooleanCode"></pre>
-            <pre id="selectBooleanComponent">${this.selectBooleanComponent()}</pre>
-            <pre id="selectBooleanSource"></pre>
+        <br>
 
-            <br>
+        <pre id="selectBooleanCode"></pre>
+        <pre id="selectBooleanComponent">${s.selectBooleanComponent()}</pre>
+        <pre id="selectBooleanSource"></pre>
 
-            <pre id="selectNumberCode"></pre>
-            <pre id="selectNumberComponent">${this.selectNumberComponent()}</pre>
-            <pre id="selectNumberSource"></pre>
+        <br>
 
-        </section>
+        <pre id="selectNumberCode"></pre>
+        <pre id="selectNumberComponent">${s.selectNumberComponent()}</pre>
+        <pre id="selectNumberSource"></pre>
 
-    `;
+    </section>
 
-}
-
-export default component(XGuide);
+`);

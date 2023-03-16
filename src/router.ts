@@ -1,4 +1,4 @@
-import { replaceChildren  } from './poly';
+import { replaceChildren } from './poly';
 import mount from './mount';
 
 type Module = { default: CustomElementConstructor }
@@ -14,7 +14,7 @@ type Route = {
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
 
-const notModule = function (module:any) {
+const notModule = function (module: any) {
     return (!Object.keys(module).length) || (!!module.default && typeof module.default === 'object' && !Object.keys(module.default).length);
 };
 
@@ -22,7 +22,7 @@ const transition = async function (route: Route) {
     if (route.instance) {
         replaceChildren(route.root, route.instance);
     } else {
-        const tag = 'x-' + (route.path.replace(/\/+/g,'-').replace(/^-|-$|\.*/g, '') || 'root');
+        const tag = 'x-' + (route.path.replace(/\/+/g, '-').replace(/^-|-$|\.*/g, '') || 'root');
         const result = await route.handler() as any;
         const data = notModule(result) ? result : result?.default ?? result;
 
@@ -33,11 +33,12 @@ const transition = async function (route: Route) {
             route.instance = document.createElement(tag);
             replaceChildren(route.root, route.instance);
         } else {
-            const options:any = { root: route.root };
-            if (data.state) options.state = data.state;
-            if (data.content) options.content = data.content;
-            else options.content = data;
-            await mount(options);
+            // const options:any = { root: route.root };
+            // if (data.state) options.state = data.state;
+            // if (data.template) options.template = data.template;
+            // else options.template = data;
+            // await mount(options);
+            await mount(route.root, data);
         }
     }
 };

@@ -61,105 +61,6 @@ var createHTML = function(data) {
   }
 };
 
-// src/observe.ts
-var ObserveCache = /* @__PURE__ */ new WeakMap();
-var ObserveNext = Promise.resolve();
-var ObserveSet = function(method, target, key, value, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.set(target, key, value, receiver);
-  const from = Reflect.get(target, key, receiver);
-  if (from === value)
-    return true;
-  if (Number.isNaN(from) && Number.isNaN(value))
-    return true;
-  if (from && (from.constructor.name === "Object" || from.constructor.name === "Array" || from.constructor.name === "Function")) {
-    const cache = ObserveCache.get(from);
-    if (cache === value)
-      return true;
-    ObserveCache.delete(from);
-  }
-  Reflect.set(target, key, value, receiver);
-  ObserveNext.then(method);
-  return true;
-};
-var ObserveGet = function(method, target, key, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.get(target, key, receiver);
-  const value = Reflect.get(target, key, receiver);
-  if (value && (value.constructor.name === "Object" || value.constructor.name === "Array")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      get: ObserveGet.bind(null, method),
-      set: ObserveSet.bind(null, method),
-      deleteProperty: ObserveDelete.bind(null, method)
-    });
-    ObserveCache.set(value, proxy);
-    return proxy;
-  }
-  if (value && target.constructor.name === "Object" && (value.constructor.name === "Function" || value.constructor.name === "AsyncFunction")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      apply(t, _, a) {
-        return Reflect.apply(t, receiver, a);
-      }
-    });
-    ObserveCache.set(value, proxy);
-    return proxy;
-  }
-  return value;
-};
-var ObserveDelete = function(method, target, key) {
-  if (typeof key === "symbol")
-    return Reflect.deleteProperty(target, key);
-  const from = Reflect.get(target, key);
-  ObserveCache.delete(from);
-  Reflect.deleteProperty(target, key);
-  ObserveNext.then(method);
-  return true;
-};
-var Observe = function(data, method) {
-  return new Proxy(data, {
-    get: ObserveGet.bind(null, method),
-    set: ObserveSet.bind(null, method),
-    deleteProperty: ObserveDelete.bind(null, method)
-  });
-};
-var observe_default = Observe;
-
-// src/roots.ts
-var roots = /* @__PURE__ */ new WeakMap();
-var roots_default = roots;
-
-// src/upgrade.ts
-var upgrade = function(options) {
-  return __async(this, null, function* () {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const instance = roots_default.get(options.root);
-    if (instance.busy)
-      return;
-    else
-      instance.busy = true;
-    instance.root.dispatchEvent(upgradingEvent);
-    yield (_c = (_b = (_a = instance.state) == null ? void 0 : _a.upgrading) == null ? void 0 : _b.call(_a)) == null ? void 0 : _c.catch(console.error);
-    const result = instance.template(instance);
-    const length = (_d = instance.actions.length) != null ? _d : 0;
-    for (let index = 0; index < length; index++) {
-      const newExpression = result.expressions[index];
-      const oldExpressions = instance.expressions[index];
-      instance.actions[index](oldExpressions, newExpression);
-      instance.expressions[index] = newExpression;
-    }
-    instance.busy = false;
-    yield (_g = (_f = (_e = instance.state) == null ? void 0 : _e.upgraded) == null ? void 0 : _f.call(_e)) == null ? void 0 : _g.catch(console.error);
-    instance.root.dispatchEvent(upgradedEvent);
-  });
-};
-var upgrade_default = upgrade;
-
 // src/display.ts
 function display(data) {
   switch (typeof data) {
@@ -504,56 +405,83 @@ var Render = function(fragment, expressions, actions) {
 };
 var render_default = Render;
 
+// src/roots.ts
+var roots = /* @__PURE__ */ new WeakMap();
+var roots_default = roots;
+
 // src/mount.ts
-var mount = function(options) {
-  return __async(this, null, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
-    console.log(options);
-    const instance = {
-      html: html_default,
-      busy: true,
-      actions: [],
-      expressions: [],
-      template: options.template,
-      root: options.root,
-      state: void 0,
-      get s() {
-        return this.state;
+var Self = class extends Function {
+  // [key: string]: any;
+  constructor(root) {
+    super();
+    // expressions = [];
+    // actions = [];
+    this.html = html_default;
+    // busy = true;
+    this.self = this;
+    this.root = root;
+    return new Proxy(this, {
+      apply(_t, _s, [strings, expressions]) {
+        return html_default(strings, ...expressions);
       },
-      get r() {
-        return this.root;
+      get(t, k, r) {
+        if (k === "html" || k === "h")
+          return html_default;
+        if (k === "root" || k === "r")
+          return root;
+        if (k === "self" || k === "s")
+          return t;
+        return Reflect.get(t, k, r);
       },
-      get h() {
-        return this.html;
-      },
-      get t() {
-        return this.template;
+      set(t, k, v, r) {
+        if (k === "html" || k === "h")
+          return false;
+        if (k === "root" || k === "r")
+          return false;
+        if (k === "self" || k === "s")
+          return false;
+        return Reflect.set(t, k, v, r);
       }
+    });
+  }
+};
+var mount = function(root, component2) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    const actions = [];
+    const expressions = [];
+    const self = new Self(root);
+    const template = component2(self, self);
+    const data = {
+      root,
+      self,
+      template,
+      component: component2,
+      actions,
+      expressions,
+      busy: true
     };
-    if (options.state) {
-      instance.state = observe_default(options.state(instance), () => upgrade_default(instance));
-    }
-    roots_default.set(instance.root, instance);
-    instance.root.dispatchEvent(connectingEvent);
-    yield (_b = (_a = instance.state) == null ? void 0 : _a.connecting) == null ? void 0 : _b.call(_a);
-    instance.root.dispatchEvent(upgradingEvent);
-    yield (_e = (_d = (_c = instance.state) == null ? void 0 : _c.upgrading) == null ? void 0 : _d.call(_c)) == null ? void 0 : _e.catch(console.error);
-    const result = instance.template(instance);
-    const fragment = result.template.content.cloneNode(true);
-    render_default(fragment, result.expressions, instance.actions);
+    roots_default.set(root, data);
+    const hyper = template();
+    const fragment = hyper.template.content.cloneNode(true);
+    root.dispatchEvent(connectingEvent);
+    yield (_b = (_a = self == null ? void 0 : self.connecting) == null ? void 0 : _a.call(self, fragment)) == null ? void 0 : _b.catch(console.error);
+    root.dispatchEvent(upgradingEvent);
+    yield (_d = (_c = self == null ? void 0 : self.upgrading) == null ? void 0 : _c.call(self, fragment)) == null ? void 0 : _d.catch(console.error);
+    render_default(fragment, hyper.expressions, actions);
     document.adoptNode(fragment);
-    const length = instance.actions.length;
+    const length = actions.length;
     for (let index = 0; index < length; index++) {
-      const newExpression = result.expressions[index];
-      instance.actions[index](void 0, newExpression);
-      instance.expressions[index] = newExpression;
+      const newExpression = hyper.expressions[index];
+      actions[index](void 0, newExpression);
+      expressions[index] = newExpression;
     }
-    replaceChildren((_g = (_f = instance.root) == null ? void 0 : _f.shadowRoot) != null ? _g : instance.root, fragment);
-    instance.busy = false;
-    yield (_j = (_i = (_h = instance.state) == null ? void 0 : _h.upgraded) == null ? void 0 : _i.call(_h)) == null ? void 0 : _j.catch(console.error);
-    instance.root.dispatchEvent(upgradedEvent);
-    yield (_l = (_k = instance.state) == null ? void 0 : _k.connected) == null ? void 0 : _l.call(_k);
-    instance.root.dispatchEvent(connectedEvent);
+    yield (_f = (_e = self == null ? void 0 : self.upgraded) == null ? void 0 : _e.call(self, fragment)) == null ? void 0 : _f.catch(console.error);
+    root.dispatchEvent(upgradedEvent);
+    replaceChildren((_g = root == null ? void 0 : root.shadowRoot) != null ? _g : root, fragment);
+    yield (_i = (_h = self == null ? void 0 : self.connected) == null ? void 0 : _h.call(self, root)) == null ? void 0 : _i.catch(console.error);
+    root.dispatchEvent(connectedEvent);
+    data.busy = false;
   });
 };
 var mount_default = mount;
@@ -575,12 +503,12 @@ function component(Class) {
   const disconnectedCallback = Class.prototype.disconnectedCallback;
   Class.prototype.connectedCallback = function() {
     return __async(this, null, function* () {
-      var _a2, _b2, _c, _d;
+      var _a2, _b2, _c, _d, _e, _f;
       if (this.mounted) {
         const instance = roots_default.get(this);
         instance.root.dispatchEvent(connectingEvent);
-        yield (_b2 = (_a2 = instance.state).connecting) == null ? void 0 : _b2.call(_a2);
-        yield (_d = (_c = instance.state).connected) == null ? void 0 : _d.call(_c);
+        yield (_c = (_b2 = (_a2 = instance.state).connecting) == null ? void 0 : _b2.call(_a2)) == null ? void 0 : _c.catch(console.error);
+        yield (_f = (_e = (_d = instance.state).connected) == null ? void 0 : _e.call(_d)) == null ? void 0 : _f.catch(console.error);
         instance.root.dispatchEvent(connectedEvent);
       } else {
         console.log(this);
@@ -592,11 +520,11 @@ function component(Class) {
   };
   Class.prototype.disconnectedCallback = function() {
     return __async(this, null, function* () {
-      var _a2, _b2, _c, _d;
+      var _a2, _b2, _c, _d, _e, _f;
       const instance = roots_default.get(this);
       instance.root.dispatchEvent(disconnectingEvent);
-      yield (_b2 = (_a2 = instance.state).disconnecting) == null ? void 0 : _b2.call(_a2);
-      yield (_d = (_c = instance.state).disconnected) == null ? void 0 : _d.call(_c);
+      yield (_c = (_b2 = (_a2 = instance.state).disconnecting) == null ? void 0 : _b2.call(_a2)) == null ? void 0 : _c.catch(console.error);
+      yield (_f = (_e = (_d = instance.state).disconnected) == null ? void 0 : _e.call(_d)) == null ? void 0 : _f.catch(console.error);
       instance.root.dispatchEvent(disconnectedEvent);
       yield disconnectedCallback == null ? void 0 : disconnectedCallback();
     });
@@ -614,6 +542,32 @@ function component(Class) {
   }
   return Wrap;
 }
+
+// src/upgrade.ts
+var upgrade = function(options) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const instance = roots_default.get(options.root);
+    if (instance.busy)
+      return;
+    else
+      instance.busy = true;
+    instance.root.dispatchEvent(upgradingEvent);
+    yield (_c = (_b = (_a = instance.state) == null ? void 0 : _a.upgrading) == null ? void 0 : _b.call(_a)) == null ? void 0 : _c.catch(console.error);
+    const result = instance.template(instance);
+    const length = (_d = instance.actions.length) != null ? _d : 0;
+    for (let index = 0; index < length; index++) {
+      const newExpression = result.expressions[index];
+      const oldExpressions = instance.expressions[index];
+      instance.actions[index](oldExpressions, newExpression);
+      instance.expressions[index] = newExpression;
+    }
+    instance.busy = false;
+    yield (_g = (_f = (_e = instance.state) == null ? void 0 : _e.upgraded) == null ? void 0 : _f.call(_e)) == null ? void 0 : _g.catch(console.error);
+    instance.root.dispatchEvent(upgradedEvent);
+  });
+};
+var upgrade_default = upgrade;
 
 // src/router.ts
 var alls = [];
@@ -637,14 +591,7 @@ var transition = function(route) {
         route.instance = document.createElement(tag);
         replaceChildren(route.root, route.instance);
       } else {
-        const options = { root: route.root };
-        if (data.state)
-          options.state = data.state;
-        if (data.content)
-          options.content = data.content;
-        else
-          options.content = data;
-        yield mount_default(options);
+        yield mount_default(route.root, data);
       }
     }
   });
@@ -715,34 +662,29 @@ var router = function(path, root, handler) {
 var router_default = router;
 
 // src/index.ts
-var Index = {
+var src_default = {
   Component: component,
-  // Schedule,
-  // state,
-  // Define,
+  Upgrade: upgrade_default,
   Router: router_default,
-  Render: render_default,
-  // Patch,
-  // Mount,
+  // Render,
+  Mount: mount_default,
   component,
-  // schedule: Schedule,
-  // state: state,
-  // define: Define,
+  upgrade: upgrade_default,
   router: router_default,
-  render: render_default,
-  // patch: Patch,
-  // mount: Mount,
+  // render: Render,
+  mount: mount_default,
   html: html_default
 };
-var src_default = Index;
 export {
   component as Component,
-  render_default as Render,
+  mount_default as Mount,
   router_default as Router,
+  upgrade_default as Upgrade,
   component,
   src_default as default,
   html_default as html,
-  render_default as render,
-  router_default as router
+  mount_default as mount,
+  router_default as router,
+  upgrade_default as upgrade
 };
 //# sourceMappingURL=x-element.js.map

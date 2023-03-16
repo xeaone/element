@@ -182,8 +182,8 @@ export default function component (Class:ComponentConstructor):ComponentConstruc
         if (this.mounted) {
             const instance = roots.get(this);
             instance.root.dispatchEvent(connectingEvent);
-            await instance.state.connecting?.();
-            await instance.state.connected?.();
+            await instance.state.connecting?.()?.catch(console.error);
+            await instance.state.connected?.()?.catch(console.error);
             instance.root.dispatchEvent(connectedEvent);
         } else {
             console.log(this);
@@ -197,8 +197,8 @@ export default function component (Class:ComponentConstructor):ComponentConstruc
     Class.prototype.disconnectedCallback = async function () {
         const instance = roots.get(this);
         instance.root.dispatchEvent(disconnectingEvent);
-        await instance.state.disconnecting?.();
-        await instance.state.disconnected?.();
+        await instance.state.disconnecting?.()?.catch(console.error);
+        await instance.state.disconnected?.()?.catch(console.error);
         instance.root.dispatchEvent(disconnectedEvent);
         await disconnectedCallback?.();
     };
