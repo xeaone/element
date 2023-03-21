@@ -1,45 +1,38 @@
 import { replaceChildren } from './poly';
-import mount from './mount';
+import define from './define';
+import dash from './dash';
 
 type Module = { default: CustomElementConstructor }
-type Handler = () => Module | CustomElementConstructor | Promise<CustomElementConstructor | Module>;
+type Handler = () => Module | CustomElementConstructor | Promise<Module | CustomElementConstructor>;
 
 type Route = {
     path: string;
-    instance: any;
-    handler: Handler;
     root: Element;
+    handler: Handler;
+
+    tag?: string;
+    instance?: Element;
+    construct?: CustomElementConstructor;
 };
 
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
 
-const notModule = function (module: any) {
-    return (!Object.keys(module).length) || (!!module.default && typeof module.default === 'object' && !Object.keys(module.default).length);
-};
+// const notModule = function (module: any) {
+//     return (!Object.keys(module).length) || (!!module.default && typeof module.default === 'object' && !Object.keys(module.default).length);
+// };
+// const data = notModule(result) ? result : result?.default ?? result;
 
 const transition = async function (route: Route) {
     if (route.instance) {
         replaceChildren(route.root, route.instance);
     } else {
-        const tag = 'x-' + (route.path.replace(/\/+/g, '-').replace(/^-|-$|\.*/g, '') || 'root');
-        const result = await route.handler() as any;
-        const data = notModule(result) ? result : result?.default ?? result;
-
-        if (data?.prototype instanceof HTMLElement) {
-            if (!customElements.get(tag)) {
-                customElements.define(tag, data);
-            }
-            route.instance = document.createElement(tag);
-            replaceChildren(route.root, route.instance);
-        } else {
-            // const options:any = { root: route.root };
-            // if (data.state) options.state = data.state;
-            // if (data.template) options.template = data.template;
-            // else options.template = data;
-            // await mount(options);
-            await mount(route.root, data);
-        }
+        const result = await route.handler();
+        route.construct = result instanceof HTMLElement ? result as CustomElementConstructor : (result as Module).default;
+        route.tag = dash((route.construct as any).tag ?? route.construct.name);
+        define(route.tag, route.construct);
+        route.instance = document.createElement(route.tag);
+        replaceChildren(route.root, route.instance);
     }
 };
 
@@ -99,7 +92,7 @@ const router = function (path: string, root: Element, handler: Handler) {
             }
         }
 
-        alls.push({ path, root, handler, instance: undefined });
+        alls.push({ path, root, handler, });
     } else {
         for (const route of routes) {
             if (route.path === path && route.root === root) {

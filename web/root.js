@@ -3,15 +3,15 @@ import highlight from './modules/highlight.js';
 
 const withoutCustomElement = highlight(`
 
-export const state = ({ html, s }) => ({
-    greeting: 'Default Greeting',
-    greet() { s.greeting = 'Updated Greeting'; }
-});
+export default (html, data) => (
 
-export const template = ({ html, s }) => html\`
-    <h1>s.greeting</h1>
-    <button onclick=\${s.greet}>Greet</button>
-\`;
+    data.greeting = 'Default Greeting',
+    data.greet = () => data.greeting = 'Updated Greeting',
+
+    () => html\`
+    <h1>data.greeting</h1>
+    <button onclick=\${data.greet}>Greet</button>
+\`);
 
 `);
 
@@ -19,16 +19,19 @@ const withCustomElement = highlight(`
 import { component, html } from '/x-element.js';
 
 class XGreet extends HTMLElement {
+    static shadow = false; // optional - creates and uses shadow root
+    static define = false; // optional - customElements.defines the class with the tag option or class name
+    static tag = 'x-greet'; // optional - defines a tag name
 
-    state = ({ s }) => ({
-        greeting = 'Default Greeting';
-        greet() { s.greeting = 'Updated Greeting'; };
-    });
+    construct = data => (
 
-    template = ({ s }) => html\`
-        <h1>s.greeting</h1>
-        <button onclick=\${s.greet}>Greet</button>
-    \`;
+        data.greeting = 'Default Greeting',
+        data.greet = () => data.greeting = 'Updated Greeting',
+
+        () => html\`
+        <h1>data.greeting</h1>
+        <button onclick=\${data.greet}>Greet</button>
+    \`)
 
 }
 
@@ -42,6 +45,7 @@ router('/', document.body, ()=> import('/greet.js'));
 `);
 
 export default ({ html, self }) => (
+
     self.upgraded = (root) => {
         root.querySelector('#router').innerHTML = routerExample;
         root.querySelector('#withoutCustomElement').innerHTML = withoutCustomElement;

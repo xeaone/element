@@ -1,18 +1,74 @@
-import { router } from './x-element.js';
-
-// import * as security from './security.js';
-// import * as guide from './guide.js';
-// import * as root from './root.js';
-// import * as all from './all.js';
+import { router, component, html } from './x-element.js';
 
 const main = document.querySelector('main');
 
-router('/', main, () => import('./root.js'));
-router('/guide', main, () => import('./guide.js'));
-router('/guide/', main, () => import('./guide.js'));
-router('/security', main, () => import('./security.js'));
-router('/security/', main, () => import('./security.js'));
-router('/*', main, () => import('./all.js'));
+// const comp = function (create, render) {
+//     const data = {};
+//     create(data);
+//     return data.render = () => render(data);
+
+// };
+
+
+// const comp = function (create, render) {
+//     return function decorator (Class) {
+//         Class = Class ?? HTMLElement;
+
+//         Class = class extends Class {
+//             constructor () {
+//                 super();
+
+//                 const data = {};
+//                 create(data);
+//                 data.render = () => render(data);
+
+//                 this.append(render(data));
+//             }
+//         };
+
+//         // Class = (...args) => {
+//         //     return new Class(...args);
+//         // };
+
+//         customElements.define('x-test', Class);
+
+//         return Class;
+//     };
+// };
+
+class test extends component {
+
+    create = data => {
+        data.num = 0;
+
+    };
+
+    render = data => {
+        return html`
+        <h1>${data.num++}</h1>
+        ${html`<h2>${'foo'}</h2>`}
+    `;
+    };
+
+}
+
+test.define();
+
+document.body.append(new test());
+
+setTimeout(() => {
+
+    document.body.append(document.createElement('x-test'));
+}, 1000);
+
+
+
+// router('/', main, () => import('./root.js'));
+// router('/guide', main, () => import('./guide.js'));
+// router('/guide/', main, () => import('./guide.js'));
+// router('/security', main, () => import('./security.js'));
+// router('/security/', main, () => import('./security.js'));
+// router('/*', main, () => import('./all.js'));
 
 // navigation.addEventListener('navigate', (event) => {
 
@@ -47,4 +103,4 @@ router('/*', main, () => import('./all.js'));
 
 // });
 
-location.replace(location.href);
+// location.replace(location.href);

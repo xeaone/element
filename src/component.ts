@@ -1,227 +1,118 @@
 import dash from './dash';
-import { HtmlInstance } from './html';
-import mount from './mount';
-import roots from './roots';
-
+import define from './define';
 import {
+    createdEvent,
+    creatingEvent,
+    renderedEvent,
+    renderingEvent,
     connectedEvent,
     connectingEvent,
     disconnectedEvent,
     disconnectingEvent,
 } from './events';
+import html from './html';
+import render from './render';
 
-interface ComponentInstance extends HTMLElement {
+export default class Component extends HTMLElement {
 
-    // adopted?:any;
-    // adopting?:any;
-    adoptedCallback?:any;
+    static tag?: string;
+    static shadow: boolean = false;
+    static mode: 'open' | 'closed' = 'open';
 
-    upgraded?:any;
-    upgrading?:any;
-    upgradedCallback?:any;
-
-    connected?:any;
-    connecting?:any;
-    connectedCallback?:any;
-
-    disconnected?:any;
-    disconnecting?:any;
-    disconnectedCallback?:any;
-
-    // attributed?:any;
-    // attributing?:any;
-    attributeChangedCallback?:any;
-
-    template: () => HtmlInstance;
-}
-
-interface ComponentConstructor {
-
-    tag?: string;
-    define?: boolean;
-    shadow?: boolean;
-    observedProperties?: string[];
-
-    new (): ComponentInstance;
-}
-
-// const DEFINED = new WeakSet();
-// const CE = window.customElements;
-// Object.defineProperty(window, 'customElements', {
-//     get: () => ({
-//         define(name: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions) {
-//             if (constructor.prototype instanceof Component && !DEFINED.has(constructor)) {
-//                 constructor = new Proxy(constructor, {
-//                     construct(target, args, extender) {
-//                         const instance = Reflect.construct(target, args, extender);
-//                             mount(instance);
-//                         return instance;
-//                     },
-//                 });
-
-//                 DEFINED.add(constructor);
-//             }
-//             CE.define(name, constructor, options);
-//         },
-//         get: CE.get,
-//         whenDefined: CE.whenDefined,
-//     }),
-// });
-
-// const create = async function (this:ComponentConstructor) {
-//     const tag = this.tag ?? dash(this.name);
-
-//     if (!customElements.get(tag)) {
-//         customElements.define(tag, this);
-//     }
-
-//     const element = document.createElement(tag) as ComponentInstance;
-//     // await mount(element);
-
-//     return element;
-// };
-
-// const defined = async function (this:ComponentConstructor) {
-//     const tag = this.tag ?? dash(this.name);
-//     return customElements.whenDefined(tag);
-// };
-
-const construct = function (self:ComponentInstance) {
-    const constructor = self.constructor as ComponentConstructor;
-
-    const shadow = constructor.shadow || false;
-    // const define = constructor.define || false;
-    // const tag = constructor.tag ?? dash(constructor.name);
-
-    if (shadow && !self.shadowRoot) {
-        self.attachShadow({ mode: 'open' });
+    static define(tag?: string) {
+        tag = dash(tag ?? this.tag ?? this.name);
+        define(tag ?? this.tag ?? this.name, this);
     }
 
-    // const observedProperties = constructor.observedProperties;
-    // const prototype = Object.getPrototypeOf(self);
+    // construct?: (ctx: any) => void | Promise<void>;
+    // upgrade?: (ctx: any) => void | Promise<void>;
+    create?: (ctx: any) => void | Promise<void>;
+    render?: (ctx: any) => typeof html | Promise<typeof html>;
+    connect?: (ctx: any) => void | Promise<void>;
+    disconnect?: (ctx: any) => void | Promise<void>;
+    // connecting?: (ctx: any) => void | Promise<void>;
+    // connected?: (ctx: any) => void | Promise<void>;
+    // disconnecting?: (ctx: any) => void | Promise<void>;
+    // disconnected?: (ctx: any) => void | Promise<void>;
 
-    // const properties = observedProperties ?
-    //     observedProperties ?? [] :
-    //     [ ...Object.getOwnPropertyNames(self),
-    //         ...Object.getOwnPropertyNames(prototype) ];
+    #context = {};
+    #construct: Promise<void> | null;
 
-    // for (const property of properties) {
+    constructor() {
+        super();
 
-    //     if (
-    //         'attributeChangedCallback' === property ||
-    //         'attributing' === property ||
-    //         'attributed' === property ||
-
-    //         'adoptedCallback' === property ||
-    //         'adopting' === property ||
-    //         'adopted' === property ||
-
-    //         'disconnectedCallback' === property ||
-    //         'disconnecting' === property ||
-    //         'disconnected' === property ||
-
-    //         'connectedCallback' === property ||
-    //         'connecting' === property ||
-    //         'connected' === property ||
-
-    //         'upgradedCallback' === property ||
-    //         'upgrading' === property ||
-    //         'upgraded' === property ||
-
-    //         'constructor' === property ||
-    //         'template' === property
-    //     ) continue;
-
-    //     const descriptor = Object.getOwnPropertyDescriptor(self, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
-
-    //     if (!descriptor) continue;
-    //     if (!descriptor.configurable) continue;
-
-        // Object.defineProperty(instance.state, property, { ...descriptor, enumerable: false });
-
-        // Object.defineProperty(self, property, {
-        //     enumerable: descriptor.enumerable,
-        //     configurable: descriptor.configurable,
-        //     get() {
-        //         return instance.observed[property];
-        //     },
-        //     set(value) {
-        //         instance.observed[property] = value;
-        //         // upgrade(self);
-        //     }
-        // });
-
-    // }
-
-    return self;
-};
-
-export default function component (Class:ComponentConstructor):ComponentConstructor {
-
-    const define = Class.define ?? false;
-    const tag = Class.tag ?? dash(Class.name);
-    // const upgradedCallback = Class.prototype.upgradedCallback;
-    const connectedCallback = Class.prototype.connectedCallback;
-    const disconnectedCallback = Class.prototype.disconnectedCallback;
-
-    // Class.prototype.upgradedCallback = async function () {
-    //     this.dispatchEvent(upgradingEvent);
-    //     await this.upgrading?.();
-    //     await this.upgraded?.();
-    //     this.dispatchEvent(upgradedEvent);
-    //     await upgradedCallback?.();
-    // };
-
-    Class.prototype.connectedCallback = async function () {
-        // this.dispatchEvent(connectingEvent);
-        // await this.connecting?.();
-        // // await mount(this);
-        // await this.connected?.();
-        // this.dispatchEvent(connectedEvent);
-
-        if (this.mounted) {
-            const instance = roots.get(this);
-            instance.root.dispatchEvent(connectingEvent);
-            await instance.state.connecting?.()?.catch(console.error);
-            await instance.state.connected?.()?.catch(console.error);
-            instance.root.dispatchEvent(connectedEvent);
-        } else {
-            console.log(this);
-            this.mounted = true;
-            await mount({ root: this, state: this.state, template: this.template });
+        if (!customElements.get('x-test')) {
+            customElements.define('x-test', this as any);
         }
 
-        await connectedCallback?.();
-    };
+        const constructor = this.constructor as typeof Component;
 
-    Class.prototype.disconnectedCallback = async function () {
-        const instance = roots.get(this);
-        instance.root.dispatchEvent(disconnectingEvent);
-        await instance.state.disconnecting?.()?.catch(console.error);
-        await instance.state.disconnected?.()?.catch(console.error);
-        instance.root.dispatchEvent(disconnectedEvent);
-        await disconnectedCallback?.();
-    };
-
-    const Wrap = new Proxy(Class, {
-        // get, set,
-        construct(t, a, e) {
-            return construct(Reflect.construct(t, a, e));
+        const shadow = constructor.shadow;
+        if (shadow && !this.shadowRoot) {
+            const mode = constructor.mode;
+            this.attachShadow({ mode });
         }
-    });
 
-    // const Wrap = class extends Class {
-    //     constructor() {
-    //         super();
-    //         construct(this);
-    //     }
-    // };
+        const root = this.shadowRoot ?? this;
 
-    if (define) {
-        if (!customElements.get(tag)) {
-            customElements.define(tag, Wrap as any);
-        }
+        // create context
+
+        this.#construct = Promise.resolve().then(async () => {
+            this.dispatchEvent(creatingEvent);
+            await this.create?.(this.#context);
+            this.dispatchEvent(createdEvent);
+
+            this.dispatchEvent(renderingEvent);
+
+            const { template, expressions } = await this.render?.(this.#context);
+
+            const fragment = template.content.cloneNode(true) as DocumentFragment;
+            const actions: any = [];
+
+            render(fragment, expressions, actions);
+            document.adoptNode(fragment);
+
+            for (let index = 0; index < actions.length; index++) {
+                const newExpression = expressions[index];
+                actions[index](undefined, newExpression);
+            }
+
+            root.appendChild(fragment as any);
+            //update context with render
+
+            this.dispatchEvent(renderedEvent);
+
+            setInterval(async () => {
+                // this.render?.(this.#context);
+
+                const result = await this.render?.(this.#context);
+                for (let index = 0; index < actions.length; index++) {
+                    const newExpression = result.expressions[index];
+                    const oldExpressions = expressions[index];
+                    actions[index](oldExpressions, newExpression);
+                    expressions[index] = newExpression;
+                }
+
+            }, 1000);
+
+            this.#construct = null;
+        });
     }
 
-    return Wrap;
-};
+    async connectedCallback() {
+        this.dispatchEvent(connectingEvent);
+
+        if (this.#construct) await this.#construct;
+
+        await this.connect?.(this.#context)?.catch(console.error);
+
+        this.dispatchEvent(connectedEvent);
+    }
+
+    async disconnectedCallback() {
+        this.dispatchEvent(disconnectingEvent);
+        await this.disconnect?.(this.#context)?.catch(console.error);
+        this.dispatchEvent(disconnectedEvent);
+    }
+
+}

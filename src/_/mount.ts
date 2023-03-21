@@ -5,6 +5,7 @@ import upgrade from './upgrade';
 import render from './render';
 import roots from './roots';
 import html from './html';
+import { Data } from './data';
 
 // type state = (instance:Instance) => any;
 // type Content = (instance:Instance) => any;
@@ -19,55 +20,51 @@ import html from './html';
 //     content: Content;
 // }
 
-type Options = {
-    root: Element;
-    state?: (instance: any) => any;
-    template: (instance: any) => any;
-}
-type Root = Element | ShadowRoot | DocumentFragment;
-class Self extends Function {
-    // expressions = [];
-    // actions = [];
-    html = html;
-    // busy = true;
-    self = this;
-    root: Element | DocumentFragment | ShadowRoot;
-    // component: any;
-    // template: any;
-    connecting?: (root: Root) => void | Promise<void>;
-    upgrading?: (root: Root) => void | Promise<void>;
-    upgraded?: (root: Root) => void | Promise<void>;
-    connected?: (root: Root) => void | Promise<void>;
-    // [key: string]: any;
-    constructor(root: Element) {
-        super();
-        this.root = root;
-        // this.self = this;
-        // this.root = root;
-        // this.component = component;
-        return new Proxy(this, {
-            apply(_t, _s, [strings, expressions]) {
-                return html(strings, ...expressions);
-            },
-            get(t, k, r) {
-                if (k === 'html' || k === 'h') return html;
-                if (k === 'root' || k === 'r') return root;
-                if (k === 'self' || k === 's') return t;
-                return Reflect.get(t, k, r);
-            },
-            set(t, k, v, r) {
-                if (k === 'html' || k === 'h') return false;
-                if (k === 'root' || k === 'r') return false;
-                if (k === 'self' || k === 's') return false;
-                return Reflect.set(t, k, v, r);
-            },
-        });
-    }
-}
-
-// let state = function () {
-//     return new
-// };
+// type Options = {
+//     root: Element;
+//     state?: (instance: any) => any;
+//     template: (instance: any) => any;
+// }
+// type Root = Element | ShadowRoot | DocumentFragment;
+// class Self extends Function {
+//     // expressions = [];
+//     // actions = [];
+//     html = html;
+//     // busy = true;
+//     self = this;
+//     root: Root;
+//     // component: any;
+//     // template: any;
+//     connecting?: (root: Root) => void | Promise<void>;
+//     upgrading?: (root: Root) => void | Promise<void>;
+//     upgraded?: (root: Root) => void | Promise<void>;
+//     connected?: (root: Root) => void | Promise<void>;
+//     // [key: string]: any;
+//     constructor(root: Element) {
+//         super();
+//         this.root = root;
+//         // this.self = this;
+//         // this.root = root;
+//         // this.component = component;
+//         return new Proxy(this, {
+//             apply(_t, _s, [strings, expressions]) {
+//                 return html(strings, ...expressions);
+//             },
+//             get(t, k, r) {
+//                 if (k === 'html' || k === 'h') return html;
+//                 if (k === 'root' || k === 'r') return root;
+//                 if (k === 'self' || k === 's') return t;
+//                 return Reflect.get(t, k, r);
+//             },
+//             set(t, k, v, r) {
+//                 if (k === 'html' || k === 'h') return false;
+//                 if (k === 'root' || k === 'r') return false;
+//                 if (k === 'self' || k === 's') return false;
+//                 return Reflect.set(t, k, v, r);
+//             },
+//         });
+//     }
+// }
 
 const mount = async function (root: Element, component: any) {
     // const mount = async function (options: Options) {
@@ -80,7 +77,7 @@ const mount = async function (root: Element, component: any) {
 
     const actions: any[] = [];
     const expressions: any[] = [];
-    const self = new Self(root);
+    const self = new Data(root);
     const template = component(self, self);
     const data = {
         root,
@@ -93,18 +90,6 @@ const mount = async function (root: Element, component: any) {
     };
 
     roots.set(root, data);
-
-    // if (options.state) {
-    // instance.state = observe(options.state(instance), () => {
-    // instance.state = observe({}, async () => {
-    //     console.log('upgrade', instance.busy);
-    //     if (instance.busy === false) {
-    //         console.log(instance.state)
-    //         return upgrade(instance);
-    //     }
-    // });
-    // options.state(instance);
-    // }
 
     const hyper = template();
     const fragment = hyper.template.content.cloneNode(true) as DocumentFragment;
@@ -135,6 +120,8 @@ const mount = async function (root: Element, component: any) {
     root.dispatchEvent(connectedEvent);
 
     data.busy = false;
+
+    return data;
 };
 
 export default mount;

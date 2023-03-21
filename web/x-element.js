@@ -1,3 +1,21 @@
+var __accessCheck = (obj, member, msg) => {
+  if (!member.has(obj))
+    throw TypeError("Cannot " + msg);
+};
+var __privateGet = (obj, member, getter) => {
+  __accessCheck(obj, member, "read from private field");
+  return getter ? getter.call(obj) : member.get(obj);
+};
+var __privateAdd = (obj, member, value) => {
+  if (member.has(obj))
+    throw TypeError("Cannot add the same private member more than once");
+  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+};
+var __privateSet = (obj, member, value, setter) => {
+  __accessCheck(obj, member, "write to private field");
+  setter ? setter.call(obj, value) : member.set(obj, value);
+  return value;
+};
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -21,7 +39,17 @@ var __async = (__this, __arguments, generator) => {
 
 // src/dash.ts
 function dash(data) {
-  return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
+  data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
+  data = data.toLowerCase();
+  data = data.includes("-") ? data : `x-${data}`;
+  return data;
+}
+
+// src/define.ts
+function define(name, constructor) {
+  if (!customElements.get(name)) {
+    customElements.define(name, constructor);
+  }
 }
 
 // src/events.ts
@@ -29,37 +57,16 @@ var adoptedEvent = new Event("adopted");
 var adoptingEvent = new Event("adopting");
 var upgradedEvent = new Event("upgraded");
 var upgradingEvent = new Event("upgrading");
+var creatingEvent = new Event("creating");
+var createdEvent = new Event("created");
+var renderingEvent = new Event("rendering");
+var renderedEvent = new Event("rendered");
 var connectedEvent = new Event("connected");
 var connectingEvent = new Event("connecting");
 var attributedEvent = new Event("attributed");
 var attributingEvent = new Event("attributing");
 var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
-
-// src/poly.ts
-var replaceChildren = function(element, ...nodes) {
-  while (element.lastChild) {
-    element.removeChild(element.lastChild);
-  }
-  if (nodes == null ? void 0 : nodes.length) {
-    for (const node of nodes) {
-      element.appendChild(
-        typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
-      );
-    }
-  }
-};
-var includes = function(item, search) {
-  return item.indexOf(search) !== -1;
-};
-var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : null;
-var createHTML = function(data) {
-  if (policy) {
-    return policy.createHTML(data);
-  } else {
-    return data;
-  }
-};
 
 // src/display.ts
 function display(data) {
@@ -133,13 +140,38 @@ var booleans = [
 ];
 var booleans_default = booleans;
 
+// src/poly.ts
+var replaceChildren = function(element, ...nodes) {
+  while (element.lastChild) {
+    element.removeChild(element.lastChild);
+  }
+  if (nodes == null ? void 0 : nodes.length) {
+    for (const node of nodes) {
+      element.appendChild(
+        typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
+      );
+    }
+  }
+};
+var includes = function(item, search) {
+  return item.indexOf(search) !== -1;
+};
+var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : null;
+var createHTML = function(data) {
+  if (policy) {
+    return policy.createHTML(data);
+  } else {
+    return data;
+  }
+};
+
 // src/html.ts
-var HtmlCache = /* @__PURE__ */ new WeakMap();
-var HtmlSymbol = Symbol("html");
-var html = function(strings, ...expressions) {
-  const template = HtmlCache.get(strings);
+var cache = /* @__PURE__ */ new WeakMap();
+var symbol = Symbol("html");
+function html(strings, ...expressions) {
+  const template = cache.get(strings);
   if (template) {
-    return { strings, expressions, template, symbol: HtmlSymbol };
+    return { strings, template, expressions, symbol };
   } else {
     let data = "";
     const length = strings.length - 1;
@@ -149,11 +181,10 @@ var html = function(strings, ...expressions) {
     data += strings[length];
     const template2 = document.createElement("template");
     template2.innerHTML = createHTML(data);
-    HtmlCache.set(strings, template2);
-    return { strings, expressions, template: template2, symbol: HtmlSymbol };
+    cache.set(strings, template2);
+    return { strings, template: template2, expressions, symbol };
   }
-};
-var html_default = html;
+}
 
 // src/render.ts
 var filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
@@ -190,7 +221,7 @@ var ObjectAction = function(start, end, actions, oldValue, newValue) {
   }
 };
 var ArrayAction = function(start, end, actions, oldValue, newValue) {
-  var _a, _b, _c, _d, _e, _f, _g;
+  var _a, _b, _c, _d;
   oldValue = oldValue != null ? oldValue : [];
   newValue = newValue != null ? newValue : [];
   const oldLength = oldValue.length;
@@ -202,7 +233,7 @@ var ArrayAction = function(start, end, actions, oldValue, newValue) {
   if (oldLength < newLength) {
     const template = document.createElement("template");
     for (let i = oldLength; i < newLength; i++) {
-      if (((_a = newValue[i]) == null ? void 0 : _a.constructor) === Object && ((_b = newValue[i]) == null ? void 0 : _b.symbol) === HtmlSymbol) {
+      if (((_a = newValue[i]) == null ? void 0 : _a.constructor) === Object && ((_b = newValue[i]) == null ? void 0 : _b.symbol) === symbol) {
         const start2 = document.createTextNode("");
         const end2 = document.createTextNode("");
         const action = ObjectAction.bind(null, start2, end2, []);
@@ -221,14 +252,7 @@ var ArrayAction = function(start, end, actions, oldValue, newValue) {
     (_c = end.parentNode) == null ? void 0 : _c.insertBefore(template.content, end);
   } else if (oldLength > newLength) {
     for (let i = oldLength - 1; i > newLength - 1; i--) {
-      if (((_d = oldValue[i]) == null ? void 0 : _d.constructor) === Object && ((_e = oldValue[i]) == null ? void 0 : _e.symbol) === HtmlSymbol) {
-        const { template } = oldValue[i];
-        let removes = template.content.childNodes.length + 2;
-        while (removes--)
-          (_f = end.parentNode) == null ? void 0 : _f.removeChild(end.previousSibling);
-      } else {
-        (_g = end.parentNode) == null ? void 0 : _g.removeChild(end.previousSibling);
-      }
+      (_d = end.parentNode) == null ? void 0 : _d.removeChild(end.previousSibling);
     }
     actions.length = newLength;
   }
@@ -328,7 +352,7 @@ var Render = function(fragment, expressions, actions) {
         node.splitText(end + 2);
       }
       const newValue = expressions[index++];
-      if ((newValue == null ? void 0 : newValue.constructor) === Object && (newValue == null ? void 0 : newValue.symbol) === HtmlSymbol) {
+      if ((newValue == null ? void 0 : newValue.constructor) === Object && (newValue == null ? void 0 : newValue.symbol) === symbol) {
         const start2 = document.createTextNode("");
         const end2 = node;
         end2.nodeValue = "";
@@ -405,194 +429,102 @@ var Render = function(fragment, expressions, actions) {
 };
 var render_default = Render;
 
-// src/roots.ts
-var roots = /* @__PURE__ */ new WeakMap();
-var roots_default = roots;
-
-// src/mount.ts
-var Self = class extends Function {
-  // [key: string]: any;
-  constructor(root) {
-    super();
-    // expressions = [];
-    // actions = [];
-    this.html = html_default;
-    // busy = true;
-    this.self = this;
-    this.root = root;
-    return new Proxy(this, {
-      apply(_t, _s, [strings, expressions]) {
-        return html_default(strings, ...expressions);
-      },
-      get(t, k, r) {
-        if (k === "html" || k === "h")
-          return html_default;
-        if (k === "root" || k === "r")
-          return root;
-        if (k === "self" || k === "s")
-          return t;
-        return Reflect.get(t, k, r);
-      },
-      set(t, k, v, r) {
-        if (k === "html" || k === "h")
-          return false;
-        if (k === "root" || k === "r")
-          return false;
-        if (k === "self" || k === "s")
-          return false;
-        return Reflect.set(t, k, v, r);
-      }
-    });
-  }
-};
-var mount = function(root, component2) {
-  return __async(this, null, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
-    const actions = [];
-    const expressions = [];
-    const self = new Self(root);
-    const template = component2(self, self);
-    const data = {
-      root,
-      self,
-      template,
-      component: component2,
-      actions,
-      expressions,
-      busy: true
-    };
-    roots_default.set(root, data);
-    const hyper = template();
-    const fragment = hyper.template.content.cloneNode(true);
-    root.dispatchEvent(connectingEvent);
-    yield (_b = (_a = self == null ? void 0 : self.connecting) == null ? void 0 : _a.call(self, fragment)) == null ? void 0 : _b.catch(console.error);
-    root.dispatchEvent(upgradingEvent);
-    yield (_d = (_c = self == null ? void 0 : self.upgrading) == null ? void 0 : _c.call(self, fragment)) == null ? void 0 : _d.catch(console.error);
-    render_default(fragment, hyper.expressions, actions);
-    document.adoptNode(fragment);
-    const length = actions.length;
-    for (let index = 0; index < length; index++) {
-      const newExpression = hyper.expressions[index];
-      actions[index](void 0, newExpression);
-      expressions[index] = newExpression;
-    }
-    yield (_f = (_e = self == null ? void 0 : self.upgraded) == null ? void 0 : _e.call(self, fragment)) == null ? void 0 : _f.catch(console.error);
-    root.dispatchEvent(upgradedEvent);
-    replaceChildren((_g = root == null ? void 0 : root.shadowRoot) != null ? _g : root, fragment);
-    yield (_i = (_h = self == null ? void 0 : self.connected) == null ? void 0 : _h.call(self, root)) == null ? void 0 : _i.catch(console.error);
-    root.dispatchEvent(connectedEvent);
-    data.busy = false;
-  });
-};
-var mount_default = mount;
-
 // src/component.ts
-var construct = function(self) {
-  const constructor = self.constructor;
-  const shadow = constructor.shadow || false;
-  if (shadow && !self.shadowRoot) {
-    self.attachShadow({ mode: "open" });
-  }
-  return self;
-};
-function component(Class) {
-  var _a, _b;
-  const define = (_a = Class.define) != null ? _a : false;
-  const tag = (_b = Class.tag) != null ? _b : dash(Class.name);
-  const connectedCallback = Class.prototype.connectedCallback;
-  const disconnectedCallback = Class.prototype.disconnectedCallback;
-  Class.prototype.connectedCallback = function() {
-    return __async(this, null, function* () {
-      var _a2, _b2, _c, _d, _e, _f;
-      if (this.mounted) {
-        const instance = roots_default.get(this);
-        instance.root.dispatchEvent(connectingEvent);
-        yield (_c = (_b2 = (_a2 = instance.state).connecting) == null ? void 0 : _b2.call(_a2)) == null ? void 0 : _c.catch(console.error);
-        yield (_f = (_e = (_d = instance.state).connected) == null ? void 0 : _e.call(_d)) == null ? void 0 : _f.catch(console.error);
-        instance.root.dispatchEvent(connectedEvent);
-      } else {
-        console.log(this);
-        this.mounted = true;
-        yield mount_default({ root: this, state: this.state, template: this.template });
+var _context, _construct;
+var Component = class extends HTMLElement {
+  constructor() {
+    var _a;
+    super();
+    // connecting?: (ctx: any) => void | Promise<void>;
+    // connected?: (ctx: any) => void | Promise<void>;
+    // disconnecting?: (ctx: any) => void | Promise<void>;
+    // disconnected?: (ctx: any) => void | Promise<void>;
+    __privateAdd(this, _context, {});
+    __privateAdd(this, _construct, void 0);
+    if (!customElements.get("x-test")) {
+      customElements.define("x-test", this);
+    }
+    const constructor = this.constructor;
+    const shadow = constructor.shadow;
+    if (shadow && !this.shadowRoot) {
+      const mode = constructor.mode;
+      this.attachShadow({ mode });
+    }
+    const root = (_a = this.shadowRoot) != null ? _a : this;
+    __privateSet(this, _construct, Promise.resolve().then(() => __async(this, null, function* () {
+      var _a2, _b;
+      this.dispatchEvent(creatingEvent);
+      yield (_a2 = this.create) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
+      this.dispatchEvent(createdEvent);
+      this.dispatchEvent(renderingEvent);
+      const { template, expressions } = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+      const fragment = template.content.cloneNode(true);
+      const actions = [];
+      render_default(fragment, expressions, actions);
+      document.adoptNode(fragment);
+      for (let index = 0; index < actions.length; index++) {
+        const newExpression = expressions[index];
+        actions[index](void 0, newExpression);
       }
-      yield connectedCallback == null ? void 0 : connectedCallback();
-    });
-  };
-  Class.prototype.disconnectedCallback = function() {
-    return __async(this, null, function* () {
-      var _a2, _b2, _c, _d, _e, _f;
-      const instance = roots_default.get(this);
-      instance.root.dispatchEvent(disconnectingEvent);
-      yield (_c = (_b2 = (_a2 = instance.state).disconnecting) == null ? void 0 : _b2.call(_a2)) == null ? void 0 : _c.catch(console.error);
-      yield (_f = (_e = (_d = instance.state).disconnected) == null ? void 0 : _e.call(_d)) == null ? void 0 : _f.catch(console.error);
-      instance.root.dispatchEvent(disconnectedEvent);
-      yield disconnectedCallback == null ? void 0 : disconnectedCallback();
-    });
-  };
-  const Wrap = new Proxy(Class, {
-    // get, set,
-    construct(t, a, e) {
-      return construct(Reflect.construct(t, a, e));
-    }
-  });
-  if (define) {
-    if (!customElements.get(tag)) {
-      customElements.define(tag, Wrap);
-    }
+      root.appendChild(fragment);
+      this.dispatchEvent(renderedEvent);
+      setInterval(() => __async(this, null, function* () {
+        var _a3;
+        const result = yield (_a3 = this.render) == null ? void 0 : _a3.call(this, __privateGet(this, _context));
+        for (let index = 0; index < actions.length; index++) {
+          const newExpression = result.expressions[index];
+          const oldExpressions = expressions[index];
+          actions[index](oldExpressions, newExpression);
+          expressions[index] = newExpression;
+        }
+      }), 1e3);
+      __privateSet(this, _construct, null);
+    })));
   }
-  return Wrap;
-}
-
-// src/upgrade.ts
-var upgrade = function(options) {
-  return __async(this, null, function* () {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const instance = roots_default.get(options.root);
-    if (instance.busy)
-      return;
-    else
-      instance.busy = true;
-    instance.root.dispatchEvent(upgradingEvent);
-    yield (_c = (_b = (_a = instance.state) == null ? void 0 : _a.upgrading) == null ? void 0 : _b.call(_a)) == null ? void 0 : _c.catch(console.error);
-    const result = instance.template(instance);
-    const length = (_d = instance.actions.length) != null ? _d : 0;
-    for (let index = 0; index < length; index++) {
-      const newExpression = result.expressions[index];
-      const oldExpressions = instance.expressions[index];
-      instance.actions[index](oldExpressions, newExpression);
-      instance.expressions[index] = newExpression;
-    }
-    instance.busy = false;
-    yield (_g = (_f = (_e = instance.state) == null ? void 0 : _e.upgraded) == null ? void 0 : _f.call(_e)) == null ? void 0 : _g.catch(console.error);
-    instance.root.dispatchEvent(upgradedEvent);
-  });
+  static define(tag) {
+    var _a, _b;
+    tag = dash((_a = tag != null ? tag : this.tag) != null ? _a : this.name);
+    define((_b = tag != null ? tag : this.tag) != null ? _b : this.name, this);
+  }
+  connectedCallback() {
+    return __async(this, null, function* () {
+      var _a, _b;
+      this.dispatchEvent(connectingEvent);
+      if (__privateGet(this, _construct))
+        yield __privateGet(this, _construct);
+      yield (_b = (_a = this.connect) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      this.dispatchEvent(connectedEvent);
+    });
+  }
+  disconnectedCallback() {
+    return __async(this, null, function* () {
+      var _a, _b;
+      this.dispatchEvent(disconnectingEvent);
+      yield (_b = (_a = this.disconnect) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      this.dispatchEvent(disconnectedEvent);
+    });
+  }
 };
-var upgrade_default = upgrade;
+_context = new WeakMap();
+_construct = new WeakMap();
+Component.shadow = false;
+Component.mode = "open";
 
 // src/router.ts
 var alls = [];
 var routes = [];
-var notModule = function(module) {
-  return !Object.keys(module).length || !!module.default && typeof module.default === "object" && !Object.keys(module.default).length;
-};
 var transition = function(route) {
   return __async(this, null, function* () {
     var _a;
     if (route.instance) {
       replaceChildren(route.root, route.instance);
     } else {
-      const tag = "x-" + (route.path.replace(/\/+/g, "-").replace(/^-|-$|\.*/g, "") || "root");
       const result = yield route.handler();
-      const data = notModule(result) ? result : (_a = result == null ? void 0 : result.default) != null ? _a : result;
-      if ((data == null ? void 0 : data.prototype) instanceof HTMLElement) {
-        if (!customElements.get(tag)) {
-          customElements.define(tag, data);
-        }
-        route.instance = document.createElement(tag);
-        replaceChildren(route.root, route.instance);
-      } else {
-        yield mount_default(route.root, data);
-      }
+      route.construct = result instanceof HTMLElement ? result : result.default;
+      route.tag = dash((_a = route.construct.tag) != null ? _a : route.construct.name);
+      define(route.tag, route.construct);
+      route.instance = document.createElement(route.tag);
+      replaceChildren(route.root, route.instance);
     }
   });
 };
@@ -648,7 +580,7 @@ var router = function(path, root, handler) {
         throw new Error("XElement - router duplicate path on root");
       }
     }
-    alls.push({ path, root, handler, instance: void 0 });
+    alls.push({ path, root, handler });
   } else {
     for (const route of routes) {
       if (route.path === path && route.root === root) {
@@ -663,28 +595,18 @@ var router_default = router;
 
 // src/index.ts
 var src_default = {
-  Component: component,
-  Upgrade: upgrade_default,
+  Component,
   Router: router_default,
-  // Render,
-  Mount: mount_default,
-  component,
-  upgrade: upgrade_default,
+  component: Component,
   router: router_default,
-  // render: Render,
-  mount: mount_default,
-  html: html_default
+  html
 };
 export {
-  component as Component,
-  mount_default as Mount,
+  Component,
   router_default as Router,
-  upgrade_default as Upgrade,
-  component,
+  Component as component,
   src_default as default,
-  html_default as html,
-  mount_default as mount,
-  router_default as router,
-  upgrade_default as upgrade
+  html,
+  router_default as router
 };
 //# sourceMappingURL=x-element.js.map

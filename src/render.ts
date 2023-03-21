@@ -1,6 +1,6 @@
 import display from './display';
 import booleans from './booleans';
-import { HtmlSymbol } from './html';
+import { symbol } from './html';
 import { includes } from './poly';
 
 export type Value = any;
@@ -12,7 +12,7 @@ export type Attribute = { name: string, value: string };
 
 const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 
-const links= [ 'src', 'href', 'xlink:href' ];
+const links = ['src', 'href', 'xlink:href'];
 const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 
 const dangerousLink = function (data: string) {
@@ -20,7 +20,6 @@ const dangerousLink = function (data: string) {
 };
 
 const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
-    // console.log('Object Action');
 
     oldValue = oldValue ?? {};
     newValue = newValue ?? {};
@@ -54,7 +53,6 @@ const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValu
 };
 
 const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
-    // console.log('Array Action', actions);
 
     oldValue = oldValue ?? [];
     newValue = newValue ?? [];
@@ -72,13 +70,14 @@ const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue
 
         for (let i = oldLength; i < newLength; i++) {
 
-            if (newValue[i]?.constructor === Object && newValue[i]?.symbol === HtmlSymbol) {
+            if (newValue[i]?.constructor === Object && newValue[i]?.symbol === symbol) {
                 const start = document.createTextNode('');
                 const end = document.createTextNode('');
                 const action = ObjectAction.bind(null, start, end, []);
 
                 template.content.appendChild(start);
                 template.content.appendChild(end);
+
                 actions.push(action);
 
                 action(oldValue[i], newValue[i]);
@@ -97,15 +96,15 @@ const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue
         end.parentNode?.insertBefore(template.content as Node, end);
     } else if (oldLength > newLength) {
 
-        for (let i = oldLength-1; i > newLength-1; i--) {
+        for (let i = oldLength - 1; i > newLength - 1; i--) {
 
-            if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === HtmlSymbol) {
-                const { template } = oldValue[i];
-                let removes = template.content.childNodes.length + 2;
-                while (removes--) end.parentNode?.removeChild(end.previousSibling as Node);
-            } else {
-                end.parentNode?.removeChild(end.previousSibling as Node);
-            }
+            // if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === symbol) {
+            //     const { template } = oldValue[i];
+            //     let removes = template.content.childNodes.length + 2;
+            //     while (removes--) end.parentNode?.removeChild(end.previousSibling as Node);
+            // } else {
+            end.parentNode?.removeChild(end.previousSibling as Node);
+            // }
 
         }
 
@@ -220,7 +219,7 @@ export const Render = function (fragment: DocumentFragment, expressions: Express
 
             const newValue = expressions[index++];
 
-            if (newValue?.constructor === Object && newValue?.symbol === HtmlSymbol) {
+            if (newValue?.constructor === Object && newValue?.symbol === symbol) {
                 const start = document.createTextNode('');
                 const end = node;
                 end.nodeValue = '';

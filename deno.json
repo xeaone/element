@@ -43,6 +43,7 @@
         "b": "deno run -A bundle.ts",
         "d": "deno run -A deploy.ts",
         "t": "deno test -A test.ts",
-        "w": "deno run --unstable -A watch.ts"
+        "w": "deno run -A watch.ts",
+        "i": "deno run --allow-net --allow-read https://deno.land/std@0.180.0/http/file_server.ts ideas/. --port 8000"
     }
 }

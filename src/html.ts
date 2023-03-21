@@ -1,34 +1,41 @@
 import { createHTML } from './poly';
+import render from './render';
 // import parse from './parse';
 
-export type TemplateExpressionsArray = any[];
+type TemplateExpressionsArray = any[];
+type TemplateActionsArray = any[];
 
-export type HtmlInstance = {
-    strings: TemplateStringsArray;
-    expressions:TemplateExpressionsArray;
-    template: HTMLTemplateElement;
-    symbol: typeof HtmlSymbol;
-}
+const cache: WeakMap<TemplateStringsArray, HTMLTemplateElement> = new WeakMap();
+// const Templates: WeakMap<TemplateStringsArray, HTMLTemplateElement> = new WeakMap();
+// const Actions: WeakMap<DocumentFragment, any[]> = new WeakMap();
+// const Expressions: WeakMap<DocumentFragment, any[]> = new WeakMap();
 
-export const HtmlCache = new WeakMap();
-export const HtmlSymbol = Symbol('html');
+export const symbol = Symbol('html');
 
-// export class H {
-//     strings:TemplateStringsArray;
-//     expressions:TemplateExpressionsArray;
+// class Html {
 //     template: HTMLTemplateElement;
-//     constructor(strings: TemplateStringsArray, expressions: TemplateExpressionsArray, template: HTMLTemplateElement) {
-//         this.strings = strings;
-//         this.expressions = expressions;
+//     expressions: TemplateExpressionsArray;
+//     constructor(template: HTMLTemplateElement, expressions: TemplateExpressionsArray) {
 //         this.template = template;
+//         this.expressions = expressions;
 //     }
 // }
 
-export const html = function (strings: TemplateStringsArray, ...expressions: TemplateExpressionsArray): HtmlInstance {
-    const template = HtmlCache.get(strings);
+export default function html(strings: TemplateStringsArray, ...expressions: TemplateExpressionsArray): any {
+    const template = cache.get(strings);
     if (template) {
-        // return new H(strings, expressions, template);
-        return { strings, expressions, template, symbol: HtmlSymbol };
+        // console.log(expressions)
+
+        // const length = cache.actions.length ?? 0;
+        // for (let index = 0; index < length; index++) {
+        //     const newExpression = expressions[index];
+        //     const oldExpressions = cache.expressions[index];
+        //     cache.actions[index](oldExpressions, newExpression);
+        //     cache.expressions[index] = newExpression;
+        // }
+
+        // return cache.fragment;
+        return { strings, template, expressions, symbol };
     } else {
         let data = '';
 
@@ -43,13 +50,46 @@ export const html = function (strings: TemplateStringsArray, ...expressions: Tem
         const template = document.createElement('template');
         template.innerHTML = createHTML(data);
 
-        // const template = parse(data);
+        cache.set(strings, template);
 
-        HtmlCache.set(strings, template);
+        return { strings, template, expressions, symbol };
 
-        // return new H(strings, expressions, template);
-        return { strings, expressions, template, symbol: HtmlSymbol };
+        // const fragment = template.content.cloneNode(true) as DocumentFragment;
+        // const expressions = [];
+        // Expressions.set(fragment, expressions);
+
+        // const actions: any = [];
+        // Actions.set(fragment, actions);
+
+        // render(fragment, expressions, actions);
+        // document.adoptNode(fragment);
+
+        // for (let index = 0; index < actions.length; index++) {
+        //     const newExpression = expressions[index];
+        //     actions[index](undefined, newExpression);
+        // }
+
+        // return fragment;
+
+        // const cache = {
+        // expressions,
+        // actions: [] as TemplateActionsArray,
+        // template: document.createElement('template')
+        // fragment: template.content.cloneNode(true) as DocumentFragment
+        // };
+
+        // cache.template.innerHTML = createHTML(data);
+
+        // Cache.set(strings, cache);
+
+        // render(cache.fragment, cache.expressions, cache.actions);
+        // document.adoptNode(cache.fragment);
+
+        // for (let index = 0; index < cache.actions.length; index++) {
+        //     const newExpression = cache.expressions[index];
+        //     cache.actions[index](undefined, newExpression);
+        // }
+
+        // return cache.fragment;
     }
 }
-
-export default html;
