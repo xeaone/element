@@ -37,14 +37,6 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 
-// src/dash.ts
-function dash(data) {
-  data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
-  data = data.toLowerCase();
-  data = data.includes("-") ? data : `x-${data}`;
-  return data;
-}
-
 // src/define.ts
 function define(name, constructor) {
   if (!customElements.get(name)) {
@@ -413,22 +405,6 @@ var Render = function(fragment, expressions, actions) {
 };
 var render_default = Render;
 
-// src/events.ts
-var adoptedEvent = new Event("adopted");
-var adoptingEvent = new Event("adopting");
-var upgradedEvent = new Event("upgraded");
-var upgradingEvent = new Event("upgrading");
-var creatingEvent = new Event("creating");
-var createdEvent = new Event("created");
-var renderingEvent = new Event("rendering");
-var renderedEvent = new Event("rendered");
-var connectedEvent = new Event("connected");
-var connectingEvent = new Event("connecting");
-var attributedEvent = new Event("attributed");
-var attributingEvent = new Event("attributing");
-var disconnectedEvent = new Event("disconnected");
-var disconnectingEvent = new Event("disconnecting");
-
 // src/context.ts
 var ContextSet = function(method, target, key, value, receiver) {
   if (typeof key === "symbol")
@@ -464,23 +440,41 @@ var Context = function(data, method) {
 };
 var context_default = Context;
 
+// src/dash.ts
+function dash(data) {
+  data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
+  data = data.toLowerCase();
+  data = data.includes("-") ? data : `x-${data}`;
+  return data;
+}
+
+// src/events.ts
+var adoptedEvent = new Event("adopted");
+var adoptingEvent = new Event("adopting");
+var upgradedEvent = new Event("upgraded");
+var upgradingEvent = new Event("upgrading");
+var creatingEvent = new Event("creating");
+var createdEvent = new Event("created");
+var renderingEvent = new Event("rendering");
+var renderedEvent = new Event("rendered");
+var connectedEvent = new Event("connected");
+var connectingEvent = new Event("connecting");
+var attributedEvent = new Event("attributed");
+var attributingEvent = new Event("attributing");
+var disconnectedEvent = new Event("disconnected");
+var disconnectingEvent = new Event("disconnecting");
+
 // src/component.ts
-var _context, _construct, _actions, _expressions;
+var _context, _actions, _expressions, _changeNext, _changeCurrent;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
     super();
-    // connecting?: (ctx: any) => void | Promise<void>;
-    // connected?: (ctx: any) => void | Promise<void>;
-    // disconnecting?: (ctx: any) => void | Promise<void>;
-    // disconnected?: (ctx: any) => void | Promise<void>;
     __privateAdd(this, _context, void 0);
-    __privateAdd(this, _construct, void 0);
     __privateAdd(this, _actions, []);
     __privateAdd(this, _expressions, []);
-    if (!customElements.get("x-test")) {
-      customElements.define("x-test", this);
-    }
+    __privateAdd(this, _changeNext, void 0);
+    __privateAdd(this, _changeCurrent, void 0);
     const constructor = this.constructor;
     const shadow = constructor.shadow;
     if (shadow && !this.shadowRoot) {
@@ -489,25 +483,32 @@ var Component = class extends HTMLElement {
     }
     const root = (_a = this.shadowRoot) != null ? _a : this;
     __privateSet(this, _context, context_default({}, () => __async(this, null, function* () {
-      var _a2;
-      if (__privateGet(this, _construct))
-        return;
-      const rendered = yield (_a2 = this.render) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
-      if (rendered) {
-        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
-          const newExpression = rendered.expressions[index];
-          const oldExpression = __privateGet(this, _expressions)[index];
-          __privateGet(this, _actions)[index](oldExpression, newExpression);
-          __privateGet(this, _expressions)[index] = rendered.expressions[index];
+      const change = () => __async(this, null, function* () {
+        var _a2, _b, _c;
+        const rendered = yield (_a2 = this.render) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
+        if (rendered) {
+          for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+            const newExpression = rendered.expressions[index];
+            const oldExpression = __privateGet(this, _expressions)[index];
+            __privateGet(this, _actions)[index](oldExpression, newExpression);
+            __privateGet(this, _expressions)[index] = rendered.expressions[index];
+          }
         }
+        yield (_b = this.change) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+        __privateSet(this, _changeCurrent, (_c = __privateGet(this, _changeNext)) == null ? void 0 : _c.call(this));
+        __privateSet(this, _changeNext, void 0);
+        yield __privateGet(this, _changeCurrent);
+      });
+      if (__privateGet(this, _changeCurrent)) {
+        __privateSet(this, _changeNext, change);
+      } else {
+        __privateSet(this, _changeCurrent, change());
       }
     })));
-    __privateSet(this, _construct, Promise.resolve().then(() => __async(this, null, function* () {
-      var _a2, _b;
+    __privateSet(this, _changeCurrent, Promise.resolve().then(() => __async(this, null, function* () {
+      var _a2, _b, _c, _d;
       this.dispatchEvent(creatingEvent);
-      yield (_a2 = this.create) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
-      this.dispatchEvent(createdEvent);
-      this.dispatchEvent(renderingEvent);
+      yield (_a2 = this.setup) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
       const rendered = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
       if (rendered) {
         const fragment = rendered.template.content.cloneNode(true);
@@ -520,8 +521,11 @@ var Component = class extends HTMLElement {
         }
         root.appendChild(fragment);
       }
-      this.dispatchEvent(renderedEvent);
-      __privateSet(this, _construct, null);
+      __privateSet(this, _changeCurrent, (_c = __privateGet(this, _changeNext)) == null ? void 0 : _c.call(this));
+      __privateSet(this, _changeNext, void 0);
+      yield __privateGet(this, _changeCurrent);
+      yield (_d = this.create) == null ? void 0 : _d.call(this, __privateGet(this, _context));
+      this.dispatchEvent(createdEvent);
     })));
   }
   static define(tag) {
@@ -533,8 +537,7 @@ var Component = class extends HTMLElement {
     return __async(this, null, function* () {
       var _a, _b;
       this.dispatchEvent(connectingEvent);
-      if (__privateGet(this, _construct))
-        yield __privateGet(this, _construct);
+      yield __privateGet(this, _changeCurrent);
       yield (_b = (_a = this.connect) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
       this.dispatchEvent(connectedEvent);
     });
@@ -549,9 +552,11 @@ var Component = class extends HTMLElement {
   }
 };
 _context = new WeakMap();
-_construct = new WeakMap();
 _actions = new WeakMap();
 _expressions = new WeakMap();
+_changeNext = new WeakMap();
+_changeCurrent = new WeakMap();
+Component.html = html;
 Component.shadow = false;
 Component.mode = "open";
 

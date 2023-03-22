@@ -1,4 +1,4 @@
-import { component, html } from './x-element.js';
+import { Component, component, html } from './x-element.js';
 import highlight from './modules/highlight.js';
 
 const withoutCustomElement = highlight(`
@@ -44,15 +44,15 @@ import { router } from '/x-element.js';
 router('/', document.body, ()=> import('/greet.js'));
 `);
 
-export default ({ html, self }) => (
+export default class Root extends Component  {
 
-    self.upgraded = (root) => {
-        root.querySelector('#router').innerHTML = routerExample;
-        root.querySelector('#withoutCustomElement').innerHTML = withoutCustomElement;
-        root.querySelector('#withCustomElement').innerHTML = withCustomElement;
-    },
+    create = () => {
+        this.querySelector('#router').innerHTML = routerExample;
+        this.querySelector('#withoutCustomElement').innerHTML = withoutCustomElement;
+        this.querySelector('#withCustomElement').innerHTML = withCustomElement;
+    }
 
-    () => html`
+    render = () => html`
 
     <section>
 
@@ -117,7 +117,8 @@ export default ({ html, self }) => (
 
     </section>
 
-`);
+    `
+}
 
 // class XRoot extends HTMLElement {
 //     static define = true;

@@ -1,6 +1,8 @@
-import dash from './dash';
 import define from './define';
 import render from './render';
+import context from './context';
+import html from './html';
+import dash from './dash';
 import { Actions, Expressions, HTML } from './types';
 import {
     createdEvent,
@@ -12,10 +14,10 @@ import {
     disconnectedEvent,
     disconnectingEvent,
 } from './events';
-import context from './context';
 
 export default class Component extends HTMLElement {
 
+    static html = html;
     static tag?: string;
     static shadow: boolean = false;
     static mode: 'open' | 'closed' = 'open';
@@ -25,29 +27,23 @@ export default class Component extends HTMLElement {
         define(tag ?? this.tag ?? this.name, this);
     }
 
-    // construct?: (ctx: any) => void | Promise<void>;
-    // upgrade?: (ctx: any) => void | Promise<void>;
-    create?: (ctx: any) => void | Promise<void>;
-    render?: (ctx: any) => HTML | Promise<HTML>;
-    connect?: (ctx: any) => void | Promise<void>;
-    disconnect?: (ctx: any) => void | Promise<void>;
-    // connecting?: (ctx: any) => void | Promise<void>;
-    // connected?: (ctx: any) => void | Promise<void>;
-    // disconnecting?: (ctx: any) => void | Promise<void>;
-    // disconnected?: (ctx: any) => void | Promise<void>;
+    setup?: (context: any) => void | Promise<void>;
+    create?: (context: any) => void | Promise<void>;
+    change?: (context: any) => void | Promise<void>;
+    render?: (context: any) => HTML | Promise<HTML>;
+    connect?: (context: any) => void | Promise<void>;
+    disconnect?: (context: any) => void | Promise<void>;
 
-    #context:Record<any,any>;
-    #construct: Promise<void> | null;
+    #context: Record<any,any>;
 
     #actions: Actions = [];
     #expressions: Expressions = [];
 
+    #changeNext: (()=>Promise<any>) | undefined = undefined;
+    #changeCurrent: Promise<any> | undefined = undefined;
+
     constructor() {
         super();
-
-        if (!customElements.get('x-test')) {
-            customElements.define('x-test', this as any);
-        }
 
         const constructor = this.constructor as typeof Component;
 
@@ -59,26 +55,40 @@ export default class Component extends HTMLElement {
 
         const root = this.shadowRoot ?? this;
 
-        // create context
         this.#context = context({}, async () => {
-            if (this.#construct) return;
-            const rendered = await this.render?.(this.#context);
-            if (rendered) {
-                for (let index = 0; index < this.#actions.length; index++) {
-                    const newExpression = rendered.expressions[index];
-                    const oldExpression = this.#expressions[index];
-                    this.#actions[index](oldExpression, newExpression);
-                    this.#expressions[index] = rendered.expressions[index];
+
+            const change = async () => {
+                const rendered = await this.render?.(this.#context);
+
+                if (rendered) {
+                    for (let index = 0; index < this.#actions.length; index++) {
+                        const newExpression = rendered.expressions[ index ];
+                        const oldExpression = this.#expressions[ index ];
+                        this.#actions[ index ](oldExpression, newExpression);
+                        this.#expressions[ index ] = rendered.expressions[ index ];
+                    }
                 }
+
+                await this.change?.(this.#context);
+
+                this.#changeCurrent = this.#changeNext?.();
+                this.#changeNext = undefined;
+                await this.#changeCurrent;
+            };
+
+            if (this.#changeCurrent) {
+                this.#changeNext = change;
+            } else {
+                this.#changeCurrent = change();
             }
+
         });
 
-        this.#construct = Promise.resolve().then(async () => {
+        this.#changeCurrent = Promise.resolve().then(async () => {
             this.dispatchEvent(creatingEvent);
-            await this.create?.(this.#context);
-            this.dispatchEvent(createdEvent);
+            // this.dispatchEvent(renderingEvent);
 
-            this.dispatchEvent(renderingEvent);
+            await this.setup?.(this.#context);
 
             const rendered = await this.render?.(this.#context);
             if (rendered) {
@@ -97,28 +107,22 @@ export default class Component extends HTMLElement {
                 root.appendChild(fragment);
             }
 
-            this.dispatchEvent(renderedEvent);
+            // this.dispatchEvent(renderedEvent);
 
-            // setInterval(async () => {
-            //     // this.render?.(this.#context);
+            this.#changeCurrent = this.#changeNext?.();
+            this.#changeNext = undefined;
+            await this.#changeCurrent;
 
-            //     const result = await this.render?.(this.#context);
-            //     for (let index = 0; index < actions.length; index++) {
-            //         const newExpression = result.expressions[index];
-            //         const oldExpressions = expressions[index];
-            //         actions[index](oldExpressions, newExpression);
-            //         expressions[index] = newExpression;
-            //     }
+            await this.create?.(this.#context);
 
-            // }, 1000);
-
-            this.#construct = null;
+            this.dispatchEvent(createdEvent);
         });
+
     }
 
     async connectedCallback() {
         this.dispatchEvent(connectingEvent);
-        if (this.#construct) await this.#construct;
+        await this.#changeCurrent;
         await this.connect?.(this.#context)?.catch(console.error);
         this.dispatchEvent(connectedEvent);
     }

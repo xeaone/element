@@ -2,74 +2,36 @@ import { router, component, html } from './x-element.js';
 
 const main = document.querySelector('main');
 
-// const comp = function (create, render) {
-//     const data = {};
-//     create(data);
-//     return data.render = () => render(data);
+// class test extends component {
 
-// };
-
-
-// const comp = function (create, render) {
-//     return function decorator (Class) {
-//         Class = Class ?? HTMLElement;
-
-//         Class = class extends Class {
-//             constructor () {
-//                 super();
-
-//                 const data = {};
-//                 create(data);
-//                 data.render = () => render(data);
-
-//                 this.append(render(data));
-//             }
-//         };
-
-//         // Class = (...args) => {
-//         //     return new Class(...args);
-//         // };
-
-//         customElements.define('x-test', Class);
-
-//         return Class;
+//     create = data => {
+//         data.num = 0;
+//         data.value = 'Default';
 //     };
-// };
 
-class test extends component {
+//     render = data => html`
+//         <div>${data.value}</div>
+//         <input type="text" value=${data.value} oninput=${(e)=>data.value=e.target.value}>
+//         ${html`<div>${'foo'}</div>`}
+//     `;
 
-    create = data => {
-        data.num = 0;
-        data.value = 'Default';
-    };
+// }
 
-    render = data => {
-        return html`
-        <div>${data.value}</div>
-        <input type="text" value=${data.value} oninput=${(e)=>data.value=e.target.value}>
-        ${html`<div>${'foo'}</div>`}
-    `;
-    };
+// test.define();
 
-}
+// document.body.append(new test());
 
-test.define();
+// setTimeout(() => {
 
-document.body.append(new test());
+//     document.body.append(document.createElement('x-test'));
+// }, 1000);
 
-setTimeout(() => {
-
-    document.body.append(document.createElement('x-test'));
-}, 1000);
-
-
-
-// router('/', main, () => import('./root.js'));
-// router('/guide', main, () => import('./guide.js'));
-// router('/guide/', main, () => import('./guide.js'));
+router('/', main, () => import('./root.js'));
+router('/guide', main, () => import('./guide.js'));
+router('/guide/', main, () => import('./guide.js'));
 // router('/security', main, () => import('./security.js'));
 // router('/security/', main, () => import('./security.js'));
-// router('/*', main, () => import('./all.js'));
+router('/*', main, () => import('./all.js'));
 
 // navigation.addEventListener('navigate', (event) => {
 
@@ -104,4 +66,4 @@ setTimeout(() => {
 
 // });
 
-// location.replace(location.href);
+location.replace(location.href);
