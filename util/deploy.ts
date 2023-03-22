@@ -5,7 +5,7 @@ import * as esbuild from "https://deno.land/x/esbuild@v0.17.10/mod.js";
 const { run, readTextFile, writeTextFile, args } = Deno;
 const [release] = args;
 if (!release) {
-    console.warn('requires: pre, major, premajor, minor, preminor, patch, prepatch, prerelease', );
+    console.warn( 'requires: pre, major, premajor, minor, preminor, patch, prepatch, prerelease', );
     Deno.exit();
 }
 

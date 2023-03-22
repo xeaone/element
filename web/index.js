@@ -40,13 +40,14 @@ class test extends component {
 
     create = data => {
         data.num = 0;
-
+        data.value = 'Default';
     };
 
     render = data => {
         return html`
-        <h1>${data.num++}</h1>
-        ${html`<h2>${'foo'}</h2>`}
+        <div>${data.value}</div>
+        <input type="text" value=${data.value} oninput=${(e)=>data.value=e.target.value}>
+        ${html`<div>${'foo'}</div>`}
     `;
     };
 

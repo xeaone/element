@@ -52,22 +52,6 @@ function define(name, constructor) {
   }
 }
 
-// src/events.ts
-var adoptedEvent = new Event("adopted");
-var adoptingEvent = new Event("adopting");
-var upgradedEvent = new Event("upgraded");
-var upgradingEvent = new Event("upgrading");
-var creatingEvent = new Event("creating");
-var createdEvent = new Event("created");
-var renderingEvent = new Event("rendering");
-var renderedEvent = new Event("rendered");
-var connectedEvent = new Event("connected");
-var connectingEvent = new Event("connecting");
-var attributedEvent = new Event("attributed");
-var attributingEvent = new Event("attributing");
-var disconnectedEvent = new Event("disconnected");
-var disconnectingEvent = new Event("disconnecting");
-
 // src/display.ts
 function display(data) {
   switch (typeof data) {
@@ -166,8 +150,8 @@ var createHTML = function(data) {
 };
 
 // src/html.ts
-var cache = /* @__PURE__ */ new WeakMap();
 var symbol = Symbol("html");
+var cache = /* @__PURE__ */ new WeakMap();
 function html(strings, ...expressions) {
   const template = cache.get(strings);
   if (template) {
@@ -429,8 +413,59 @@ var Render = function(fragment, expressions, actions) {
 };
 var render_default = Render;
 
+// src/events.ts
+var adoptedEvent = new Event("adopted");
+var adoptingEvent = new Event("adopting");
+var upgradedEvent = new Event("upgraded");
+var upgradingEvent = new Event("upgrading");
+var creatingEvent = new Event("creating");
+var createdEvent = new Event("created");
+var renderingEvent = new Event("rendering");
+var renderedEvent = new Event("rendered");
+var connectedEvent = new Event("connected");
+var connectingEvent = new Event("connecting");
+var attributedEvent = new Event("attributed");
+var attributingEvent = new Event("attributing");
+var disconnectedEvent = new Event("disconnected");
+var disconnectingEvent = new Event("disconnecting");
+
+// src/context.ts
+var ContextSet = function(method, target, key, value, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.set(target, key, value, receiver);
+  const from = Reflect.get(target, key, receiver);
+  if (from === value)
+    return true;
+  if (Number.isNaN(from) && Number.isNaN(value))
+    return true;
+  Reflect.set(target, key, value, receiver);
+  method();
+  return true;
+};
+var ContextGet = function(method, target, key, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.get(target, key, receiver);
+  const value = Reflect.get(target, key, receiver);
+  return value;
+};
+var ContextDelete = function(method, target, key) {
+  if (typeof key === "symbol")
+    return Reflect.deleteProperty(target, key);
+  Reflect.deleteProperty(target, key);
+  method();
+  return true;
+};
+var Context = function(data, method) {
+  return new Proxy(data, {
+    get: ContextGet.bind(null, method),
+    set: ContextSet.bind(null, method),
+    deleteProperty: ContextDelete.bind(null, method)
+  });
+};
+var context_default = Context;
+
 // src/component.ts
-var _context, _construct;
+var _context, _construct, _actions, _expressions;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
@@ -439,8 +474,10 @@ var Component = class extends HTMLElement {
     // connected?: (ctx: any) => void | Promise<void>;
     // disconnecting?: (ctx: any) => void | Promise<void>;
     // disconnected?: (ctx: any) => void | Promise<void>;
-    __privateAdd(this, _context, {});
+    __privateAdd(this, _context, void 0);
     __privateAdd(this, _construct, void 0);
+    __privateAdd(this, _actions, []);
+    __privateAdd(this, _expressions, []);
     if (!customElements.get("x-test")) {
       customElements.define("x-test", this);
     }
@@ -451,33 +488,39 @@ var Component = class extends HTMLElement {
       this.attachShadow({ mode });
     }
     const root = (_a = this.shadowRoot) != null ? _a : this;
+    __privateSet(this, _context, context_default({}, () => __async(this, null, function* () {
+      var _a2;
+      if (__privateGet(this, _construct))
+        return;
+      const rendered = yield (_a2 = this.render) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
+      if (rendered) {
+        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+          const newExpression = rendered.expressions[index];
+          const oldExpression = __privateGet(this, _expressions)[index];
+          __privateGet(this, _actions)[index](oldExpression, newExpression);
+          __privateGet(this, _expressions)[index] = rendered.expressions[index];
+        }
+      }
+    })));
     __privateSet(this, _construct, Promise.resolve().then(() => __async(this, null, function* () {
       var _a2, _b;
       this.dispatchEvent(creatingEvent);
       yield (_a2 = this.create) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
       this.dispatchEvent(createdEvent);
       this.dispatchEvent(renderingEvent);
-      const { template, expressions } = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
-      const fragment = template.content.cloneNode(true);
-      const actions = [];
-      render_default(fragment, expressions, actions);
-      document.adoptNode(fragment);
-      for (let index = 0; index < actions.length; index++) {
-        const newExpression = expressions[index];
-        actions[index](void 0, newExpression);
-      }
-      root.appendChild(fragment);
-      this.dispatchEvent(renderedEvent);
-      setInterval(() => __async(this, null, function* () {
-        var _a3;
-        const result = yield (_a3 = this.render) == null ? void 0 : _a3.call(this, __privateGet(this, _context));
-        for (let index = 0; index < actions.length; index++) {
-          const newExpression = result.expressions[index];
-          const oldExpressions = expressions[index];
-          actions[index](oldExpressions, newExpression);
-          expressions[index] = newExpression;
+      const rendered = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+      if (rendered) {
+        const fragment = rendered.template.content.cloneNode(true);
+        __privateSet(this, _expressions, rendered.expressions);
+        render_default(fragment, __privateGet(this, _expressions), __privateGet(this, _actions));
+        document.adoptNode(fragment);
+        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+          const newExpression = rendered.expressions[index];
+          __privateGet(this, _actions)[index](void 0, newExpression);
         }
-      }), 1e3);
+        root.appendChild(fragment);
+      }
+      this.dispatchEvent(renderedEvent);
       __privateSet(this, _construct, null);
     })));
   }
@@ -507,6 +550,8 @@ var Component = class extends HTMLElement {
 };
 _context = new WeakMap();
 _construct = new WeakMap();
+_actions = new WeakMap();
+_expressions = new WeakMap();
 Component.shadow = false;
 Component.mode = "open";
 
@@ -515,13 +560,19 @@ var alls = [];
 var routes = [];
 var transition = function(route) {
   return __async(this, null, function* () {
-    var _a;
+    var _a, _b;
     if (route.instance) {
       replaceChildren(route.root, route.instance);
     } else {
       const result = yield route.handler();
-      route.construct = result instanceof HTMLElement ? result : result.default;
-      route.tag = dash((_a = route.construct.tag) != null ? _a : route.construct.name);
+      if ((result == null ? void 0 : result.prototype) instanceof HTMLElement) {
+        route.construct = result;
+      } else if (((_a = result == null ? void 0 : result.default) == null ? void 0 : _a.prototype) instanceof HTMLElement) {
+        route.construct = result.default;
+      } else {
+        throw new Error("XElement - router handler requires a CustomElementConstructor");
+      }
+      route.tag = dash((_b = route.construct.tag) != null ? _b : route.construct.name);
       define(route.tag, route.construct);
       route.instance = document.createElement(route.tag);
       replaceChildren(route.root, route.instance);

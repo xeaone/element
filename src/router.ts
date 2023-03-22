@@ -1,19 +1,8 @@
 import { replaceChildren } from './poly';
 import define from './define';
 import dash from './dash';
-
-type Module = { default: CustomElementConstructor }
-type Handler = () => Module | CustomElementConstructor | Promise<Module | CustomElementConstructor>;
-
-type Route = {
-    path: string;
-    root: Element;
-    handler: Handler;
-
-    tag?: string;
-    instance?: Element;
-    construct?: CustomElementConstructor;
-};
+import {Route,Handler,Module} from './types';
+import Component from './component';
 
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
@@ -28,8 +17,15 @@ const transition = async function (route: Route) {
         replaceChildren(route.root, route.instance);
     } else {
         const result = await route.handler();
-        route.construct = result instanceof HTMLElement ? result as CustomElementConstructor : (result as Module).default;
-        route.tag = dash((route.construct as any).tag ?? route.construct.name);
+        if ((result as CustomElementConstructor)?.prototype instanceof HTMLElement) {
+            route.construct = result as CustomElementConstructor;
+        } else if (((result as Module)?.default as CustomElementConstructor)?.prototype instanceof HTMLElement) {
+            route.construct = (result as Module).default as CustomElementConstructor;
+        } else {
+            throw new Error('XElement - router handler requires a CustomElementConstructor');
+        }
+
+        route.tag = dash((route.construct as typeof Component).tag ?? route.construct.name);
         define(route.tag, route.construct);
         route.instance = document.createElement(route.tag);
         replaceChildren(route.root, route.instance);

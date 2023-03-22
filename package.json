@@ -11,11 +11,6 @@
         "./x-element.js": "./pro/x-element.js"
     },
     "scripts": {
-        "p": "deno run -A src/parse.ts",
-        "docs": "deno run -A docs.ts",
-        "deploy": "deno run -A deploy.ts",
-        "test": "deno --unstable test -A test.ts",
-        "watch": "deno --unstable run -A watch.ts"
     },
     "repository": {
         "type": "git",

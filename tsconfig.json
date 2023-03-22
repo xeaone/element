@@ -3,6 +3,7 @@
 
         "strict": true,
         "removeComments": true,
+        "esModuleInterop": true,
         "experimentalDecorators": true,
 
         "module": "ES2015",

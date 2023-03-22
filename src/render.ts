@@ -2,13 +2,14 @@ import display from './display';
 import booleans from './booleans';
 import { symbol } from './html';
 import { includes } from './poly';
+import { Attribute, Expressions, Actions, OldValue, NewValue } from './types';
 
-export type Value = any;
-export type OldValue = Value;
-export type NewValue = Value;
-export type Expressions = Array<Value>;
-export type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
-export type Attribute = { name: string, value: string };
+// export type Value = any;
+// export type OldValue = Value;
+// export type NewValue = Value;
+// export type Expressions = Array<Value>;
+// export type Actions = Array<(oldValue: OldValue, newValue: NewValue) => void>;
+// export type Attribute = { name: string, value: string };
 
 const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 

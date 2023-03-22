@@ -1,16 +1,13 @@
 import { createHTML } from './poly';
 import render from './render';
+import { Expressions, HTML } from './types';
 // import parse from './parse';
 
-type TemplateExpressionsArray = any[];
-type TemplateActionsArray = any[];
-
+export const symbol = Symbol('html');
 const cache: WeakMap<TemplateStringsArray, HTMLTemplateElement> = new WeakMap();
 // const Templates: WeakMap<TemplateStringsArray, HTMLTemplateElement> = new WeakMap();
 // const Actions: WeakMap<DocumentFragment, any[]> = new WeakMap();
 // const Expressions: WeakMap<DocumentFragment, any[]> = new WeakMap();
-
-export const symbol = Symbol('html');
 
 // class Html {
 //     template: HTMLTemplateElement;
@@ -21,7 +18,7 @@ export const symbol = Symbol('html');
 //     }
 // }
 
-export default function html(strings: TemplateStringsArray, ...expressions: TemplateExpressionsArray): any {
+export default function html(strings: TemplateStringsArray, ...expressions: Expressions): HTML {
     const template = cache.get(strings);
     if (template) {
         // console.log(expressions)

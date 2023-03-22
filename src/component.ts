@@ -1,5 +1,7 @@
 import dash from './dash';
 import define from './define';
+import render from './render';
+import { Actions, Expressions, HTML } from './types';
 import {
     createdEvent,
     creatingEvent,
@@ -10,8 +12,7 @@ import {
     disconnectedEvent,
     disconnectingEvent,
 } from './events';
-import html from './html';
-import render from './render';
+import context from './context';
 
 export default class Component extends HTMLElement {
 
@@ -27,7 +28,7 @@ export default class Component extends HTMLElement {
     // construct?: (ctx: any) => void | Promise<void>;
     // upgrade?: (ctx: any) => void | Promise<void>;
     create?: (ctx: any) => void | Promise<void>;
-    render?: (ctx: any) => typeof html | Promise<typeof html>;
+    render?: (ctx: any) => HTML | Promise<HTML>;
     connect?: (ctx: any) => void | Promise<void>;
     disconnect?: (ctx: any) => void | Promise<void>;
     // connecting?: (ctx: any) => void | Promise<void>;
@@ -35,8 +36,11 @@ export default class Component extends HTMLElement {
     // disconnecting?: (ctx: any) => void | Promise<void>;
     // disconnected?: (ctx: any) => void | Promise<void>;
 
-    #context = {};
+    #context:Record<any,any>;
     #construct: Promise<void> | null;
+
+    #actions: Actions = [];
+    #expressions: Expressions = [];
 
     constructor() {
         super();
@@ -56,6 +60,18 @@ export default class Component extends HTMLElement {
         const root = this.shadowRoot ?? this;
 
         // create context
+        this.#context = context({}, async () => {
+            if (this.#construct) return;
+            const rendered = await this.render?.(this.#context);
+            if (rendered) {
+                for (let index = 0; index < this.#actions.length; index++) {
+                    const newExpression = rendered.expressions[index];
+                    const oldExpression = this.#expressions[index];
+                    this.#actions[index](oldExpression, newExpression);
+                    this.#expressions[index] = rendered.expressions[index];
+                }
+            }
+        });
 
         this.#construct = Promise.resolve().then(async () => {
             this.dispatchEvent(creatingEvent);
@@ -64,36 +80,37 @@ export default class Component extends HTMLElement {
 
             this.dispatchEvent(renderingEvent);
 
-            const { template, expressions } = await this.render?.(this.#context);
+            const rendered = await this.render?.(this.#context);
+            if (rendered) {
 
-            const fragment = template.content.cloneNode(true) as DocumentFragment;
-            const actions: any = [];
+                const fragment = rendered.template.content.cloneNode(true) as DocumentFragment;
+                this.#expressions = rendered.expressions;
 
-            render(fragment, expressions, actions);
-            document.adoptNode(fragment);
+                render(fragment, this.#expressions, this.#actions);
+                document.adoptNode(fragment);
 
-            for (let index = 0; index < actions.length; index++) {
-                const newExpression = expressions[index];
-                actions[index](undefined, newExpression);
+                for (let index = 0; index < this.#actions.length; index++) {
+                    const newExpression = rendered.expressions[index];
+                    this.#actions[index](undefined, newExpression);
+                }
+
+                root.appendChild(fragment);
             }
-
-            root.appendChild(fragment as any);
-            //update context with render
 
             this.dispatchEvent(renderedEvent);
 
-            setInterval(async () => {
-                // this.render?.(this.#context);
+            // setInterval(async () => {
+            //     // this.render?.(this.#context);
 
-                const result = await this.render?.(this.#context);
-                for (let index = 0; index < actions.length; index++) {
-                    const newExpression = result.expressions[index];
-                    const oldExpressions = expressions[index];
-                    actions[index](oldExpressions, newExpression);
-                    expressions[index] = newExpression;
-                }
+            //     const result = await this.render?.(this.#context);
+            //     for (let index = 0; index < actions.length; index++) {
+            //         const newExpression = result.expressions[index];
+            //         const oldExpressions = expressions[index];
+            //         actions[index](oldExpressions, newExpression);
+            //         expressions[index] = newExpression;
+            //     }
 
-            }, 1000);
+            // }, 1000);
 
             this.#construct = null;
         });
@@ -101,11 +118,8 @@ export default class Component extends HTMLElement {
 
     async connectedCallback() {
         this.dispatchEvent(connectingEvent);
-
         if (this.#construct) await this.#construct;
-
         await this.connect?.(this.#context)?.catch(console.error);
-
         this.dispatchEvent(connectedEvent);
     }
 
