@@ -1,4 +1,4 @@
-import { Component, component, html } from './x-element.js';
+import { component, html } from './x-element.js';
 import highlight from './modules/highlight.js';
 
 const withoutCustomElement = highlight(`
@@ -44,7 +44,7 @@ import { router } from '/x-element.js';
 router('/', document.body, ()=> import('/greet.js'));
 `);
 
-export default class Root extends Component  {
+export default class root extends component  {
 
     create = () => {
         this.querySelector('#router').innerHTML = routerExample;

@@ -1,6 +1,6 @@
-import { Component,html } from './x-element.js';
+import { component, html } from './x-element.js';
 
-export default class all extends Component {
+export default class all extends component {
 
     connect () { console.log('connected'); }
 

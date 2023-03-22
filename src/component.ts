@@ -21,16 +21,15 @@ export default class Component extends HTMLElement {
     static tag?: string;
     static shadow: boolean = false;
     static mode: 'open' | 'closed' = 'open';
-
     static define(tag?: string) {
         tag = dash(tag ?? this.tag ?? this.name);
         define(tag ?? this.tag ?? this.name, this);
     }
 
     setup?: (context: any) => void | Promise<void>;
+    render?: (context: any) => HTML | Promise<HTML>;
     create?: (context: any) => void | Promise<void>;
     change?: (context: any) => void | Promise<void>;
-    render?: (context: any) => HTML | Promise<HTML>;
     connect?: (context: any) => void | Promise<void>;
     disconnect?: (context: any) => void | Promise<void>;
 
@@ -85,11 +84,10 @@ export default class Component extends HTMLElement {
         });
 
         this.#changeCurrent = Promise.resolve().then(async () => {
-            this.dispatchEvent(creatingEvent);
-            // this.dispatchEvent(renderingEvent);
 
             await this.setup?.(this.#context);
 
+            this.dispatchEvent(renderingEvent);
             const rendered = await this.render?.(this.#context);
             if (rendered) {
 
@@ -106,23 +104,22 @@ export default class Component extends HTMLElement {
 
                 root.appendChild(fragment);
             }
-
-            // this.dispatchEvent(renderedEvent);
+            this.dispatchEvent(renderedEvent);
 
             this.#changeCurrent = this.#changeNext?.();
             this.#changeNext = undefined;
             await this.#changeCurrent;
 
+            this.dispatchEvent(creatingEvent);
             await this.create?.(this.#context);
-
             this.dispatchEvent(createdEvent);
         });
 
     }
 
     async connectedCallback() {
-        this.dispatchEvent(connectingEvent);
         await this.#changeCurrent;
+        this.dispatchEvent(connectingEvent);
         await this.connect?.(this.#context)?.catch(console.error);
         this.dispatchEvent(connectedEvent);
     }

@@ -1,4 +1,4 @@
-import { Component, component, html } from './x-element.js';
+import { component, html } from './x-element.js';
 import highlight from './modules/highlight.js';
 import color from './modules/color.js';
 
@@ -18,7 +18,7 @@ const names = [
 
 const cache = new WeakMap();
 
-export default class Guide extends Component {
+export default class guide extends component {
 
     connect() { console.log('connect'); };
     disconnect() { console.log('disconnect'); };
@@ -161,6 +161,7 @@ export default class Guide extends Component {
     }
 
     render = (c) => html`
+    ${console.log('render')??''}
 
     <style>
         .default {

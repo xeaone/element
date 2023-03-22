@@ -2,30 +2,6 @@ import { router, component, html } from './x-element.js';
 
 const main = document.querySelector('main');
 
-// class test extends component {
-
-//     create = data => {
-//         data.num = 0;
-//         data.value = 'Default';
-//     };
-
-//     render = data => html`
-//         <div>${data.value}</div>
-//         <input type="text" value=${data.value} oninput=${(e)=>data.value=e.target.value}>
-//         ${html`<div>${'foo'}</div>`}
-//     `;
-
-// }
-
-// test.define();
-
-// document.body.append(new test());
-
-// setTimeout(() => {
-
-//     document.body.append(document.createElement('x-test'));
-// }, 1000);
-
 router('/', main, () => import('./root.js'));
 router('/guide', main, () => import('./guide.js'));
 router('/guide/', main, () => import('./guide.js'));

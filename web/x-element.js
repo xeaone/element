@@ -507,8 +507,8 @@ var Component = class extends HTMLElement {
     })));
     __privateSet(this, _changeCurrent, Promise.resolve().then(() => __async(this, null, function* () {
       var _a2, _b, _c, _d;
-      this.dispatchEvent(creatingEvent);
       yield (_a2 = this.setup) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
+      this.dispatchEvent(renderingEvent);
       const rendered = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
       if (rendered) {
         const fragment = rendered.template.content.cloneNode(true);
@@ -521,9 +521,11 @@ var Component = class extends HTMLElement {
         }
         root.appendChild(fragment);
       }
+      this.dispatchEvent(renderedEvent);
       __privateSet(this, _changeCurrent, (_c = __privateGet(this, _changeNext)) == null ? void 0 : _c.call(this));
       __privateSet(this, _changeNext, void 0);
       yield __privateGet(this, _changeCurrent);
+      this.dispatchEvent(creatingEvent);
       yield (_d = this.create) == null ? void 0 : _d.call(this, __privateGet(this, _context));
       this.dispatchEvent(createdEvent);
     })));
@@ -536,8 +538,8 @@ var Component = class extends HTMLElement {
   connectedCallback() {
     return __async(this, null, function* () {
       var _a, _b;
-      this.dispatchEvent(connectingEvent);
       yield __privateGet(this, _changeCurrent);
+      this.dispatchEvent(connectingEvent);
       yield (_b = (_a = this.connect) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
       this.dispatchEvent(connectedEvent);
     });
