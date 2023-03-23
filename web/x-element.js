@@ -1,3 +1,22 @@
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __accessCheck = (obj, member, msg) => {
   if (!member.has(obj))
     throw TypeError("Cannot " + msg);
@@ -15,6 +34,10 @@ var __privateSet = (obj, member, value, setter) => {
   __accessCheck(obj, member, "write to private field");
   setter ? setter.call(obj, value) : member.set(obj, value);
   return value;
+};
+var __privateMethod = (obj, member, method) => {
+  __accessCheck(obj, member, "access private method");
+  return method;
 };
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -465,12 +488,15 @@ var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
 
 // src/component.ts
-var _context, _actions, _expressions, _changeNext, _changeCurrent;
+var _context, _root, _actions, _expressions, _changeNext, _changeCurrent, _change, change_fn, _setup, setup_fn;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
     super();
-    __privateAdd(this, _context, void 0);
+    __privateAdd(this, _change);
+    __privateAdd(this, _setup);
+    __privateAdd(this, _context, {});
+    __privateAdd(this, _root, void 0);
     __privateAdd(this, _actions, []);
     __privateAdd(this, _expressions, []);
     __privateAdd(this, _changeNext, void 0);
@@ -481,66 +507,36 @@ var Component = class extends HTMLElement {
       const mode = constructor.mode;
       this.attachShadow({ mode });
     }
-    const root = (_a = this.shadowRoot) != null ? _a : this;
-    __privateSet(this, _context, context_default({}, () => __async(this, null, function* () {
-      const change = () => __async(this, null, function* () {
-        var _a2, _b, _c;
-        const rendered = yield (_a2 = this.render) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
-        if (rendered) {
-          for (let index = 0; index < __privateGet(this, _actions).length; index++) {
-            const newExpression = rendered.expressions[index];
-            const oldExpression = __privateGet(this, _expressions)[index];
-            __privateGet(this, _actions)[index](oldExpression, newExpression);
-            __privateGet(this, _expressions)[index] = rendered.expressions[index];
-          }
-        }
-        yield (_b = this.change) == null ? void 0 : _b.call(this, __privateGet(this, _context));
-        __privateSet(this, _changeCurrent, (_c = __privateGet(this, _changeNext)) == null ? void 0 : _c.call(this));
-        __privateSet(this, _changeNext, void 0);
-        yield __privateGet(this, _changeCurrent);
-      });
-      if (__privateGet(this, _changeCurrent)) {
-        __privateSet(this, _changeNext, change);
-      } else {
-        __privateSet(this, _changeCurrent, change());
-      }
-    })));
-    __privateSet(this, _changeCurrent, Promise.resolve().then(() => __async(this, null, function* () {
-      var _a2, _b, _c, _d;
-      yield (_a2 = this.setup) == null ? void 0 : _a2.call(this, __privateGet(this, _context));
-      this.dispatchEvent(renderingEvent);
-      const rendered = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
-      if (rendered) {
-        const fragment = rendered.template.content.cloneNode(true);
-        __privateSet(this, _expressions, rendered.expressions);
-        render_default(fragment, __privateGet(this, _expressions), __privateGet(this, _actions));
-        document.adoptNode(fragment);
-        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
-          const newExpression = rendered.expressions[index];
-          __privateGet(this, _actions)[index](void 0, newExpression);
-        }
-        root.appendChild(fragment);
-      }
-      this.dispatchEvent(renderedEvent);
-      __privateSet(this, _changeCurrent, (_c = __privateGet(this, _changeNext)) == null ? void 0 : _c.call(this));
-      __privateSet(this, _changeNext, void 0);
-      yield __privateGet(this, _changeCurrent);
-      this.dispatchEvent(creatingEvent);
-      yield (_d = this.create) == null ? void 0 : _d.call(this, __privateGet(this, _context));
-      this.dispatchEvent(createdEvent);
-    })));
+    __privateSet(this, _root, (_a = this.shadowRoot) != null ? _a : this);
+    __privateSet(this, _changeCurrent, Promise.resolve().then(() => __privateMethod(this, _setup, setup_fn).call(this)));
   }
   static define(tag) {
     var _a, _b;
     tag = dash((_a = tag != null ? tag : this.tag) != null ? _a : this.name);
     define((_b = tag != null ? tag : this.tag) != null ? _b : this.name, this);
   }
+  attributeChangedCallback(name, oldValue, newValue) {
+    return __async(this, null, function* () {
+      var _a, _b;
+      this.dispatchEvent(attributingEvent);
+      yield (_b = (_a = this.attribute) == null ? void 0 : _a.call(this, name, oldValue, newValue)) == null ? void 0 : _b.catch(console.error);
+      this.dispatchEvent(attributedEvent);
+    });
+  }
+  adoptedCallback() {
+    return __async(this, null, function* () {
+      var _a, _b;
+      this.dispatchEvent(adoptingEvent);
+      yield (_b = (_a = this.adopted) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      this.dispatchEvent(adoptedEvent);
+    });
+  }
   connectedCallback() {
     return __async(this, null, function* () {
       var _a, _b;
       yield __privateGet(this, _changeCurrent);
       this.dispatchEvent(connectingEvent);
-      yield (_b = (_a = this.connect) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      yield (_b = (_a = this.connected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
       this.dispatchEvent(connectedEvent);
     });
   }
@@ -548,16 +544,98 @@ var Component = class extends HTMLElement {
     return __async(this, null, function* () {
       var _a, _b;
       this.dispatchEvent(disconnectingEvent);
-      yield (_b = (_a = this.disconnect) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      yield (_b = (_a = this.disconnected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
       this.dispatchEvent(disconnectedEvent);
     });
   }
 };
 _context = new WeakMap();
+_root = new WeakMap();
 _actions = new WeakMap();
 _expressions = new WeakMap();
 _changeNext = new WeakMap();
 _changeCurrent = new WeakMap();
+_change = new WeakSet();
+change_fn = function() {
+  return __async(this, null, function* () {
+    const change = () => __async(this, null, function* () {
+      var _a, _b, _c;
+      this.dispatchEvent(renderingEvent);
+      const rendered = yield (_a = this.render) == null ? void 0 : _a.call(this, __privateGet(this, _context));
+      if (rendered) {
+        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+          const newExpression = rendered.expressions[index];
+          const oldExpression = __privateGet(this, _expressions)[index];
+          __privateGet(this, _actions)[index](oldExpression, newExpression);
+          __privateGet(this, _expressions)[index] = rendered.expressions[index];
+        }
+      }
+      yield (_b = this.rendered) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+      this.dispatchEvent(renderedEvent);
+      __privateSet(this, _changeCurrent, (_c = __privateGet(this, _changeNext)) == null ? void 0 : _c.call(this));
+      __privateSet(this, _changeNext, void 0);
+      yield __privateGet(this, _changeCurrent);
+    });
+    if (__privateGet(this, _changeCurrent)) {
+      __privateSet(this, _changeNext, change);
+    } else {
+      __privateSet(this, _changeCurrent, change());
+    }
+  });
+};
+_setup = new WeakSet();
+setup_fn = function() {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d, _e, _f;
+    const constructor = this.constructor;
+    const observedProperties = constructor.observedProperties;
+    const prototype = Object.getPrototypeOf(this);
+    const properties = observedProperties != null ? observedProperties : [];
+    for (const property of properties) {
+      if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnect" === property || "attribute" === property || "connect" === property || "adopted" === property || "change" === property || "create" === property || "render" === property || "setup" === property)
+        continue;
+      const descriptor = (_a = Object.getOwnPropertyDescriptor(this, property)) != null ? _a : Object.getOwnPropertyDescriptor(prototype, property);
+      if (!descriptor)
+        continue;
+      if (!descriptor.configurable)
+        continue;
+      Object.defineProperty(__privateGet(this, _context), property, __spreadProps(__spreadValues({}, descriptor), { enumerable: false }));
+      Object.defineProperty(this, property, {
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+        get: () => __privateGet(this, _context)[property],
+        set: (value) => {
+          __privateGet(this, _context)[property] = value;
+          __privateMethod(this, _change, change_fn).call(this);
+        }
+      });
+    }
+    __privateSet(this, _context, context_default(__privateGet(this, _context), () => __privateMethod(this, _change, change_fn).call(this)));
+    yield __privateMethod(this, _change, change_fn).call(this);
+    yield (_b = this.setup) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+    this.dispatchEvent(renderingEvent);
+    const rendered = yield (_c = this.render) == null ? void 0 : _c.call(this, __privateGet(this, _context));
+    if (rendered) {
+      const fragment = rendered.template.content.cloneNode(true);
+      __privateSet(this, _expressions, rendered.expressions);
+      render_default(fragment, __privateGet(this, _expressions), __privateGet(this, _actions));
+      document.adoptNode(fragment);
+      for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+        const newExpression = rendered.expressions[index];
+        __privateGet(this, _actions)[index](void 0, newExpression);
+      }
+      __privateGet(this, _root).appendChild(fragment);
+    }
+    yield (_d = this.rendered) == null ? void 0 : _d.call(this, __privateGet(this, _context));
+    this.dispatchEvent(renderedEvent);
+    __privateSet(this, _changeCurrent, (_e = __privateGet(this, _changeNext)) == null ? void 0 : _e.call(this));
+    __privateSet(this, _changeNext, void 0);
+    yield __privateGet(this, _changeCurrent);
+    this.dispatchEvent(creatingEvent);
+    yield (_f = this.created) == null ? void 0 : _f.call(this, __privateGet(this, _context));
+    this.dispatchEvent(createdEvent);
+  });
+};
 Component.html = html;
 Component.shadow = false;
 Component.mode = "open";

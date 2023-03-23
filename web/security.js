@@ -176,25 +176,25 @@ const values = {
     malformedImg: Highlight(malformedImgComponent.toString()),
 };
 
-export default component(class XSecurity extends HTMLElement {
+export default class security extends component {
 
-    upgraded () {
+    changed () {
         for (const name of names) {
-            const codeElement = document.querySelector(`#${name}Code`);
-            const sourceElement = document.querySelector(`#${name}Source`);
+            const codeElement = this.querySelector(`#${name}Code`);
+            const sourceElement = this.querySelector(`#${name}Source`);
             if (codeElement) {
                 const code = values[ name ];
                 if (codeElement.innerHTML !== code) codeElement.innerHTML = code;
             }
             if (sourceElement) {
-                const componentElement = document.querySelector(`#${name}Component`);
+                const componentElement = this.querySelector(`#${name}Component`);
                 const source = Highlight(componentElement.innerHTML, 'html');
                 if (source.innerHTML !== source) sourceElement.innerHTML = source;
             }
         }
     }
 
-    template = () => html`
+    render = () => html`
 
     <section>
         <div style="background-image: url(javascript:alert('Style BG Img XSS'))"></div>
@@ -251,4 +251,4 @@ export default component(class XSecurity extends HTMLElement {
 
     `;
 
-});
+}

@@ -76,7 +76,7 @@ const ContextDelete = function (method: ContextMethod, target: ContextTarget, ke
     return true;
 };
 
-const Context = function (data: ContextData, method: ContextMethod) {
+const Context = function (data: ContextData, method: ContextMethod) : Record<any,any> {
     return new Proxy(data, {
         get: ContextGet.bind(null, method),
         set: ContextSet.bind(null, method),

@@ -2,7 +2,7 @@ import { component, html } from './x-element.js';
 
 export default class all extends component {
 
-    connect () { console.log('connected'); }
+    connected () { console.log('connected'); }
 
     render = () => html`
     <section>

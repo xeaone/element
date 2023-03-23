@@ -44,9 +44,19 @@ import { router } from '/x-element.js';
 router('/', document.body, ()=> import('/greet.js'));
 `);
 
-export default class root extends component  {
+const observe = function (target, name, value) {
+    console.log(arguments);
+    return value;
+}
 
-    create = () => {
+
+export default class root extends component  {
+    static observedProperties = [ 'test' ]
+
+    test = 'foo';
+    // test = o(this, 'test', 'foo');
+
+    created() {
         this.querySelector('#router').innerHTML = routerExample;
         this.querySelector('#withoutCustomElement').innerHTML = withoutCustomElement;
         this.querySelector('#withCustomElement').innerHTML = withCustomElement;
