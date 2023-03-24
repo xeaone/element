@@ -1,7 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&family=Noto+Sans:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+
 * {
     box-sizing: border-box;
 }
+
 @media (prefers-color-scheme: light) {
     :root {
         /* --blue: hsl(215deg, 100%, 30%, 1);
@@ -30,6 +32,7 @@
         --accent: var(--purple);
     }
 }
+
 @media (prefers-color-scheme: dark) {
     :root {
         --blue: hsl(200deg, 100%, 70%, 1);
@@ -51,6 +54,7 @@
         --accent: var(--purple);
     }
 }
+
 :root {
     /*
     --black: #222;
@@ -104,7 +108,7 @@ main {
     flex-direction: column;
 }
 
-main > * {
+main>* {
     width: 100%;
     margin: auto;
     max-width: 1200px;
@@ -122,6 +126,7 @@ p {
     font-size: inherit;
     font-family: inherit;
 }
+
 span {
     color: inherit;
     font-size: inherit;
@@ -180,13 +185,13 @@ h4 {
     font-family: inherit;
 }
 
-pre,
-article {
+pre {
     tab-size: 4;
     padding: 1rem;
     margin: 0.1rem;
     display: block;
     overflow-x: auto;
+    font-size: 0.9rem;
     border-radius: 4px;
     color: var(--font);
     background-color: var(--layer1);
@@ -256,17 +261,17 @@ input:not([type="button"], [type="submit"]) {
     text-align: center;
 }
 
-.title > h1 {
+.title>h1 {
     font-weight: normal;
 }
 
-.title > h2 {
+.title>h2 {
     font-size: 1.5rem;
     font-weight: normal;
     color: var(--layer6);
 }
 
-.title > h1 > span:nth-of-type(1) {
+.title>h1>span:nth-of-type(1) {
     font-size: 4rem;
     padding: 0.5rem;
     border-radius: 3px;

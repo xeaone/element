@@ -12,6 +12,8 @@ const ContextSet = function (method: ContextMethod, target: ContextTarget, key: 
 
     const from = Reflect.get(target, key, receiver);
 
+    Reflect.set(target, key, value, receiver);
+
     if (from === value) return true;
     if (Number.isNaN(from) && Number.isNaN(value)) return true;
 
@@ -21,7 +23,7 @@ const ContextSet = function (method: ContextMethod, target: ContextTarget, key: 
     //     ContextCache.delete(from);
     // }
 
-    Reflect.set(target, key, value, receiver);
+    // Reflect.set(target, key, value, receiver);
 
     method();
 
@@ -47,19 +49,25 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
     //     return proxy;
     // }
 
-    // if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
-    //     const cache = ContextCache.get(value);
-    //     if (cache) return cache;
+    if (value?.constructor?.name === 'Object' || value?.constructor?.name === 'Array') {
+        return new Proxy(value, {
+            get: ContextGet.bind(null, method),
+            set: ContextSet.bind(null, method),
+            deleteProperty: ContextDelete.bind(null, method),
+        });
+    }
 
-    //     const proxy = new Proxy(value, {
-    //         apply(t, _, a) {
-    //             return Reflect.apply(t, receiver, a);
-    //         },
-    //     });
+    if (value?.constructor?.name === 'Function' || value?.constructor?.name === 'AsyncFunction') {
+        // if (value && target.constructor.name === 'Object' && (value.constructor.name === 'Function' || value.constructor.name === 'AsyncFunction')) {
+        // const cache = ContextCache.get(value);
+        // if (cache) return cache;
 
-    //     ContextCache.set(value, proxy);
-    //     return proxy;
-    // }
+        // const proxy = new Proxy(value, { apply: (t, _, a) => Reflect.apply(t, receiver, a) });
+        return new Proxy(value, { apply: (t, _, a) => Reflect.apply(t, receiver, a) });
+
+        // ContextCache.set(value, proxy);
+        // return proxy;
+    }
 
     return value;
 };
@@ -69,9 +77,10 @@ const ContextDelete = function (method: ContextMethod, target: ContextTarget, ke
 
     // const from = Reflect.get(target, key);
     // ContextCache.delete(from);
+
     Reflect.deleteProperty(target, key);
 
-    method()
+    method();
 
     return true;
 };

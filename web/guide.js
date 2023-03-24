@@ -20,11 +20,6 @@ const cache = new WeakMap();
 
 export default class guide extends component {
 
-    static observedProperties = [
-        'cars', 'car', 'fruits', 'fruit', 'number', 'boolean',
-        'radioTwo', 'radioOne', 'radioShared', 'active', 'color', 'checked', 'input'
-    ];
-
     input = 'hello world';
     checked = true;
     color = color();
@@ -40,39 +35,46 @@ export default class guide extends component {
     cars = [ 'tesla', 'ford', 'chevy' ];
 
     cycleComponent = `
-    class XC extends Component {
+    export default class c extends component {
 
-        // Optional: Tag name to be used for customElement.define and document.createElement.
-        //           If not defined then the class name will be used for dynamic declarative customElement.define and document.createElement.
+        // Optional: Tag name to be used for internal defines and creates customElement.define and document.createElement.
+        //           If not defined then the class name will be used.
         static tag?: string;
-
-        // Optional: Declarative way to define the Component when decoration. Uses the tag name or the class name.
-        static define?: boolean;
 
         // Optional: Declarative way to create shadowRoot and attach to the Component.
         static shadow?: boolean;
 
-        connect () { console.log('connect'); }
-        upgrade () { console.log('upgrade'); }
-        disconnect () { console.log('disconnect'); }
+        // Optional: limit the properties that will trigger render.
+        static observedProperties?: string[];
+
+        created = () => console.log('createdCallback');
+        rendered = () => console.log('renderedCallback');
+        connected = () => console.log('connectedCallback');
+        adopted = () => console.log('adoptedCallback');
+        disconnected = () => console.log('disconnectedCallback');
+        attribute = () => console.log('attributeChangedCallback');
     }
     `;
     cycleCode = highlight(this.cycleComponent.toString());
 
     inputComponent = () => html`
     <div>${this.input}</div>
-    <input value=${this.input} oninput=${(e) => this.input = e.target.value} />
+    <input value=${this.input} oninput=${e => this.input = e.target.value} />
     `;
     inputCode = highlight(this.inputComponent.toString());
 
     mapComponent = () => html`
-    ${this.fruits.map(fruit => html`<div>${fruit}</div>`)}
+    <ul>
+        ${this.fruits.map(fruit => html`
+            <li>${fruit}</li>
+        `)}
+    </ul>
     `;
     mapCode = highlight(this.mapComponent.toString());
 
     checkComponent = () => html`
     <div>${this.checked ? 'Is Checked' : 'Is Not Checked'}</div>
-    <input type="checkbox" checked=${this.checked} oninput=${(e) => this.checked = e.target.checked} />
+    <input type="checkbox" checked=${this.checked} oninput=${e => this.checked = e.target.checked} />
     `;
     checkCode = highlight(this.checkComponent.toString());
 
@@ -107,7 +109,7 @@ export default class guide extends component {
 
     carsComponent = () => html`
     <div>${this.car}</div>
-    <select oninput=${(e) => this.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
+    <select oninput=${e => this.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
         ${this.cars.map(car => html`
             <option value=${car} selected=${this.car.includes(car)}>${car}</option>
         `)}
@@ -117,7 +119,7 @@ export default class guide extends component {
 
     selectBooleanComponent = () => html`
     <div>${this.boolean}</div>
-    <select value=${this.boolean} oninput=${(e) => this.boolean = JSON.parse(e.target.value)}>
+    <select value=${this.boolean} oninput=${e => this.boolean = JSON.parse(e.target.value)}>
         <option value="true">yes</option>
         <option value="false">no</option>
     </select>
@@ -126,7 +128,7 @@ export default class guide extends component {
 
     selectNumberComponent = () => html`
     <div>${this.number}</div>
-    <select value=${this.number} oninput=${(e) => this.number = JSON.parse(e.target.value)}>
+    <select value=${this.number} oninput=${e => this.number = JSON.parse(e.target.value)}>
         <option value="0">zero</option>
         <option value="1">one</option>
         <option value="2">two</option>
@@ -247,6 +249,6 @@ export default class guide extends component {
 
     </section>
 
-    `
+    `;
 
 }

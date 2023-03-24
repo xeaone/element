@@ -20,102 +20,122 @@ const dangerousLink = function (data: string) {
     return typeof data !== 'string' || !safePattern.test(data);
 };
 
-const ObjectAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
-
-    oldValue = oldValue ?? {};
-    newValue = newValue ?? {};
-
-    if (oldValue?.strings !== newValue.strings) {
-
-        let next;
-        let node = end.previousSibling;
-        while (node !== start) {
-            next = node?.previousSibling as ChildNode;
-            node?.parentNode?.removeChild(node);
-            node = next;
-        }
-
-        const fragment = newValue.template.content.cloneNode(true);
-        Render(fragment, newValue.expressions, actions);
-        document.adoptNode(fragment);
-
-        const l = actions.length;
-        for (let i = 0; i < l; i++) {
-            actions[i](oldValue.expressions?.[i], newValue.expressions[i]);
-        }
-
-        end.parentNode?.insertBefore(fragment, end);
-    } else {
-        const l = actions.length;
-        for (let i = 0; i < l; i++) {
-            actions[i](oldValue.expressions?.[i], newValue.expressions[i]);
-        }
+const clear = function (start: Node, end: Node) {
+    let node = end.previousSibling;
+    while (node !== start) {
+        node?.parentNode?.removeChild(node);
+        node = end.previousSibling;
     }
 };
 
-const ArrayAction = function (start: Text, end: Text, actions: Actions, oldValue: OldValue, newValue: NewValue) {
+const ElementAction = function (
+    this: {
+        start: Text;
+        end: Text;
+        actions: Actions;
+    },
+    oldValue: OldValue,
+    newValue: NewValue
+) {
 
-    oldValue = oldValue ?? [];
-    newValue = newValue ?? [];
+    if (newValue?.symbol === symbol) {
 
-    const oldLength = oldValue.length;
-    const newLength = newValue.length;
-    const common = Math.min(oldLength, newLength);
+        oldValue = oldValue ?? {};
+        newValue = newValue ?? {};
 
-    for (let i = 0; i < common; i++) {
-        actions[i](oldValue[i], newValue[i]);
-    }
+        if (oldValue.strings === newValue.strings) {
 
-    if (oldLength < newLength) {
-        const template = document.createElement('template');
-
-        for (let i = oldLength; i < newLength; i++) {
-
-            if (newValue[i]?.constructor === Object && newValue[i]?.symbol === symbol) {
-                const start = document.createTextNode('');
-                const end = document.createTextNode('');
-                const action = ObjectAction.bind(null, start, end, []);
-
-                template.content.appendChild(start);
-                template.content.appendChild(end);
-
-                actions.push(action);
-
-                action(oldValue[i], newValue[i]);
-            } else {
-                const node = document.createTextNode('');
-                const action = StandardAction.bind(null, node as Text);
-
-                template.content.appendChild(node);
-                actions.push(action);
-
-                action(oldValue[i], newValue[i]);
+            const l = this.actions.length;
+            for (let i = 0; i < l; i++) {
+                this.actions[ i ](oldValue.expressions[ i ], newValue.expressions[ i ]);
             }
 
+        } else {
+            const fragment = newValue.template.content.cloneNode(true);
+            Render(fragment, this.actions);
+
+            const l = this.actions.length;
+            for (let i = 0; i < l; i++) {
+                this.actions[ i ](oldValue.expressions?.[ i ], newValue.expressions[ i ]);
+            }
+
+            document.adoptNode(fragment);
+
+            clear(this.start, this.end);
+            this.end.parentNode?.insertBefore(fragment, this.end);
         }
 
-        end.parentNode?.insertBefore(template.content as Node, end);
-    } else if (oldLength > newLength) {
+    } else if (newValue?.constructor === Array) {
 
-        for (let i = oldLength - 1; i > newLength - 1; i--) {
+        oldValue = oldValue ?? [];
+        newValue = newValue ?? [];
 
-            // if (oldValue[i]?.constructor === Object && oldValue[i]?.symbol === symbol) {
-            //     const { template } = oldValue[i];
-            //     let removes = template.content.childNodes.length + 2;
-            //     while (removes--) end.parentNode?.removeChild(end.previousSibling as Node);
-            // } else {
-            end.parentNode?.removeChild(end.previousSibling as Node);
-            // }
+        const oldLength = oldValue.length;
+        const newLength = newValue.length;
+        const common = Math.min(oldLength, newLength);
 
+        for (let i = 0; i < common; i++) {
+            this.actions[ i ](oldValue[ i ], newValue[ i ]);
         }
 
-        actions.length = newLength;
+        if (oldLength < newLength) {
+            const template = document.createElement('template');
+
+            for (let i = oldLength; i < newLength; i++) {
+
+                const startChild = document.createTextNode('');
+                const endChild = document.createTextNode('');
+                const action = ElementAction.bind({ start: startChild, end: endChild, actions: [] });
+
+                template.content.appendChild(startChild);
+                template.content.appendChild(endChild);
+
+                this.actions.push(action);
+                action(oldValue[ i ], newValue[ i ]);
+            }
+
+            this.end.parentNode?.insertBefore(template.content, this.end);
+        } else if (oldLength > newLength) {
+
+            for (let i = oldLength - 1; i > newLength - 1; i--) {
+                if (oldValue[ i ]?.symbol === symbol) {
+                    const { template } = oldValue[ i ];
+                    let removes = template.content.childNodes.length + 2;
+                    while (removes--) this.end.parentNode?.removeChild(this.end.previousSibling as Node);
+                } else {
+                    this.end.parentNode?.removeChild(this.end.previousSibling as Node);
+                    this.end.parentNode?.removeChild(this.end.previousSibling as Node);
+                    this.end.parentNode?.removeChild(this.end.previousSibling as Node);
+                }
+            }
+
+            this.actions.length = newLength;
+        }
+
+    } else {
+        if (oldValue === newValue) return;
+
+        while (this.end.previousSibling !== this.start) {
+            this.end.parentNode?.removeChild(this.end.previousSibling as ChildNode);
+        }
+
+        let node;
+        if (this.end.previousSibling === this.start) {
+            node = document.createTextNode(newValue);
+            this.end.parentNode?.insertBefore(node, this.end);
+        } else {
+            if (this.end.previousSibling.nodeType === Node.TEXT_NODE) {
+                node = this.end.previousSibling;
+                node.textContent = newValue;
+            } else {
+                node = document.createTextNode(newValue);
+                this.end.parentNode?.removeChild(this.end.previousSibling as ChildNode);
+                this.end.parentNode?.insertBefore(node, this.end);
+            }
+        }
+
     }
-};
 
-const StandardAction = function (node: Text, oldValue: OldValue, newValue: NewValue) {
-    if (oldValue === newValue) return;
-    node.textContent = newValue;
 };
 
 const AttributeOn = function (element: Element, attribute: Attribute, oldValue: OldValue, newValue: NewValue) {
@@ -190,7 +210,7 @@ const AttributeName = function (element: Element, attribute: Attribute, oldValue
 
 };
 
-export const Render = function (fragment: DocumentFragment, expressions: Expressions, actions: Actions) {
+export const Render = function (fragment: DocumentFragment, actions: Actions) {
     const walker = document.createTreeWalker(document, filter, null);
 
     walker.currentNode = fragment;
@@ -201,41 +221,30 @@ export const Render = function (fragment: DocumentFragment, expressions: Express
     while ((node = walker.nextNode()) !== null) {
         if (node.nodeType === Node.TEXT_NODE) {
 
-            const start = node.nodeValue?.indexOf('{{') ?? -1;
+            const startIndex = node.nodeValue?.indexOf('{{') ?? -1;
 
-            if (start == -1) continue;
+            if (startIndex == -1) continue;
 
-            if (start != 0) {
-                (node as Text).splitText(start);
+            if (startIndex != 0) {
+                (node as Text).splitText(startIndex);
                 node = walker.nextNode() as Node;
             }
 
-            const end = node.nodeValue?.indexOf('}}') ?? -1;
+            const endIndex = node.nodeValue?.indexOf('}}') ?? -1;
 
-            if (end == -1) continue;
+            if (endIndex == -1) continue;
 
-            if (end + 2 != node.nodeValue?.length) {
-                (node as Text).splitText(end + 2);
+            if (endIndex + 2 != node.nodeValue?.length) {
+                (node as Text).splitText(endIndex + 2);
             }
 
-            const newValue = expressions[index++];
+            index++;
 
-            if (newValue?.constructor === Object && newValue?.symbol === symbol) {
-                const start = document.createTextNode('');
-                const end = node;
-                end.nodeValue = '';
-                end.parentNode?.insertBefore(start, end);
-                actions.push(ObjectAction.bind(null, start as Text, end as Text, []));
-            } else if (newValue?.constructor === Array) {
-                const start = document.createTextNode('');
-                const end = node;
-                end.nodeValue = '';
-                end.parentNode?.insertBefore(start, end);
-                actions.push(ArrayAction.bind(null, start as Text, end as Text, []));
-            } else {
-                (node as Text).textContent = '';
-                actions.push(StandardAction.bind(null, node as Text));
-            }
+            const start = document.createTextNode('');
+            const end = node as Text;
+            end.textContent = '';
+            end.parentNode?.insertBefore(start, end);
+            actions.push(ElementAction.bind({ start, end, actions:[], }));
         } else if (node.nodeType === Node.ELEMENT_NODE) {
 
             if (node.nodeName === 'SCRIPT' || node.nodeName === 'STYLE') {

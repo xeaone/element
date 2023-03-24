@@ -1,41 +1,20 @@
 import { component, html } from './x-element.js';
 import highlight from './modules/highlight.js';
 
-const withoutCustomElement = highlight(`
-
-export default (html, data) => (
-
-    data.greeting = 'Default Greeting',
-    data.greet = () => data.greeting = 'Updated Greeting',
-
-    () => html\`
-    <h1>data.greeting</h1>
-    <button onclick=\${data.greet}>Greet</button>
-\`);
-
-`);
-
-const withCustomElement = highlight(`
+const componentExample = highlight(/*js*/`
 import { component, html } from '/x-element.js';
 
-class XGreet extends HTMLElement {
-    static shadow = false; // optional - creates and uses shadow root
-    static define = false; // optional - customElements.defines the class with the tag option or class name
-    static tag = 'x-greet'; // optional - defines a tag name
+export default class greet extends component {
 
-    construct = data => (
+    greeting = 'Default Greeting';
+    greet = () => this.greeting = 'Updated Greeting';
 
-        data.greeting = 'Default Greeting',
-        data.greet = () => data.greeting = 'Updated Greeting',
-
-        () => html\`
-        <h1>data.greeting</h1>
-        <button onclick=\${data.greet}>Greet</button>
-    \`)
+    render = () => html\`
+        <h1>this.greeting</h1>
+        <button onclick=\${this.greet}>Greet</button>
+    \`;
 
 }
-
-export default component(XGreet);
 `);
 
 const routerExample = highlight(`
@@ -44,22 +23,11 @@ import { router } from '/x-element.js';
 router('/', document.body, ()=> import('/greet.js'));
 `);
 
-const observe = function (target, name, value) {
-    console.log(arguments);
-    return value;
-}
-
-
 export default class root extends component  {
-    static observedProperties = [ 'test' ]
-
-    test = 'foo';
-    // test = o(this, 'test', 'foo');
 
     created() {
         this.querySelector('#router').innerHTML = routerExample;
-        this.querySelector('#withoutCustomElement').innerHTML = withoutCustomElement;
-        this.querySelector('#withCustomElement').innerHTML = withCustomElement;
+        this.querySelector('#component').innerHTML = componentExample;
     }
 
     render = () => html`
@@ -86,8 +54,8 @@ export default class root extends component  {
                 </span>
             </div>
             <div class="tile">
-                <h4><span class="material-symbols-rounded">commit</span> Data Binding</h4>
-                <span>Efficient two way databing by default.</span>
+                <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
+                <span>Efficient two way reactive databing by default.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
@@ -99,29 +67,18 @@ export default class root extends component  {
             </div>
         </div>
 
-        <h3>Without Custom Element</h3>
-        <p>
-            If you don't need ShadowDOM then you could use this fancy approach to create apps and components.
-        </p>
-        <ul>
-            <li>No global or module depencency.</li>
-            <li>No Custom Elements reducing unnecessary overhead.</li>
-        </ul>
-        <pre id="withoutCustomElement"></pre>
-
         <h3>With Custom Element</h3>
         <p>
-            Pass a Custom Element Constructor to <code>component()</code> and it is decorated with XElement super powers.
             Use Template Literal with the <code>html</code> Template Tag to give your Custom Element HTML.
         </p>
         <ul>
-            <li>Using the <code>component()</code> decorator instead of extending a class allows the ability to extend any Element type.</li>
+            <li>Efficient Reactive Properties by default.</li>
         </ul>
-        <pre id="withCustomElement"></pre>
+        <pre id="component"></pre>
 
         <h3>Router</h3>
         <p>
-            The last parameter takes a <code>function</code> and expects it to retrun any Custom Element <code>class</code> or a module with a <code>export default</code> which should also return any Custom Element <code>class</code>.
+            The last parameter accepts a <code>function</code> and expects a Custom Element <code>class</code> or a module with a <code>export default</code> which should also return a Custom Element <code>class</code>.
         </p>
         <pre id="router"></pre>
 
