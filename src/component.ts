@@ -3,7 +3,13 @@ import render from './render';
 import context from './context';
 import html from './html';
 import dash from './dash';
-import { Actions, Expressions, HTML } from './types';
+
+import {
+    HTML,
+    Actions,
+    Expressions,
+} from './types';
+
 import {
     createdEvent,
     creatingEvent,
@@ -24,14 +30,24 @@ import {
     disconnectingEvent,
 } from './events';
 
+const changeSymbol = Symbol('change');
+
 export default class Component extends HTMLElement {
 
     static html = html;
 
-    static define(tag?: string) {
-        tag = dash(tag ?? this.tag ?? this.name);
+    static define (tag: string = this.tag ?? this.name) {
+        tag = dash(tag);
         define(tag, this);
         return this;
+    }
+
+    static async create (tag: string = this.tag ?? this.name) {
+        tag = dash(tag);
+        define(tag, this);
+        const instance = document.createElement(tag);
+        await (instance as Component)[ changeSymbol ];
+        return instance;
     }
 
     declare static tag?: string;
@@ -39,26 +55,28 @@ export default class Component extends HTMLElement {
     declare static mode?: 'open' | 'closed';
     declare static observedProperties?: Array<string>;
 
-    declare setup?: (context: Record<any,any>) => void | Promise<void>;
+    // declare setup?: (context: Record<any, any>) => void | Promise<void>;
     declare render?: (context: Record<any, any>) => HTML | Promise<HTML>;
 
-    declare created?: (context: Record<any,any>) => void | Promise<void>;
-    declare rendered?: (context: Record<any,any>) => void | Promise<void>;
-    declare connected?: (context: Record<any,any>) => void | Promise<void>;
-    declare adopted?: (context: Record<any,any>) => void | Promise<void>;
-    declare disconnected?: (context: Record<any,any>) => void | Promise<void>;
+    declare created?: (context: Record<any, any>) => void | Promise<void>;
+    declare rendered?: (context: Record<any, any>) => void | Promise<void>;
+    declare connected?: (context: Record<any, any>) => void | Promise<void>;
+    declare adopted?: (context: Record<any, any>) => void | Promise<void>;
+    declare disconnected?: (context: Record<any, any>) => void | Promise<void>;
     declare attribute?: (name: string, oldValue: string, newValue: string) => void | Promise<void>;
 
-    #context: Record<any,any> = {};
+    #isCreatingOrCreated: boolean = false;
+
+    #context: Record<any, any> = {};
     #root: Element | ShadowRoot;
 
     #actions: Actions = [];
     #expressions: Expressions = [];
 
-    #changeNext: (()=>Promise<any>) | undefined = undefined;
-    #changeCurrent: Promise<any> | undefined = undefined;
+    #changeNext: (() => Promise<any>) | undefined = undefined;
+    [ changeSymbol ]: Promise<any> | undefined = undefined;
 
-    constructor() {
+    constructor () {
         super();
 
         const constructor = this.constructor as typeof Component;
@@ -73,7 +91,7 @@ export default class Component extends HTMLElement {
         // this.#changeCurrent = Promise.resolve().then(() => this.#setup());
     }
 
-    async attributeChangedCallback (name:string, oldValue:string, newValue:string) {
+    async attributeChangedCallback (name: string, oldValue: string, newValue: string) {
         this.dispatchEvent(attributingEvent);
         await this.attribute?.(name, oldValue, newValue)?.catch(console.error);
         this.dispatchEvent(attributedEvent);
@@ -86,15 +104,19 @@ export default class Component extends HTMLElement {
     }
 
     async connectedCallback () {
-        this.#changeCurrent = this.#setup();
-        await this.#changeCurrent;
+
+        if (!this.#isCreatingOrCreated) {
+            this.#isCreatingOrCreated = true;
+            this[ changeSymbol ] = this.#setup();
+            await this[ changeSymbol ];
+        }
 
         this.dispatchEvent(connectingEvent);
         await this.connected?.(this.#context)?.catch(console.error);
         this.dispatchEvent(connectedEvent);
     }
 
-    async disconnectedCallback() {
+    async disconnectedCallback () {
         this.dispatchEvent(disconnectingEvent);
         await this.disconnected?.(this.#context)?.catch(console.error);
         this.dispatchEvent(disconnectedEvent);
@@ -115,19 +137,18 @@ export default class Component extends HTMLElement {
                 }
             }
 
-            // await this.changed?.(this.#context);
             await this.rendered?.(this.#context);
             this.dispatchEvent(renderedEvent);
 
-            this.#changeCurrent = this.#changeNext?.();
+            this[ changeSymbol ] = this.#changeNext?.();
             this.#changeNext = undefined;
-            await this.#changeCurrent;
+            await this[ changeSymbol ];
         };
 
-        if (this.#changeCurrent) {
+        if (this[ changeSymbol ]) {
             this.#changeNext = change;
         } else {
-            this.#changeCurrent = change();
+            this[ changeSymbol ] = change();
         }
 
     }
@@ -141,7 +162,7 @@ export default class Component extends HTMLElement {
         const properties = observedProperties ?
             observedProperties ?? [] :
             [ ...Object.getOwnPropertyNames(this),
-                ...Object.getOwnPropertyNames(prototype) ];
+            ...Object.getOwnPropertyNames(prototype) ];
 
         for (const property of properties) {
 
@@ -185,7 +206,7 @@ export default class Component extends HTMLElement {
 
         this.#context = context(this.#context, this.#change.bind(this));
 
-        await this.setup?.(this.#context);
+        // await this.setup?.(this.#context);
 
         this.dispatchEvent(renderingEvent);
 
@@ -198,8 +219,8 @@ export default class Component extends HTMLElement {
             render(fragment, this.#actions);
 
             for (let index = 0; index < this.#actions.length; index++) {
-                const newExpression = template.expressions[index];
-                this.#actions[index](undefined, newExpression);
+                const newExpression = template.expressions[ index ];
+                this.#actions[ index ](undefined, newExpression);
             }
 
             document.adoptNode(fragment);
@@ -210,9 +231,9 @@ export default class Component extends HTMLElement {
         await this.rendered?.(this.#context);
         this.dispatchEvent(renderedEvent);
 
-        this.#changeCurrent = this.#changeNext?.();
+        this[ changeSymbol ] = this.#changeNext?.();
         this.#changeNext = undefined;
-        await this.#changeCurrent;
+        await this[ changeSymbol ];
 
         this.dispatchEvent(creatingEvent);
         await this.created?.(this.#context);
@@ -220,74 +241,3 @@ export default class Component extends HTMLElement {
     }
 
 }
-
-// export default new Proxy(Component, {
-//     construct (target, argArray, newTarget) {
-//         console.log(target, newTarget)
-//         // const i = Reflect.construct(target, argArray, newTarget);
-//         const i = Reflect.construct(target, argArray, new Proxy(newTarget, {construct (target, argArray, newTarget) {
-//             return Reflect.construct(target, argArray, newTarget)
-//         },}));
-
-//         // const constructor = i.constructor;
-//         // const observedProperties = constructor.observedProperties;
-//         // const prototype = Object.getPrototypeOf(this);
-//         // const properties = observedProperties ?
-//         //     observedProperties ?? [] :
-//         //     [ ...Object.getOwnPropertyNames(this),
-//         //     ...Object.getOwnPropertyNames(prototype) ];
-
-//         const constructor = i.constructor as typeof Component;
-//         const observedProperties = constructor.observedProperties;
-//         const prototype = Object.getPrototypeOf(i);
-//         const properties = observedProperties ?
-//             observedProperties ?? [] :
-//             [ ...Object.getOwnPropertyNames(i),
-//             ...Object.getOwnPropertyNames(prototype) ];
-
-//         console.log(properties);
-
-//         // for (const property of properties) {
-
-//         //     if (
-//         //         'attributeChangedCallback' === property ||
-//         //         'disconnectedCallback' === property ||
-//         //         'connectedCallback' === property ||
-//         //         'adoptedCallback' === property ||
-
-//         //         'constructor' === property ||
-
-//         //         'disconnect' === property ||
-//         //         'attribute' === property ||
-//         //         'connect' === property ||
-//         //         'adopted' === property ||
-//         //         'change' === property ||
-//         //         'create' === property ||
-//         //         'render' === property ||
-//         //         'setup' === property
-//         //     ) continue;
-
-//         //     const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
-
-//         //     if (!descriptor) continue;
-//         //     if (!descriptor.configurable) continue;
-
-//         //     Object.defineProperty(this.#context, property, { ...descriptor, enumerable: false });
-
-//         //     Object.defineProperty(this, property, {
-//         //         enumerable: descriptor.enumerable,
-//         //         configurable: descriptor.configurable,
-//         //         get: () => (this.#context as Record<any, any>)[ property ],
-//         //         set: (value) => {
-//         //             (this.#context as Record<any, any>)[ property ] = value;
-//         //             this.#change();
-//         //         }
-//         //     });
-
-//         // }
-
-
-
-//         return i;
-//     },
-// });

@@ -1,5 +1,5 @@
 
-export default function display(data: any): string {
+export default function display (data: any): string {
     switch (typeof data) {
         case 'undefined':
             return '';
@@ -18,6 +18,6 @@ export default function display(data: any): string {
         case 'object':
             return JSON.stringify(data);
         default:
-            throw new Error('display - type not handled');
+            throw new Error('XElement - display type not handled');
     }
 }

@@ -1,16 +1,11 @@
+import { Route, Handler, Module } from './types';
 import { replaceChildren } from './poly';
+import component from './component';
 import define from './define';
 import dash from './dash';
-import {Route,Handler,Module} from './types';
-import Component from './component';
 
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
-
-// const notModule = function (module: any) {
-//     return (!Object.keys(module).length) || (!!module.default && typeof module.default === 'object' && !Object.keys(module.default).length);
-// };
-// const data = notModule(result) ? result : result?.default ?? result;
 
 const transition = async function (route: Route) {
     if (route.instance) {
@@ -25,9 +20,14 @@ const transition = async function (route: Route) {
             throw new Error('XElement - router handler requires a CustomElementConstructor');
         }
 
-        route.tag = dash((route.construct as typeof Component).tag ?? route.construct.name);
-        define(route.tag, route.construct);
-        route.instance = document.createElement(route.tag);
+        if (route.construct.prototype instanceof component) {
+            route.instance = await (route.construct as typeof component).create();
+        } else {
+            route.tag = dash((route.construct as any).tag ?? route.construct.name);
+            define(route.tag, route.construct);
+            route.instance = document.createElement(route.tag);
+        }
+
         replaceChildren(route.root, route.instance);
     }
 };

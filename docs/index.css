@@ -1,15 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&family=Noto+Sans:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+
 * {
     box-sizing: border-box;
 }
+
 @media (prefers-color-scheme: light) {
     :root {
-        --blue: hsl(215deg, 100%, 30%, 1);
+        /* --blue: hsl(215deg, 100%, 30%, 1);
         --orange: hsl(30deg, 100%, 20%, 1);
         --green: hsl(150deg, 100%, 15%, 1);
         --pink: hsl(300deg, 100%, 25%, 1);
         --purple: hsl(270deg, 100%, 35%, 1);
-        --yellow: hsl(50deg, 100%, 15%, 1);
+        --yellow: hsl(50deg, 100%, 15%, 1); */
+
+        --blue: hsl(200deg, 100%, 30%, 1);
+        --orange: hsl(30deg, 100%, 30%, 1);
+        --green: hsl(150deg, 100%, 30%, 1);
+        --pink: hsl(300deg, 100%, 30%, 1);
+        --purple: hsl(270deg, 100%, 30%, 1);
+        --yellow: hsl(50deg, 100%, 30%, 1);
 
         --layer0: hsl(0deg, 0%, 95%, 1);
         --layer1: hsl(0deg, 0%, 90%, 1);
@@ -20,17 +29,18 @@
         --layer6: hsl(0deg, 0%, 30%, 1);
 
         --font: hsl(0deg, 0%, 5%, 1);
-        --accent: var(--blue);
+        --accent: var(--purple);
     }
 }
+
 @media (prefers-color-scheme: dark) {
     :root {
-        --blue: hsl(200deg, 100%, 80%, 1);
-        --orange: hsl(30deg, 100%, 80%, 1);
-        --green: hsl(150deg, 100%, 80%, 1);
-        --pink: hsl(300deg, 100%, 80%, 1);
-        --purple: hsl(270deg, 100%, 80%, 1);
-        --yellow: hsl(50deg, 100%, 80%, 1);
+        --blue: hsl(200deg, 100%, 70%, 1);
+        --orange: hsl(30deg, 100%, 70%, 1);
+        --green: hsl(150deg, 100%, 70%, 1);
+        --pink: hsl(300deg, 100%, 70%, 1);
+        --purple: hsl(270deg, 100%, 70%, 1);
+        --yellow: hsl(50deg, 100%, 70%, 1);
 
         --layer0: hsl(0deg, 0%, 5%, 1);
         --layer1: hsl(0deg, 0%, 10%, 1);
@@ -41,9 +51,10 @@
         --layer6: hsl(0deg, 0%, 60%, 1);
 
         --font: hsl(0deg, 0%, 95%, 1);
-        --accent: var(--blue);
+        --accent: var(--purple);
     }
 }
+
 :root {
     /*
     --black: #222;
@@ -58,6 +69,7 @@
     --shade0: rgba(255, 255, 255, 0.1);
     --font-family-mono: 'Noto Sans Mono', monospace;
     --font-family-default: 'Noto Sans', sans-serif;
+    --gradient: linear-gradient(130deg, var(--blue), var(--purple));
 
     font-size: 16px;
     color: var(--font);
@@ -83,13 +95,23 @@ body {
     display: flex;
     min-height: 100vh;
     overflow-x: hidden;
+    font-family: inherit;
     flex-direction: column;
     /* transition: opacity ease-in 150ms; */
     background-color: var(--layer0);
 }
 
 main {
+    display: flex;
+    padding: 2vh 5vw;
     font-family: inherit;
+    flex-direction: column;
+}
+
+main>* {
+    width: 100%;
+    margin: auto;
+    max-width: 1200px;
 }
 
 a {
@@ -104,10 +126,12 @@ p {
     font-size: inherit;
     font-family: inherit;
 }
+
 span {
     color: inherit;
     font-size: inherit;
     font-family: inherit;
+    vertical-align: middle;
 }
 
 code {
@@ -138,7 +162,7 @@ h1 {
 h2 {
     font-size: 2.5rem;
     color: var(--font);
-    margin: 3rem 0 1rem 0;
+    margin: 2rem 0 1rem 0;
     font-weight: normal;
     font-family: inherit;
 }
@@ -161,13 +185,13 @@ h4 {
     font-family: inherit;
 }
 
-pre,
-article {
+pre {
     tab-size: 4;
     padding: 1rem;
     margin: 0.1rem;
     display: block;
     overflow-x: auto;
+    font-size: 0.9rem;
     border-radius: 4px;
     color: var(--font);
     background-color: var(--layer1);
@@ -231,41 +255,29 @@ input:not([type="button"], [type="submit"]) {
     white-space: normal;
 }
 
-main {
-    display: flex;
-    padding: 5vh 5vw;
-    flex-direction: column;
-}
-
-main > * {
-    width: 100%;
-    margin: auto;
-    max-width: 1200px;
-}
-
 .title {
     display: block;
     padding: 1rem 0;
     text-align: center;
 }
 
-.title > h1 {
+.title>h1 {
     font-weight: normal;
 }
 
-.title > h2 {
+.title>h2 {
     font-size: 1.5rem;
     font-weight: normal;
     color: var(--layer6);
 }
 
-.title > h1 > span:nth-of-type(1) {
+.title>h1>span:nth-of-type(1) {
     font-size: 4rem;
     padding: 0.5rem;
     border-radius: 3px;
     color: var(--layer0);
     margin-right: 0.5rem;
-    background: linear-gradient(130deg, var(--blue), var(--purple));
+    background: var(--gradient);
 }
 
 .menu {
@@ -306,6 +318,19 @@ main > * {
 
 .tile span {
     color: var(--layer6);
+    vertical-align: middle;
+}
+
+.material-symbols-rounded {
+    background-color: var(--purple);
+    background-image: var(--gradient);
+    background-clip: text;
+    /* color: transparent !important; */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -moz-background-clip: text;
+    -moz-text-fill-color: transparent;
+    font-size: 1.75em !important;
 }
 
 :root {

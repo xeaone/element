@@ -18,7 +18,7 @@ const cache: WeakMap<TemplateStringsArray, HTMLTemplateElement> = new WeakMap();
 //     }
 // }
 
-export default function html(strings: TemplateStringsArray, ...expressions: Expressions): HTML {
+export default function html (strings: TemplateStringsArray, ...expressions: Expressions): HTML {
     const template = cache.get(strings);
     if (template) {
         // console.log(expressions)
@@ -39,10 +39,10 @@ export default function html(strings: TemplateStringsArray, ...expressions: Expr
         const length = strings.length - 1;
 
         for (let index = 0; index < length; index++) {
-            data += `${strings[index]}{{${index}}}`;
+            data += `${strings[ index ]}{{${index}}}`;
         }
 
-        data += strings[length];
+        data += strings[ length ];
 
         const template = document.createElement('template');
         template.innerHTML = createHTML(data);

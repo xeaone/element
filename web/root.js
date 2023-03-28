@@ -35,7 +35,7 @@ export default class root extends component  {
     <section>
 
         <h2>Vision</h2>
-        <h4>Provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.</h4>
+        <h4>Provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.</h4>
 
         <div class="tiles">
             <div class="tile">
@@ -67,7 +67,7 @@ export default class root extends component  {
             </div>
         </div>
 
-        <h3>With Custom Element</h3>
+        <h3>Element</h3>
         <p>
             Use Template Literal with the <code>html</code> Template Tag to give your Custom Element HTML.
         </p>
@@ -86,11 +86,3 @@ export default class root extends component  {
 
     `
 }
-
-// class XRoot extends HTMLElement {
-//     static define = true;
-//     state = state;
-//     template = template;
-// }
-
-// export default component(XRoot);

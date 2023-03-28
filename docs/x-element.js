@@ -8,25 +8,28 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
+var __accessCheck = (obj, member, msg) => {
+  if (!member.has(obj))
+    throw TypeError("Cannot " + msg);
 };
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __privateGet = (obj, member, getter) => {
+  __accessCheck(obj, member, "read from private field");
+  return getter ? getter.call(obj) : member.get(obj);
+};
+var __privateAdd = (obj, member, value) => {
+  if (member.has(obj))
+    throw TypeError("Cannot add the same private member more than once");
+  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+};
+var __privateSet = (obj, member, value, setter) => {
+  __accessCheck(obj, member, "write to private field");
+  setter ? setter.call(obj, value) : member.set(obj, value);
+  return value;
+};
+var __privateMethod = (obj, member, method) => {
+  __accessCheck(obj, member, "access private method");
+  return method;
+};
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -47,6 +50,37 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+
+// src/define.ts
+function define(name, constructor) {
+  if (!customElements.get(name)) {
+    customElements.define(name, constructor);
+  }
+}
+
+// src/display.ts
+function display(data) {
+  switch (typeof data) {
+    case "undefined":
+      return "";
+    case "string":
+      return data;
+    case "number":
+      return `${data}`;
+    case "bigint":
+      return `${data}`;
+    case "boolean":
+      return `${data}`;
+    case "function":
+      return `${data()}`;
+    case "symbol":
+      return String(data);
+    case "object":
+      return JSON.stringify(data);
+    default:
+      throw new Error("XElement - display type not handled");
+  }
+}
 
 // src/poly.ts
 var replaceChildren = function(element, ...nodes) {
@@ -73,85 +107,13 @@ var createHTML = function(data) {
   }
 };
 
-// src/display.ts
-function display(data) {
-  switch (typeof data) {
-    case "undefined":
-      return "";
-    case "string":
-      return data;
-    case "number":
-      return `${data}`;
-    case "bigint":
-      return `${data}`;
-    case "boolean":
-      return `${data}`;
-    case "function":
-      return `${data()}`;
-    case "symbol":
-      return String(data);
-    case "object":
-      return JSON.stringify(data);
-    default:
-      throw new Error("display - type not handled");
-  }
-}
-
-// src/booleans.ts
-var booleans = [
-  "allowfullscreen",
-  "async",
-  "autofocus",
-  "autoplay",
-  "checked",
-  "compact",
-  "controls",
-  "declare",
-  "default",
-  "defaultchecked",
-  "defaultmuted",
-  "defaultselected",
-  "defer",
-  "disabled",
-  "draggable",
-  "enabled",
-  "formnovalidate",
-  "indeterminate",
-  "inert",
-  "ismap",
-  "itemscope",
-  "loop",
-  "multiple",
-  "muted",
-  "nohref",
-  "noshade",
-  "hidden",
-  "novalidate",
-  "nowrap",
-  "open",
-  "pauseonexit",
-  "readonly",
-  "required",
-  "reversed",
-  "scoped",
-  "seamless",
-  "selected",
-  "sortable",
-  "spellcheck",
-  "translate",
-  "truespeed",
-  "typemustmatch",
-  "visible"
-];
-var booleans_default = booleans;
-
 // src/html.ts
-var HtmlCache = /* @__PURE__ */ new WeakMap();
-var HtmlSymbol = Symbol("html");
-var html = function(strings, ...expressions) {
-  const template = HtmlCache.get(strings);
+var symbol = Symbol("html");
+var cache = /* @__PURE__ */ new WeakMap();
+function html(strings, ...expressions) {
+  const template = cache.get(strings);
   if (template) {
-    return { strings, expressions, template, symbol: HtmlSymbol };
+    return { strings, template, expressions, symbol };
   } else {
     let data = "";
     const length = strings.length - 1;
@@ -161,11 +123,10 @@ var html = function(strings, ...expressions) {
     data += strings[length];
     const template2 = document.createElement("template");
     template2.innerHTML = createHTML(data);
-    HtmlCache.set(strings, template2);
-    return { strings, expressions, template: template2, symbol: HtmlSymbol };
+    cache.set(strings, template2);
+    return { strings, template: template2, expressions, symbol };
   }
-};
-var html_default = html;
+}
 
 // src/render.ts
 var filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
@@ -174,231 +135,186 @@ var safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+
 var dangerousLink = function(data) {
   return typeof data !== "string" || !safePattern.test(data);
 };
-var ObjectAction = function(start, end, actions, oldValue, newValue) {
-  var _a, _b, _c, _d;
-  oldValue = oldValue != null ? oldValue : {};
-  newValue = newValue != null ? newValue : {};
-  if ((oldValue == null ? void 0 : oldValue.strings) !== newValue.strings) {
-    let next;
-    let node = end.previousSibling;
-    while (node !== start) {
-      next = node == null ? void 0 : node.previousSibling;
-      (_a = node == null ? void 0 : node.parentNode) == null ? void 0 : _a.removeChild(node);
-      node = next;
-    }
-    const fragment = newValue.template.content.cloneNode(true);
-    Render(fragment, newValue.expressions, actions);
-    document.adoptNode(fragment);
-    const l = actions.length;
-    for (let i = 0; i < l; i++) {
-      actions[i]((_b = oldValue.expressions) == null ? void 0 : _b[i], newValue.expressions[i]);
-    }
-    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(fragment, end);
-  } else {
-    const l = actions.length;
-    for (let i = 0; i < l; i++) {
-      actions[i]((_d = oldValue.expressions) == null ? void 0 : _d[i], newValue.expressions[i]);
-    }
+var removeBetween = function(start, end) {
+  var _a;
+  let node = end.previousSibling;
+  while (node !== start) {
+    (_a = node == null ? void 0 : node.parentNode) == null ? void 0 : _a.removeChild(node);
+    node = end.previousSibling;
   }
 };
-var ArrayAction = function(start, end, actions, oldValue, newValue) {
-  var _a, _b, _c, _d, _e, _f, _g;
-  oldValue = oldValue != null ? oldValue : [];
-  newValue = newValue != null ? newValue : [];
-  const oldLength = oldValue.length;
-  const newLength = newValue.length;
-  const common = Math.min(oldLength, newLength);
-  for (let i = 0; i < common; i++) {
-    actions[i](oldValue[i], newValue[i]);
-  }
-  if (oldLength < newLength) {
-    const template = document.createElement("template");
-    for (let i = oldLength; i < newLength; i++) {
-      if (((_a = newValue[i]) == null ? void 0 : _a.constructor) === Object && ((_b = newValue[i]) == null ? void 0 : _b.symbol) === HtmlSymbol) {
-        const start2 = document.createTextNode("");
-        const end2 = document.createTextNode("");
-        const action = ObjectAction.bind(null, start2, end2, []);
-        template.content.appendChild(start2);
-        template.content.appendChild(end2);
-        actions.push(action);
-        action(oldValue[i], newValue[i]);
+var ElementAction = function(source, target) {
+  var _a, _b, _c2, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+  if ((target == null ? void 0 : target.symbol) === symbol) {
+    source = source != null ? source : {};
+    target = target != null ? target : {};
+    if (source.strings === target.strings) {
+      const l = this.actions.length;
+      for (let i = 0; i < l; i++) {
+        this.actions[i](source.expressions[i], target.expressions[i]);
+      }
+    } else {
+      const fragment = target.template.content.cloneNode(true);
+      Render(fragment, this.actions);
+      const l = this.actions.length;
+      for (let i = 0; i < l; i++) {
+        this.actions[i]((_a = source.expressions) == null ? void 0 : _a[i], target.expressions[i]);
+      }
+      document.adoptNode(fragment);
+      removeBetween(this.start, this.end);
+      (_b = this.end.parentNode) == null ? void 0 : _b.insertBefore(fragment, this.end);
+    }
+  } else if ((target == null ? void 0 : target.constructor) === Array) {
+    source = source != null ? source : [];
+    target = target != null ? target : [];
+    const oldLength = source.length;
+    const newLength = target.length;
+    const common = Math.min(oldLength, newLength);
+    for (let i = 0; i < common; i++) {
+      this.actions[i](source[i], target[i]);
+    }
+    if (oldLength < newLength) {
+      const template = document.createElement("template");
+      for (let i = oldLength; i < newLength; i++) {
+        const startChild = document.createTextNode("");
+        const endChild = document.createTextNode("");
+        const action = ElementAction.bind({ start: startChild, end: endChild, actions: [] });
+        template.content.appendChild(startChild);
+        template.content.appendChild(endChild);
+        this.actions.push(action);
+        action(source[i], target[i]);
+      }
+      (_c2 = this.end.parentNode) == null ? void 0 : _c2.insertBefore(template.content, this.end);
+    } else if (oldLength > newLength) {
+      for (let i = oldLength - 1; i > newLength - 1; i--) {
+        if (((_d = source[i]) == null ? void 0 : _d.symbol) === symbol) {
+          const { template } = source[i];
+          let removes = template.content.childNodes.length + 2;
+          while (removes--)
+            (_e = this.end.parentNode) == null ? void 0 : _e.removeChild(this.end.previousSibling);
+        } else {
+          (_f = this.end.parentNode) == null ? void 0 : _f.removeChild(this.end.previousSibling);
+          (_g = this.end.parentNode) == null ? void 0 : _g.removeChild(this.end.previousSibling);
+          (_h = this.end.parentNode) == null ? void 0 : _h.removeChild(this.end.previousSibling);
+        }
+      }
+      this.actions.length = newLength;
+    }
+  } else {
+    if (source === target)
+      return;
+    while (this.end.previousSibling !== this.start) {
+      (_i = this.end.parentNode) == null ? void 0 : _i.removeChild(this.end.previousSibling);
+    }
+    let node;
+    if (this.end.previousSibling === this.start) {
+      node = document.createTextNode(target);
+      (_j = this.end.parentNode) == null ? void 0 : _j.insertBefore(node, this.end);
+    } else {
+      if (this.end.previousSibling.nodeType === Node.TEXT_NODE) {
+        node = this.end.previousSibling;
+        node.textContent = target;
       } else {
-        const node = document.createTextNode("");
-        const action = StandardAction.bind(null, node);
-        template.content.appendChild(node);
-        actions.push(action);
-        action(oldValue[i], newValue[i]);
+        node = document.createTextNode(target);
+        (_k = this.end.parentNode) == null ? void 0 : _k.removeChild(this.end.previousSibling);
+        (_l = this.end.parentNode) == null ? void 0 : _l.insertBefore(node, this.end);
       }
     }
-    (_c = end.parentNode) == null ? void 0 : _c.insertBefore(template.content, end);
-  } else if (oldLength > newLength) {
-    for (let i = oldLength - 1; i > newLength - 1; i--) {
-      if (((_d = oldValue[i]) == null ? void 0 : _d.constructor) === Object && ((_e = oldValue[i]) == null ? void 0 : _e.symbol) === HtmlSymbol) {
-        const { template } = oldValue[i];
-        let removes = template.content.childNodes.length + 2;
-        while (removes--)
-          (_f = end.parentNode) == null ? void 0 : _f.removeChild(end.previousSibling);
-      } else {
-        (_g = end.parentNode) == null ? void 0 : _g.removeChild(end.previousSibling);
-      }
+  }
+};
+var AttributeNameAction = function(source, target) {
+  if (source === target)
+    return;
+  this.element.removeAttribute(source);
+  this.name = target == null ? void 0 : target.toLowerCase();
+  if (this.name) {
+    this.element.setAttribute(this.name, "");
+  }
+};
+var AttributeValueAction = function(source, target) {
+  if (source === target)
+    return;
+  if (this.name === "value") {
+    this.value = display(target);
+    Reflect.set(this.element, this.name, this.value);
+    this.element.setAttribute(this.name, this.value);
+  } else if (this.name.startsWith("on")) {
+    if (typeof source === "function")
+      this.element.removeEventListener(this.name.slice(2), source);
+    this.value = target;
+    if (typeof this.value !== "function")
+      return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+    this.element.addEventListener(this.name.slice(2), this.value);
+  } else if (includes(links, this.name)) {
+    this.value = encodeURI(target);
+    if (dangerousLink(this.value)) {
+      this.element.removeAttribute(this.name);
+      console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+      return;
     }
-    actions.length = newLength;
-  }
-};
-var StandardAction = function(node, oldValue, newValue) {
-  if (oldValue === newValue)
-    return;
-  node.textContent = newValue;
-};
-var AttributeOn = function(element, attribute, oldValue, newValue) {
-  if (oldValue === newValue)
-    return;
-  if (typeof oldValue === "function")
-    element.removeEventListener(attribute.name.slice(2), oldValue);
-  if (typeof newValue !== "function")
-    return console.warn(`XElement - attribute name "${attribute.name}" and value "${newValue}" not allowed`);
-  element.addEventListener(attribute.name.slice(2), newValue);
-};
-var AttributeBoolean = function(element, attribute, oldValue, newValue) {
-  if (oldValue === newValue)
-    return;
-  const value = newValue ? true : false;
-  if (value)
-    element.setAttribute(attribute.name, "");
-  else
-    element.removeAttribute(attribute.name);
-  attribute.value = value;
-  Reflect.set(element, attribute.name, attribute.value);
-};
-var AttributeValue = function(element, attribute, oldValue, newValue) {
-  if (oldValue === newValue)
-    return;
-  const value = display(newValue);
-  attribute.value = value;
-  Reflect.set(element, attribute.name, attribute.value);
-  element.setAttribute(attribute.name, attribute.value);
-};
-var AttributeLink = function(element, attribute, oldValue, newValue) {
-  if (oldValue === newValue)
-    return;
-  const value = encodeURI(newValue);
-  if (dangerousLink(value)) {
-    element.removeAttribute(attribute.name);
-    console.warn(`XElement - attribute name "${attribute.name}" and value "${value}" not allowed`);
-    return;
-  }
-  attribute.value = value;
-  Reflect.set(element, attribute.name, attribute.value);
-  element.setAttribute(attribute.name, attribute.value);
-};
-var AttributeStandard = function(element, attribute, oldValue, newValue) {
-  if (oldValue === newValue)
-    return;
-  attribute.value = newValue;
-  Reflect.set(element, attribute.name, attribute.value);
-  element.setAttribute(attribute.name, attribute.value);
-};
-var AttributeName = function(element, attribute, oldValue, newValue) {
-  if (oldValue === newValue)
-    return;
-  element.removeAttribute(oldValue);
-  const name = newValue == null ? void 0 : newValue.toLowerCase();
-  if (name === "value") {
-    attribute.name = name;
-    AttributeValue(element, attribute, attribute.value, attribute.value);
-  } else if (name.startsWith("on")) {
-    console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
-  } else if (includes(links, name)) {
-    console.warn(`XElement - dynamic attribute name "${newValue}" not allowed`);
-  } else if (includes(booleans_default, name)) {
-    attribute.name = name;
-    AttributeBoolean(element, attribute, attribute.value, attribute.value);
+    Reflect.set(this.element, this.name, this.value);
+    this.element.setAttribute(this.name, this.value);
   } else {
-    attribute.name = name;
-    AttributeStandard(element, attribute, attribute.value, attribute.value);
+    this.value = target;
+    if (this.name) {
+      Reflect.set(this.element, this.name, this.value);
+      this.element.setAttribute(this.name, this.value);
+    }
   }
 };
-var Render = function(fragment, expressions, actions) {
-  var _a, _b, _c, _d, _e, _f, _g, _h;
+var Render = function(fragment, actions) {
+  var _a, _b, _c2, _d, _e, _f, _g;
   const walker = document.createTreeWalker(document, filter, null);
   walker.currentNode = fragment;
   let index = 0;
   let node = fragment.firstChild;
   while ((node = walker.nextNode()) !== null) {
     if (node.nodeType === Node.TEXT_NODE) {
-      const start = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf("{{")) != null ? _b : -1;
-      if (start == -1)
+      const startIndex = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf("{{")) != null ? _b : -1;
+      if (startIndex == -1)
         continue;
-      if (start != 0) {
-        node.splitText(start);
+      if (startIndex != 0) {
+        node.splitText(startIndex);
         node = walker.nextNode();
       }
-      const end = (_d = (_c = node.nodeValue) == null ? void 0 : _c.indexOf("}}")) != null ? _d : -1;
-      if (end == -1)
+      const endIndex = (_d = (_c2 = node.nodeValue) == null ? void 0 : _c2.indexOf("}}")) != null ? _d : -1;
+      if (endIndex == -1)
         continue;
-      if (end + 2 != ((_e = node.nodeValue) == null ? void 0 : _e.length)) {
-        node.splitText(end + 2);
+      if (endIndex + 2 != ((_e = node.nodeValue) == null ? void 0 : _e.length)) {
+        node.splitText(endIndex + 2);
       }
-      const newValue = expressions[index++];
-      if ((newValue == null ? void 0 : newValue.constructor) === Object && (newValue == null ? void 0 : newValue.symbol) === HtmlSymbol) {
-        const start2 = document.createTextNode("");
-        const end2 = node;
-        end2.nodeValue = "";
-        (_f = end2.parentNode) == null ? void 0 : _f.insertBefore(start2, end2);
-        actions.push(ObjectAction.bind(null, start2, end2, []));
-      } else if ((newValue == null ? void 0 : newValue.constructor) === Array) {
-        const start2 = document.createTextNode("");
-        const end2 = node;
-        end2.nodeValue = "";
-        (_g = end2.parentNode) == null ? void 0 : _g.insertBefore(start2, end2);
-        actions.push(ArrayAction.bind(null, start2, end2, []));
-      } else {
-        node.textContent = "";
-        actions.push(StandardAction.bind(null, node));
-      }
+      index++;
+      const start = document.createTextNode("");
+      const end = node;
+      end.textContent = "";
+      (_f = end.parentNode) == null ? void 0 : _f.insertBefore(start, end);
+      actions.push(ElementAction.bind({ start, end, actions: [] }));
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
         walker.nextSibling();
       }
       const names = node.getAttributeNames();
       for (const name of names) {
-        const value = (_h = node.getAttribute(name)) != null ? _h : "";
-        const attribute = { name, value };
+        const value = (_g = node.getAttribute(name)) != null ? _g : "";
         const dynamicName = name.includes("{{") && name.includes("}}");
         const dynamicValue = value.includes("{{") && value.includes("}}");
-        if (dynamicName) {
-          index++;
-          node.removeAttribute(name);
-          actions.push(
-            AttributeName.bind(null, node, attribute)
-          );
-        }
-        if (dynamicValue) {
-          index++;
-          node.removeAttribute(name);
-          if (name === "value") {
+        if (dynamicName || dynamicValue) {
+          const meta = { element: node, name, value };
+          if (dynamicName) {
+            index++;
+            node.removeAttribute(name);
             actions.push(
-              AttributeValue.bind(null, node, attribute)
-            );
-          } else if (name.startsWith("on")) {
-            actions.push(
-              AttributeOn.bind(null, node, attribute)
-            );
-          } else if (includes(links, name)) {
-            actions.push(
-              AttributeLink.bind(null, node, attribute)
-            );
-          } else if (includes(booleans_default, name)) {
-            actions.push(
-              AttributeBoolean.bind(null, node, attribute)
-            );
-          } else {
-            actions.push(
-              AttributeStandard.bind(null, node, attribute)
+              AttributeNameAction.bind(meta)
             );
           }
-        }
-        if (!dynamicName && !dynamicValue) {
+          if (dynamicValue) {
+            index++;
+            node.removeAttribute(name);
+            actions.push(
+              AttributeValueAction.bind(meta)
+            );
+          }
+        } else {
           if (includes(links, name)) {
             if (dangerousLink(value)) {
               node.removeAttribute(name);
@@ -417,10 +333,8 @@ var Render = function(fragment, expressions, actions) {
 };
 var render_default = Render;
 
-// src/observe.ts
-var ObserveCache = /* @__PURE__ */ new WeakMap();
-var ObserveNext = Promise.resolve();
-var ObserveSet = function(method, target, key, value, receiver) {
+// src/context.ts
+var ContextSet = function(method, target, key, value, receiver) {
   if (typeof key === "symbol")
     return Reflect.set(target, key, value, receiver);
   const from = Reflect.get(target, key, receiver);
@@ -428,258 +342,275 @@ var ObserveSet = function(method, target, key, value, receiver) {
     return true;
   if (Number.isNaN(from) && Number.isNaN(value))
     return true;
-  if (from && (from.constructor.name === "Object" || from.constructor.name === "Array" || from.constructor.name === "Function")) {
-    const cache = ObserveCache.get(from);
-    if (cache === value)
-      return true;
-    ObserveCache.delete(from);
-  }
   Reflect.set(target, key, value, receiver);
-  ObserveNext.then(method);
+  method();
   return true;
 };
-var ObserveGet = function(method, target, key, receiver) {
+var ContextGet = function(method, target, key, receiver) {
+  var _a, _b, _c2, _d;
   if (typeof key === "symbol")
     return Reflect.get(target, key, receiver);
   const value = Reflect.get(target, key, receiver);
-  if (value && (value.constructor.name === "Object" || value.constructor.name === "Array")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      get: ObserveGet.bind(null, method),
-      set: ObserveSet.bind(null, method),
-      deleteProperty: ObserveDelete.bind(null, method)
+  if (((_a = value == null ? void 0 : value.constructor) == null ? void 0 : _a.name) === "Object" || ((_b = value == null ? void 0 : value.constructor) == null ? void 0 : _b.name) === "Array") {
+    return new Proxy(value, {
+      get: ContextGet.bind(null, method),
+      set: ContextSet.bind(null, method),
+      deleteProperty: ContextDelete.bind(null, method)
     });
-    ObserveCache.set(value, proxy);
-    return proxy;
   }
-  if (value && target.constructor.name === "Object" && (value.constructor.name === "Function" || value.constructor.name === "AsyncFunction")) {
-    const cache = ObserveCache.get(value);
-    if (cache)
-      return cache;
-    const proxy = new Proxy(value, {
-      apply(t, _, a) {
-        return Reflect.apply(t, receiver, a);
-      }
+  if (((_c2 = value == null ? void 0 : value.constructor) == null ? void 0 : _c2.name) === "Function" || ((_d = value == null ? void 0 : value.constructor) == null ? void 0 : _d.name) === "AsyncFunction") {
+    return new Proxy(value, {
+      apply: (t, _, a) => Reflect.apply(t, receiver, a)
     });
-    ObserveCache.set(value, proxy);
-    return proxy;
   }
   return value;
 };
-var ObserveDelete = function(method, target, key) {
+var ContextDelete = function(method, target, key) {
   if (typeof key === "symbol")
     return Reflect.deleteProperty(target, key);
-  const from = Reflect.get(target, key);
-  ObserveCache.delete(from);
   Reflect.deleteProperty(target, key);
-  ObserveNext.then(method);
+  method();
   return true;
 };
-var Observe = function(data, method) {
+var Context = function(data, method) {
   return new Proxy(data, {
-    get: ObserveGet.bind(null, method),
-    set: ObserveSet.bind(null, method),
-    deleteProperty: ObserveDelete.bind(null, method)
+    get: ContextGet.bind(null, method),
+    set: ContextSet.bind(null, method),
+    deleteProperty: ContextDelete.bind(null, method)
   });
 };
-var observe_default = Observe;
+var context_default = Context;
 
 // src/dash.ts
 function dash(data) {
-  return data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2").toLowerCase();
+  data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
+  data = data.toLowerCase();
+  data = data.includes("-") ? data : `x-${data}`;
+  return data;
 }
 
-// src/component.ts
-var Components = /* @__PURE__ */ new WeakMap();
+// src/events.ts
 var adoptedEvent = new Event("adopted");
 var adoptingEvent = new Event("adopting");
 var upgradedEvent = new Event("upgraded");
 var upgradingEvent = new Event("upgrading");
+var creatingEvent = new Event("creating");
+var createdEvent = new Event("created");
+var renderingEvent = new Event("rendering");
+var renderedEvent = new Event("rendered");
 var connectedEvent = new Event("connected");
 var connectingEvent = new Event("connecting");
 var attributedEvent = new Event("attributed");
 var attributingEvent = new Event("attributing");
 var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
-var upgrade = function(self) {
-  return __async(this, null, function* () {
-    var _a, _b, _c, _d, _e;
-    const instance = Components.get(self);
-    if (instance.busy)
-      return;
-    else
-      instance.busy = true;
-    self.dispatchEvent(upgradingEvent);
-    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
-    const result = self.template();
-    const length = (_c = instance.actions.length) != null ? _c : 0;
-    for (let index = 0; index < length; index++) {
-      const newExpression = result.expressions[index];
-      const oldExpressions = instance.expressions[index];
-      instance.actions[index](oldExpressions, newExpression);
-      instance.expressions[index] = newExpression;
+
+// src/component.ts
+var changeSymbol = Symbol("change");
+var _isCreatingOrCreated, _context, _root, _actions, _expressions, _changeNext, _c, _change, change_fn, _setup, setup_fn;
+var Component = class extends HTMLElement {
+  constructor() {
+    var _a;
+    super();
+    __privateAdd(this, _change);
+    __privateAdd(this, _setup);
+    __privateAdd(this, _isCreatingOrCreated, false);
+    __privateAdd(this, _context, {});
+    __privateAdd(this, _root, void 0);
+    __privateAdd(this, _actions, []);
+    __privateAdd(this, _expressions, []);
+    __privateAdd(this, _changeNext, void 0);
+    this[_c] = void 0;
+    const constructor = this.constructor;
+    const shadow = constructor.shadow;
+    if (shadow && !this.shadowRoot) {
+      const mode = constructor.mode || "open";
+      this.attachShadow({ mode });
     }
-    instance.busy = false;
-    yield (_e = (_d = self.upgraded) == null ? void 0 : _d.call(self)) == null ? void 0 : _e.catch(console.error);
-    self.dispatchEvent(upgradedEvent);
-  });
-};
-var mount = function(self) {
-  return __async(this, null, function* () {
-    var _a, _b, _c, _d;
-    const instance = Components.get(self);
-    if (instance.mounted)
-      return;
-    else
-      instance.mounted = true;
-    self.dispatchEvent(upgradingEvent);
-    yield (_b = (_a = self.upgrading) == null ? void 0 : _a.call(self)) == null ? void 0 : _b.catch(console.error);
-    const result = self.template();
-    instance.fragment = result.template.content.cloneNode(true);
-    render_default(instance.fragment, result.expressions, instance.actions);
-    document.adoptNode(instance.fragment);
-    const length = instance.actions.length;
-    for (let index = 0; index < length; index++) {
-      const newExpression = result.expressions[index];
-      instance.actions[index](void 0, newExpression);
-      instance.expressions[index] = newExpression;
-    }
-    replaceChildren(instance.root, instance.fragment);
-    yield (_d = (_c = self.upgraded) == null ? void 0 : _c.call(self)) == null ? void 0 : _d.catch(console.error);
-    self.dispatchEvent(upgradedEvent);
-  });
-};
-var construct = function(self) {
-  var _a, _b, _c;
-  const constructor = self.constructor;
-  const define = constructor.define || false;
-  const shadow = constructor.shadow || false;
-  const tag = (_a = constructor.tag) != null ? _a : dash(constructor.name);
-  const observedProperties = constructor.observedProperties;
-  const prototype = Object.getPrototypeOf(self);
-  const instance = {
-    tag,
-    define,
-    shadow,
-    context: {},
-    busy: false,
-    actions: [],
-    mounted: false,
-    expressions: [],
-    fragment: void 0,
-    root: shadow ? (_b = self.shadowRoot) != null ? _b : self.attachShadow({ mode: "open" }) : self
-  };
-  instance.observed = observe_default(instance.context, () => upgrade(self)), Components.set(self, instance);
-  const properties = observedProperties ? observedProperties != null ? observedProperties : [] : [
-    ...Object.getOwnPropertyNames(self),
-    ...Object.getOwnPropertyNames(prototype)
-  ];
-  for (const property of properties) {
-    if ("attributeChangedCallback" === property || "attributing" === property || "attributed" === property || "adoptedCallback" === property || "adopting" === property || "adopted" === property || "disconnectedCallback" === property || "disconnecting" === property || "disconnected" === property || "connectedCallback" === property || "connecting" === property || "connected" === property || "upgradedCallback" === property || "upgrading" === property || "upgraded" === property || "constructor" === property || "template" === property)
-      continue;
-    const descriptor = (_c = Object.getOwnPropertyDescriptor(self, property)) != null ? _c : Object.getOwnPropertyDescriptor(prototype, property);
-    if (!descriptor)
-      continue;
-    if (!descriptor.configurable)
-      continue;
-    Object.defineProperty(instance.context, property, __spreadProps(__spreadValues({}, descriptor), { enumerable: false }));
-    Object.defineProperty(self, property, {
-      enumerable: descriptor.enumerable,
-      configurable: descriptor.configurable,
-      get() {
-        return instance.observed[property];
-      },
-      set(value) {
-        instance.observed[property] = value;
+    __privateSet(this, _root, (_a = this.shadowRoot) != null ? _a : this);
+  }
+  static define(tag = ((_a) => (_a = this.tag) != null ? _a : this.name)()) {
+    tag = dash(tag);
+    define(tag, this);
+    return this;
+  }
+  static create() {
+    return __async(this, arguments, function* (tag = ((_b) => (_b = this.tag) != null ? _b : this.name)()) {
+      tag = dash(tag);
+      define(tag, this);
+      const instance = document.createElement(tag);
+      yield instance[changeSymbol];
+      return instance;
+    });
+  }
+  attributeChangedCallback(name, oldValue, newValue) {
+    return __async(this, null, function* () {
+      var _a, _b;
+      this.dispatchEvent(attributingEvent);
+      yield (_b = (_a = this.attribute) == null ? void 0 : _a.call(this, name, oldValue, newValue)) == null ? void 0 : _b.catch(console.error);
+      this.dispatchEvent(attributedEvent);
+    });
+  }
+  adoptedCallback() {
+    return __async(this, null, function* () {
+      var _a, _b;
+      this.dispatchEvent(adoptingEvent);
+      yield (_b = (_a = this.adopted) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      this.dispatchEvent(adoptedEvent);
+    });
+  }
+  connectedCallback() {
+    return __async(this, null, function* () {
+      var _a, _b;
+      if (!__privateGet(this, _isCreatingOrCreated)) {
+        __privateSet(this, _isCreatingOrCreated, true);
+        this[changeSymbol] = __privateMethod(this, _setup, setup_fn).call(this);
+        yield this[changeSymbol];
       }
+      this.dispatchEvent(connectingEvent);
+      yield (_b = (_a = this.connected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      this.dispatchEvent(connectedEvent);
     });
   }
-  return self;
-};
-function component(Class) {
-  var _a, _b;
-  const define = (_a = Class.define) != null ? _a : false;
-  const tag = (_b = Class.tag) != null ? _b : dash(Class.name);
-  const upgradedCallback = Class.prototype.upgradedCallback;
-  const connectedCallback = Class.prototype.connectedCallback;
-  const disconnectedCallback = Class.prototype.disconnectedCallback;
-  Class.prototype.upgradedCallback = function() {
+  disconnectedCallback() {
     return __async(this, null, function* () {
-      var _a2, _b2;
-      this.dispatchEvent(upgradingEvent);
-      yield (_a2 = this.upgrading) == null ? void 0 : _a2.call(this);
-      yield (_b2 = this.upgraded) == null ? void 0 : _b2.call(this);
-      this.dispatchEvent(upgradedEvent);
-      yield upgradedCallback == null ? void 0 : upgradedCallback();
-    });
-  };
-  Class.prototype.connectedCallback = function() {
-    return __async(this, null, function* () {
-      var _a2, _b2;
-      this.dispatchEvent(connectingEvent);
-      yield (_a2 = this.connecting) == null ? void 0 : _a2.call(this);
-      yield mount(this);
-      yield (_b2 = this.connected) == null ? void 0 : _b2.call(this);
-      this.dispatchEvent(connectedEvent);
-      yield connectedCallback == null ? void 0 : connectedCallback();
-    });
-  };
-  Class.prototype.disconnectedCallback = function() {
-    return __async(this, null, function* () {
-      var _a2, _b2;
+      var _a, _b;
       this.dispatchEvent(disconnectingEvent);
-      yield (_a2 = this.disconnecting) == null ? void 0 : _a2.call(this);
-      yield (_b2 = this.disconnected) == null ? void 0 : _b2.call(this);
+      yield (_b = (_a = this.disconnected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
       this.dispatchEvent(disconnectedEvent);
-      yield disconnectedCallback == null ? void 0 : disconnectedCallback();
     });
-  };
-  const Wrap = new Proxy(Class, {
-    // get, set,
-    construct(t, a, e) {
-      return construct(Reflect.construct(t, a, e));
+  }
+};
+_c = changeSymbol;
+_isCreatingOrCreated = new WeakMap();
+_context = new WeakMap();
+_root = new WeakMap();
+_actions = new WeakMap();
+_expressions = new WeakMap();
+_changeNext = new WeakMap();
+_change = new WeakSet();
+change_fn = function() {
+  return __async(this, null, function* () {
+    const change = () => __async(this, null, function* () {
+      var _a, _b, _c2;
+      this.dispatchEvent(renderingEvent);
+      const template = yield (_a = this.render) == null ? void 0 : _a.call(this, __privateGet(this, _context));
+      if (template) {
+        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+          const newExpression = template.expressions[index];
+          const oldExpression = __privateGet(this, _expressions)[index];
+          __privateGet(this, _actions)[index](oldExpression, newExpression);
+          __privateGet(this, _expressions)[index] = template.expressions[index];
+        }
+      }
+      yield (_b = this.rendered) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+      this.dispatchEvent(renderedEvent);
+      this[changeSymbol] = (_c2 = __privateGet(this, _changeNext)) == null ? void 0 : _c2.call(this);
+      __privateSet(this, _changeNext, void 0);
+      yield this[changeSymbol];
+    });
+    if (this[changeSymbol]) {
+      __privateSet(this, _changeNext, change);
+    } else {
+      this[changeSymbol] = change();
     }
   });
-  if (define) {
-    if (!customElements.get(tag)) {
-      customElements.define(tag, Wrap);
+};
+_setup = new WeakSet();
+setup_fn = function() {
+  return __async(this, null, function* () {
+    var _a, _b, _c2, _d, _e;
+    const constructor = this.constructor;
+    const observedProperties = constructor.observedProperties;
+    const prototype = Object.getPrototypeOf(this);
+    const properties = observedProperties ? observedProperties != null ? observedProperties : [] : [
+      ...Object.getOwnPropertyNames(this),
+      ...Object.getOwnPropertyNames(prototype)
+    ];
+    for (const property of properties) {
+      if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnected" === property || "attribute" === property || "connected" === property || "rendered" === property || "created" === property || "adopted" === property || "render" === property || "setup" === property)
+        continue;
+      const descriptor = (_a = Object.getOwnPropertyDescriptor(this, property)) != null ? _a : Object.getOwnPropertyDescriptor(prototype, property);
+      if (!descriptor)
+        continue;
+      if (!descriptor.configurable)
+        continue;
+      Object.defineProperty(__privateGet(this, _context), property, descriptor);
+      Object.defineProperty(this, property, {
+        enumerable: descriptor.enumerable,
+        configurable: false,
+        // configurable: descriptor.configurable,
+        get() {
+          return __privateGet(this, _context)[property];
+        },
+        set(value) {
+          __privateGet(this, _context)[property] = value;
+          __privateMethod(this, _change, change_fn).call(this);
+        }
+      });
     }
-  }
-  return Wrap;
-}
+    __privateSet(this, _context, context_default(__privateGet(this, _context), __privateMethod(this, _change, change_fn).bind(this)));
+    this.dispatchEvent(renderingEvent);
+    const template = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+    if (template) {
+      const fragment = template.template.content.cloneNode(true);
+      __privateSet(this, _expressions, template.expressions);
+      render_default(fragment, __privateGet(this, _actions));
+      for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+        const newExpression = template.expressions[index];
+        __privateGet(this, _actions)[index](void 0, newExpression);
+      }
+      document.adoptNode(fragment);
+      __privateGet(this, _root).appendChild(fragment);
+    }
+    yield (_c2 = this.rendered) == null ? void 0 : _c2.call(this, __privateGet(this, _context));
+    this.dispatchEvent(renderedEvent);
+    this[changeSymbol] = (_d = __privateGet(this, _changeNext)) == null ? void 0 : _d.call(this);
+    __privateSet(this, _changeNext, void 0);
+    yield this[changeSymbol];
+    this.dispatchEvent(creatingEvent);
+    yield (_e = this.created) == null ? void 0 : _e.call(this, __privateGet(this, _context));
+    this.dispatchEvent(createdEvent);
+  });
+};
+Component.html = html;
 
 // src/router.ts
 var alls = [];
 var routes = [];
-var notModule = function(module) {
-  return !Object.keys(module).length || !!module.default && typeof module.default === "object" && !Object.keys(module.default).length;
-};
 var transition = function(route) {
   return __async(this, null, function* () {
+    var _a, _b;
     if (route.instance) {
-      replaceChildren(route.container, route.instance);
+      replaceChildren(route.root, route.instance);
     } else {
-      const tag = "x-" + (route.path.replace(/\/+/g, "-").replace(/^-|-$|\.*/g, "") || "root");
       const result = yield route.handler();
-      const constructor = notModule(result) ? result : result.default;
-      if (!customElements.get(tag)) {
-        customElements.define(tag, constructor);
+      if ((result == null ? void 0 : result.prototype) instanceof HTMLElement) {
+        route.construct = result;
+      } else if (((_a = result == null ? void 0 : result.default) == null ? void 0 : _a.prototype) instanceof HTMLElement) {
+        route.construct = result.default;
+      } else {
+        throw new Error("XElement - router handler requires a CustomElementConstructor");
       }
-      route.instance = document.createElement(tag);
-      replaceChildren(route.container, route.instance);
+      if (route.construct.prototype instanceof Component) {
+        route.instance = yield route.construct.create();
+      } else {
+        route.tag = dash((_b = route.construct.tag) != null ? _b : route.construct.name);
+        define(route.tag, route.construct);
+        route.instance = document.createElement(route.tag);
+      }
+      replaceChildren(route.root, route.instance);
     }
   });
 };
 var navigate = function(event) {
-  var _a, _b, _c;
+  var _a, _b, _c2;
   if (event && "canIntercept" in event && event.canIntercept === false)
     return;
   if (event && "canTransition" in event && event.canTransition === false)
     return;
   const destination = new URL((_a = event == null ? void 0 : event.destination.url) != null ? _a : location.href);
-  const base = new URL((_c = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c : location.origin);
+  const base = new URL((_c2 = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c2 : location.origin);
   base.hash = "";
   base.search = "";
   destination.hash = "";
@@ -694,7 +625,7 @@ var navigate = function(event) {
   for (const all of alls) {
     let has = false;
     for (const transition2 of transitions) {
-      if (transition2.container === all.container) {
+      if (transition2.root === all.root) {
         has = true;
         break;
       }
@@ -711,61 +642,46 @@ var navigate = function(event) {
     transitions.map((route) => transition(route));
   }
 };
-var router = function(path, container, handler) {
+var router = function(path, root, handler) {
   if (!path)
     throw new Error("XElement - router path required");
   if (!handler)
     throw new Error("XElement - router handler required");
-  if (!container)
-    throw new Error("XElement - router container required");
+  if (!root)
+    throw new Error("XElement - router root required");
   if (path === "/*") {
     for (const all of alls) {
-      if (all.path === path && all.container === container) {
-        throw new Error("XElement - router duplicate path on container");
+      if (all.path === path && all.root === root) {
+        throw new Error("XElement - router duplicate path on root");
       }
     }
-    alls.push({ path, container, handler, instance: void 0 });
+    alls.push({ path, root, handler });
   } else {
     for (const route of routes) {
-      if (route.path === path && route.container === container) {
-        throw new Error("XElement - router duplicate path on container");
+      if (route.path === path && route.root === root) {
+        throw new Error("XElement - router duplicate path on root");
       }
     }
-    routes.push({ path, container, handler, instance: void 0 });
+    routes.push({ path, root, handler, instance: void 0 });
   }
   Reflect.get(window, "navigation").addEventListener("navigate", navigate);
 };
 var router_default = router;
 
 // src/index.ts
-var Index = {
-  Component: component,
-  // Schedule,
-  // Context,
-  // Define,
+var src_default = {
+  Component,
+  component: Component,
   Router: router_default,
-  Render: render_default,
-  // Patch,
-  // Mount,
-  component,
-  // schedule: Schedule,
-  // context: Context,
-  // define: Define,
   router: router_default,
-  render: render_default,
-  // patch: Patch,
-  // mount: Mount,
-  html: html_default
+  html
 };
-var src_default = Index;
 export {
-  component as Component,
-  render_default as Render,
+  Component,
   router_default as Router,
-  component,
+  Component as component,
   src_default as default,
-  html_default as html,
-  render_default as render,
+  html,
   router_default as router
 };
 //# sourceMappingURL=x-element.js.map

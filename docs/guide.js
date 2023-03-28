@@ -3,7 +3,7 @@ import highlight from './modules/highlight.js';
 import color from './modules/color.js';
 
 const names = [
-    'cycle',
+    'options',
     'input',
     'map',
     'check',
@@ -14,12 +14,11 @@ const names = [
     'cars',
     'selectBoolean',
     'selectNumber',
-    'security',
 ];
 
 const cache = new WeakMap();
 
-class XGuide extends HTMLElement {
+export default class guide extends component {
 
     input = 'hello world';
     checked = true;
@@ -35,76 +34,57 @@ class XGuide extends HTMLElement {
     car = [ 'ford' ];
     cars = [ 'tesla', 'ford', 'chevy' ];
 
-    connecting () { console.log('connecting'); }
-    upgrading () { console.log('upgrading'); }
-    upgraded () {
-        console.log('upgraded');
-        for (const name of names) {
-            const codeElement = this.querySelector(`#${name}Code`);
-            const sourceElement = this.querySelector(`#${name}Source`);
-            if (codeElement) {
-                const code = this[`${name}Code`];
-                if (cache.get(codeElement) !== code) {
-                    cache.set(codeElement, code);
-                    codeElement.innerHTML = code;
-                }
-            }
-            if (sourceElement) {
-                const componentElement = this.querySelector(`#${name}Component`);
-                const source = highlight(componentElement.innerHTML, 'html');
-                if (cache.get(sourceElement) !== source) {
-                    cache.set(sourceElement, source);
-                    sourceElement.innerHTML = source;
-                }
-            }
-        }
-    }
-    connected () { console.log('connected'); }
-    disconnecting () { console.log('disconnecting'); }
-    disconnected () { console.log('disconnected'); }
+    optionsComponent = `
+    export default class c extends component {
 
-    cycleComponent = /*js*/`
-    class XElement extends HTMLElement {
-
-        // Optional: Tag name to be used for customElement.define and document.createElement.
-        //           If not defined then the class name will be used for dynamic declarative customElement.define and document.createElement.
+        // Optional: Tag name to be used internally for customElement.define and document.createElement. Defaults to class name.
         static tag?: string;
 
-        // Optional: Declarative way to define the Component when decoration. Uses the tag name or the class name.
-        static define?: boolean;
-
-        // Optional: Declarative way to create shadowRoot and attach to the Component.
+        // Optional: Declarative way to attach shadowRoot to the Component. Defaults to false.
         static shadow?: boolean;
 
-        // Optional: Declarative way to observe only specific properties on the Component. Default is a two way observation of all props except the reserved names.
+        // Optional: Shadow Mode. Defaults to 'open'
+        static mode?: 'open' | 'closed';
+
+        // Optional: limit the properties that will trigger render. Defaults to all.
         static observedProperties?: string[];
 
-        connecting () { console.log('connecting'); }
-        connected () { console.log('connected'); }
+        // Conveniences method to define if not already defined using Tag or class Name and convert to an allowed name. Returns the class.
+        static define: (tag: string = this.tag ?? this.name) => component;
 
-        upgrading () { console.log('upgrading'); }
-        upgraded () { console.log('upgraded'); }
+        // Conveniences method to define if not already defined and using the Tag or class Name and convert to an allowed name. Returns a new Element.
+        static async create: (tag: string = this.tag ?? this.name) => Element;
 
-        disconnecting () { console.log('disconnecting'); }
-        disconnected () { console.log('disconnected'); }
+        // Template to render
+        render = () => html\`\`;
+
+        // Life Cycle
+        created = () => console.log('createdCallback');
+        rendered = () => console.log('renderedCallback');
+        connected = () => console.log('connectedCallback');
+        adopted = () => console.log('adoptedCallback');
+        disconnected = () => console.log('disconnectedCallback');
+        attribute = () => console.log('attributeChangedCallback');
     }
     `;
-    cycleCode = highlight(this.cycleComponent.toString());
+    optionsCode = highlight(this.optionsComponent.toString());
 
     inputComponent = () => html`
     <div>${this.input}</div>
-    <input value=${this.input} oninput=${(e) => this.input = e.target.value} />
+    <input value=${this.input} oninput=${e => this.input = e.target.value} />
     `;
     inputCode = highlight(this.inputComponent.toString());
 
     mapComponent = () => html`
-    ${this.fruits.map(fruit => html`<div>${fruit}</div>`)}
+    <ul>
+        ${this.fruits.map(fruit => html` <li>${fruit}</li> `)}
+    </ul>
     `;
     mapCode = highlight(this.mapComponent.toString());
 
     checkComponent = () => html`
     <div>${this.checked ? 'Is Checked' : 'Is Not Checked'}</div>
-    <input type="checkbox" checked=${this.checked} oninput=${(e) => this.checked = e.target.checked} >
+    <input type="checkbox" ${this.checked ? 'checked' : ''} oninput=${e => this.checked = e.target.checked} />
     `;
     checkCode = highlight(this.checkComponent.toString());
 
@@ -122,7 +102,7 @@ class XGuide extends HTMLElement {
     styleCode = highlight(this.styleComponent.toString());
 
     classComponent = () => html`
-    <div class=${this.active ? 'default class-color' : 'default'}>Look at my class</div >
+    <div class=${this.active ? 'default class-color' : 'default'}>Look at my class</div>
     <button onclick=${() => this.active = !this.active}>Toggle Class</button>
     `;
     classCode = highlight(this.classComponent.toString());
@@ -131,7 +111,7 @@ class XGuide extends HTMLElement {
     <div>${this.fruit}</div>
     <select value=${this.fruit} oninput=${(e) => this.fruit = e.target.value}>
         ${this.fruits.map(fruit => html`
-            <option value=${fruit} selected=${this.fruit===fruit}>${fruit}</option>
+            <option value=${fruit} selected=${this.fruit === fruit}>${fruit}</option>
         `)}
     </select>
     `;
@@ -139,7 +119,7 @@ class XGuide extends HTMLElement {
 
     carsComponent = () => html`
     <div>${this.car}</div>
-    <select oninput=${(e) => this.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
+    <select oninput=${e => this.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
         ${this.cars.map(car => html`
             <option value=${car} selected=${this.car.includes(car)}>${car}</option>
         `)}
@@ -149,7 +129,7 @@ class XGuide extends HTMLElement {
 
     selectBooleanComponent = () => html`
     <div>${this.boolean}</div>
-    <select value=${this.boolean} oninput=${(e) => this.boolean = JSON.parse(e.target.value)}>
+    <select value=${this.boolean} oninput=${e => this.boolean = JSON.parse(e.target.value)}>
         <option value="true">yes</option>
         <option value="false">no</option>
     </select>
@@ -158,7 +138,7 @@ class XGuide extends HTMLElement {
 
     selectNumberComponent = () => html`
     <div>${this.number}</div>
-    <select value=${this.number} oninput=${(e) => this.number = JSON.parse(e.target.value)}>
+    <select value=${this.number} oninput=${e => this.number = JSON.parse(e.target.value)}>
         <option value="0">zero</option>
         <option value="1">one</option>
         <option value="2">two</option>
@@ -166,95 +146,120 @@ class XGuide extends HTMLElement {
     `;
     selectNumberCode = highlight(this.selectNumberComponent.toString());
 
-    template = () => html`
+    connected() { console.log('connected'); };
+    disconnected() { console.log('disconnected'); };
 
-        <style>
-            .default {
-                border: solid 5px transparent;
+    rendered() {
+        console.log('rendered');
+        for (const name of names) {
+            const codeElement = this.querySelector(`#${name}Code`);
+            const sourceElement = this.querySelector(`#${name}Source`);
+            if (codeElement) {
+                const code = this[ `${name}Code` ];
+                if (cache.get(codeElement) !== code) {
+                    cache.set(codeElement, code);
+                    codeElement.innerHTML = code;
+                }
             }
-            .class-color {
-                border-color: var(--accent);
+            if (sourceElement) {
+                const componentElement = this.querySelector(`#${name}Component`);
+                const source = highlight(componentElement.innerHTML, 'html');
+                if (cache.get(sourceElement) !== source) {
+                    cache.set(sourceElement, source);
+                    sourceElement.innerHTML = source;
+                }
             }
-        </style>
+        }
+    };
 
-        <section>
-            <h3>Life Cycle</h3>
-            <pre id="cycleCode"></pre>
-        </section>
+    render = () => html`
 
-        <section id="input">
-            <h3>Input</h3>
-            <pre id="inputCode"></pre>
-            <pre id="inputComponent">${this.inputComponent()}</pre>
-            <pre id="inputSource"></pre>
-        </section>
+    <style>
+        .default {
+            border: solid 5px transparent;
+        }
+        .class-color {
+            border-color: var(--accent);
+        }
+    </style>
 
-        <section id="map">
-            <h3>Map</h3>
-            <pre id="mapCode"></pre>
-            <pre id="mapComponent">${this.mapComponent()}</pre>
-            <pre id="mapSource"></pre>
-        </section>
+    <section>
+        <h3>Options</h3>
+        <pre id="optionsCode"></pre>
+    </section>
 
-        <section id="check">
-            <h3>Check</h3>
-            <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
-            <pre id="checkCode"></pre>
-            <pre id="checkComponent">${this.checkComponent()}</pre>
-            <pre id="checkSource"></pre>
-        </section>
+    <section id="input">
+        <h3>Input</h3>
+        <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.
+        <pre id="inputCode"></pre>
+        <pre id="inputComponent">${this.inputComponent()}</pre>
+        <pre id="inputSource"></pre>
+    </section>
 
-        <section id="radio">
-            <h3>Radio</h3>
-            <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
-            <pre id="radioCode"></pre>
-            <pre id="radioComponent">${this.radioComponent()}</pre>
-            <pre id="radioSource"></pre>
-        </section>
+    <section id="check">
+        <h3>Check</h3>
+        <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
+        <pre id="checkCode"></pre>
+        <pre id="checkComponent">${this.checkComponent()}</pre>
+        <pre id="checkSource"></pre>
+    </section>
 
-        <section id="class">
-            <h3>Class</h3>
-            <pre id="classCode"></pre>
-            <pre id="classComponent">${this.classComponent()}</pre>
-            <pre id="classSource"></pre>
-        </section>
+    <section id="radio">
+        <h3>Radio</h3>
+        <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
+        <pre id="radioCode"></pre>
+        <pre id="radioComponent">${this.radioComponent()}</pre>
+        <pre id="radioSource"></pre>
+    </section>
 
-        <section id="style">
-            <h3>Style</h3>
-            <pre id="styleCode"></pre>
-            <pre id="styleComponent">${this.styleComponent()}</pre>
-            <pre id="styleSource"></pre>
-        </section>
+    <section id="class">
+        <h3>Class</h3>
+        <pre id="classCode"></pre>
+        <pre id="classComponent">${this.classComponent()}</pre>
+        <pre id="classSource"></pre>
+    </section>
 
-        <section id="select">
-            <h3>Select</h3>
+    <section id="style">
+        <h3>Style</h3>
+        <pre id="styleCode"></pre>
+        <pre id="styleComponent">${this.styleComponent()}</pre>
+        <pre id="styleSource"></pre>
+    </section>
 
-            <pre id="fruitsCode"></pre>
-            <pre id="fruitsComponent">${this.fruitsComponent()}</pre>
-            <pre id="fruitsSource"></pre>
+    <section id="map">
+        <h3>Map</h3>
+        <pre id="mapCode"></pre>
+        <pre id="mapComponent">${this.mapComponent()}</pre>
+        <pre id="mapSource"></pre>
+    </section>
 
-            <br>
+    <section id="select">
+        <h3>Select</h3>
 
-            <pre id="carsCode"></pre>
-            <pre id="carsComponent">${this.carsComponent()}</pre>
-            <pre id="carsSource"></pre>
+        <pre id="fruitsCode"></pre>
+        <pre id="fruitsComponent">${this.fruitsComponent()}</pre>
+        <pre id="fruitsSource"></pre>
 
-            <br>
+        <br>
 
-            <pre id="selectBooleanCode"></pre>
-            <pre id="selectBooleanComponent">${this.selectBooleanComponent()}</pre>
-            <pre id="selectBooleanSource"></pre>
+        <pre id="carsCode"></pre>
+        <pre id="carsComponent">${this.carsComponent()}</pre>
+        <pre id="carsSource"></pre>
 
-            <br>
+        <br>
 
-            <pre id="selectNumberCode"></pre>
-            <pre id="selectNumberComponent">${this.selectNumberComponent()}</pre>
-            <pre id="selectNumberSource"></pre>
+        <pre id="selectBooleanCode"></pre>
+        <pre id="selectBooleanComponent">${this.selectBooleanComponent()}</pre>
+        <pre id="selectBooleanSource"></pre>
 
-        </section>
+        <br>
+
+        <pre id="selectNumberCode"></pre>
+        <pre id="selectNumberComponent">${this.selectNumberComponent()}</pre>
+        <pre id="selectNumberSource"></pre>
+
+    </section>
 
     `;
 
 }
-
-export default component(XGuide);

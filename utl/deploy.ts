@@ -15,7 +15,7 @@ if (!f.success) throw new Error('git auth');
 const n = await run({ cmd: ['npm', 'whoami'] }).status();
 if (!n.success) throw new Error('npm auth');
 
-const pkg = JSON.parse(await readTextFile('./package.json'));
+const pkg = JSON.parse(await readTextFile('package.json'));
 pkg.version = inc(pkg.version, release as ReleaseType);
 
 const { license, author, email, version } = pkg;
@@ -84,14 +84,14 @@ await Promise.all([
 
 esbuild.stop();
 
-// await writeTextFile('./package.json', JSON.stringify(pkg, null, '    '));
+// await writeTextFile('package.json', JSON.stringify(pkg, null, '    '));
 
-await copy('./web/index.html', './web/404.html', { overwrite: true });
-await copy('./web/index.html', './web/guide/index.html', { overwrite: true });
-await copy('./web/index.html', './web/security/index.html', { overwrite: true });
+await copy('web/index.html', 'web/404.html', { overwrite: true });
+await copy('web/index.html', 'web/guide/index.html', { overwrite: true });
+await copy('web/index.html', 'web/security/index.html', { overwrite: true });
 
-await emptyDir('./docs/');
-await copy('./web', './docs', { overwrite: true });
+await emptyDir('docs/');
+await copy('web', 'docs', { overwrite: true });
 
 // await run({ cmd: ['git', 'commit', '-a', '-m', version] }).status();
 // await run({ cmd: ['git', 'push'] }).status();

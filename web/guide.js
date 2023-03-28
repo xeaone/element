@@ -3,7 +3,7 @@ import highlight from './modules/highlight.js';
 import color from './modules/color.js';
 
 const names = [
-    'cycle',
+    'options',
     'input',
     'map',
     'check',
@@ -34,19 +34,31 @@ export default class guide extends component {
     car = [ 'ford' ];
     cars = [ 'tesla', 'ford', 'chevy' ];
 
-    cycleComponent = `
+    optionsComponent = `
     export default class c extends component {
 
-        // Optional: Tag name to be used for internal defines and creates customElement.define and document.createElement.
-        //           If not defined then the class name will be used.
+        // Optional: Tag name to be used internally for customElement.define and document.createElement. Defaults to class name.
         static tag?: string;
 
-        // Optional: Declarative way to create shadowRoot and attach to the Component.
+        // Optional: Declarative way to attach shadowRoot to the Component. Defaults to false.
         static shadow?: boolean;
 
-        // Optional: limit the properties that will trigger render.
+        // Optional: Shadow Mode. Defaults to 'open'
+        static mode?: 'open' | 'closed';
+
+        // Optional: limit the properties that will trigger render. Defaults to all.
         static observedProperties?: string[];
 
+        // Conveniences method to define if not already defined using Tag or class Name and convert to an allowed name. Returns the class.
+        static define: (tag: string = this.tag ?? this.name) => component;
+
+        // Conveniences method to define if not already defined and using the Tag or class Name and convert to an allowed name. Returns a new Element.
+        static async create: (tag: string = this.tag ?? this.name) => Element;
+
+        // Template to render
+        render = () => html\`\`;
+
+        // Life Cycle
         created = () => console.log('createdCallback');
         rendered = () => console.log('renderedCallback');
         connected = () => console.log('connectedCallback');
@@ -55,7 +67,7 @@ export default class guide extends component {
         attribute = () => console.log('attributeChangedCallback');
     }
     `;
-    cycleCode = highlight(this.cycleComponent.toString());
+    optionsCode = highlight(this.optionsComponent.toString());
 
     inputComponent = () => html`
     <div>${this.input}</div>
@@ -65,16 +77,14 @@ export default class guide extends component {
 
     mapComponent = () => html`
     <ul>
-        ${this.fruits.map(fruit => html`
-            <li>${fruit}</li>
-        `)}
+        ${this.fruits.map(fruit => html` <li>${fruit}</li> `)}
     </ul>
     `;
     mapCode = highlight(this.mapComponent.toString());
 
     checkComponent = () => html`
     <div>${this.checked ? 'Is Checked' : 'Is Not Checked'}</div>
-    <input type="checkbox" checked=${this.checked} oninput=${e => this.checked = e.target.checked} />
+    <input type="checkbox" ${this.checked ? 'checked' : ''} oninput=${e => this.checked = e.target.checked} />
     `;
     checkCode = highlight(this.checkComponent.toString());
 
@@ -174,27 +184,21 @@ export default class guide extends component {
     </style>
 
     <section>
-        <h3>Life Cycle</h3>
-        <pre id="cycleCode"></pre>
+        <h3>Options</h3>
+        <pre id="optionsCode"></pre>
     </section>
 
     <section id="input">
         <h3>Input</h3>
+        <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.
         <pre id="inputCode"></pre>
         <pre id="inputComponent">${this.inputComponent()}</pre>
         <pre id="inputSource"></pre>
     </section>
 
-    <section id="map">
-        <h3>Map</h3>
-        <pre id="mapCode"></pre>
-        <pre id="mapComponent">${this.mapComponent()}</pre>
-        <pre id="mapSource"></pre>
-    </section>
-
     <section id="check">
         <h3>Check</h3>
-        <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
+        <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
         <pre id="checkCode"></pre>
         <pre id="checkComponent">${this.checkComponent()}</pre>
         <pre id="checkSource"></pre>
@@ -202,7 +206,7 @@ export default class guide extends component {
 
     <section id="radio">
         <h3>Radio</h3>
-        <p>Boolean html attributes will be treated as Boolean paramters and toggle the attribute.</p>
+        <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
         <pre id="radioCode"></pre>
         <pre id="radioComponent">${this.radioComponent()}</pre>
         <pre id="radioSource"></pre>
@@ -220,6 +224,13 @@ export default class guide extends component {
         <pre id="styleCode"></pre>
         <pre id="styleComponent">${this.styleComponent()}</pre>
         <pre id="styleSource"></pre>
+    </section>
+
+    <section id="map">
+        <h3>Map</h3>
+        <pre id="mapCode"></pre>
+        <pre id="mapComponent">${this.mapComponent()}</pre>
+        <pre id="mapSource"></pre>
     </section>
 
     <section id="select">

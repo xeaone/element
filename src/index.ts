@@ -3,18 +3,19 @@ import Router from './router';
 import html from './html';
 
 export { Component };
-export { Router };
-export { html };
-
 export { Component as component };
+
+export { Router };
 export { Router as router };
+
+export { html };
 
 export default {
 
     Component,
-    Router,
-
     component: Component,
+
+    Router,
     router: Router,
 
     html,

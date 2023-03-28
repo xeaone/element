@@ -1,4 +1,5 @@
-const booleans = [
+
+export default [
     'allowfullscreen',
     'async',
     'autofocus',
@@ -43,5 +44,3 @@ const booleans = [
     'typemustmatch',
     'visible',
 ];
-
-export default booleans;
