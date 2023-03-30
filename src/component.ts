@@ -187,6 +187,10 @@ export default class Component extends HTMLElement {
             if (!descriptor) continue;
             if (!descriptor.configurable) continue;
 
+            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
+            if (typeof descriptor.get === 'function') descriptor.get = descriptor.get.bind(this);
+            if (typeof descriptor.set === 'function') descriptor.set = descriptor.set.bind(this);
+
             Object.defineProperty(this.#context, property, descriptor);
 
             Object.defineProperty(this, property, {
