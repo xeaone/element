@@ -4,6 +4,7 @@ import color from './modules/color.js';
 
 const names = [
     'options',
+    'dynamic',
     'input',
     'map',
     'check',
@@ -33,6 +34,7 @@ export default class guide extends component {
     fruits = [ 'Apple', 'Orange', 'Tomato' ];
     car = [ 'ford' ];
     cars = [ 'tesla', 'ford', 'chevy' ];
+    tag = 'div';
 
     optionsComponent = `
     export default class c extends component {
@@ -68,6 +70,12 @@ export default class guide extends component {
     }
     `;
     optionsCode = highlight(this.optionsComponent.toString());
+
+    dynamicComponent = () => html`
+        <${this.tag}>Hello World</${this.tag}>
+        <${'input'} value=${this.tag} onchange=${e => this.tag = e.target.value}></${'input'}>
+    `;
+    dynamicCode = highlight(this.dynamicComponent.toString());
 
     inputComponent = () => html`
     <div>${this.input}</div>
@@ -188,9 +196,17 @@ export default class guide extends component {
         <pre id="optionsCode"></pre>
     </section>
 
+    <section id="dynamic">
+        <h3>Dynamic</h3>
+        <p>Safe and efficient Dynamic tag/elements and attributes.</p>
+        <pre id="dynamicCode"></pre>
+        <pre id="dynamicComponent">${this.dynamicComponent()}</pre>
+        <pre id="dynamicSource"></pre>
+    </section>
+
     <section id="input">
         <h3>Input</h3>
-        <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.
+        <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
         <pre id="inputCode"></pre>
         <pre id="inputComponent">${this.inputComponent()}</pre>
         <pre id="inputSource"></pre>

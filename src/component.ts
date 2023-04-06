@@ -70,6 +70,7 @@ export default class Component extends HTMLElement {
     #context: Record<any, any> = {};
     #root: Element | ShadowRoot;
 
+    #marker: string = '';
     #actions: Actions = [];
     #expressions: Expressions = [];
 
@@ -132,7 +133,13 @@ export default class Component extends HTMLElement {
                 for (let index = 0; index < this.#actions.length; index++) {
                     const newExpression = template.expressions[ index ];
                     const oldExpression = this.#expressions[ index ];
-                    this.#actions[ index ](oldExpression, newExpression);
+
+                    try {
+                        this.#actions[ index ](oldExpression, newExpression);
+                    } catch (error) {
+                        console.error(error);
+                    }
+
                     this.#expressions[ index ] = template.expressions[ index ];
                 }
             }
@@ -218,13 +225,18 @@ export default class Component extends HTMLElement {
         if (template) {
 
             const fragment = template.template.content.cloneNode(true) as DocumentFragment;
+            this.#marker = template.marker;
             this.#expressions = template.expressions;
 
-            render(fragment, this.#actions);
+            render(fragment, this.#actions, this.#marker);
 
             for (let index = 0; index < this.#actions.length; index++) {
                 const newExpression = template.expressions[ index ];
-                this.#actions[ index ](undefined, newExpression);
+                try {
+                    this.#actions[ index ](undefined, newExpression);
+                } catch (error) {
+                    console.error(error);
+                }
             }
 
             document.adoptNode(fragment);

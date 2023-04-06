@@ -1,5 +1,4 @@
 import display from './display';
-// import booleans from './booleans';
 import { symbol } from './html';
 import { includes } from './poly';
 import { Actions } from './types';
@@ -41,7 +40,7 @@ const ElementAction = function (this: {
 
         } else {
             const fragment = target.template.content.cloneNode(true);
-            Render(fragment, this.actions);
+            Render(fragment, this.actions, target.marker);
 
             const l = this.actions.length;
             for (let i = 0; i < l; i++) {
@@ -74,7 +73,11 @@ const ElementAction = function (this: {
 
                 const startChild = document.createTextNode('');
                 const endChild = document.createTextNode('');
-                const action = ElementAction.bind({ start: startChild, end: endChild, actions: [] });
+                const action = ElementAction.bind({
+                    start: startChild,
+                    end: endChild,
+                    actions: []
+                });
 
                 template.content.appendChild(startChild);
                 template.content.appendChild(endChild);
@@ -128,11 +131,14 @@ const ElementAction = function (this: {
 };
 
 const AttributeNameAction = function (this: {
+    previous: Element | undefined,
     element: Element,
     name: string,
     value: any,
 }, source: any, target: any) {
-    if (source === target) return;
+    if (source === target && this.previous === this.element) return;
+
+    this.previous = this.element;
 
     this.element.removeAttribute(source);
     this.name = target?.toLowerCase();
@@ -144,11 +150,14 @@ const AttributeNameAction = function (this: {
 };
 
 const AttributeValueAction = function (this: {
+    previous: Element | undefined;
     element: Element,
     name: string,
     value: any,
 }, source: any, target: any) {
-    if (source === target) return;
+    if (source === target && this.previous === this.element) return;
+
+    this.previous = this.element;
 
     if (
         this.name === 'value'
@@ -163,15 +172,6 @@ const AttributeValueAction = function (this: {
         this.value = target;
         if (typeof this.value !== 'function') return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
         this.element.addEventListener(this.name.slice(2), this.value);
-        // } else if (
-        //     includes(booleans, this.name)
-        // ) {
-        //     this.value = target ? true : false;
-
-        //     if (this.value) this.element.setAttribute(this.name, '');
-        //     else this.element.removeAttribute(this.name);
-
-        //     Reflect.set(this.element, this.name, this.value);
     } else if (
         includes(links, this.name)
     ) {
@@ -194,70 +194,103 @@ const AttributeValueAction = function (this: {
     }
 };
 
-export const Render = function (fragment: DocumentFragment, actions: Actions) {
+const TagAction = function (this: {
+    element: Element,
+}, source: any, target: any) {
+    if (source === target) return;
+
+    const oldElement = this.element;
+    const newElement = document.createElement(target) as Element;
+
+    while (oldElement.firstChild) newElement.appendChild(oldElement.firstChild);
+
+    const attributeNames = oldElement.getAttributeNames();
+    for (const attributeName of attributeNames) {
+        const attributeValue = oldElement.getAttribute(attributeName) ?? '';
+        newElement.setAttribute(attributeName, attributeValue);
+    }
+
+    oldElement.parentNode?.replaceChild(newElement, oldElement);
+
+    this.element = newElement;
+
+};
+
+export const Render = function (fragment: DocumentFragment, actions: Actions, marker: string) {
+    const holders = new WeakSet();
     const walker = document.createTreeWalker(document, filter, null);
 
     walker.currentNode = fragment;
 
-    let index = 0;
     let node: Node | null = fragment.firstChild;
 
-    while ((node = walker.nextNode()) !== null) {
+    while (node = walker.nextNode()) {
+
+        if (holders.has(node.previousSibling as Node)) {
+            holders.delete(node.previousSibling as Node);
+            actions.push(() => undefined);
+        }
+
         if (node.nodeType === Node.TEXT_NODE) {
 
-            const startIndex = node.nodeValue?.indexOf('{{') ?? -1;
+            const startIndex = node.nodeValue?.indexOf(marker) ?? -1;
+            if (startIndex === -1) continue;
 
-            if (startIndex == -1) continue;
-
-            if (startIndex != 0) {
+            if (startIndex !== 0) {
                 (node as Text).splitText(startIndex);
                 node = walker.nextNode() as Node;
             }
 
-            const endIndex = node.nodeValue?.indexOf('}}') ?? -1;
-
-            if (endIndex == -1) continue;
-
-            if (endIndex + 2 != node.nodeValue?.length) {
-                (node as Text).splitText(endIndex + 2);
+            const endIndex = marker.length;
+            if (endIndex !== node.nodeValue?.length) {
+                (node as Text).splitText(endIndex);
             }
-
-            index++;
 
             const start = document.createTextNode('');
             const end = node as Text;
+
             end.textContent = '';
             end.parentNode?.insertBefore(start, end);
-            actions.push(ElementAction.bind({ start, end, actions: [], }));
+
+            actions.push(ElementAction.bind({ marker, start, end, actions: [], }));
         } else if (node.nodeType === Node.ELEMENT_NODE) {
 
             if (node.nodeName === 'SCRIPT' || node.nodeName === 'STYLE') {
                 walker.nextSibling();
             }
 
+            const tMeta = { element: node as Element };
+
+            if (node.nodeName === marker) {
+                holders.add(node);
+                actions.push(TagAction.bind(tMeta));
+            }
+
             const names = (node as Element).getAttributeNames();
             for (const name of names) {
                 const value = (node as Element).getAttribute(name) ?? '';
-                const dynamicName = name.includes('{{') && name.includes('}}');
-                const dynamicValue = value.includes('{{') && value.includes('}}');
+                const dynamicName = (name.toUpperCase()).includes(marker);
+                const dynamicValue = value.includes(marker);
 
                 if (dynamicName || dynamicValue) {
-                    const meta = { element: node as Element, name, value };
+
+                    const aMeta = {
+                        name,
+                        value,
+                        previous: undefined,
+                        get element () {
+                            return tMeta.element;
+                        },
+                    };
 
                     if (dynamicName) {
-                        index++;
                         (node as Element).removeAttribute(name);
-                        actions.push(
-                            AttributeNameAction.bind(meta)
-                        );
+                        actions.push(AttributeNameAction.bind(aMeta));
                     }
 
                     if (dynamicValue) {
-                        index++;
                         (node as Element).removeAttribute(name);
-                        actions.push(
-                            AttributeValueAction.bind(meta)
-                        );
+                        actions.push(AttributeValueAction.bind(aMeta));
                     }
 
                 } else {

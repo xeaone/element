@@ -82,6 +82,9 @@ function display(data) {
   }
 }
 
+// src/mark.ts
+var mark_default = () => Math.floor(Math.random() * Date.now());
+
 // src/poly.ts
 var replaceChildren = function(element, ...nodes) {
   while (element.lastChild) {
@@ -111,20 +114,22 @@ var createHTML = function(data) {
 var symbol = Symbol("html");
 var cache = /* @__PURE__ */ new WeakMap();
 function html(strings, ...expressions) {
-  const template = cache.get(strings);
-  if (template) {
-    return { strings, template, expressions, symbol };
+  const value = cache.get(strings);
+  if (value) {
+    const [template, marker] = value;
+    return { strings, template, expressions, symbol, marker };
   } else {
+    const marker = `X-${mark_default()}-X`;
     let data = "";
     const length = strings.length - 1;
     for (let index = 0; index < length; index++) {
-      data += `${strings[index]}{{${index}}}`;
+      data += `${strings[index]}${marker}`;
     }
     data += strings[length];
-    const template2 = document.createElement("template");
-    template2.innerHTML = createHTML(data);
-    cache.set(strings, template2);
-    return { strings, template: template2, expressions, symbol };
+    const template = document.createElement("template");
+    template.innerHTML = createHTML(data);
+    cache.set(strings, [template, marker]);
+    return { strings, template, expressions, symbol, marker };
   }
 }
 
@@ -155,7 +160,7 @@ var ElementAction = function(source, target) {
       }
     } else {
       const fragment = target.template.content.cloneNode(true);
-      Render(fragment, this.actions);
+      Render(fragment, this.actions, target.marker);
       const l = this.actions.length;
       for (let i = 0; i < l; i++) {
         this.actions[i]((_a = source.expressions) == null ? void 0 : _a[i], target.expressions[i]);
@@ -178,7 +183,11 @@ var ElementAction = function(source, target) {
       for (let i = oldLength; i < newLength; i++) {
         const startChild = document.createTextNode("");
         const endChild = document.createTextNode("");
-        const action = ElementAction.bind({ start: startChild, end: endChild, actions: [] });
+        const action = ElementAction.bind({
+          start: startChild,
+          end: endChild,
+          actions: []
+        });
         template.content.appendChild(startChild);
         template.content.appendChild(endChild);
         this.actions.push(action);
@@ -223,8 +232,9 @@ var ElementAction = function(source, target) {
   }
 };
 var AttributeNameAction = function(source, target) {
-  if (source === target)
+  if (source === target && this.previous === this.element)
     return;
+  this.previous = this.element;
   this.element.removeAttribute(source);
   this.name = target == null ? void 0 : target.toLowerCase();
   if (this.name) {
@@ -232,8 +242,9 @@ var AttributeNameAction = function(source, target) {
   }
 };
 var AttributeValueAction = function(source, target) {
-  if (source === target)
+  if (source === target && this.previous === this.element)
     return;
+  this.previous = this.element;
   if (this.name === "value") {
     this.value = display(target);
     Reflect.set(this.element, this.name, this.value);
@@ -262,57 +273,80 @@ var AttributeValueAction = function(source, target) {
     }
   }
 };
-var Render = function(fragment, actions) {
-  var _a, _b, _c2, _d, _e, _f, _g;
+var TagAction = function(source, target) {
+  var _a, _b;
+  if (source === target)
+    return;
+  const oldElement = this.element;
+  const newElement = document.createElement(target);
+  while (oldElement.firstChild)
+    newElement.appendChild(oldElement.firstChild);
+  const attributeNames = oldElement.getAttributeNames();
+  for (const attributeName of attributeNames) {
+    const attributeValue = (_a = oldElement.getAttribute(attributeName)) != null ? _a : "";
+    newElement.setAttribute(attributeName, attributeValue);
+  }
+  (_b = oldElement.parentNode) == null ? void 0 : _b.replaceChild(newElement, oldElement);
+  this.element = newElement;
+};
+var Render = function(fragment, actions, marker) {
+  var _a, _b, _c2, _d, _e;
+  const holders = /* @__PURE__ */ new WeakSet();
   const walker = document.createTreeWalker(document, filter, null);
   walker.currentNode = fragment;
-  let index = 0;
   let node = fragment.firstChild;
-  while ((node = walker.nextNode()) !== null) {
+  while (node = walker.nextNode()) {
+    if (holders.has(node.previousSibling)) {
+      holders.delete(node.previousSibling);
+      actions.push(() => void 0);
+    }
     if (node.nodeType === Node.TEXT_NODE) {
-      const startIndex = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf("{{")) != null ? _b : -1;
-      if (startIndex == -1)
+      const startIndex = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf(marker)) != null ? _b : -1;
+      if (startIndex === -1)
         continue;
-      if (startIndex != 0) {
+      if (startIndex !== 0) {
         node.splitText(startIndex);
         node = walker.nextNode();
       }
-      const endIndex = (_d = (_c2 = node.nodeValue) == null ? void 0 : _c2.indexOf("}}")) != null ? _d : -1;
-      if (endIndex == -1)
-        continue;
-      if (endIndex + 2 != ((_e = node.nodeValue) == null ? void 0 : _e.length)) {
-        node.splitText(endIndex + 2);
+      const endIndex = marker.length;
+      if (endIndex !== ((_c2 = node.nodeValue) == null ? void 0 : _c2.length)) {
+        node.splitText(endIndex);
       }
-      index++;
       const start = document.createTextNode("");
       const end = node;
       end.textContent = "";
-      (_f = end.parentNode) == null ? void 0 : _f.insertBefore(start, end);
-      actions.push(ElementAction.bind({ start, end, actions: [] }));
+      (_d = end.parentNode) == null ? void 0 : _d.insertBefore(start, end);
+      actions.push(ElementAction.bind({ marker, start, end, actions: [] }));
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
         walker.nextSibling();
       }
+      const tMeta = { element: node };
+      if (node.nodeName === marker) {
+        holders.add(node);
+        actions.push(TagAction.bind(tMeta));
+      }
       const names = node.getAttributeNames();
       for (const name of names) {
-        const value = (_g = node.getAttribute(name)) != null ? _g : "";
-        const dynamicName = name.includes("{{") && name.includes("}}");
-        const dynamicValue = value.includes("{{") && value.includes("}}");
+        const value = (_e = node.getAttribute(name)) != null ? _e : "";
+        const dynamicName = name.toUpperCase().includes(marker);
+        const dynamicValue = value.includes(marker);
         if (dynamicName || dynamicValue) {
-          const meta = { element: node, name, value };
+          const aMeta = {
+            name,
+            value,
+            previous: void 0,
+            get element() {
+              return tMeta.element;
+            }
+          };
           if (dynamicName) {
-            index++;
             node.removeAttribute(name);
-            actions.push(
-              AttributeNameAction.bind(meta)
-            );
+            actions.push(AttributeNameAction.bind(aMeta));
           }
           if (dynamicValue) {
-            index++;
             node.removeAttribute(name);
-            actions.push(
-              AttributeValueAction.bind(meta)
-            );
+            actions.push(AttributeValueAction.bind(aMeta));
           }
         } else {
           if (includes(links, name)) {
@@ -407,7 +441,7 @@ var disconnectingEvent = new Event("disconnecting");
 
 // src/component.ts
 var changeSymbol = Symbol("change");
-var _isCreatingOrCreated, _context, _root, _actions, _expressions, _changeNext, _c, _change, change_fn, _setup, setup_fn;
+var _isCreatingOrCreated, _context, _root, _marker, _actions, _expressions, _changeNext, _c, _change, change_fn, _setup, setup_fn;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
@@ -417,6 +451,7 @@ var Component = class extends HTMLElement {
     __privateAdd(this, _isCreatingOrCreated, false);
     __privateAdd(this, _context, {});
     __privateAdd(this, _root, void 0);
+    __privateAdd(this, _marker, "");
     __privateAdd(this, _actions, []);
     __privateAdd(this, _expressions, []);
     __privateAdd(this, _changeNext, void 0);
@@ -485,6 +520,7 @@ _c = changeSymbol;
 _isCreatingOrCreated = new WeakMap();
 _context = new WeakMap();
 _root = new WeakMap();
+_marker = new WeakMap();
 _actions = new WeakMap();
 _expressions = new WeakMap();
 _changeNext = new WeakMap();
@@ -499,7 +535,11 @@ change_fn = function() {
         for (let index = 0; index < __privateGet(this, _actions).length; index++) {
           const newExpression = template.expressions[index];
           const oldExpression = __privateGet(this, _expressions)[index];
-          __privateGet(this, _actions)[index](oldExpression, newExpression);
+          try {
+            __privateGet(this, _actions)[index](oldExpression, newExpression);
+          } catch (error) {
+            console.error(error);
+          }
           __privateGet(this, _expressions)[index] = template.expressions[index];
         }
       }
@@ -560,11 +600,16 @@ setup_fn = function() {
     const template = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
     if (template) {
       const fragment = template.template.content.cloneNode(true);
+      __privateSet(this, _marker, template.marker);
       __privateSet(this, _expressions, template.expressions);
-      render_default(fragment, __privateGet(this, _actions));
+      render_default(fragment, __privateGet(this, _actions), __privateGet(this, _marker));
       for (let index = 0; index < __privateGet(this, _actions).length; index++) {
         const newExpression = template.expressions[index];
-        __privateGet(this, _actions)[index](void 0, newExpression);
+        try {
+          __privateGet(this, _actions)[index](void 0, newExpression);
+        } catch (error) {
+          console.error(error);
+        }
       }
       document.adoptNode(fragment);
       __privateGet(this, _root).appendChild(fragment);

@@ -8,6 +8,7 @@ export type HTML = {
     strings: TemplateStringsArray,
     template: HTMLTemplateElement,
     expressions: Expressions,
+    marker: string,
     symbol: symbol,
 };
 

@@ -4,6 +4,7 @@ class performance extends component {
 
     items = [ 1, 2 ];
     count = 100000;
+    tag = 'strong';
 
     oninput(e) {
         this.count = e?.target?.valueAsNumber;
@@ -36,12 +37,26 @@ class performance extends component {
 
     render = () => html`
         <h2>Count: ${this.count.toLocaleString()}</h2>
-        <input type="number" oninput=${this.oninput} value=${this.count}>
+        <input type="number" oninput=${this.oninput} value=${this.count} />
         <button onclick=${this.overwrite}>overwrite</button>
         <button onclick=${this.increment}>increment</button>
         <div>
         ${this.items.map(item => html`<div class="box">${item}</div>`)}
         </div>
+
+        ${'one'}
+
+        <${this.tag} foo="test" onclick=${() => console.log(this.tag = 'div')} >
+            ${this.count}
+        </${this.tag}>
+
+        ${'two'}
+
+        ${'three'}
+
+        <strong>four</strong>
+
+        ${'five'}
     `
 
 }

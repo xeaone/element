@@ -27,13 +27,17 @@ class LitTest extends LitElement {
     }
 
     render() {
-        return html`
+        const t = html`
             <link rel="stylesheet" href="./index.css">
             <h2>Count: ${this.count.toLocaleString()}</h2>
             <input type="number" @input=${this.oninput} value=${this.count}>
             <button @click=${this.overwrite}>overwrite</button>
             <div>${this.items.map(item => html`<div class="box">${item}</div>`)}</div>
         `;
+
+        console.log(t);
+
+        return t;
     }
 }
 
