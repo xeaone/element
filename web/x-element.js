@@ -138,7 +138,11 @@ var filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 var links = ["src", "href", "xlink:href"];
 var safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 var dangerousLink = function(data) {
-  return typeof data !== "string" || !safePattern.test(data);
+  if (data === "")
+    return false;
+  if (typeof data !== "string")
+    return false;
+  return safePattern.test(data) ? false : true;
 };
 var removeBetween = function(start, end) {
   var _a;
@@ -235,6 +239,8 @@ var AttributeNameAction = function(source, target) {
   if (source === target && this.previous === this.element)
     return;
   this.previous = this.element;
+  this.previousName = source;
+  Reflect.set(this.element, source, void 0);
   this.element.removeAttribute(source);
   this.name = target == null ? void 0 : target.toLowerCase();
   if (this.name) {
@@ -242,22 +248,32 @@ var AttributeNameAction = function(source, target) {
   }
 };
 var AttributeValueAction = function(source, target) {
+  var _a;
   if (source === target && this.previous === this.element)
     return;
   this.previous = this.element;
   if (this.name === "value") {
     this.value = display(target);
+    if (!this.name)
+      return;
     Reflect.set(this.element, this.name, this.value);
     this.element.setAttribute(this.name, this.value);
   } else if (this.name.startsWith("on")) {
-    if (typeof source === "function")
+    if (typeof source === "function") {
       this.element.removeEventListener(this.name.slice(2), source);
+      if (this.previousName)
+        this.element.removeEventListener((_a = this.previousName) == null ? void 0 : _a.slice(2), source);
+    }
     this.value = target;
     if (typeof this.value !== "function")
       return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+    if (!this.name)
+      return;
     this.element.addEventListener(this.name.slice(2), this.value);
   } else if (includes(links, this.name)) {
     this.value = encodeURI(target);
+    if (!this.name)
+      return;
     if (dangerousLink(this.value)) {
       this.element.removeAttribute(this.name);
       console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
@@ -267,10 +283,10 @@ var AttributeValueAction = function(source, target) {
     this.element.setAttribute(this.name, this.value);
   } else {
     this.value = target;
-    if (this.name) {
-      Reflect.set(this.element, this.name, this.value);
-      this.element.setAttribute(this.name, this.value);
-    }
+    if (!this.name)
+      return;
+    Reflect.set(this.element, this.name, this.value);
+    this.element.setAttribute(this.name, this.value);
   }
 };
 var TagAction = function(source, target) {
