@@ -35,7 +35,7 @@ export default class root extends component  {
     <section>
 
         <h2>Vision</h2>
-        <h4>Provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.</h4>
+        <h4>Provide a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.</h4>
 
         <div class="tiles">
             <div class="tile">
@@ -44,26 +44,26 @@ export default class root extends component  {
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">magic_exchange</span> Agnostic</h4>
-                <span>Use XElement with any framework or library - React, Vue, Angular...</span>
+                <span>Use XElement with any framework or library - Lit, Vue, React, Angular...</span>
             </div>
             <div class="tile">
-                <h4><span class="material-symbols-rounded">explore</span> Routing</h4>
+                <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
+                <span>Efficient two way reactive databinding by default.</span>
+            </div>
+            <div class="tile">
+                <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
+                <span>Rendering is blazing fast, because XElement only interacts with the dynamic DOM Nodes.</span>
+            </div>
+            <div class="tile">
+                <h4><span class="material-symbols-rounded">deployed_code</span> Small</h4>
+                <span>~(15)KB minified.</span>
+            </div>
+            <div class="tile">
+                <h4><span class="material-symbols-rounded">explore</span> Router</h4>
                 <span>
                     Client side routing using the new
                     <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
                 </span>
-            </div>
-            <div class="tile">
-                <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
-                <span>Efficient two way reactive databing by default.</span>
-            </div>
-            <div class="tile">
-                <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
-                <span>Rendering is blazing fast, because XElement only interacts with the dynamic DOM elemens of the UI.</span>
-            </div>
-            <div class="tile">
-                <h4><span class="material-symbols-rounded">deployed_code</span> Small</h4>
-                <span>Tiny footprint ~()KB (minified and compressed).</span>
             </div>
         </div>
 

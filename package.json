@@ -8,8 +8,7 @@
         "./x-poly.js": "./pro/x-poly.js",
         "./x-element.js": "./pro/x-element.js"
     },
-    "scripts": {
-    },
+    "scripts": {},
     "repository": {
         "type": "git",
         "url": "git+https://github.com/xeaone/element.git"
@@ -27,5 +26,5 @@
         "pro": "pro",
         "src": "src"
     },
-    "version": "7.3.12"
+    "version": "8.0.0"
 }
