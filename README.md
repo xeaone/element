@@ -1,23 +1,25 @@
-![check workflow](https://github.com/xeaone/element/actions/workflows/check.yml/badge.svg)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/xeaone/element.svg?logo=lgtm&logoWidth=20)](https://lgtm.com/projects/g/xeaone/element/alerts/)
-[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/xeaone/element.svg?logo=lgtm&logoWidth=20)](https://lgtm.com/projects/g/xeaone/element/context:javascript)
+<!-- ![check workflow](https://github.com/xeaone/element/actions/workflows/check.yml/badge.svg) -->
+
 
 # X-Element
 
-### X-Element's vision is to provide an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards.
+## Vision
+### Provide a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.
 
 
 ## Features
 
-- &#128118; Simple to learn if you know custom elements you know X-Element.
+- &#128118; **Simple** If you know HTML, JS, and Template Literals then you know how to use X-Element
 
-- &#128230; Shareable A single class to build a single component or an entire app.
+- &#9981; **Agnostic** Use XElement with any framework or library - Lit, Vue, React, Angular.
 
-- &#9889; Fast Tiny footprint ~15KB (minified and compressed).
+- &#9883; **Reactive** Efficient two way reactive databinding by default.
 
-- &#127959; Framework Agnostic Use X-Element with any framework - React, Vue, Angular...
+- &#9889; **Fast** Rendering is blazing fast, because XElement only interacts with the dynamic DOM Nodes.
 
-- &#129517; Client Side Routing using the new [Navigation API](https://developer.chrome.com/docs/web-platform/navigation-api/)
+- &#128230; **Small** ~(15)KB minified.
+
+- &#129517; **Router** Client side routing using the new [Navigation API](https://developer.chrome.com/docs/web-platform/navigation-api/)
 
 
 ## Learn
@@ -26,38 +28,28 @@
 
 ## Example
 ```js
-import XElement from '/x-element.js';
+import { component, html } from '/x-element.js';
 
-MyElement extends XElement {
+export default class greet extends component {
 
-    greeting = '';
-    greet () { this.greeting = 'Greeting'; }
+    greeting = 'Default Greeting';
+    greet = () => this.greeting = 'Updated Greeting';
 
-    constructor () {
-        super();
-        this.greeting = 'Hello World';
-        this.shadowRoot.innerHTML = `
-            <h1>{{title}}</h1>
-            <button onclick="{{greet()}}">Greet</button>;
-        `;
-    }
+    render = () => html`
+        <h1>this.greeting</h1>
+        <button onclick=${this.greet}>Greet</button>
+    `;
 
 }
-
-MyElement.define();
 ```
 
 
 ## Use
 [https://esm.sh/@xeaone/element](https://esm.sh/@xeaone/element)
 
-[https://cdn.jsdelivr.net/gh/xeaone/element/pro/index.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/index.js)
-
-[https://cdn.jsdelivr.net/npm/@xeaone/element/pro/index.js/+esm](https://cdn.jsdelivr.net/npm/@xeaone/element/pro/index.js/+esm)
+[https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js)
 
 [https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)
-
-Originally called Oxe and still available on the [oxe branch](https://github.com/xeaone/element/tree/oxe)
 
 
 ## Author

@@ -73,7 +73,7 @@ export default class guide extends component {
 
     dynamicComponent = () => html`
         <${this.tag}>Hello World</${this.tag}>
-        <${'input'} value=${this.tag} onchange=${e => this.tag = e.target.value}></${'input'}>
+        <${'input'} value=${this.tag} oninput=${e => this.tag = e.target.value}></${'input'}>
     `;
     dynamicCode = highlight(this.dynamicComponent.toString());
 

@@ -1,13 +1,11 @@
 {
     "name": "@xeaone/element",
     "type": "module",
-    "description": "X-Element an agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element standards",
-    "browser": "./pro/index.js",
-    "module": "./pro/index.js",
+    "description": "X-Element a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.",
+    "browser": "./pro/x-element.js",
+    "module": "./pro/x-element.js",
     "exports": {
-        ".": "./pro/index.js",
         "./x-poly.js": "./pro/x-poly.js",
-        "./x-router.js": "./pro/x-router.js",
         "./x-element.js": "./pro/x-element.js"
     },
     "scripts": {

@@ -3,16 +3,16 @@ import { copy, emptyDir } from 'https://deno.land/std@0.152.0/fs/mod.ts';
 import * as esbuild from "https://deno.land/x/esbuild@v0.17.10/mod.js";
 
 const { run, readTextFile, writeTextFile, args } = Deno;
-const [release] = args;
+const [ release ] = args;
 if (!release) {
-    console.warn( 'requires: pre, major, premajor, minor, preminor, patch, prepatch, prerelease', );
+    console.warn('requires: pre, major, premajor, minor, preminor, patch, prepatch, prerelease',);
     Deno.exit();
 }
 
-const f = await run({ cmd: ['git', 'fetch'] }).status();
+const f = await run({ cmd: [ 'git', 'fetch' ] }).status();
 if (!f.success) throw new Error('git auth');
 
-const n = await run({ cmd: ['npm', 'whoami'] }).status();
+const n = await run({ cmd: [ 'npm', 'whoami' ] }).status();
 if (!n.success) throw new Error('npm auth');
 
 const pkg = JSON.parse(await readTextFile('package.json'));
@@ -84,7 +84,7 @@ await Promise.all([
 
 esbuild.stop();
 
-// await writeTextFile('package.json', JSON.stringify(pkg, null, '    '));
+await writeTextFile('package.json', JSON.stringify(pkg, null, '    '));
 
 await copy('web/index.html', 'web/404.html', { overwrite: true });
 await copy('web/index.html', 'web/guide/index.html', { overwrite: true });
@@ -93,9 +93,9 @@ await copy('web/index.html', 'web/security/index.html', { overwrite: true });
 await emptyDir('docs/');
 await copy('web', 'docs', { overwrite: true });
 
-// await run({ cmd: ['git', 'commit', '-a', '-m', version] }).status();
-// await run({ cmd: ['git', 'push'] }).status();
-// await run({ cmd: ['git', 'tag', version] }).status();
-// await run({ cmd: ['git', 'push', '--tag'] }).status();
+await run({ cmd: [ 'git', 'commit', '-a', '-m', version ] }).status();
+await run({ cmd: [ 'git', 'push' ] }).status();
+await run({ cmd: [ 'git', 'tag', version ] }).status();
+await run({ cmd: [ 'git', 'push', '--tag' ] }).status();
 
-// await run({ cmd: ['npm', 'publish', '--access', 'public'] }).status();
+await run({ cmd: [ 'npm', 'publish', '--access', 'public' ] }).status();
