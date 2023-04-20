@@ -3,8 +3,7 @@
 
 # X-Element
 
-## Vision
-### Provide a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.
+### A zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.
 
 
 ## Features
