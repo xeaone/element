@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.0.0
+Version: 8.1.0
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -153,7 +153,7 @@ var removeBetween = function(start, end) {
   }
 };
 var ElementAction = function(source, target) {
-  var _a, _b, _c2, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+  var _a, _b, _c2, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
   if ((target == null ? void 0 : target.symbol) === symbol) {
     source = source != null ? source : {};
     target = target != null ? target : {};
@@ -163,6 +163,7 @@ var ElementAction = function(source, target) {
         this.actions[i](source.expressions[i], target.expressions[i]);
       }
     } else {
+      this.actions.length = 0;
       const fragment = target.template.content.cloneNode(true);
       Render(fragment, this.actions, target.marker);
       const l = this.actions.length;
@@ -216,21 +217,23 @@ var ElementAction = function(source, target) {
   } else {
     if (source === target)
       return;
-    while (this.end.previousSibling !== this.start) {
-      (_i = this.end.parentNode) == null ? void 0 : _i.removeChild(this.end.previousSibling);
+    if (typeof source !== typeof target) {
+      while (this.end.previousSibling !== this.start) {
+        (_i = this.end.parentNode) == null ? void 0 : _i.removeChild(this.end.previousSibling);
+      }
     }
     let node;
     if (this.end.previousSibling === this.start) {
       node = document.createTextNode(target);
       (_j = this.end.parentNode) == null ? void 0 : _j.insertBefore(node, this.end);
     } else {
-      if (this.end.previousSibling.nodeType === Node.TEXT_NODE) {
+      if (((_k = this.end.previousSibling) == null ? void 0 : _k.nodeType) === Node.TEXT_NODE) {
         node = this.end.previousSibling;
         node.textContent = target;
       } else {
         node = document.createTextNode(target);
-        (_k = this.end.parentNode) == null ? void 0 : _k.removeChild(this.end.previousSibling);
-        (_l = this.end.parentNode) == null ? void 0 : _l.insertBefore(node, this.end);
+        (_l = this.end.parentNode) == null ? void 0 : _l.removeChild(this.end.previousSibling);
+        (_m = this.end.parentNode) == null ? void 0 : _m.insertBefore(node, this.end);
       }
     }
   }
@@ -290,23 +293,31 @@ var AttributeValueAction = function(source, target) {
   }
 };
 var TagAction = function(source, target) {
-  var _a, _b;
+  var _a, _b, _c2, _d;
   if (source === target)
     return;
   const oldElement = this.element;
-  const newElement = document.createElement(target);
-  while (oldElement.firstChild)
-    newElement.appendChild(oldElement.firstChild);
-  const attributeNames = oldElement.getAttributeNames();
-  for (const attributeName of attributeNames) {
-    const attributeValue = (_a = oldElement.getAttribute(attributeName)) != null ? _a : "";
-    newElement.setAttribute(attributeName, attributeValue);
+  if (target) {
+    (_a = oldElement.parentNode) == null ? void 0 : _a.removeChild(oldElement);
+    const newElement = document.createElement(target);
+    while (oldElement.firstChild)
+      newElement.appendChild(oldElement.firstChild);
+    if (oldElement.nodeType === Node.ELEMENT_NODE) {
+      const attributeNames = oldElement.getAttributeNames();
+      for (const attributeName of attributeNames) {
+        const attributeValue = (_b = oldElement.getAttribute(attributeName)) != null ? _b : "";
+        newElement.setAttribute(attributeName, attributeValue);
+      }
+    }
+    (_c2 = this.holder.parentNode) == null ? void 0 : _c2.insertBefore(newElement, this.holder);
+    this.element = newElement;
+  } else {
+    (_d = oldElement.parentNode) == null ? void 0 : _d.removeChild(oldElement);
+    this.element = oldElement;
   }
-  (_b = oldElement.parentNode) == null ? void 0 : _b.replaceChild(newElement, oldElement);
-  this.element = newElement;
 };
 var Render = function(fragment, actions, marker) {
-  var _a, _b, _c2, _d, _e;
+  var _a, _b, _c2, _d, _e, _f;
   const holders = /* @__PURE__ */ new WeakSet();
   const walker = document.createTreeWalker(document, filter, null);
   walker.currentNode = fragment;
@@ -337,14 +348,18 @@ var Render = function(fragment, actions, marker) {
       if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
         walker.nextSibling();
       }
-      const tMeta = { element: node };
+      const tMeta = {
+        element: node
+      };
       if (node.nodeName === marker) {
         holders.add(node);
+        tMeta.holder = document.createTextNode("");
+        (_e = node.parentNode) == null ? void 0 : _e.insertBefore(tMeta.holder, node);
         actions.push(TagAction.bind(tMeta));
       }
       const names = node.getAttributeNames();
       for (const name of names) {
-        const value = (_e = node.getAttribute(name)) != null ? _e : "";
+        const value = (_f = node.getAttribute(name)) != null ? _f : "";
         const dynamicName = name.toUpperCase().includes(marker);
         const dynamicValue = value.includes(marker);
         if (dynamicName || dynamicValue) {
@@ -456,8 +471,9 @@ var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
 
 // src/component.ts
+var next = Promise.resolve();
 var changeSymbol = Symbol("change");
-var _isCreatingOrCreated, _context, _root, _marker, _actions, _expressions, _changeNext, _c, _change, change_fn, _setup, setup_fn;
+var _isCreatingOrCreated, _context, _root, _marker, _actions, _expressions, _changeBusy, _changeRestart, _c, _change, change_fn, _setup, setup_fn;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
@@ -470,8 +486,9 @@ var Component = class extends HTMLElement {
     __privateAdd(this, _marker, "");
     __privateAdd(this, _actions, []);
     __privateAdd(this, _expressions, []);
-    __privateAdd(this, _changeNext, void 0);
-    this[_c] = void 0;
+    __privateAdd(this, _changeBusy, false);
+    __privateAdd(this, _changeRestart, false);
+    this[_c] = Promise.resolve();
     const constructor = this.constructor;
     const shadow = constructor.shadow;
     if (shadow && !this.shadowRoot) {
@@ -515,8 +532,8 @@ var Component = class extends HTMLElement {
       var _a, _b;
       if (!__privateGet(this, _isCreatingOrCreated)) {
         __privateSet(this, _isCreatingOrCreated, true);
-        this[changeSymbol] = __privateMethod(this, _setup, setup_fn).call(this);
-        yield this[changeSymbol];
+        __privateSet(this, _changeBusy, true);
+        yield __privateMethod(this, _setup, setup_fn).call(this);
       }
       this.dispatchEvent(connectingEvent);
       yield (_b = (_a = this.connected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
@@ -539,16 +556,26 @@ _root = new WeakMap();
 _marker = new WeakMap();
 _actions = new WeakMap();
 _expressions = new WeakMap();
-_changeNext = new WeakMap();
+_changeBusy = new WeakMap();
+_changeRestart = new WeakMap();
 _change = new WeakSet();
 change_fn = function() {
   return __async(this, null, function* () {
+    if (__privateGet(this, _changeBusy)) {
+      __privateSet(this, _changeRestart, true);
+      return;
+    }
+    __privateSet(this, _changeBusy, true);
     const change = () => __async(this, null, function* () {
-      var _a, _b, _c2;
+      var _a, _b;
       this.dispatchEvent(renderingEvent);
       const template = yield (_a = this.render) == null ? void 0 : _a.call(this, __privateGet(this, _context));
       if (template) {
         for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+          if (__privateGet(this, _changeRestart)) {
+            index = 0;
+            __privateSet(this, _changeRestart, false);
+          }
           const newExpression = template.expressions[index];
           const oldExpression = __privateGet(this, _expressions)[index];
           try {
@@ -559,23 +586,18 @@ change_fn = function() {
           __privateGet(this, _expressions)[index] = template.expressions[index];
         }
       }
+      __privateSet(this, _changeBusy, false);
+      this[changeSymbol] = next;
       yield (_b = this.rendered) == null ? void 0 : _b.call(this, __privateGet(this, _context));
       this.dispatchEvent(renderedEvent);
-      this[changeSymbol] = (_c2 = __privateGet(this, _changeNext)) == null ? void 0 : _c2.call(this);
-      __privateSet(this, _changeNext, void 0);
-      yield this[changeSymbol];
     });
-    if (this[changeSymbol]) {
-      __privateSet(this, _changeNext, change);
-    } else {
-      this[changeSymbol] = change();
-    }
+    this[changeSymbol].then(change);
   });
 };
 _setup = new WeakSet();
 setup_fn = function() {
   return __async(this, null, function* () {
-    var _a, _b, _c2, _d, _e;
+    var _a, _b, _c2, _d;
     const constructor = this.constructor;
     const observedProperties = constructor.observedProperties;
     const prototype = Object.getPrototypeOf(this);
@@ -632,11 +654,11 @@ setup_fn = function() {
     }
     yield (_c2 = this.rendered) == null ? void 0 : _c2.call(this, __privateGet(this, _context));
     this.dispatchEvent(renderedEvent);
-    this[changeSymbol] = (_d = __privateGet(this, _changeNext)) == null ? void 0 : _d.call(this);
-    __privateSet(this, _changeNext, void 0);
-    yield this[changeSymbol];
+    __privateSet(this, _changeRestart, false);
+    __privateSet(this, _changeBusy, false);
+    yield __privateMethod(this, _change, change_fn).call(this);
     this.dispatchEvent(creatingEvent);
-    yield (_e = this.created) == null ? void 0 : _e.call(this, __privateGet(this, _context));
+    yield (_d = this.created) == null ? void 0 : _d.call(this, __privateGet(this, _context));
     this.dispatchEvent(createdEvent);
   });
 };
