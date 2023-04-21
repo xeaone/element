@@ -41,6 +41,7 @@ const ElementAction = function (this: {
             }
 
         } else {
+            this.actions.length = 0;
             const fragment = target.template.content.cloneNode(true);
             Render(fragment, this.actions, target.marker);
 
@@ -109,8 +110,10 @@ const ElementAction = function (this: {
     } else {
         if (source === target) return;
 
-        while (this.end.previousSibling !== this.start) {
-            this.end.parentNode?.removeChild(this.end.previousSibling as ChildNode);
+        if (typeof source !== typeof target) {
+            while (this.end.previousSibling !== this.start) {
+                this.end.parentNode?.removeChild(this.end.previousSibling as ChildNode);
+            }
         }
 
         let node;
@@ -118,7 +121,7 @@ const ElementAction = function (this: {
             node = document.createTextNode(target);
             this.end.parentNode?.insertBefore(node, this.end);
         } else {
-            if (this.end.previousSibling.nodeType === Node.TEXT_NODE) {
+            if (this.end.previousSibling?.nodeType === Node.TEXT_NODE) {
                 node = this.end.previousSibling;
                 node.textContent = target;
             } else {
@@ -213,23 +216,33 @@ const AttributeValueAction = function (this: {
 
 const TagAction = function (this: {
     element: Element,
+    holder: Text,
 }, source: any, target: any) {
     if (source === target) return;
 
     const oldElement = this.element;
-    const newElement = document.createElement(target) as Element;
 
-    while (oldElement.firstChild) newElement.appendChild(oldElement.firstChild);
+    if (target) {
+        oldElement.parentNode?.removeChild(oldElement);
 
-    const attributeNames = oldElement.getAttributeNames();
-    for (const attributeName of attributeNames) {
-        const attributeValue = oldElement.getAttribute(attributeName) ?? '';
-        newElement.setAttribute(attributeName, attributeValue);
+        const newElement = document.createElement(target) as Element;
+
+        while (oldElement.firstChild) newElement.appendChild(oldElement.firstChild);
+
+        if (oldElement.nodeType === Node.ELEMENT_NODE) {
+            const attributeNames = (oldElement as Element).getAttributeNames();
+            for (const attributeName of attributeNames) {
+                const attributeValue = (oldElement as Element).getAttribute(attributeName) ?? '';
+                newElement.setAttribute(attributeName, attributeValue);
+            }
+        }
+
+        this.holder.parentNode?.insertBefore(newElement, this.holder);
+        this.element = newElement;
+    } else {
+        oldElement.parentNode?.removeChild(oldElement);
+        this.element = oldElement;
     }
-
-    oldElement.parentNode?.replaceChild(newElement, oldElement);
-
-    this.element = newElement;
 
 };
 
@@ -276,10 +289,14 @@ export const Render = function (fragment: DocumentFragment, actions: Actions, ma
                 walker.nextSibling();
             }
 
-            const tMeta = { element: node as Element };
+            const tMeta: any = {
+                element: node as Element,
+            };
 
             if (node.nodeName === marker) {
                 holders.add(node);
+                tMeta.holder = document.createTextNode('');
+                node.parentNode?.insertBefore(tMeta.holder, node);
                 actions.push(TagAction.bind(tMeta));
             }
 
