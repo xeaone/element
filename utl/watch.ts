@@ -1,4 +1,4 @@
-import * as esbuild from "https://deno.land/x/esbuild@v0.17.10/mod.js";
+import * as esbuild from 'https://deno.land/x/esbuild@v0.17.17/mod.js';
 
 const indexhtml = await Deno.readTextFile('./web/index.html');
 await Deno.writeTextFile('./web/404.html', indexhtml);
@@ -10,12 +10,11 @@ const result = await esbuild.context({
     logLevel: 'debug',
     bundle: true,
     format: 'esm',
-    target: 'esnext',
-    // target: 'es2015',
+    target: 'es2015',
     sourcemap: true,
     treeShaking: true,
     platform: 'browser',
-    tsconfig: 'tsconfig.json',
+    // tsconfig: 'tsconfig.json',
     outfile: 'web/x-element.js',
     entryPoints: [ 'src/index.ts' ],
 });
