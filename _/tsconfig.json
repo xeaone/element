@@ -13,6 +13,6 @@
         "outDir": "./tmp/"
 
     },
-    "include": [ "./src/*", "src/_/booleans.ts" ],
+    "include": [ "./src/*" ],
     "files": [ "./src/index.ts" ]
 }
