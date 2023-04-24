@@ -5,6 +5,7 @@
     "browser": "./pro/x-element.js",
     "module": "./pro/x-element.js",
     "exports": {
+        "./index.ts": "./src/index.ts",
         "./x-poly.js": "./pro/x-poly.js",
         "./x-element.js": "./pro/x-element.js"
     },
@@ -26,5 +27,5 @@
         "pro": "pro",
         "src": "src"
     },
-    "version": "8.1.0"
+    "version": "8.1.1"
 }

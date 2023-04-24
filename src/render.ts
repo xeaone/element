@@ -136,7 +136,6 @@ const ElementAction = function (this: {
 };
 
 const AttributeNameAction = function (this: {
-    previousName?: string,
     previous?: Element,
     element: Element,
     name: string,
@@ -146,7 +145,9 @@ const AttributeNameAction = function (this: {
 
     this.previous = this.element;
 
-    this.previousName = source;
+    if (source?.startsWith('on') && typeof this.value === 'function') {
+        this.element.removeEventListener(source.slice(2), this.value);
+    }
 
     Reflect.set(this.element, source, undefined);
     this.element.removeAttribute(source);
@@ -159,7 +160,6 @@ const AttributeNameAction = function (this: {
 };
 
 const AttributeValueAction = function (this: {
-    previousName?: string,
     previous?: Element;
     element: Element,
     name: string,
@@ -179,16 +179,15 @@ const AttributeValueAction = function (this: {
     } else if (
         this.name.startsWith('on')
     ) {
+        if (source?.toString() === target?.toString()) return;
+        if (!this.name) return;
 
-        if (typeof source === 'function') {
-            this.element.removeEventListener(this.name.slice(2), source);
-            if (this.previousName) this.element.removeEventListener(this.previousName?.slice(2), source);
+        if (typeof this.value === 'function') {
+            this.element.removeEventListener(this.name.slice(2), this.value);
         }
 
         this.value = target;
         if (typeof this.value !== 'function') return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
-
-        if (!this.name) return;
 
         this.element.addEventListener(this.name.slice(2), this.value);
     } else if (

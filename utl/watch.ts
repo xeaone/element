@@ -22,6 +22,16 @@ const result = await esbuild.context({
 await result.watch();
 await result.serve({ servedir: 'web' });
 
+
+
+// const watcher = Deno.watchFs('web/x-element.js');
+// for await (const _ of watcher) {
+//     await Deno.copyFile('web/x-element.js', '../guide/src/deps/x-element.js');
+//     await Deno.copyFile('web/x-element.js.map', '../guide/src/deps/x-element.js.map');
+// }
+
+
+
 // import { Server, Cors, File, Handler, Normalize, Router } from "https://deno.land/x/xserver@2.5.0/src/mod.ts";
 // const port = 8000;
 // const file = new File();

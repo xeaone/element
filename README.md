@@ -44,7 +44,8 @@ export default class greet extends component {
 
 
 ## Use
-[https://esm.sh/@xeaone/element](https://esm.sh/@xeaone/element)
+<!-- [https://esm.sh/@xeaone/element](https://esm.sh/@xeaone/element) -->
+[https://esm.sh/@xeaone/element@8.1.0/x-element.js](https://esm.sh/@xeaone/element@8.1.0/x-element.js)
 
 [https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js)
 

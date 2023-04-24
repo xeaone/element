@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.1.0
+Version: 8.1.1
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -242,7 +242,9 @@ var AttributeNameAction = function(source, target) {
   if (source === target && this.previous === this.element)
     return;
   this.previous = this.element;
-  this.previousName = source;
+  if ((source == null ? void 0 : source.startsWith("on")) && typeof this.value === "function") {
+    this.element.removeEventListener(source.slice(2), this.value);
+  }
   Reflect.set(this.element, source, void 0);
   this.element.removeAttribute(source);
   this.name = target == null ? void 0 : target.toLowerCase();
@@ -251,7 +253,6 @@ var AttributeNameAction = function(source, target) {
   }
 };
 var AttributeValueAction = function(source, target) {
-  var _a;
   if (source === target && this.previous === this.element)
     return;
   this.previous = this.element;
@@ -262,16 +263,16 @@ var AttributeValueAction = function(source, target) {
     Reflect.set(this.element, this.name, this.value);
     this.element.setAttribute(this.name, this.value);
   } else if (this.name.startsWith("on")) {
-    if (typeof source === "function") {
-      this.element.removeEventListener(this.name.slice(2), source);
-      if (this.previousName)
-        this.element.removeEventListener((_a = this.previousName) == null ? void 0 : _a.slice(2), source);
+    if ((source == null ? void 0 : source.toString()) === (target == null ? void 0 : target.toString()))
+      return;
+    if (!this.name)
+      return;
+    if (typeof this.value === "function") {
+      this.element.removeEventListener(this.name.slice(2), this.value);
     }
     this.value = target;
     if (typeof this.value !== "function")
       return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
-    if (!this.name)
-      return;
     this.element.addEventListener(this.name.slice(2), this.value);
   } else if (includes(links, this.name)) {
     this.value = encodeURI(target);
