@@ -1,13 +1,3 @@
-/************************************************************************
-Name: XElement
-Version: 8.1.1
-License: MPL-2.0
-Author: Alexander Elias
-Email: alex.steven.elis@gmail.com
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-************************************************************************/
 var __accessCheck = (obj, member, msg) => {
   if (!member.has(obj))
     throw TypeError("Cannot " + msg);
@@ -239,9 +229,8 @@ var ElementAction = function(source, target) {
   }
 };
 var AttributeNameAction = function(source, target) {
-  if (source === target && this.previous === this.element)
+  if (source === target)
     return;
-  this.previous = this.element;
   if ((source == null ? void 0 : source.startsWith("on")) && typeof this.value === "function") {
     this.element.removeEventListener(source.slice(2), this.value);
   }
@@ -253,9 +242,8 @@ var AttributeNameAction = function(source, target) {
   }
 };
 var AttributeValueAction = function(source, target) {
-  if (source === target && this.previous === this.element)
+  if (source === target)
     return;
-  this.previous = this.element;
   if (this.name === "value") {
     this.value = display(target);
     if (!this.name)
@@ -263,17 +251,15 @@ var AttributeValueAction = function(source, target) {
     Reflect.set(this.element, this.name, this.value);
     this.element.setAttribute(this.name, this.value);
   } else if (this.name.startsWith("on")) {
-    if ((source == null ? void 0 : source.toString()) === (target == null ? void 0 : target.toString()))
-      return;
     if (!this.name)
       return;
     if (typeof this.value === "function") {
-      this.element.removeEventListener(this.name.slice(2), this.value);
+      this.element.removeEventListener(this.name.slice(2), this.value, true);
     }
     this.value = target;
     if (typeof this.value !== "function")
       return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
-    this.element.addEventListener(this.name.slice(2), this.value);
+    this.element.addEventListener(this.name.slice(2), this.value, true);
   } else if (includes(links, this.name)) {
     this.value = encodeURI(target);
     if (!this.name)
@@ -574,8 +560,11 @@ change_fn = function() {
       if (template) {
         for (let index = 0; index < __privateGet(this, _actions).length; index++) {
           if (__privateGet(this, _changeRestart)) {
-            index = 0;
+            console.log("change restart");
+            yield new Promise((resolve) => setTimeout(resolve, 60));
+            index = -1;
             __privateSet(this, _changeRestart, false);
+            continue;
           }
           const newExpression = template.expressions[index];
           const oldExpression = __privateGet(this, _expressions)[index];
@@ -588,11 +577,12 @@ change_fn = function() {
         }
       }
       __privateSet(this, _changeBusy, false);
-      this[changeSymbol] = next;
       yield (_b = this.rendered) == null ? void 0 : _b.call(this, __privateGet(this, _context));
       this.dispatchEvent(renderedEvent);
     });
-    this[changeSymbol].then(change);
+    setTimeout(() => {
+      this[changeSymbol] = this[changeSymbol].then(change);
+    }, 60);
   });
 };
 _setup = new WeakSet();
@@ -657,7 +647,8 @@ setup_fn = function() {
     this.dispatchEvent(renderedEvent);
     __privateSet(this, _changeRestart, false);
     __privateSet(this, _changeBusy, false);
-    yield __privateMethod(this, _change, change_fn).call(this);
+    __privateMethod(this, _change, change_fn).call(this);
+    yield this[changeSymbol];
     this.dispatchEvent(creatingEvent);
     yield (_d = this.created) == null ? void 0 : _d.call(this, __privateGet(this, _context));
     this.dispatchEvent(createdEvent);

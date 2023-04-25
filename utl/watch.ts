@@ -24,11 +24,11 @@ await result.serve({ servedir: 'web' });
 
 
 
-// const watcher = Deno.watchFs('web/x-element.js');
-// for await (const _ of watcher) {
-//     await Deno.copyFile('web/x-element.js', '../guide/src/deps/x-element.js');
-//     await Deno.copyFile('web/x-element.js.map', '../guide/src/deps/x-element.js.map');
-// }
+const watcher = Deno.watchFs('web/x-element.js');
+for await (const _ of watcher) {
+    await Deno.copyFile('web/x-element.js', '../guide/src/deps/x-element.js');
+    await Deno.copyFile('web/x-element.js.map', '../guide/src/deps/x-element.js.map');
+}
 
 
 

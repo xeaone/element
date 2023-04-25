@@ -125,6 +125,7 @@ export default class Component extends HTMLElement {
     }
 
     async #change () {
+
         if (this.#changeBusy) {
             this.#changeRestart = true;
             return;
@@ -140,8 +141,13 @@ export default class Component extends HTMLElement {
                 for (let index = 0; index < this.#actions.length; index++) {
 
                     if (this.#changeRestart) {
-                        index = 0;
+                        await new Promise(resolve => setTimeout(resolve, 60));
+                        // await new Promise(resolve => requestAnimationFrame(resolve));
+                        // await new Promise(resolve => requestIdleCallback(resolve));
+
+                        index = -1;
                         this.#changeRestart = false;
+                        continue;
                     }
 
                     const newExpression = template.expressions[ index ];
@@ -158,14 +164,19 @@ export default class Component extends HTMLElement {
             }
 
             this.#changeBusy = false;
-            this[ changeSymbol ] = next;
+            // console.log('change done');
 
             await this.rendered?.(this.#context);
             this.dispatchEvent(renderedEvent);
         };
 
-        this[ changeSymbol ].then(change);
-        // this[ changeSymbol ].then(() => setTimeout(change, 10));
+        // requestAnimationFrame(() => {
+        // requestIdleCallback(() => {
+        setTimeout(() => {
+            this[ changeSymbol ] = this[ changeSymbol ].then(change);
+        }, 60);
+        // });
+
     }
 
     async #setup () {
@@ -255,7 +266,8 @@ export default class Component extends HTMLElement {
 
         this.#changeRestart = false;
         this.#changeBusy = false;
-        await this.#change();
+        this.#change();
+        await this[ changeSymbol ];
 
         this.dispatchEvent(creatingEvent);
         await this.created?.(this.#context);
