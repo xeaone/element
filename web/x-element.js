@@ -1,3 +1,13 @@
+/************************************************************************
+Name: XElement
+Version: 8.1.2
+License: MPL-2.0
+Author: Alexander Elias
+Email: alex.steven.elis@gmail.com
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+************************************************************************/
 var __accessCheck = (obj, member, msg) => {
   if (!member.has(obj))
     throw TypeError("Cannot " + msg);
@@ -560,7 +570,6 @@ change_fn = function() {
       if (template) {
         for (let index = 0; index < __privateGet(this, _actions).length; index++) {
           if (__privateGet(this, _changeRestart)) {
-            console.log("change restart");
             yield new Promise((resolve) => setTimeout(resolve, 60));
             index = -1;
             __privateSet(this, _changeRestart, false);
