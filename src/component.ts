@@ -30,8 +30,8 @@ import {
     disconnectingEvent,
 } from './events';
 
-const next = Promise.resolve();
-const changeSymbol = Symbol('change');
+const changeTask = Symbol('ChangeTask');
+const changeRequest = Symbol('ChangeRequest');
 
 export default class Component extends HTMLElement {
 
@@ -47,7 +47,7 @@ export default class Component extends HTMLElement {
         tag = dash(tag);
         define(tag, this);
         const instance = document.createElement(tag);
-        await (instance as Component)[ changeSymbol ];
+        await (instance as Component)[ changeTask ];
         return instance;
     }
 
@@ -77,7 +77,7 @@ export default class Component extends HTMLElement {
 
     #changeBusy: boolean = false;
     #changeRestart: boolean = false;
-    [ changeSymbol ]: Promise<void> = Promise.resolve();
+    [ changeTask ]: Promise<void> = Promise.resolve();
 
     constructor () {
         super();
@@ -90,7 +90,7 @@ export default class Component extends HTMLElement {
         }
 
         this.#root = this.shadowRoot ?? this;
-        // this.[changeSymbol].then(() => this.#setup());
+        // this.[changeTask].then(() => this.#setup());
     }
 
     async attributeChangedCallback (name: string, oldValue: string, newValue: string) {
@@ -124,16 +124,19 @@ export default class Component extends HTMLElement {
         this.dispatchEvent(disconnectedEvent);
     }
 
-    async #change () {
+    async [ changeRequest ] () {
 
         if (this.#changeBusy) {
             this.#changeRestart = true;
-            return;
+            return this[ changeTask ];
         }
 
         this.#changeBusy = true;
 
-        const change = async () => {
+        this[ changeTask ] = this[ changeTask ].then(async () => {
+            // await new Promise((resolve) => {
+            // window.requestIdleCallback(async () => {
+
             this.dispatchEvent(renderingEvent);
             const template = await this.render?.(this.#context);
 
@@ -141,10 +144,7 @@ export default class Component extends HTMLElement {
                 for (let index = 0; index < this.#actions.length; index++) {
 
                     if (this.#changeRestart) {
-                        await new Promise(resolve => setTimeout(resolve, 60));
-                        // await new Promise(resolve => requestAnimationFrame(resolve));
-                        // await new Promise(resolve => requestIdleCallback(resolve));
-
+                        await Promise.resolve().then().catch(console.error);
                         index = -1;
                         this.#changeRestart = false;
                         continue;
@@ -164,19 +164,16 @@ export default class Component extends HTMLElement {
             }
 
             this.#changeBusy = false;
-            // console.log('change done');
 
             await this.rendered?.(this.#context);
             this.dispatchEvent(renderedEvent);
-        };
 
-        // requestAnimationFrame(() => {
-        // requestIdleCallback(() => {
-        setTimeout(() => {
-            this[ changeSymbol ] = this[ changeSymbol ].then(change);
-        }, 60);
-        // });
+            // resolve(undefined);
+            // });
+            // });
+        }).catch(console.error);
 
+        return this[ changeTask ];
     }
 
     async #setup () {
@@ -228,13 +225,13 @@ export default class Component extends HTMLElement {
                 },
                 set (value) {
                     (this.#context as Record<any, any>)[ property ] = value;
-                    this.#change();
+                    this[ changeRequest ]();
                 }
             });
 
         }
 
-        this.#context = context(this.#context, this.#change.bind(this));
+        this.#context = context(this.#context, this[ changeRequest ].bind(this));
 
         this.dispatchEvent(renderingEvent);
 
@@ -266,8 +263,7 @@ export default class Component extends HTMLElement {
 
         this.#changeRestart = false;
         this.#changeBusy = false;
-        this.#change();
-        await this[ changeSymbol ];
+        await this[ changeRequest ]();
 
         this.dispatchEvent(creatingEvent);
         await this.created?.(this.#context);

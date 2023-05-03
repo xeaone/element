@@ -29,17 +29,17 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
 
     const value = Reflect.get(target, key, receiver);
 
-    if (value?.constructor?.name === 'Object' || value?.constructor?.name === 'Array') {
+    if (typeof value == 'function') {
+        return new Proxy(value, {
+            apply: (t, _, a) => Reflect.apply(t, receiver, a)
+        });
+    }
+
+    if (typeof value == 'object') {
         return new Proxy(value, {
             get: ContextGet.bind(null, method),
             set: ContextSet.bind(null, method),
             deleteProperty: ContextDelete.bind(null, method),
-        });
-    }
-
-    if (value?.constructor?.name === 'Function' || value?.constructor?.name === 'AsyncFunction') {
-        return new Proxy(value, {
-            apply: (t, _, a) => Reflect.apply(t, receiver, a)
         });
     }
 

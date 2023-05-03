@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.1.2
+Version: 8.1.3
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -409,20 +409,19 @@ var ContextSet = function(method, target, key, value, receiver) {
   return true;
 };
 var ContextGet = function(method, target, key, receiver) {
-  var _a, _b, _c2, _d;
   if (typeof key === "symbol")
     return Reflect.get(target, key, receiver);
   const value = Reflect.get(target, key, receiver);
-  if (((_a = value == null ? void 0 : value.constructor) == null ? void 0 : _a.name) === "Object" || ((_b = value == null ? void 0 : value.constructor) == null ? void 0 : _b.name) === "Array") {
+  if (typeof value == "function") {
+    return new Proxy(value, {
+      apply: (t, _, a) => Reflect.apply(t, receiver, a)
+    });
+  }
+  if (typeof value == "object") {
     return new Proxy(value, {
       get: ContextGet.bind(null, method),
       set: ContextSet.bind(null, method),
       deleteProperty: ContextDelete.bind(null, method)
-    });
-  }
-  if (((_c2 = value == null ? void 0 : value.constructor) == null ? void 0 : _c2.name) === "Function" || ((_d = value == null ? void 0 : value.constructor) == null ? void 0 : _d.name) === "AsyncFunction") {
-    return new Proxy(value, {
-      apply: (t, _, a) => Reflect.apply(t, receiver, a)
     });
   }
   return value;
@@ -468,14 +467,13 @@ var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
 
 // src/component.ts
-var next = Promise.resolve();
-var changeSymbol = Symbol("change");
-var _isCreatingOrCreated, _context, _root, _marker, _actions, _expressions, _changeBusy, _changeRestart, _c, _change, change_fn, _setup, setup_fn;
+var changeTask = Symbol("ChangeTask");
+var changeRequest = Symbol("ChangeRequest");
+var _isCreatingOrCreated, _context, _root, _marker, _actions, _expressions, _changeBusy, _changeRestart, _c, _setup, setup_fn;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
     super();
-    __privateAdd(this, _change);
     __privateAdd(this, _setup);
     __privateAdd(this, _isCreatingOrCreated, false);
     __privateAdd(this, _context, {});
@@ -504,7 +502,7 @@ var Component = class extends HTMLElement {
       tag = dash(tag);
       define(tag, this);
       const instance = document.createElement(tag);
-      yield instance[changeSymbol];
+      yield instance[changeTask];
       return instance;
     });
   }
@@ -545,8 +543,43 @@ var Component = class extends HTMLElement {
       this.dispatchEvent(disconnectedEvent);
     });
   }
+  [(_c = changeTask, changeRequest)]() {
+    return __async(this, null, function* () {
+      if (__privateGet(this, _changeBusy)) {
+        __privateSet(this, _changeRestart, true);
+        return this[changeTask];
+      }
+      __privateSet(this, _changeBusy, true);
+      this[changeTask] = this[changeTask].then(() => __async(this, null, function* () {
+        var _a, _b;
+        this.dispatchEvent(renderingEvent);
+        const template = yield (_a = this.render) == null ? void 0 : _a.call(this, __privateGet(this, _context));
+        if (template) {
+          for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+            if (__privateGet(this, _changeRestart)) {
+              yield Promise.resolve().then().catch(console.error);
+              index = -1;
+              __privateSet(this, _changeRestart, false);
+              continue;
+            }
+            const newExpression = template.expressions[index];
+            const oldExpression = __privateGet(this, _expressions)[index];
+            try {
+              __privateGet(this, _actions)[index](oldExpression, newExpression);
+            } catch (error) {
+              console.error(error);
+            }
+            __privateGet(this, _expressions)[index] = template.expressions[index];
+          }
+        }
+        __privateSet(this, _changeBusy, false);
+        yield (_b = this.rendered) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+        this.dispatchEvent(renderedEvent);
+      })).catch(console.error);
+      return this[changeTask];
+    });
+  }
 };
-_c = changeSymbol;
 _isCreatingOrCreated = new WeakMap();
 _context = new WeakMap();
 _root = new WeakMap();
@@ -555,45 +588,6 @@ _actions = new WeakMap();
 _expressions = new WeakMap();
 _changeBusy = new WeakMap();
 _changeRestart = new WeakMap();
-_change = new WeakSet();
-change_fn = function() {
-  return __async(this, null, function* () {
-    if (__privateGet(this, _changeBusy)) {
-      __privateSet(this, _changeRestart, true);
-      return;
-    }
-    __privateSet(this, _changeBusy, true);
-    const change = () => __async(this, null, function* () {
-      var _a, _b;
-      this.dispatchEvent(renderingEvent);
-      const template = yield (_a = this.render) == null ? void 0 : _a.call(this, __privateGet(this, _context));
-      if (template) {
-        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
-          if (__privateGet(this, _changeRestart)) {
-            yield new Promise((resolve) => setTimeout(resolve, 60));
-            index = -1;
-            __privateSet(this, _changeRestart, false);
-            continue;
-          }
-          const newExpression = template.expressions[index];
-          const oldExpression = __privateGet(this, _expressions)[index];
-          try {
-            __privateGet(this, _actions)[index](oldExpression, newExpression);
-          } catch (error) {
-            console.error(error);
-          }
-          __privateGet(this, _expressions)[index] = template.expressions[index];
-        }
-      }
-      __privateSet(this, _changeBusy, false);
-      yield (_b = this.rendered) == null ? void 0 : _b.call(this, __privateGet(this, _context));
-      this.dispatchEvent(renderedEvent);
-    });
-    setTimeout(() => {
-      this[changeSymbol] = this[changeSymbol].then(change);
-    }, 60);
-  });
-};
 _setup = new WeakSet();
 setup_fn = function() {
   return __async(this, null, function* () {
@@ -629,11 +623,11 @@ setup_fn = function() {
         },
         set(value) {
           __privateGet(this, _context)[property] = value;
-          __privateMethod(this, _change, change_fn).call(this);
+          this[changeRequest]();
         }
       });
     }
-    __privateSet(this, _context, context_default(__privateGet(this, _context), __privateMethod(this, _change, change_fn).bind(this)));
+    __privateSet(this, _context, context_default(__privateGet(this, _context), this[changeRequest].bind(this)));
     this.dispatchEvent(renderingEvent);
     const template = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
     if (template) {
@@ -656,8 +650,7 @@ setup_fn = function() {
     this.dispatchEvent(renderedEvent);
     __privateSet(this, _changeRestart, false);
     __privateSet(this, _changeBusy, false);
-    __privateMethod(this, _change, change_fn).call(this);
-    yield this[changeSymbol];
+    yield this[changeRequest]();
     this.dispatchEvent(creatingEvent);
     yield (_d = this.created) == null ? void 0 : _d.call(this, __privateGet(this, _context));
     this.dispatchEvent(createdEvent);

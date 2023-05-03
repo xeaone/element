@@ -6,7 +6,7 @@ class performance extends component {
     count = 100000;
     tag = 'strong';
 
-    oninput(e) {
+    oninput (e) {
         this.count = e?.target?.valueAsNumber;
     }
 
@@ -28,7 +28,6 @@ class performance extends component {
         console.time('increment');
         for (var i = 0; i < this.items.length; i++) this.items[i]++;
         console.timeEnd('increment');
-        console.log(this.items);
     }
 
     clear() {
