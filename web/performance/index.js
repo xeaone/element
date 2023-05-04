@@ -36,7 +36,7 @@ class performance extends component {
 
     render = () => html`
         <h2>Count: ${this.count.toLocaleString()}</h2>
-        <input type="number" oninput=${this.oninput} value=${this.count} />
+        <input type="number" oninput=${(e)=>this.oninput(e)} value=${this.count} />
         <button onclick=${this.overwrite}>overwrite</button>
         <button onclick=${this.increment}>increment</button>
         <div>

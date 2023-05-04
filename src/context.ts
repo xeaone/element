@@ -31,7 +31,10 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
 
     if (value && typeof value == 'function') {
         return new Proxy(value, {
-            apply: (t, _, a) => Reflect.apply(t, receiver, a)
+            apply (t, _, a) {
+                // return Reflect.apply(t, receiver, a);
+                return Reflect.apply(t, target, a);
+            }
         });
     }
 
