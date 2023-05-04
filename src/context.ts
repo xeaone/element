@@ -29,13 +29,13 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
 
     const value = Reflect.get(target, key, receiver);
 
-    if (typeof value == 'function') {
+    if (value && typeof value == 'function') {
         return new Proxy(value, {
             apply: (t, _, a) => Reflect.apply(t, receiver, a)
         });
     }
 
-    if (typeof value == 'object') {
+    if (value && typeof value == 'object') {
         return new Proxy(value, {
             get: ContextGet.bind(null, method),
             set: ContextSet.bind(null, method),
