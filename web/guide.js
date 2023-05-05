@@ -98,8 +98,8 @@ export default class guide extends component {
 
     radioComponent = () => html`
     <div>${this.radioShared}</div>
-    <input type="radio" name="radio" checked=${this.radioShared === this.radioOne} oninput=${() => this.radioShared = 'one'} />
-    <input type="radio" name="radio" checked=${this.radioShared === this.radioTwo} oninput=${() => this.radioShared = 'two'} />
+    <input type="radio" name="radio" ${this.radioShared === this.radioOne ? 'checked' : ''} oninput=${() => this.radioShared = 'one'} />
+    <input type="radio" name="radio" ${this.radioShared === this.radioTwo ? 'checked' : ''} oninput=${() => this.radioShared = 'two'} />
     `;
     radioCode = highlight(this.radioComponent.toString());
 
@@ -119,7 +119,7 @@ export default class guide extends component {
     <div>${this.fruit}</div>
     <select value=${this.fruit} oninput=${(e) => this.fruit = e.target.value}>
         ${this.fruits.map(fruit => html`
-            <option value=${fruit} selected=${this.fruit === fruit}>${fruit}</option>
+            <option value=${fruit} ${this.fruit === fruit ? 'selected' : ''}>${fruit}</option>
         `)}
     </select>
     `;
@@ -129,7 +129,7 @@ export default class guide extends component {
     <div>${this.car}</div>
     <select oninput=${e => this.car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
         ${this.cars.map(car => html`
-            <option value=${car} selected=${this.car.includes(car)}>${car}</option>
+            <option value=${car} ${this.car.includes(car) ? 'selected' : ''}>${car}</option>
         `)}
     </select>
     `;

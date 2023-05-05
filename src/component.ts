@@ -30,8 +30,10 @@ import {
     disconnectingEvent,
 } from './events';
 
-const changeTask = Symbol('ChangeTask');
-const changeRequest = Symbol('ChangeRequest');
+const task = Symbol('Task');
+const create = Symbol('Create');
+const setup = Symbol('Setup');
+const update = Symbol('Update');
 
 export default class Component extends HTMLElement {
 
@@ -47,7 +49,7 @@ export default class Component extends HTMLElement {
         tag = dash(tag);
         define(tag, this);
         const instance = document.createElement(tag);
-        await (instance as Component)[ changeTask ];
+        await (instance as Component)[ create ];
         return instance;
     }
 
@@ -65,8 +67,6 @@ export default class Component extends HTMLElement {
     declare disconnected?: (context: Record<any, any>) => void | Promise<void>;
     declare attribute?: (name: string, oldValue: string, newValue: string) => void | Promise<void>;
 
-    #isCreatingOrCreated: boolean = false;
-
     #context: Record<any, any> = {};
     #root: Element | ShadowRoot;
 
@@ -74,9 +74,10 @@ export default class Component extends HTMLElement {
     #actions: Actions = [];
     #expressions: Expressions = [];
 
-    #changeBusy: boolean = false;
-    #changeRestart: boolean = false;
-    [ changeTask ]: Promise<void> = Promise.resolve();
+    #busy: boolean = false;
+    #restart: boolean = false;
+    #created: boolean = false;
+    [ task ]: Promise<void> = Promise.resolve();
 
     constructor () {
         super();
@@ -104,25 +105,8 @@ export default class Component extends HTMLElement {
     }
 
     async connectedCallback () {
-
-        if (!this.#isCreatingOrCreated) {
-            this.#isCreatingOrCreated = true;
-            this.#changeBusy = true;
-
-            await this.#setup();
-
-            this.dispatchEvent(creatingEvent);
-            await this.created?.(this.#context);
-            this.dispatchEvent(createdEvent);
-
-            this.dispatchEvent(connectingEvent);
-            await this.connected?.(this.#context)?.catch(console.error);
-            this.dispatchEvent(connectedEvent);
-
-            this.#changeBusy = false;
-            this.#changeRestart = false;
-            await this[ changeRequest ]();
-
+        if (!this.#created) {
+            await this[ create ]();
         } else {
             this.dispatchEvent(connectingEvent);
             await this.connected?.(this.#context)?.catch(console.error);
@@ -136,16 +120,35 @@ export default class Component extends HTMLElement {
         this.dispatchEvent(disconnectedEvent);
     }
 
-    async [ changeRequest ] () {
+    async [ create ] () {
+        this.#created = true;
+        this.#busy = true;
 
-        if (this.#changeBusy) {
-            this.#changeRestart = true;
-            return this[ changeTask ];
+        await this[ setup ]();
+
+        this.dispatchEvent(creatingEvent);
+        await this.created?.(this.#context);
+        this.dispatchEvent(createdEvent);
+
+        this.dispatchEvent(connectingEvent);
+        await this.connected?.(this.#context)?.catch(console.error);
+        this.dispatchEvent(connectedEvent);
+
+        this.#busy = false;
+        this.#restart = false;
+        await this[ update ]();
+    }
+
+    async [ update ] () {
+
+        if (this.#busy) {
+            this.#restart = true;
+            return this[ task ];
         }
 
-        this.#changeBusy = true;
+        this.#busy = true;
 
-        this[ changeTask ] = this[ changeTask ].then(async () => {
+        this[ task ] = this[ task ].then(async () => {
             // await new Promise((resolve) => {
             // window.requestIdleCallback(async () => {
 
@@ -155,10 +158,10 @@ export default class Component extends HTMLElement {
             if (template) {
                 for (let index = 0; index < this.#actions.length; index++) {
 
-                    if (this.#changeRestart) {
+                    if (this.#restart) {
                         await Promise.resolve().then().catch(console.error);
                         index = -1;
-                        this.#changeRestart = false;
+                        this.#restart = false;
                         continue;
                     }
 
@@ -175,7 +178,7 @@ export default class Component extends HTMLElement {
                 }
             }
 
-            this.#changeBusy = false;
+            this.#busy = false;
 
             await this.rendered?.(this.#context);
             this.dispatchEvent(renderedEvent);
@@ -185,10 +188,10 @@ export default class Component extends HTMLElement {
             // });
         }).catch(console.error);
 
-        return this[ changeTask ];
+        return this[ task ];
     }
 
-    async #setup () {
+    async [ setup ] () {
 
         const constructor = this.constructor as typeof Component;
         const observedProperties = constructor.observedProperties;
@@ -237,13 +240,13 @@ export default class Component extends HTMLElement {
                 },
                 set (value) {
                     (this.#context as Record<any, any>)[ property ] = value;
-                    this[ changeRequest ]();
+                    this[ update ]();
                 }
             });
 
         }
 
-        this.#context = context(this.#context, this[ changeRequest ].bind(this));
+        this.#context = context(this.#context, this[ update ].bind(this));
 
         // this.dispatchEvent(renderingEvent);
 
@@ -273,9 +276,9 @@ export default class Component extends HTMLElement {
         // await this.rendered?.(this.#context);
         // this.dispatchEvent(renderedEvent);
 
-        // this.#changeRestart = false;
-        // this.#changeBusy = false;
-        // await this[ changeRequest ]();
+        // this.#restart = false;
+        // this.#busy = false;
+        // await this[ update ]();
 
         // this.dispatchEvent(creatingEvent);
         // await this.created?.(this.#context);
