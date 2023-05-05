@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.1.6
+Version: 8.2.0
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -60,9 +60,15 @@ function define(name, constructor) {
 
 // src/display.ts
 function display(data) {
-  switch (typeof data) {
+  switch (`${data}`) {
+    case "NaN":
+      return "";
+    case "null":
+      return "";
     case "undefined":
       return "";
+  }
+  switch (typeof data) {
     case "string":
       return data;
     case "number":
@@ -77,9 +83,8 @@ function display(data) {
       return String(data);
     case "object":
       return JSON.stringify(data);
-    default:
-      throw new Error("XElement - display type not handled");
   }
+  throw new Error("XElement - display type not handled");
 }
 
 // src/mark.ts
@@ -224,14 +229,14 @@ var ElementAction = function(source, target) {
     }
     let node;
     if (this.end.previousSibling === this.start) {
-      node = document.createTextNode(target);
+      node = document.createTextNode(display(target));
       (_j = this.end.parentNode) == null ? void 0 : _j.insertBefore(node, this.end);
     } else {
       if (((_k = this.end.previousSibling) == null ? void 0 : _k.nodeType) === Node.TEXT_NODE) {
         node = this.end.previousSibling;
-        node.textContent = target;
+        node.textContent = display(target);
       } else {
-        node = document.createTextNode(target);
+        node = document.createTextNode(display(target));
         (_l = this.end.parentNode) == null ? void 0 : _l.removeChild(this.end.previousSibling);
         (_m = this.end.parentNode) == null ? void 0 : _m.insertBefore(node, this.end);
       }
@@ -526,15 +531,25 @@ var Component = class extends HTMLElement {
   }
   connectedCallback() {
     return __async(this, null, function* () {
-      var _a, _b;
+      var _a, _b, _c2, _d, _e;
       if (!__privateGet(this, _isCreatingOrCreated)) {
         __privateSet(this, _isCreatingOrCreated, true);
         __privateSet(this, _changeBusy, true);
         yield __privateMethod(this, _setup, setup_fn).call(this);
+        this.dispatchEvent(creatingEvent);
+        yield (_a = this.created) == null ? void 0 : _a.call(this, __privateGet(this, _context));
+        this.dispatchEvent(createdEvent);
+        this.dispatchEvent(connectingEvent);
+        yield (_c2 = (_b = this.connected) == null ? void 0 : _b.call(this, __privateGet(this, _context))) == null ? void 0 : _c2.catch(console.error);
+        this.dispatchEvent(connectedEvent);
+        __privateSet(this, _changeBusy, false);
+        __privateSet(this, _changeRestart, false);
+        yield this[changeRequest]();
+      } else {
+        this.dispatchEvent(connectingEvent);
+        yield (_e = (_d = this.connected) == null ? void 0 : _d.call(this, __privateGet(this, _context))) == null ? void 0 : _e.catch(console.error);
+        this.dispatchEvent(connectedEvent);
       }
-      this.dispatchEvent(connectingEvent);
-      yield (_b = (_a = this.connected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
-      this.dispatchEvent(connectedEvent);
     });
   }
   disconnectedCallback() {
@@ -593,7 +608,7 @@ _changeRestart = new WeakMap();
 _setup = new WeakSet();
 setup_fn = function() {
   return __async(this, null, function* () {
-    var _a, _b, _c2, _d;
+    var _a, _b;
     const constructor = this.constructor;
     const observedProperties = constructor.observedProperties;
     const prototype = Object.getPrototypeOf(this);
@@ -630,7 +645,6 @@ setup_fn = function() {
       });
     }
     __privateSet(this, _context, context_default(__privateGet(this, _context), this[changeRequest].bind(this)));
-    this.dispatchEvent(renderingEvent);
     const template = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
     if (template) {
       const fragment = template.template.content.cloneNode(true);
@@ -648,14 +662,6 @@ setup_fn = function() {
       document.adoptNode(fragment);
       __privateGet(this, _root).appendChild(fragment);
     }
-    yield (_c2 = this.rendered) == null ? void 0 : _c2.call(this, __privateGet(this, _context));
-    this.dispatchEvent(renderedEvent);
-    __privateSet(this, _changeRestart, false);
-    __privateSet(this, _changeBusy, false);
-    yield this[changeRequest]();
-    this.dispatchEvent(creatingEvent);
-    yield (_d = this.created) == null ? void 0 : _d.call(this, __privateGet(this, _context));
-    this.dispatchEvent(createdEvent);
   });
 };
 Component.html = html;

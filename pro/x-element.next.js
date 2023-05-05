@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.1.6
+Version: 8.2.0
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -46,9 +46,15 @@ function define(name, constructor) {
 
 // src/display.ts
 function display(data) {
-  switch (typeof data) {
+  switch (`${data}`) {
+    case "NaN":
+      return "";
+    case "null":
+      return "";
     case "undefined":
       return "";
+  }
+  switch (typeof data) {
     case "string":
       return data;
     case "number":
@@ -63,9 +69,8 @@ function display(data) {
       return String(data);
     case "object":
       return JSON.stringify(data);
-    default:
-      throw new Error("XElement - display type not handled");
   }
+  throw new Error("XElement - display type not handled");
 }
 
 // src/mark.ts
@@ -208,14 +213,14 @@ var ElementAction = function(source, target) {
     }
     let node;
     if (this.end.previousSibling === this.start) {
-      node = document.createTextNode(target);
+      node = document.createTextNode(display(target));
       this.end.parentNode?.insertBefore(node, this.end);
     } else {
       if (this.end.previousSibling?.nodeType === Node.TEXT_NODE) {
         node = this.end.previousSibling;
-        node.textContent = target;
+        node.textContent = display(target);
       } else {
-        node = document.createTextNode(target);
+        node = document.createTextNode(display(target));
         this.end.parentNode?.removeChild(this.end.previousSibling);
         this.end.parentNode?.insertBefore(node, this.end);
       }
@@ -502,10 +507,20 @@ var Component = class extends HTMLElement {
       __privateSet(this, _isCreatingOrCreated, true);
       __privateSet(this, _changeBusy, true);
       await __privateMethod(this, _setup, setup_fn).call(this);
+      this.dispatchEvent(creatingEvent);
+      await this.created?.(__privateGet(this, _context));
+      this.dispatchEvent(createdEvent);
+      this.dispatchEvent(connectingEvent);
+      await this.connected?.(__privateGet(this, _context))?.catch(console.error);
+      this.dispatchEvent(connectedEvent);
+      __privateSet(this, _changeBusy, false);
+      __privateSet(this, _changeRestart, false);
+      await this[changeRequest]();
+    } else {
+      this.dispatchEvent(connectingEvent);
+      await this.connected?.(__privateGet(this, _context))?.catch(console.error);
+      this.dispatchEvent(connectedEvent);
     }
-    this.dispatchEvent(connectingEvent);
-    await this.connected?.(__privateGet(this, _context))?.catch(console.error);
-    this.dispatchEvent(connectedEvent);
   }
   async disconnectedCallback() {
     this.dispatchEvent(disconnectingEvent);
@@ -592,7 +607,6 @@ setup_fn = async function() {
     });
   }
   __privateSet(this, _context, context_default(__privateGet(this, _context), this[changeRequest].bind(this)));
-  this.dispatchEvent(renderingEvent);
   const template = await this.render?.(__privateGet(this, _context));
   if (template) {
     const fragment = template.template.content.cloneNode(true);
@@ -610,14 +624,6 @@ setup_fn = async function() {
     document.adoptNode(fragment);
     __privateGet(this, _root).appendChild(fragment);
   }
-  await this.rendered?.(__privateGet(this, _context));
-  this.dispatchEvent(renderedEvent);
-  __privateSet(this, _changeRestart, false);
-  __privateSet(this, _changeBusy, false);
-  await this[changeRequest]();
-  this.dispatchEvent(creatingEvent);
-  await this.created?.(__privateGet(this, _context));
-  this.dispatchEvent(createdEvent);
 };
 __publicField(Component, "html", html);
 
