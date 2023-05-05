@@ -1,6 +1,6 @@
 import { inc, ReleaseType } from 'https://deno.land/std@0.151.0/semver/mod.ts';
 import { copy, emptyDir } from 'https://deno.land/std@0.152.0/fs/mod.ts';
-import * as esbuild from "https://deno.land/x/esbuild@v0.17.10/mod.js";
+import * as esbuild from 'https://deno.land/x/esbuild@v0.17.18/mod.js';
 
 const { run, readTextFile, writeTextFile, args } = Deno;
 const [ release ] = args;
