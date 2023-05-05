@@ -118,14 +118,17 @@ const ElementAction = function (this: {
 
         let node;
         if (this.end.previousSibling === this.start) {
-            node = document.createTextNode(target);
+            node = document.createTextNode(display(target));
+            // node = document.createTextNode(target);
             this.end.parentNode?.insertBefore(node, this.end);
         } else {
             if (this.end.previousSibling?.nodeType === Node.TEXT_NODE) {
                 node = this.end.previousSibling;
-                node.textContent = target;
+                node.textContent = display(target);
+                // node.textContent = target;
             } else {
-                node = document.createTextNode(target);
+                node = document.createTextNode(display(target));
+                // node = document.createTextNode(target);
                 this.end.parentNode?.removeChild(this.end.previousSibling as ChildNode);
                 this.end.parentNode?.insertBefore(node, this.end);
             }

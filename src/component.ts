@@ -56,7 +56,6 @@ export default class Component extends HTMLElement {
     declare static mode?: 'open' | 'closed';
     declare static observedProperties?: Array<string>;
 
-    // declare setup?: (context: Record<any, any>) => void | Promise<void>;
     declare render?: (context: Record<any, any>) => HTML | Promise<HTML>;
 
     declare created?: (context: Record<any, any>) => void | Promise<void>;
@@ -90,7 +89,6 @@ export default class Component extends HTMLElement {
         }
 
         this.#root = this.shadowRoot ?? this;
-        // this.[changeTask].then(() => this.#setup());
     }
 
     async attributeChangedCallback (name: string, oldValue: string, newValue: string) {
@@ -110,12 +108,26 @@ export default class Component extends HTMLElement {
         if (!this.#isCreatingOrCreated) {
             this.#isCreatingOrCreated = true;
             this.#changeBusy = true;
-            await this.#setup();
-        }
 
-        this.dispatchEvent(connectingEvent);
-        await this.connected?.(this.#context)?.catch(console.error);
-        this.dispatchEvent(connectedEvent);
+            await this.#setup();
+
+            this.dispatchEvent(creatingEvent);
+            await this.created?.(this.#context);
+            this.dispatchEvent(createdEvent);
+
+            this.dispatchEvent(connectingEvent);
+            await this.connected?.(this.#context)?.catch(console.error);
+            this.dispatchEvent(connectedEvent);
+
+            this.#changeBusy = false;
+            this.#changeRestart = false;
+            await this[ changeRequest ]();
+
+        } else {
+            this.dispatchEvent(connectingEvent);
+            await this.connected?.(this.#context)?.catch(console.error);
+            this.dispatchEvent(connectedEvent);
+        }
     }
 
     async disconnectedCallback () {
@@ -233,7 +245,7 @@ export default class Component extends HTMLElement {
 
         this.#context = context(this.#context, this[ changeRequest ].bind(this));
 
-        this.dispatchEvent(renderingEvent);
+        // this.dispatchEvent(renderingEvent);
 
         const template = await this.render?.(this.#context);
         if (template) {
@@ -258,16 +270,16 @@ export default class Component extends HTMLElement {
             this.#root.appendChild(fragment);
         }
 
-        await this.rendered?.(this.#context);
-        this.dispatchEvent(renderedEvent);
+        // await this.rendered?.(this.#context);
+        // this.dispatchEvent(renderedEvent);
 
-        this.#changeRestart = false;
-        this.#changeBusy = false;
-        await this[ changeRequest ]();
+        // this.#changeRestart = false;
+        // this.#changeBusy = false;
+        // await this[ changeRequest ]();
 
-        this.dispatchEvent(creatingEvent);
-        await this.created?.(this.#context);
-        this.dispatchEvent(createdEvent);
+        // this.dispatchEvent(creatingEvent);
+        // await this.created?.(this.#context);
+        // this.dispatchEvent(createdEvent);
     }
 
 }
