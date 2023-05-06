@@ -29,22 +29,24 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
 
     const value = Reflect.get(target, key, receiver);
 
-    if (value && value.constructor === Function) {
-        // if (value && typeof value == 'function') {
-        return new Proxy(value, {
-            apply (t, _, a) {
-                return Reflect.apply(t, receiver, a);
-            }
-        });
-    }
+    if (value) {
+        if (value.constructor === Function) {
+            // if (typeof value == 'function') {
+            return new Proxy(value, {
+                apply (t, _, a) {
+                    return Reflect.apply(t, receiver, a);
+                }
+            });
+        }
 
-    if (value && value.constructor === Object || value.constructor === Array) {
-        // if (value && typeof value == 'object') {
-        return new Proxy(value, {
-            get: ContextGet.bind(null, method),
-            set: ContextSet.bind(null, method),
-            deleteProperty: ContextDelete.bind(null, method),
-        });
+        if (value.constructor === Object || value.constructor === Array) {
+            // if (typeof value == 'object') {
+            return new Proxy(value, {
+                get: ContextGet.bind(null, method),
+                set: ContextSet.bind(null, method),
+                deleteProperty: ContextDelete.bind(null, method),
+            });
+        }
     }
 
     return value;

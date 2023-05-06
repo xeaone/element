@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.2.4
+Version: 8.2.5
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -413,19 +413,21 @@ var ContextGet = function(method, target, key, receiver) {
   if (typeof key === "symbol")
     return Reflect.get(target, key, receiver);
   const value = Reflect.get(target, key, receiver);
-  if (value && value.constructor === Function) {
-    return new Proxy(value, {
-      apply(t, _, a) {
-        return Reflect.apply(t, receiver, a);
-      }
-    });
-  }
-  if (value && value.constructor === Object || value.constructor === Array) {
-    return new Proxy(value, {
-      get: ContextGet.bind(null, method),
-      set: ContextSet.bind(null, method),
-      deleteProperty: ContextDelete.bind(null, method)
-    });
+  if (value) {
+    if (value.constructor === Function) {
+      return new Proxy(value, {
+        apply(t, _, a) {
+          return Reflect.apply(t, receiver, a);
+        }
+      });
+    }
+    if (value.constructor === Object || value.constructor === Array) {
+      return new Proxy(value, {
+        get: ContextGet.bind(null, method),
+        set: ContextSet.bind(null, method),
+        deleteProperty: ContextDelete.bind(null, method)
+      });
+    }
   }
   return value;
 };
