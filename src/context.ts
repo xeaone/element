@@ -32,9 +32,9 @@ const ContextGet = function (method: ContextMethod, target: ContextTarget, key: 
     if (value && typeof value == 'function') {
         return new Proxy(value, {
             apply (t, _, a) {
-                // return Reflect.apply(t, receiver, a);
+                return Reflect.apply(t, receiver, a);
                 // return Reflect.apply(t, target, a);
-                return Reflect.apply(t.bind(target), receiver, a);
+                // return Reflect.apply(t.bind(target), receiver, a);
             }
         });
     }
