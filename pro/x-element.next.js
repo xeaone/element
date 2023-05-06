@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.2.1
+Version: 8.2.2
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -398,7 +398,7 @@ var ContextGet = function(method, target, key, receiver) {
   if (value && typeof value == "function") {
     return new Proxy(value, {
       apply(t, _, a) {
-        return Reflect.apply(t, target, a);
+        return Reflect.apply(t.bind(target), receiver, a);
       }
     });
   }
