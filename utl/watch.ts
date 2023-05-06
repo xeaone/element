@@ -5,7 +5,20 @@ await Deno.writeTextFile('./web/404.html', indexhtml);
 await Deno.writeTextFile('./web/guide/index.html', indexhtml);
 await Deno.writeTextFile('./web/security/index.html', indexhtml);
 
-const bud = await esbuild.context({
+(await esbuild.context({
+    color: true,
+    bundle: true,
+    sourcemap: true,
+    treeShaking: true,
+    format: 'esm',
+    target: 'esnext',
+    logLevel: 'debug',
+    platform: 'browser',
+    outfile: '../guide/src/deps/x-element.js',
+    entryPoints: [ 'src/index.ts' ],
+})).watch();
+
+(await esbuild.context({
     color: true,
     bundle: true,
     sourcemap: true,
@@ -16,9 +29,7 @@ const bud = await esbuild.context({
     platform: 'browser',
     outfile: '../budget/src/deps/x-element.js',
     entryPoints: [ 'src/index.ts' ],
-});
-
-await bud.watch();
+})).watch();
 
 const result = await esbuild.context({
     color: true,
