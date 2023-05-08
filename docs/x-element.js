@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.2.5
+Version: 8.2.6
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -250,6 +250,7 @@ var AttributeNameAction = function(source, target) {
   this.name = target == null ? void 0 : target.toLowerCase();
   if (this.name) {
     this.element.setAttribute(this.name, "");
+    Reflect.set(this.element, this.name, true);
   }
 };
 var AttributeValueAction = function(source, target) {
