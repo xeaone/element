@@ -24,10 +24,8 @@
         }
     },
     "tasks": {
-        "docs": "deno run -A utl/docs.ts",
-        "deploy": "deno run -A utl/deploy.ts",
-        "test": "deno test -A utl/test.ts",
-        "watch": "deno run -A utl/watch.ts",
-        "ideas": "deno run --allow-net --allow-read https://deno.land/std@0.180.0/http/file_server.ts ideas/. --port 8000"
+        "d": "deno run -A utl/deploy.ts",
+        "t": "deno test -A utl/test.ts",
+        "w": "deno run -A utl/watch.ts"
     }
 }
