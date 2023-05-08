@@ -155,6 +155,7 @@ const AttributeNameAction = function (this: {
 
     if (this.name) {
         this.element.setAttribute(this.name, '');
+        Reflect.set(this.element, this.name, true);
     }
 
 };
