@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.2.6
+Version: 8.3.0
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -102,7 +102,7 @@ var replaceChildren = function(element, ...nodes) {
 var includes = function(item, search) {
   return item.indexOf(search) !== -1;
 };
-var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : null;
+var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : void 0;
 var createHTML = function(data) {
   if (policy) {
     return policy.createHTML(data);
@@ -136,8 +136,28 @@ function html(strings, ...expressions) {
 
 // src/render.ts
 var filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
-var links = ["src", "href", "xlink:href"];
-var safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+var links = [
+  "src",
+  "href",
+  "data",
+  "action",
+  "srcdoc",
+  "xlink:href",
+  "cite",
+  "formaction",
+  "ping",
+  "poster",
+  "background",
+  "classid",
+  "codebase",
+  "longdesc",
+  "profile",
+  "usemap",
+  "icon",
+  "manifest",
+  "archive"
+];
+var safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
 var dangerousLink = function(data) {
   if (data === "")
     return false;
