@@ -5,8 +5,32 @@ import { Actions } from './types';
 
 const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 
-const links = [ 'src', 'href', 'xlink:href' ];
-const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+// https://html.spec.whatwg.org/multipage/indices.html#attributes-1
+// https://www.w3.org/TR/REC-html40/index/attributes.html
+const links = [
+    'src',
+    'href',
+    'data',
+    'action',
+    'srcdoc',
+    'xlink:href',
+    'cite',
+    'formaction',
+    'ping',
+    'poster',
+    'background',
+    'classid',
+    'codebase',
+    'longdesc',
+    'profile',
+    'usemap',
+    'icon',
+    'manifest',
+    'archive'
+];
+
+// const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+const safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
 
 const dangerousLink = function (data: string) {
     if (data === '') return false;
