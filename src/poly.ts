@@ -22,7 +22,11 @@ export const includes = function (item: string | Array<any>, search: any) {
     return item.indexOf(search) !== -1;
 };
 
-const policy = 'trustedTypes' in window ? (window as any).trustedTypes.createPolicy('x-element', { createHTML: (data: string) => data }) : null;
+const policy =
+    'trustedTypes' in window ?
+        (window as any).trustedTypes.createPolicy('x-element', { createHTML: data => data }) :
+        undefined;
+
 export const createHTML = function (data: string) {
     if (policy) {
         return policy.createHTML(data);
