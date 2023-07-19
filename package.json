@@ -7,8 +7,10 @@
     "types": "./module/index.d.ts",
     "browser": "./bundle/es2015.js",
     "exports": {
-        "./index.ts": "./module/index.ts",
-        "./index.js": "./module/index.js"
+        ".": {
+            "types": "./module/index.d.ts",
+            "default": "./module/index.js"
+        }
     },
     "scripts": {},
     "repository": {
@@ -27,5 +29,5 @@
         "bundle": "bundle",
         "module": "module"
     },
-    "version": "9.0.0"
+    "version": "9.0.1"
 }
