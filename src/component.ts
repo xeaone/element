@@ -37,35 +37,92 @@ const update = Symbol('Update');
 
 export default class Component extends HTMLElement {
 
-    static html = html;
+    protected static html = html;
 
-    static define (tag: string = this.tag ?? this.name) {
+    /**
+     * Defines a custom element.
+     */
+    protected static define (tag: string = this.tag ?? this.name) {
         tag = dash(tag);
         define(tag, this);
         return this;
     }
 
-    static async create (tag: string = this.tag ?? this.name) {
+    /**
+     * Defines a custom element and Creates a element instance.
+     */
+    protected static async create (tag: string = this.tag ?? this.name) {
         tag = dash(tag);
         define(tag, this);
-        const instance = document.createElement(tag);
-        await (instance as Component)[ create ];
+        const instance = document.createElement(tag) as Component;
+        await instance[ create ];
         return instance;
     }
 
-    declare static tag?: string;
-    declare static shadow?: boolean;
-    declare static mode?: 'open' | 'closed';
-    declare static observedProperties?: Array<string>;
+    /**
+     * Configuration to define a element Tag name for use by the define() and create() method.
+     * Default value will use the function.constructor.name.
+     */
+    protected static tag?: string;
 
-    declare render?: (context: Record<any, any>) => HTML | Promise<HTML>;
+    /**
+     * Configuration to use shadow root.
+     * Default is false.
+     */
+    protected static shadow?: boolean;
 
-    declare created?: (context: Record<any, any>) => void | Promise<void>;
-    declare rendered?: (context: Record<any, any>) => void | Promise<void>;
-    declare connected?: (context: Record<any, any>) => void | Promise<void>;
-    declare adopted?: (context: Record<any, any>) => void | Promise<void>;
-    declare disconnected?: (context: Record<any, any>) => void | Promise<void>;
-    declare attribute?: (name: string, oldValue: string, newValue: string) => void | Promise<void>;
+    /**
+     * Configuration of the shadow mode attachment.
+     * Default is open.
+     */
+    protected static mode?: 'open' | 'closed';
+
+    /**
+     * Alternative configuration optimization that allows the specific definition of reactive properties on the Element.
+     * Default will use getOwnPropertyNames on the Instance and Prototype to redfine properties as reactive.
+     */
+    protected static observedProperties?: Array<string>;
+
+    /**
+     * Invoked when triggered from reactive properties.
+     * @category rendering
+     */
+    protected render?(context: Record<any, any>): HTML | Promise<HTML>;
+
+    /**
+     * Called one time when an element is created. Lifecycle: Created -> Connected -> Rendered.
+     * @category lifecycle
+     */
+    protected created?(context: Record<any, any>): void | Promise<void>;
+
+    /**
+     * Called every time the element is Connected to a document. Lifecycle: Connected -> Rendered.
+     * @category lifecycle
+     */
+    protected connected?(context: Record<any, any>): void | Promise<void>;
+
+    /**
+     * Called every time the element is needs to render. Lifecycle: Rendered.
+     * @category lifecycle
+     */
+    protected rendered?(context: Record<any, any>): void | Promise<void>;
+
+    /**
+     * Called every time the element disconnected from a document.
+     * @category lifecycle
+     */
+    protected disconnected?(context: Record<any, any>): void | Promise<void>;
+
+    /**
+     * Called every time the element adopted into a new document.
+     * @category lifecycle
+     */
+    protected adopted?(context: Record<any, any>): void | Promise<void>;
+
+    /**
+     * Called every an observed attribute changes.
+     */
+    protected attribute?(name: string, oldValue: string, newValue: string): void | Promise<void>;
 
     #context: Record<any, any> = {};
     #root: Element | ShadowRoot;
@@ -92,19 +149,19 @@ export default class Component extends HTMLElement {
         this.#root = this.shadowRoot ?? this;
     }
 
-    async attributeChangedCallback (name: string, oldValue: string, newValue: string) {
+    protected async attributeChangedCallback (name: string, oldValue: string, newValue: string) {
         this.dispatchEvent(attributingEvent);
         await this.attribute?.(name, oldValue, newValue)?.catch(console.error);
         this.dispatchEvent(attributedEvent);
     }
 
-    async adoptedCallback () {
+    protected async adoptedCallback () {
         this.dispatchEvent(adoptingEvent);
         await this.adopted?.(this.#context)?.catch(console.error);
         this.dispatchEvent(adoptedEvent);
     }
 
-    async connectedCallback () {
+    protected async connectedCallback () {
         if (!this.#created) {
             await this[ create ]();
         } else {
@@ -114,13 +171,13 @@ export default class Component extends HTMLElement {
         }
     }
 
-    async disconnectedCallback () {
+    protected async disconnectedCallback () {
         this.dispatchEvent(disconnectingEvent);
         await this.disconnected?.(this.#context)?.catch(console.error);
         this.dispatchEvent(disconnectedEvent);
     }
 
-    async [ create ] () {
+    protected async [ create ] () {
         this.#created = true;
         this.#busy = true;
 
@@ -139,7 +196,7 @@ export default class Component extends HTMLElement {
         await this[ update ]();
     }
 
-    async [ update ] () {
+    protected async [ update ] () {
 
         if (this.#busy) {
             this.#restart = true;
@@ -191,7 +248,7 @@ export default class Component extends HTMLElement {
         return this[ task ];
     }
 
-    async [ setup ] () {
+    protected async [ setup ] () {
 
         const constructor = this.constructor as typeof Component;
         const observedProperties = constructor.observedProperties;
