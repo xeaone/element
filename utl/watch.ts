@@ -1,4 +1,4 @@
-import * as esbuild from 'https://deno.land/x/esbuild@v0.17.18/mod.js';
+import * as esbuild from 'https://deno.land/x/esbuild@v0.18.13/mod.js';
 
 const indexhtml = await Deno.readTextFile('./web/index.html');
 await Deno.writeTextFile('./web/404.html', indexhtml);
