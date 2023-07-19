@@ -1,7 +1,7 @@
-import { assertEquals } from 'https://deno.land/std@0.152.0/testing/asserts.ts';
-import { delay } from 'https://deno.land/std@0.152.0/async/delay.ts';
-import { build, stop } from 'https://deno.land/x/esbuild@v0.15.5/mod.js';
-import { parseHTML } from 'https://esm.sh/linkedom@0.14.17';
+import { assertEquals } from 'https://deno.land/std@0.194.0/testing/asserts.ts';
+import { delay } from 'https://deno.land/std@0.194.0/async/delay.ts';
+import { build, stop } from 'https://deno.land/x/esbuild@v0.18.13/mod.js';
+import { parseHTML } from 'https://esm.sh/linkedom@0.15.1/esm?target=deno';
 
 console.clear();
 
@@ -12,16 +12,16 @@ await build({
     treeShaking: true,
     platform: 'browser',
     globalName: 'XElement',
-    tsconfig: './tsconfig.json',
     outfile: './tmp/x-element.js',
-    entryPoints: ['src/element.ts'],
+    entryPoints: [ 'src/element.ts' ],
 });
 
 stop();
-// await Deno.run({ cmd: [ 'npx', 'tsc' ] }).status();
-// await Deno.run({ cmd: [ 'npx', 'rollup', 'tmp/element.js', '--file', 'tmp/x-element.js', '--format', 'esm' ] }).status();
 
-const { window, document } = parseHTML(`<html><head></head><body></body></html>`) as any;
+const {
+    window,
+    document,
+} = parseHTML(`<html><head></head><body></body></html>`);
 
 const file = await Deno.readTextFile('./tmp/x-element.js');
 
@@ -33,11 +33,11 @@ const XElement = new Function(
 
 const Element = async function (name: string, html: string, data: any) {
     class TestElement extends XElement {
-        constructor() {
+        constructor () {
             super();
-            for (const key in data) this[key] = data[key];
+            for (const key in data) this[ key ] = data[ key ];
         }
-        async connectedCallback() {
+        async connectedCallback () {
             this.innerHTML = html;
             this.shadowRoot.innerHTML = '<slot></slot>';
             await super.connectedCallback();
@@ -57,13 +57,13 @@ Deno.test('each-binder: overwrite array', async () => {
     const element = await Element(
         'each-binder-overwrite',
         `<div each="{{[numbers,'number']}}"><div>{{number}}</div></div>`,
-        { numbers: [1, 2] },
+        { numbers: [ 1, 2 ] },
     );
 
     await delay(10);
     assertEquals(element.innerHTML, '<div><div>1</div><div>2</div></div>');
 
-    element.numbers = ['one', 'two'];
+    element.numbers = [ 'one', 'two' ];
 
     await delay(10);
     assertEquals(element.innerHTML, '<div><div>one</div><div>two</div></div>');
@@ -73,7 +73,7 @@ Deno.test('each-binder value-binder', async () => {
     const element = await Element(
         'each-value-binder',
         `<select value="{{fruit=$value??fruit}}" each="{{[fruits,'f']}}"><option value="{{f}}">{{f}}</option></select>`,
-        { fruit: 'Orange', fruits: ['Apple', 'Orange', 'Tomato'] },
+        { fruit: 'Orange', fruits: [ 'Apple', 'Orange', 'Tomato' ] },
     );
 
     await delay(10);
