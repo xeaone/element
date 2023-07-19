@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.3.0
+Version: 8.4.0
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -8,6 +8,12 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
 var __accessCheck = (obj, member, msg) => {
   if (!member.has(obj))
     throw TypeError("Cannot " + msg);
@@ -510,7 +516,7 @@ var Component = class extends HTMLElement {
     __privateAdd(this, _busy, false);
     __privateAdd(this, _restart, false);
     __privateAdd(this, _created, false);
-    this[_c] = Promise.resolve();
+    __publicField(this, _c, Promise.resolve());
     const constructor = this.constructor;
     const shadow = constructor.shadow;
     if (shadow && !this.shadowRoot) {
@@ -519,11 +525,17 @@ var Component = class extends HTMLElement {
     }
     __privateSet(this, _root, (_a = this.shadowRoot) != null ? _a : this);
   }
+  /**
+   * Defines a custom element.
+   */
   static define(tag = ((_a) => (_a = this.tag) != null ? _a : this.name)()) {
     tag = dash(tag);
     define(tag, this);
     return this;
   }
+  /**
+   * Defines a custom element and Creates a element instance.
+   */
   static create() {
     return __async(this, arguments, function* (tag = ((_b) => (_b = this.tag) != null ? _b : this.name)()) {
       tag = dash(tag);
@@ -689,7 +701,27 @@ _expressions = new WeakMap();
 _busy = new WeakMap();
 _restart = new WeakMap();
 _created = new WeakMap();
-Component.html = html;
+__publicField(Component, "html", html);
+/**
+ * Configuration to define a element Tag name for use by the define() and create() method.
+ * Default value will use the function.constructor.name.
+ */
+__publicField(Component, "tag");
+/**
+ * Configuration to use shadow root.
+ * Default is false.
+ */
+__publicField(Component, "shadow");
+/**
+ * Configuration of the shadow mode attachment.
+ * Default is open.
+ */
+__publicField(Component, "mode");
+/**
+ * Alternative configuration optimization that allows the specific definition of reactive properties on the Element.
+ * Default will use getOwnPropertyNames on the Instance and Prototype to redfine properties as reactive.
+ */
+__publicField(Component, "observedProperties");
 
 // src/router.ts
 var alls = [];

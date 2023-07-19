@@ -1,6 +1,6 @@
 /************************************************************************
 Name: XElement
-Version: 8.3.0
+Version: 8.4.0
 License: MPL-2.0
 Author: Alexander Elias
 Email: alex.steven.elis@gmail.com
@@ -8,30 +8,6 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ************************************************************************/
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-var __accessCheck = (obj, member, msg) => {
-  if (!member.has(obj))
-    throw TypeError("Cannot " + msg);
-};
-var __privateGet = (obj, member, getter) => {
-  __accessCheck(obj, member, "read from private field");
-  return getter ? getter.call(obj) : member.get(obj);
-};
-var __privateAdd = (obj, member, value) => {
-  if (member.has(obj))
-    throw TypeError("Cannot add the same private member more than once");
-  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-};
-var __privateSet = (obj, member, value, setter) => {
-  __accessCheck(obj, member, "write to private field");
-  setter ? setter.call(obj, value) : member.set(obj, value);
-  return value;
-};
 
 // src/define.ts
 function define(name, constructor) {
@@ -479,38 +455,64 @@ var task = Symbol("Task");
 var create = Symbol("Create");
 var setup = Symbol("Setup");
 var update = Symbol("Update");
-var _context, _root, _marker, _actions, _expressions, _busy, _restart, _created, _a;
 var Component = class extends HTMLElement {
-  constructor() {
-    super();
-    __privateAdd(this, _context, {});
-    __privateAdd(this, _root, void 0);
-    __privateAdd(this, _marker, "");
-    __privateAdd(this, _actions, []);
-    __privateAdd(this, _expressions, []);
-    __privateAdd(this, _busy, false);
-    __privateAdd(this, _restart, false);
-    __privateAdd(this, _created, false);
-    __publicField(this, _a, Promise.resolve());
-    const constructor = this.constructor;
-    const shadow = constructor.shadow;
-    if (shadow && !this.shadowRoot) {
-      const mode = constructor.mode || "open";
-      this.attachShadow({ mode });
-    }
-    __privateSet(this, _root, this.shadowRoot ?? this);
-  }
+  static html = html;
+  /**
+   * Defines a custom element.
+   */
   static define(tag = this.tag ?? this.name) {
     tag = dash(tag);
     define(tag, this);
     return this;
   }
+  /**
+   * Defines a custom element and Creates a element instance.
+   */
   static async create(tag = this.tag ?? this.name) {
     tag = dash(tag);
     define(tag, this);
     const instance = document.createElement(tag);
     await instance[create];
     return instance;
+  }
+  /**
+   * Configuration to define a element Tag name for use by the define() and create() method.
+   * Default value will use the function.constructor.name.
+   */
+  static tag;
+  /**
+   * Configuration to use shadow root.
+   * Default is false.
+   */
+  static shadow;
+  /**
+   * Configuration of the shadow mode attachment.
+   * Default is open.
+   */
+  static mode;
+  /**
+   * Alternative configuration optimization that allows the specific definition of reactive properties on the Element.
+   * Default will use getOwnPropertyNames on the Instance and Prototype to redfine properties as reactive.
+   */
+  static observedProperties;
+  #context = {};
+  #root;
+  #marker = "";
+  #actions = [];
+  #expressions = [];
+  #busy = false;
+  #restart = false;
+  #created = false;
+  [task] = Promise.resolve();
+  constructor() {
+    super();
+    const constructor = this.constructor;
+    const shadow = constructor.shadow;
+    if (shadow && !this.shadowRoot) {
+      const mode = constructor.mode || "open";
+      this.attachShadow({ mode });
+    }
+    this.#root = this.shadowRoot ?? this;
   }
   async attributeChangedCallback(name, oldValue, newValue) {
     this.dispatchEvent(attributingEvent);
@@ -519,66 +521,66 @@ var Component = class extends HTMLElement {
   }
   async adoptedCallback() {
     this.dispatchEvent(adoptingEvent);
-    await this.adopted?.(__privateGet(this, _context))?.catch(console.error);
+    await this.adopted?.(this.#context)?.catch(console.error);
     this.dispatchEvent(adoptedEvent);
   }
   async connectedCallback() {
-    if (!__privateGet(this, _created)) {
+    if (!this.#created) {
       await this[create]();
     } else {
       this.dispatchEvent(connectingEvent);
-      await this.connected?.(__privateGet(this, _context))?.catch(console.error);
+      await this.connected?.(this.#context)?.catch(console.error);
       this.dispatchEvent(connectedEvent);
     }
   }
   async disconnectedCallback() {
     this.dispatchEvent(disconnectingEvent);
-    await this.disconnected?.(__privateGet(this, _context))?.catch(console.error);
+    await this.disconnected?.(this.#context)?.catch(console.error);
     this.dispatchEvent(disconnectedEvent);
   }
-  async [(_a = task, create)]() {
-    __privateSet(this, _created, true);
-    __privateSet(this, _busy, true);
+  async [create]() {
+    this.#created = true;
+    this.#busy = true;
     await this[setup]();
     this.dispatchEvent(creatingEvent);
-    await this.created?.(__privateGet(this, _context));
+    await this.created?.(this.#context);
     this.dispatchEvent(createdEvent);
     this.dispatchEvent(connectingEvent);
-    await this.connected?.(__privateGet(this, _context))?.catch(console.error);
+    await this.connected?.(this.#context)?.catch(console.error);
     this.dispatchEvent(connectedEvent);
-    __privateSet(this, _busy, false);
-    __privateSet(this, _restart, false);
+    this.#busy = false;
+    this.#restart = false;
     await this[update]();
   }
   async [update]() {
-    if (__privateGet(this, _busy)) {
-      __privateSet(this, _restart, true);
+    if (this.#busy) {
+      this.#restart = true;
       return this[task];
     }
-    __privateSet(this, _busy, true);
+    this.#busy = true;
     this[task] = this[task].then(async () => {
       this.dispatchEvent(renderingEvent);
-      const template = await this.render?.(__privateGet(this, _context));
+      const template = await this.render?.(this.#context);
       if (template) {
-        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
-          if (__privateGet(this, _restart)) {
+        for (let index = 0; index < this.#actions.length; index++) {
+          if (this.#restart) {
             await Promise.resolve().then().catch(console.error);
             index = -1;
-            __privateSet(this, _restart, false);
+            this.#restart = false;
             continue;
           }
           const newExpression = template.expressions[index];
-          const oldExpression = __privateGet(this, _expressions)[index];
+          const oldExpression = this.#expressions[index];
           try {
-            __privateGet(this, _actions)[index](oldExpression, newExpression);
+            this.#actions[index](oldExpression, newExpression);
           } catch (error) {
             console.error(error);
           }
-          __privateGet(this, _expressions)[index] = template.expressions[index];
+          this.#expressions[index] = template.expressions[index];
         }
       }
-      __privateSet(this, _busy, false);
-      await this.rendered?.(__privateGet(this, _context));
+      this.#busy = false;
+      await this.rendered?.(this.#context);
       this.dispatchEvent(renderedEvent);
     }).catch(console.error);
     return this[task];
@@ -605,49 +607,40 @@ var Component = class extends HTMLElement {
         descriptor.get = descriptor.get.bind(this);
       if (typeof descriptor.set === "function")
         descriptor.set = descriptor.set.bind(this);
-      Object.defineProperty(__privateGet(this, _context), property, descriptor);
+      Object.defineProperty(this.#context, property, descriptor);
       Object.defineProperty(this, property, {
         enumerable: descriptor.enumerable,
         configurable: false,
         // configurable: descriptor.configurable,
         get() {
-          return __privateGet(this, _context)[property];
+          return this.#context[property];
         },
         set(value) {
-          __privateGet(this, _context)[property] = value;
+          this.#context[property] = value;
           this[update]();
         }
       });
     }
-    __privateSet(this, _context, context_default(__privateGet(this, _context), this[update].bind(this)));
-    const template = await this.render?.(__privateGet(this, _context));
+    this.#context = context_default(this.#context, this[update].bind(this));
+    const template = await this.render?.(this.#context);
     if (template) {
       const fragment = template.template.content.cloneNode(true);
-      __privateSet(this, _marker, template.marker);
-      __privateSet(this, _expressions, template.expressions);
-      render_default(fragment, __privateGet(this, _actions), __privateGet(this, _marker));
-      for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+      this.#marker = template.marker;
+      this.#expressions = template.expressions;
+      render_default(fragment, this.#actions, this.#marker);
+      for (let index = 0; index < this.#actions.length; index++) {
         const newExpression = template.expressions[index];
         try {
-          __privateGet(this, _actions)[index](void 0, newExpression);
+          this.#actions[index](void 0, newExpression);
         } catch (error) {
           console.error(error);
         }
       }
       document.adoptNode(fragment);
-      __privateGet(this, _root).appendChild(fragment);
+      this.#root.appendChild(fragment);
     }
   }
 };
-_context = new WeakMap();
-_root = new WeakMap();
-_marker = new WeakMap();
-_actions = new WeakMap();
-_expressions = new WeakMap();
-_busy = new WeakMap();
-_restart = new WeakMap();
-_created = new WeakMap();
-__publicField(Component, "html", html);
 
 // src/router.ts
 var alls = [];
