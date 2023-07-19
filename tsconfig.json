@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+
+        "strict": true,
+        "esModuleInterop": true,
+        "experimentalDecorators": true,
+
+        "sourceMap": true,
+        "declaration": true,
+        "removeComments": false,
+
+        "module": "ESNext",
+        "target": "ESNext",
+        "lib": [ "ESNext", "DOM", "DOM.Iterable" ],
+
+        "outDir": "module/"
+
+    },
+    "include": [ "source/*" ],
+    "files": [ "source/index.ts" ]
+}
