@@ -2,12 +2,13 @@
     "name": "@xeaone/element",
     "type": "module",
     "description": "X-Element a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.",
-    "browser": "./pro/x-element.js",
-    "module": "./pro/x-element.js",
+    "main": "./module/index.js",
+    "module": "./module/index.js",
+    "types": "./module/index.d.ts",
+    "browser": "./bundle/es2015.js",
     "exports": {
-        "./index.ts": "./src/index.ts",
-        "./x-poly.js": "./pro/x-poly.js",
-        "./x-element.js": "./pro/x-element.js"
+        "./index.ts": "./module/index.ts",
+        "./index.js": "./module/index.js"
     },
     "scripts": {},
     "repository": {
@@ -23,9 +24,8 @@
     "homepage": "https://github.com/xeaone/element#readme",
     "keywords": [],
     "directories": {
-        "docs": "docs",
-        "pro": "pro",
-        "src": "src"
+        "bundle": "bundle",
+        "module": "module"
     },
-    "version": "8.4.0"
+    "version": "9.0.0"
 }

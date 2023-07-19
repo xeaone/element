@@ -38,11 +38,15 @@ export default class greet extends component {
 ```
 
 ## Use
-[https://esm.sh/@xeaone/element/x-element.js](https://esm.sh/@xeaone/element/x-element.js)
+The two directories to use are `module` and `bundle`. Bundle includes ESNext and ES2015 js bundles. Module contains ESM files with `.js, .ts, and .d.ts`.
 
 [https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)
 
-[https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js](https://cdn.jsdelivr.net/gh/xeaone/element/pro/x-element.js)
+[https://esm.sh/@xeaone/element/module/index.ts](https://esm.sh/@xeaone/element/module/index.ts)
+[https://esm.sh/@xeaone/element/module/index.js](https://esm.sh/@xeaone/element/module/index.js)
+
+[https://cdn.jsdelivr.net/gh/xeaone/element/module/index.ts](https://cdn.jsdelivr.net/gh/xeaone/element/module/index.ts)
+[https://cdn.jsdelivr.net/gh/xeaone/element/module/index.js](https://cdn.jsdelivr.net/gh/xeaone/element/module/index.js)
 
 
 ## Author

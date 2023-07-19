@@ -1,9 +1,9 @@
 {
-    "deno.lint": true,
+    "deno.enable": false,
     "deno.unstable": true,
     "deno.config": "./deno.json",
     "deno.enablePaths": [
-        "utl"
+        "scripts",
     ],
     "cSpell.words": [
         "callto",

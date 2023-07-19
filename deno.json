@@ -1,20 +1,13 @@
 {
-    "compilerOptions": {
-        "allowJs": true
-    },
     "lint": {
-        "files": {
-            "include": [
-                "utl"
-            ]
-        }
+        "include": [
+            "scripts"
+        ]
     },
     "fmt": {
-        "files": {
-            "include": [
-                "utl"
-            ]
-        },
+        "include": [
+            "scripts"
+        ],
         "options": {
             "useTabs": false,
             "lineWidth": 500,
@@ -24,8 +17,8 @@
         }
     },
     "tasks": {
-        "d": "deno run -A utl/deploy.ts",
-        "t": "deno test -A utl/test.ts",
-        "w": "deno run -A utl/watch.ts"
+        "d": "deno run -A scripts/deploy.ts",
+        "t": "deno test -A scripts/test.ts",
+        "w": "deno run -A scripts/watch.ts"
     }
 }
