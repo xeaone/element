@@ -1,5 +1,5 @@
 /**
- * @version 9.0.1
+ * @version 9.1.0
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -10,13 +10,6 @@
  * @module
  */
 
-
-// source/define.ts
-function define(name, constructor) {
-  if (!customElements.get(name)) {
-    customElements.define(name, constructor);
-  }
-}
 
 // source/display.ts
 function display(data) {
@@ -99,7 +92,9 @@ function html(strings, ...expressions) {
 }
 
 // source/render.ts
-var filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
+var filter = 1 + 4;
+var TEXT_NODE = 3;
+var ELEMENT_NODE = 1;
 var links = [
   "src",
   "href",
@@ -210,7 +205,7 @@ var ElementAction = function(source, target) {
       node = document.createTextNode(display(target));
       this.end.parentNode?.insertBefore(node, this.end);
     } else {
-      if (this.end.previousSibling?.nodeType === Node.TEXT_NODE) {
+      if (this.end.previousSibling?.nodeType === TEXT_NODE) {
         node = this.end.previousSibling;
         node.textContent = display(target);
       } else {
@@ -282,7 +277,7 @@ var TagAction = function(source, target) {
     const newElement = document.createElement(target);
     while (oldElement.firstChild)
       newElement.appendChild(oldElement.firstChild);
-    if (oldElement.nodeType === Node.ELEMENT_NODE) {
+    if (oldElement.nodeType === ELEMENT_NODE) {
       const attributeNames = oldElement.getAttributeNames();
       for (const attributeName of attributeNames) {
         const attributeValue = oldElement.getAttribute(attributeName) ?? "";
@@ -298,7 +293,7 @@ var TagAction = function(source, target) {
 };
 var Render = function(fragment, actions, marker) {
   const holders = /* @__PURE__ */ new WeakSet();
-  const walker = document.createTreeWalker(document, filter, null);
+  const walker = document.createTreeWalker(fragment, filter, null);
   walker.currentNode = fragment;
   let node = fragment.firstChild;
   while (node = walker.nextNode()) {
@@ -306,7 +301,7 @@ var Render = function(fragment, actions, marker) {
       holders.delete(node.previousSibling);
       actions.push(() => void 0);
     }
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeType === TEXT_NODE) {
       const startIndex = node.nodeValue?.indexOf(marker) ?? -1;
       if (startIndex === -1)
         continue;
@@ -323,7 +318,7 @@ var Render = function(fragment, actions, marker) {
       end.textContent = "";
       end.parentNode?.insertBefore(start, end);
       actions.push(ElementAction.bind({ marker, start, end, actions: [] }));
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
+    } else if (node.nodeType === ELEMENT_NODE) {
       if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
         walker.nextSibling();
       }
@@ -454,27 +449,40 @@ var disconnectingEvent = new Event("disconnecting");
 
 // source/component.ts
 var task = Symbol("Task");
-var create = Symbol("Create");
-var setup = Symbol("Setup");
 var update = Symbol("Update");
+var create = Symbol("Create");
 var Component = class extends HTMLElement {
   static html = html;
   /**
-   * Defines a custom element.
+   * Defines the custom element and return the constructor.
    */
   static define(tag = this.tag ?? this.name) {
     tag = dash(tag);
-    define(tag, this);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
     return this;
   }
   /**
-   * Defines a custom element and Creates a element instance.
+   * Define, Create, Upgrade, and return element.
    */
-  static async create(tag = this.tag ?? this.name) {
+  static create(tag = this.tag ?? this.name) {
     tag = dash(tag);
-    define(tag, this);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
     const instance = document.createElement(tag);
-    await instance[create];
+    customElements.upgrade(instance);
+    return instance;
+  }
+  /**
+   * Define, Create, Upgrade, waits until first render, and return element.
+   */
+  static async upgrade(tag = this.tag ?? this.name) {
+    tag = dash(tag);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
+    const instance = document.createElement(tag);
+    await instance[create]();
+    customElements.upgrade(instance);
     return instance;
   }
   /**
@@ -543,7 +551,59 @@ var Component = class extends HTMLElement {
   async [create]() {
     this.#created = true;
     this.#busy = true;
-    await this[setup]();
+    const constructor = this.constructor;
+    const observedProperties = constructor.observedProperties;
+    const prototype = Object.getPrototypeOf(this);
+    const properties = observedProperties ? observedProperties ?? [] : [
+      ...Object.getOwnPropertyNames(this),
+      ...Object.getOwnPropertyNames(prototype)
+    ];
+    for (const property of properties) {
+      if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnected" === property || "attribute" === property || "connected" === property || "rendered" === property || "created" === property || "adopted" === property || "render" === property || "setup" === property)
+        continue;
+      const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
+      if (!descriptor)
+        continue;
+      if (!descriptor.configurable)
+        continue;
+      if (typeof descriptor.value === "function")
+        descriptor.value = descriptor.value.bind(this);
+      if (typeof descriptor.get === "function")
+        descriptor.get = descriptor.get.bind(this);
+      if (typeof descriptor.set === "function")
+        descriptor.set = descriptor.set.bind(this);
+      Object.defineProperty(this.#context, property, descriptor);
+      Object.defineProperty(this, property, {
+        configurable: false,
+        enumerable: descriptor.enumerable,
+        // configurable: descriptor.configurable,
+        get() {
+          return this.#context[property];
+        },
+        set(value) {
+          this.#context[property] = value;
+          this[update]();
+        }
+      });
+    }
+    this.#context = context_default(this.#context, this[update].bind(this));
+    const template = await this.render?.(this.#context);
+    if (template) {
+      const fragment = template.template.content.cloneNode(true);
+      this.#marker = template.marker;
+      this.#expressions = template.expressions;
+      render_default(fragment, this.#actions, this.#marker);
+      for (let index = 0; index < this.#actions.length; index++) {
+        const newExpression = template.expressions[index];
+        try {
+          this.#actions[index](void 0, newExpression);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      document.adoptNode(fragment);
+      this.#root.appendChild(fragment);
+    }
     this.dispatchEvent(creatingEvent);
     await this.created?.(this.#context);
     this.dispatchEvent(createdEvent);
@@ -587,62 +647,14 @@ var Component = class extends HTMLElement {
     }).catch(console.error);
     return this[task];
   }
-  async [setup]() {
-    const constructor = this.constructor;
-    const observedProperties = constructor.observedProperties;
-    const prototype = Object.getPrototypeOf(this);
-    const properties = observedProperties ? observedProperties ?? [] : [
-      ...Object.getOwnPropertyNames(this),
-      ...Object.getOwnPropertyNames(prototype)
-    ];
-    for (const property of properties) {
-      if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnected" === property || "attribute" === property || "connected" === property || "rendered" === property || "created" === property || "adopted" === property || "render" === property || "setup" === property)
-        continue;
-      const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
-      if (!descriptor)
-        continue;
-      if (!descriptor.configurable)
-        continue;
-      if (typeof descriptor.value === "function")
-        descriptor.value = descriptor.value.bind(this);
-      if (typeof descriptor.get === "function")
-        descriptor.get = descriptor.get.bind(this);
-      if (typeof descriptor.set === "function")
-        descriptor.set = descriptor.set.bind(this);
-      Object.defineProperty(this.#context, property, descriptor);
-      Object.defineProperty(this, property, {
-        enumerable: descriptor.enumerable,
-        configurable: false,
-        // configurable: descriptor.configurable,
-        get() {
-          return this.#context[property];
-        },
-        set(value) {
-          this.#context[property] = value;
-          this[update]();
-        }
-      });
-    }
-    this.#context = context_default(this.#context, this[update].bind(this));
-    const template = await this.render?.(this.#context);
-    if (template) {
-      const fragment = template.template.content.cloneNode(true);
-      this.#marker = template.marker;
-      this.#expressions = template.expressions;
-      render_default(fragment, this.#actions, this.#marker);
-      for (let index = 0; index < this.#actions.length; index++) {
-        const newExpression = template.expressions[index];
-        try {
-          this.#actions[index](void 0, newExpression);
-        } catch (error) {
-          console.error(error);
-        }
-      }
-      document.adoptNode(fragment);
-      this.#root.appendChild(fragment);
-    }
-  }
 };
+
+// source/define.ts
+function define(name, constructor) {
+  if (customElements.get(name) !== constructor) {
+    customElements.define(name, constructor);
+  }
+}
 
 // source/router.ts
 var alls = [];
@@ -660,9 +672,9 @@ var transition = async function(route) {
       throw new Error("XElement - router handler requires a CustomElementConstructor");
     }
     if (route.construct.prototype instanceof Component) {
-      route.instance = await route.construct.create();
+      route.instance = await route.construct.upgrade();
     } else {
-      route.tag = dash(route.construct.tag ?? route.construct.name);
+      route.tag = dash(route.construct.name);
       define(route.tag, route.construct);
       route.instance = document.createElement(route.tag);
     }

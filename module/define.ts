@@ -1,5 +1,5 @@
 /**
- * @version 9.0.1
+ * @version 9.1.0
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -11,7 +11,7 @@
  */
 
 export default function define (name: string, constructor: CustomElementConstructor) {
-    if (!customElements.get(name)) {
+    if (customElements.get(name) !== constructor) {
         customElements.define(name, constructor);
     }
 }

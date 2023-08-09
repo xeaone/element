@@ -1,5 +1,5 @@
 /**
- * @version 9.0.1
+ * @version 9.1.0
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -54,13 +54,6 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-
-// source/define.ts
-function define(name, constructor) {
-  if (!customElements.get(name)) {
-    customElements.define(name, constructor);
-  }
-}
 
 // source/display.ts
 function display(data) {
@@ -143,7 +136,9 @@ function html(strings, ...expressions) {
 }
 
 // source/render.ts
-var filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
+var filter = 1 + 4;
+var TEXT_NODE = 3;
+var ELEMENT_NODE = 1;
 var links = [
   "src",
   "href",
@@ -182,7 +177,7 @@ var removeBetween = function(start, end) {
   }
 };
 var ElementAction = function(source, target) {
-  var _a, _b, _c2, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+  var _a, _b, _c, _d2, _e, _f, _g, _h, _i, _j, _k, _l, _m;
   if ((target == null ? void 0 : target.symbol) === symbol) {
     source = source != null ? source : {};
     target = target != null ? target : {};
@@ -227,10 +222,10 @@ var ElementAction = function(source, target) {
         this.actions.push(action);
         action(source[i], target[i]);
       }
-      (_c2 = this.end.parentNode) == null ? void 0 : _c2.insertBefore(template.content, this.end);
+      (_c = this.end.parentNode) == null ? void 0 : _c.insertBefore(template.content, this.end);
     } else if (oldLength > newLength) {
       for (let i = oldLength - 1; i > newLength - 1; i--) {
-        if (((_d = source[i]) == null ? void 0 : _d.symbol) === symbol) {
+        if (((_d2 = source[i]) == null ? void 0 : _d2.symbol) === symbol) {
           const { template } = source[i];
           let removes = template.content.childNodes.length + 2;
           while (removes--)
@@ -256,7 +251,7 @@ var ElementAction = function(source, target) {
       node = document.createTextNode(display(target));
       (_j = this.end.parentNode) == null ? void 0 : _j.insertBefore(node, this.end);
     } else {
-      if (((_k = this.end.previousSibling) == null ? void 0 : _k.nodeType) === Node.TEXT_NODE) {
+      if (((_k = this.end.previousSibling) == null ? void 0 : _k.nodeType) === TEXT_NODE) {
         node = this.end.previousSibling;
         node.textContent = display(target);
       } else {
@@ -320,7 +315,7 @@ var AttributeValueAction = function(source, target) {
   }
 };
 var TagAction = function(source, target) {
-  var _a, _b, _c2, _d;
+  var _a, _b, _c, _d2;
   if (source === target)
     return;
   const oldElement = this.element;
@@ -329,24 +324,24 @@ var TagAction = function(source, target) {
     const newElement = document.createElement(target);
     while (oldElement.firstChild)
       newElement.appendChild(oldElement.firstChild);
-    if (oldElement.nodeType === Node.ELEMENT_NODE) {
+    if (oldElement.nodeType === ELEMENT_NODE) {
       const attributeNames = oldElement.getAttributeNames();
       for (const attributeName of attributeNames) {
         const attributeValue = (_b = oldElement.getAttribute(attributeName)) != null ? _b : "";
         newElement.setAttribute(attributeName, attributeValue);
       }
     }
-    (_c2 = this.holder.parentNode) == null ? void 0 : _c2.insertBefore(newElement, this.holder);
+    (_c = this.holder.parentNode) == null ? void 0 : _c.insertBefore(newElement, this.holder);
     this.element = newElement;
   } else {
-    (_d = oldElement.parentNode) == null ? void 0 : _d.removeChild(oldElement);
+    (_d2 = oldElement.parentNode) == null ? void 0 : _d2.removeChild(oldElement);
     this.element = oldElement;
   }
 };
 var Render = function(fragment, actions, marker) {
-  var _a, _b, _c2, _d, _e, _f;
+  var _a, _b, _c, _d2, _e, _f;
   const holders = /* @__PURE__ */ new WeakSet();
-  const walker = document.createTreeWalker(document, filter, null);
+  const walker = document.createTreeWalker(fragment, filter, null);
   walker.currentNode = fragment;
   let node = fragment.firstChild;
   while (node = walker.nextNode()) {
@@ -354,7 +349,7 @@ var Render = function(fragment, actions, marker) {
       holders.delete(node.previousSibling);
       actions.push(() => void 0);
     }
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeType === TEXT_NODE) {
       const startIndex = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf(marker)) != null ? _b : -1;
       if (startIndex === -1)
         continue;
@@ -363,15 +358,15 @@ var Render = function(fragment, actions, marker) {
         node = walker.nextNode();
       }
       const endIndex = marker.length;
-      if (endIndex !== ((_c2 = node.nodeValue) == null ? void 0 : _c2.length)) {
+      if (endIndex !== ((_c = node.nodeValue) == null ? void 0 : _c.length)) {
         node.splitText(endIndex);
       }
       const start = document.createTextNode("");
       const end = node;
       end.textContent = "";
-      (_d = end.parentNode) == null ? void 0 : _d.insertBefore(start, end);
+      (_d2 = end.parentNode) == null ? void 0 : _d2.insertBefore(start, end);
       actions.push(ElementAction.bind({ marker, start, end, actions: [] }));
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
+    } else if (node.nodeType === ELEMENT_NODE) {
       if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
         walker.nextSibling();
       }
@@ -502,10 +497,9 @@ var disconnectingEvent = new Event("disconnecting");
 
 // source/component.ts
 var task = Symbol("Task");
-var create = Symbol("Create");
-var setup = Symbol("Setup");
 var update = Symbol("Update");
-var _context, _root, _marker, _actions, _expressions, _busy, _restart, _created, _c;
+var create = Symbol("Create");
+var _context, _root, _marker, _actions, _expressions, _busy, _restart, _created, _d;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
@@ -518,7 +512,7 @@ var Component = class extends HTMLElement {
     __privateAdd(this, _busy, false);
     __privateAdd(this, _restart, false);
     __privateAdd(this, _created, false);
-    __publicField(this, _c, Promise.resolve());
+    __publicField(this, _d, Promise.resolve());
     const constructor = this.constructor;
     const shadow = constructor.shadow;
     if (shadow && !this.shadowRoot) {
@@ -528,22 +522,36 @@ var Component = class extends HTMLElement {
     __privateSet(this, _root, (_a = this.shadowRoot) != null ? _a : this);
   }
   /**
-   * Defines a custom element.
+   * Defines the custom element and return the constructor.
    */
   static define(tag = ((_a) => (_a = this.tag) != null ? _a : this.name)()) {
     tag = dash(tag);
-    define(tag, this);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
     return this;
   }
   /**
-   * Defines a custom element and Creates a element instance.
+   * Define, Create, Upgrade, and return element.
    */
-  static create() {
-    return __async(this, arguments, function* (tag = ((_b) => (_b = this.tag) != null ? _b : this.name)()) {
+  static create(tag = ((_b) => (_b = this.tag) != null ? _b : this.name)()) {
+    tag = dash(tag);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
+    const instance = document.createElement(tag);
+    customElements.upgrade(instance);
+    return instance;
+  }
+  /**
+   * Define, Create, Upgrade, waits until first render, and return element.
+   */
+  static upgrade() {
+    return __async(this, arguments, function* (tag = ((_c) => (_c = this.tag) != null ? _c : this.name)()) {
       tag = dash(tag);
-      define(tag, this);
+      if (customElements.get(tag) !== this)
+        customElements.define(tag, this);
       const instance = document.createElement(tag);
-      yield instance[create];
+      yield instance[create]();
+      customElements.upgrade(instance);
       return instance;
     });
   }
@@ -583,17 +591,69 @@ var Component = class extends HTMLElement {
       this.dispatchEvent(disconnectedEvent);
     });
   }
-  [(_c = task, create)]() {
+  [(_d = task, create)]() {
     return __async(this, null, function* () {
-      var _a, _b, _c2;
+      var _a, _b, _c, _d2, _e;
       __privateSet(this, _created, true);
       __privateSet(this, _busy, true);
-      yield this[setup]();
+      const constructor = this.constructor;
+      const observedProperties = constructor.observedProperties;
+      const prototype = Object.getPrototypeOf(this);
+      const properties = observedProperties ? observedProperties != null ? observedProperties : [] : [
+        ...Object.getOwnPropertyNames(this),
+        ...Object.getOwnPropertyNames(prototype)
+      ];
+      for (const property of properties) {
+        if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnected" === property || "attribute" === property || "connected" === property || "rendered" === property || "created" === property || "adopted" === property || "render" === property || "setup" === property)
+          continue;
+        const descriptor = (_a = Object.getOwnPropertyDescriptor(this, property)) != null ? _a : Object.getOwnPropertyDescriptor(prototype, property);
+        if (!descriptor)
+          continue;
+        if (!descriptor.configurable)
+          continue;
+        if (typeof descriptor.value === "function")
+          descriptor.value = descriptor.value.bind(this);
+        if (typeof descriptor.get === "function")
+          descriptor.get = descriptor.get.bind(this);
+        if (typeof descriptor.set === "function")
+          descriptor.set = descriptor.set.bind(this);
+        Object.defineProperty(__privateGet(this, _context), property, descriptor);
+        Object.defineProperty(this, property, {
+          configurable: false,
+          enumerable: descriptor.enumerable,
+          // configurable: descriptor.configurable,
+          get() {
+            return __privateGet(this, _context)[property];
+          },
+          set(value) {
+            __privateGet(this, _context)[property] = value;
+            this[update]();
+          }
+        });
+      }
+      __privateSet(this, _context, context_default(__privateGet(this, _context), this[update].bind(this)));
+      const template = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+      if (template) {
+        const fragment = template.template.content.cloneNode(true);
+        __privateSet(this, _marker, template.marker);
+        __privateSet(this, _expressions, template.expressions);
+        render_default(fragment, __privateGet(this, _actions), __privateGet(this, _marker));
+        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
+          const newExpression = template.expressions[index];
+          try {
+            __privateGet(this, _actions)[index](void 0, newExpression);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+        document.adoptNode(fragment);
+        __privateGet(this, _root).appendChild(fragment);
+      }
       this.dispatchEvent(creatingEvent);
-      yield (_a = this.created) == null ? void 0 : _a.call(this, __privateGet(this, _context));
+      yield (_c = this.created) == null ? void 0 : _c.call(this, __privateGet(this, _context));
       this.dispatchEvent(createdEvent);
       this.dispatchEvent(connectingEvent);
-      yield (_c2 = (_b = this.connected) == null ? void 0 : _b.call(this, __privateGet(this, _context))) == null ? void 0 : _c2.catch(console.error);
+      yield (_e = (_d2 = this.connected) == null ? void 0 : _d2.call(this, __privateGet(this, _context))) == null ? void 0 : _e.catch(console.error);
       this.dispatchEvent(connectedEvent);
       __privateSet(this, _busy, false);
       __privateSet(this, _restart, false);
@@ -636,64 +696,6 @@ var Component = class extends HTMLElement {
       return this[task];
     });
   }
-  [setup]() {
-    return __async(this, null, function* () {
-      var _a, _b;
-      const constructor = this.constructor;
-      const observedProperties = constructor.observedProperties;
-      const prototype = Object.getPrototypeOf(this);
-      const properties = observedProperties ? observedProperties != null ? observedProperties : [] : [
-        ...Object.getOwnPropertyNames(this),
-        ...Object.getOwnPropertyNames(prototype)
-      ];
-      for (const property of properties) {
-        if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnected" === property || "attribute" === property || "connected" === property || "rendered" === property || "created" === property || "adopted" === property || "render" === property || "setup" === property)
-          continue;
-        const descriptor = (_a = Object.getOwnPropertyDescriptor(this, property)) != null ? _a : Object.getOwnPropertyDescriptor(prototype, property);
-        if (!descriptor)
-          continue;
-        if (!descriptor.configurable)
-          continue;
-        if (typeof descriptor.value === "function")
-          descriptor.value = descriptor.value.bind(this);
-        if (typeof descriptor.get === "function")
-          descriptor.get = descriptor.get.bind(this);
-        if (typeof descriptor.set === "function")
-          descriptor.set = descriptor.set.bind(this);
-        Object.defineProperty(__privateGet(this, _context), property, descriptor);
-        Object.defineProperty(this, property, {
-          enumerable: descriptor.enumerable,
-          configurable: false,
-          // configurable: descriptor.configurable,
-          get() {
-            return __privateGet(this, _context)[property];
-          },
-          set(value) {
-            __privateGet(this, _context)[property] = value;
-            this[update]();
-          }
-        });
-      }
-      __privateSet(this, _context, context_default(__privateGet(this, _context), this[update].bind(this)));
-      const template = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
-      if (template) {
-        const fragment = template.template.content.cloneNode(true);
-        __privateSet(this, _marker, template.marker);
-        __privateSet(this, _expressions, template.expressions);
-        render_default(fragment, __privateGet(this, _actions), __privateGet(this, _marker));
-        for (let index = 0; index < __privateGet(this, _actions).length; index++) {
-          const newExpression = template.expressions[index];
-          try {
-            __privateGet(this, _actions)[index](void 0, newExpression);
-          } catch (error) {
-            console.error(error);
-          }
-        }
-        document.adoptNode(fragment);
-        __privateGet(this, _root).appendChild(fragment);
-      }
-    });
-  }
 };
 _context = new WeakMap();
 _root = new WeakMap();
@@ -725,12 +727,19 @@ __publicField(Component, "mode");
  */
 __publicField(Component, "observedProperties");
 
+// source/define.ts
+function define(name, constructor) {
+  if (customElements.get(name) !== constructor) {
+    customElements.define(name, constructor);
+  }
+}
+
 // source/router.ts
 var alls = [];
 var routes = [];
 var transition = function(route) {
   return __async(this, null, function* () {
-    var _a, _b;
+    var _a;
     if (route.instance) {
       replaceChildren(route.root, route.instance);
     } else {
@@ -743,9 +752,9 @@ var transition = function(route) {
         throw new Error("XElement - router handler requires a CustomElementConstructor");
       }
       if (route.construct.prototype instanceof Component) {
-        route.instance = yield route.construct.create();
+        route.instance = yield route.construct.upgrade();
       } else {
-        route.tag = dash((_b = route.construct.tag) != null ? _b : route.construct.name);
+        route.tag = dash(route.construct.name);
         define(route.tag, route.construct);
         route.instance = document.createElement(route.tag);
       }
@@ -754,13 +763,13 @@ var transition = function(route) {
   });
 };
 var navigate = function(event) {
-  var _a, _b, _c2;
+  var _a, _b, _c;
   if (event && "canIntercept" in event && event.canIntercept === false)
     return;
   if (event && "canTransition" in event && event.canTransition === false)
     return;
   const destination = new URL((_a = event == null ? void 0 : event.destination.url) != null ? _a : location.href);
-  const base = new URL((_c2 = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c2 : location.origin);
+  const base = new URL((_c = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c : location.origin);
   base.hash = "";
   base.search = "";
   destination.hash = "";

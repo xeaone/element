@@ -1,5 +1,5 @@
 /**
- * @version 9.0.1
+ * @version 9.1.0
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -9,7 +9,6 @@
  *
  * @module
  */
-import define from './define';
 import render from './render';
 import context from './context';
 import html from './html';
@@ -42,31 +41,42 @@ import {
 } from './events';
 
 const task = Symbol('Task');
-const create = Symbol('Create');
-const setup = Symbol('Setup');
 const update = Symbol('Update');
+const create = Symbol('Create');
 
 export default class Component extends HTMLElement {
 
     static html = html;
 
     /**
-     * Defines a custom element.
+     * Defines the custom element and return the constructor.
      */
     static define (tag: string = this.tag ?? this.name) {
         tag = dash(tag);
-        define(tag, this);
+        if (customElements.get(tag) !== this) customElements.define(tag, this);
         return this;
     }
 
     /**
-     * Defines a custom element and Creates a element instance.
+     * Define, Create, Upgrade, and return element.
      */
-    static async create (tag: string = this.tag ?? this.name) {
+    static create (tag: string = this.tag ?? this.name) {
         tag = dash(tag);
-        define(tag, this);
-        const instance = document.createElement(tag) as Component;
-        await instance[ create ];
+        if (customElements.get(tag) !== this) customElements.define(tag, this);
+        const instance = document.createElement(tag);
+        customElements.upgrade(instance);
+        return instance;
+    }
+
+    /**
+     * Define, Create, Upgrade, waits until first render, and return element.
+     */
+    static async upgrade (tag: string = this.tag ?? this.name) {
+        tag = dash(tag);
+        if (customElements.get(tag) !== this) customElements.define(tag, this);
+        const instance = document.createElement(tag);
+        await (instance as Component)[ create ]();
+        customElements.upgrade(instance);
         return instance;
     }
 
@@ -192,7 +202,86 @@ export default class Component extends HTMLElement {
         this.#created = true;
         this.#busy = true;
 
-        await this[ setup ]();
+        const constructor = this.constructor as typeof Component;
+        const observedProperties = constructor.observedProperties;
+        const prototype = Object.getPrototypeOf(this);
+        const properties = observedProperties ?
+            observedProperties ?? [] :
+            [ ...Object.getOwnPropertyNames(this),
+            ...Object.getOwnPropertyNames(prototype) ];
+
+        for (const property of properties) {
+
+            if (
+                'attributeChangedCallback' === property ||
+                'disconnectedCallback' === property ||
+                'connectedCallback' === property ||
+                'adoptedCallback' === property ||
+                'constructor' === property ||
+                'disconnected' === property ||
+                'attribute' === property ||
+                'connected' === property ||
+                'rendered' === property ||
+                'created' === property ||
+                'adopted' === property ||
+                'render' === property ||
+                'setup' === property
+            ) continue;
+
+            const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
+
+            if (!descriptor) continue;
+            if (!descriptor.configurable) continue;
+
+            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
+            if (typeof descriptor.get === 'function') descriptor.get = descriptor.get.bind(this);
+            if (typeof descriptor.set === 'function') descriptor.set = descriptor.set.bind(this);
+
+            Object.defineProperty(this.#context, property, descriptor);
+
+            Object.defineProperty(this, property, {
+                configurable: false,
+                enumerable: descriptor.enumerable,
+                // configurable: descriptor.configurable,
+                get () {
+                    return (this.#context as Record<any, any>)[ property ];
+                },
+                set (value) {
+                    (this.#context as Record<any, any>)[ property ] = value;
+                    this[ update ]();
+                }
+            });
+
+        }
+
+        this.#context = context(this.#context, this[ update ].bind(this));
+
+        // this.dispatchEvent(renderingEvent);
+
+        const template = await this.render?.(this.#context);
+        if (template) {
+
+            // const fragment = document.importNode(template.template.content, true);
+            const fragment = template.template.content.cloneNode(true) as DocumentFragment;
+
+            this.#marker = template.marker;
+            this.#expressions = template.expressions;
+
+            render(fragment, this.#actions, this.#marker);
+
+            for (let index = 0; index < this.#actions.length; index++) {
+                const newExpression = template.expressions[ index ];
+                try {
+                    this.#actions[ index ](undefined, newExpression);
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
+            document.adoptNode(fragment);
+
+            this.#root.appendChild(fragment);
+        }
 
         this.dispatchEvent(creatingEvent);
         await this.created?.(this.#context);
@@ -204,6 +293,7 @@ export default class Component extends HTMLElement {
 
         this.#busy = false;
         this.#restart = false;
+
         await this[ update ]();
     }
 
@@ -247,6 +337,7 @@ export default class Component extends HTMLElement {
             }
 
             this.#busy = false;
+            // this.#restart = false;
 
             await this.rendered?.(this.#context);
             this.dispatchEvent(renderedEvent);
@@ -257,100 +348,6 @@ export default class Component extends HTMLElement {
         }).catch(console.error);
 
         return this[ task ];
-    }
-
-    protected async [ setup ] () {
-
-        const constructor = this.constructor as typeof Component;
-        const observedProperties = constructor.observedProperties;
-        const prototype = Object.getPrototypeOf(this);
-
-        const properties = observedProperties ?
-            observedProperties ?? [] :
-            [ ...Object.getOwnPropertyNames(this),
-            ...Object.getOwnPropertyNames(prototype) ];
-
-        for (const property of properties) {
-
-            if (
-                'attributeChangedCallback' === property ||
-                'disconnectedCallback' === property ||
-                'connectedCallback' === property ||
-                'adoptedCallback' === property ||
-                'constructor' === property ||
-                'disconnected' === property ||
-                'attribute' === property ||
-                'connected' === property ||
-                'rendered' === property ||
-                'created' === property ||
-                'adopted' === property ||
-                'render' === property ||
-                'setup' === property
-            ) continue;
-
-            const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
-
-            if (!descriptor) continue;
-            if (!descriptor.configurable) continue;
-
-            if (typeof descriptor.value === 'function') descriptor.value = descriptor.value.bind(this);
-            if (typeof descriptor.get === 'function') descriptor.get = descriptor.get.bind(this);
-            if (typeof descriptor.set === 'function') descriptor.set = descriptor.set.bind(this);
-
-            Object.defineProperty(this.#context, property, descriptor);
-
-            Object.defineProperty(this, property, {
-                enumerable: descriptor.enumerable,
-                configurable: false,
-                // configurable: descriptor.configurable,
-                get () {
-                    return (this.#context as Record<any, any>)[ property ];
-                },
-                set (value) {
-                    (this.#context as Record<any, any>)[ property ] = value;
-                    this[ update ]();
-                }
-            });
-
-        }
-
-        this.#context = context(this.#context, this[ update ].bind(this));
-
-        // this.dispatchEvent(renderingEvent);
-
-        const template = await this.render?.(this.#context);
-        if (template) {
-
-            const fragment = template.template.content.cloneNode(true) as DocumentFragment;
-            this.#marker = template.marker;
-            this.#expressions = template.expressions;
-
-            render(fragment, this.#actions, this.#marker);
-
-            for (let index = 0; index < this.#actions.length; index++) {
-                const newExpression = template.expressions[ index ];
-                try {
-                    this.#actions[ index ](undefined, newExpression);
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-
-            document.adoptNode(fragment);
-
-            this.#root.appendChild(fragment);
-        }
-
-        // await this.rendered?.(this.#context);
-        // this.dispatchEvent(renderedEvent);
-
-        // this.#restart = false;
-        // this.#busy = false;
-        // await this[ update ]();
-
-        // this.dispatchEvent(creatingEvent);
-        // await this.created?.(this.#context);
-        // this.dispatchEvent(createdEvent);
     }
 
 }

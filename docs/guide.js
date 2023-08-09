@@ -51,11 +51,20 @@ export default class guide extends component {
         // Optional: limit the properties that will trigger render. Defaults to all.
         static observedProperties?: string[];
 
-        // Conveniences method to define if not already defined using Tag or class Name and convert to an allowed name. Returns the class.
+        // Conveniences method to handle customElements.define, customElements.upgrade, and returns the Class.
+        // Will not error if matching tag name and class is defined.
+        // Converts the tag/constructor.name into to an allowed name.
         static define: (tag: string = this.tag ?? this.name) => component;
 
-        // Conveniences method to define if not already defined and using the Tag or class Name and convert to an allowed name. Returns a new Element.
-        static async create: (tag: string = this.tag ?? this.name) => Element;
+        // Convenience method to handle customElments.define, createElement, customElments.upgrade, returns a new Instance.
+        // Will not error if matching tag name and class is defined.
+        // Converts the tag/constructor.name into to an allowed name.
+        static create: (tag: string = this.tag ?? this.name) => Element;
+
+        // Convenience method to handle customElments.define, createElement, customElments.upgrade, wati until initial render, and returns a new Instance.
+        // Will not error if matching tag name and class is defined.
+        // Converts the tag/constructor.name into to an allowed name.
+        static async upgrade: (tag: string = this.tag ?? this.name) => Element;
 
         // Template to render
         render = () => html\`\`;

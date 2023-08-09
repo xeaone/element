@@ -1,5 +1,5 @@
 /**
- * @version 9.0.1
+ * @version 9.1.0
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -14,7 +14,13 @@ import { symbol } from './html';
 import { includes } from './poly';
 import { Actions } from './types';
 
-const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
+// const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
+// const TEXT_NODE = Node.TEXT_NODE;
+// const ELEMENT_NODE = Node.ELEMENT_NODE;
+
+const filter = 1 + 4;
+const TEXT_NODE = 3;
+const ELEMENT_NODE = 1;
 
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
 // https://www.w3.org/TR/REC-html40/index/attributes.html
@@ -77,7 +83,10 @@ const ElementAction = function (this: {
 
         } else {
             this.actions.length = 0;
+
+            // const fragment = document.importNode(target.template.content, true);
             const fragment = target.template.content.cloneNode(true);
+
             Render(fragment, this.actions, target.marker);
 
             const l = this.actions.length;
@@ -157,7 +166,7 @@ const ElementAction = function (this: {
             // node = document.createTextNode(target);
             this.end.parentNode?.insertBefore(node, this.end);
         } else {
-            if (this.end.previousSibling?.nodeType === Node.TEXT_NODE) {
+            if (this.end.previousSibling?.nodeType === TEXT_NODE) {
                 node = this.end.previousSibling;
                 node.textContent = display(target);
                 // node.textContent = target;
@@ -261,7 +270,7 @@ const TagAction = function (this: {
 
         while (oldElement.firstChild) newElement.appendChild(oldElement.firstChild);
 
-        if (oldElement.nodeType === Node.ELEMENT_NODE) {
+        if (oldElement.nodeType === ELEMENT_NODE) {
             const attributeNames = (oldElement as Element).getAttributeNames();
             for (const attributeName of attributeNames) {
                 const attributeValue = (oldElement as Element).getAttribute(attributeName) ?? '';
@@ -280,7 +289,8 @@ const TagAction = function (this: {
 
 export const Render = function (fragment: DocumentFragment, actions: Actions, marker: string) {
     const holders = new WeakSet();
-    const walker = document.createTreeWalker(document, filter, null);
+    // const walker = document.createTreeWalker(document, filter, null);
+    const walker = document.createTreeWalker(fragment, filter, null);
 
     walker.currentNode = fragment;
 
@@ -293,7 +303,7 @@ export const Render = function (fragment: DocumentFragment, actions: Actions, ma
             actions.push(() => undefined);
         }
 
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (node.nodeType === TEXT_NODE) {
 
             const startIndex = node.nodeValue?.indexOf(marker) ?? -1;
             if (startIndex === -1) continue;
@@ -315,7 +325,7 @@ export const Render = function (fragment: DocumentFragment, actions: Actions, ma
             end.parentNode?.insertBefore(start, end);
 
             actions.push(ElementAction.bind({ marker, start, end, actions: [], }));
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
+        } else if (node.nodeType === ELEMENT_NODE) {
 
             if (node.nodeName === 'SCRIPT' || node.nodeName === 'STYLE') {
                 walker.nextSibling();

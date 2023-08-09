@@ -1,5 +1,5 @@
 /**
- * @version 9.0.1
+ * @version 9.1.0
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -32,9 +32,9 @@ const transition = async function (route: Route) {
         }
 
         if (route.construct.prototype instanceof component) {
-            route.instance = await (route.construct as typeof component).create();
+            route.instance = await (route.construct as typeof component).upgrade();
         } else {
-            route.tag = dash((route.construct as any).tag ?? route.construct.name);
+            route.tag = dash(route.construct.name);
             define(route.tag, route.construct);
             route.instance = document.createElement(route.tag);
         }

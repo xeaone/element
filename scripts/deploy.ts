@@ -40,7 +40,12 @@ const banner = `/**
  */
 `;
 
-await (new Deno.Command('npx tsc').spawn()).output();
+// await (new Deno.Command('npx tsc').spawn()).output();
+const npxTsc = await Deno.run({ cmd: [ 'npx', 'tsc' ] }).status();
+if (!npxTsc.success) {
+    console.warn('npx tsc failed');
+    Deno.exit();
+}
 
 for await (const file of Deno.readDir('source')) {
     if (file.isDirectory) continue;
