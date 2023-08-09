@@ -1,31 +1,23 @@
-/**
- * @version 9.0.1
- *
- * @license
- * Copyright (C) Alexander Elias
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * @module
- */
 import html from './html';
 import { HTML } from './types';
 declare const task: unique symbol;
-declare const create: unique symbol;
-declare const setup: unique symbol;
 declare const update: unique symbol;
+declare const create: unique symbol;
 export default class Component extends HTMLElement {
     #private;
     static html: typeof html;
     /**
-     * Defines a custom element.
+     * Defines the custom element and return the constructor.
      */
     static define(tag?: string): typeof Component;
     /**
-     * Defines a custom element and Creates a element instance.
+     * Define, Create, Upgrade, and return element.
      */
-    static create(tag?: string): Promise<Component>;
+    static create(tag?: string): HTMLElement;
+    /**
+     * Define, Create, Upgrade, waits until first render, and return element.
+     */
+    static upgrade(tag?: string): Promise<HTMLElement>;
     /**
      * Configuration to define a element Tag name for use by the define() and create() method.
      * Default value will use the function.constructor.name.
@@ -88,6 +80,5 @@ export default class Component extends HTMLElement {
     protected disconnectedCallback(): Promise<void>;
     protected [create](): Promise<void>;
     protected [update](): Promise<void>;
-    protected [setup](): Promise<void>;
 }
 export {};

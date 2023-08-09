@@ -29,5 +29,8 @@
         "bundle": "bundle",
         "module": "module"
     },
-    "version": "9.0.1"
+    "version": "9.0.1",
+    "devDependencies": {
+        "typescript": "^5.1.6"
+    }
 }

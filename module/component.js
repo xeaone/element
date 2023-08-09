@@ -1,42 +1,43 @@
-/**
- * @version 9.0.1
- *
- * @license
- * Copyright (C) Alexander Elias
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * @module
- */
-import define from './define';
 import render from './render';
 import context from './context';
 import html from './html';
 import dash from './dash';
 import { createdEvent, creatingEvent, renderedEvent, renderingEvent, adoptedEvent, adoptingEvent, connectedEvent, connectingEvent, attributedEvent, attributingEvent, disconnectedEvent, disconnectingEvent, } from './events';
 const task = Symbol('Task');
-const create = Symbol('Create');
-const setup = Symbol('Setup');
 const update = Symbol('Update');
+const create = Symbol('Create');
 export default class Component extends HTMLElement {
     static html = html;
     /**
-     * Defines a custom element.
+     * Defines the custom element and return the constructor.
      */
     static define(tag = this.tag ?? this.name) {
         tag = dash(tag);
-        define(tag, this);
+        if (customElements.get(tag) !== this)
+            customElements.define(tag, this);
         return this;
     }
     /**
-     * Defines a custom element and Creates a element instance.
+     * Define, Create, Upgrade, and return element.
      */
-    static async create(tag = this.tag ?? this.name) {
+    static create(tag = this.tag ?? this.name) {
         tag = dash(tag);
-        define(tag, this);
+        if (customElements.get(tag) !== this)
+            customElements.define(tag, this);
         const instance = document.createElement(tag);
-        await instance[create];
+        customElements.upgrade(instance);
+        return instance;
+    }
+    /**
+     * Define, Create, Upgrade, waits until first render, and return element.
+     */
+    static async upgrade(tag = this.tag ?? this.name) {
+        tag = dash(tag);
+        if (customElements.get(tag) !== this)
+            customElements.define(tag, this);
+        const instance = document.createElement(tag);
+        await instance[create]();
+        customElements.upgrade(instance);
         return instance;
     }
     /**
@@ -106,7 +107,74 @@ export default class Component extends HTMLElement {
     async [create]() {
         this.#created = true;
         this.#busy = true;
-        await this[setup]();
+        const constructor = this.constructor;
+        const observedProperties = constructor.observedProperties;
+        const prototype = Object.getPrototypeOf(this);
+        const properties = observedProperties ?
+            observedProperties ?? [] :
+            [...Object.getOwnPropertyNames(this),
+                ...Object.getOwnPropertyNames(prototype)];
+        for (const property of properties) {
+            if ('attributeChangedCallback' === property ||
+                'disconnectedCallback' === property ||
+                'connectedCallback' === property ||
+                'adoptedCallback' === property ||
+                'constructor' === property ||
+                'disconnected' === property ||
+                'attribute' === property ||
+                'connected' === property ||
+                'rendered' === property ||
+                'created' === property ||
+                'adopted' === property ||
+                'render' === property ||
+                'setup' === property)
+                continue;
+            const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
+            if (!descriptor)
+                continue;
+            if (!descriptor.configurable)
+                continue;
+            if (typeof descriptor.value === 'function')
+                descriptor.value = descriptor.value.bind(this);
+            if (typeof descriptor.get === 'function')
+                descriptor.get = descriptor.get.bind(this);
+            if (typeof descriptor.set === 'function')
+                descriptor.set = descriptor.set.bind(this);
+            Object.defineProperty(this.#context, property, descriptor);
+            Object.defineProperty(this, property, {
+                configurable: false,
+                enumerable: descriptor.enumerable,
+                // configurable: descriptor.configurable,
+                get() {
+                    return this.#context[property];
+                },
+                set(value) {
+                    this.#context[property] = value;
+                    this[update]();
+                }
+            });
+        }
+        this.#context = context(this.#context, this[update].bind(this));
+        // this.dispatchEvent(renderingEvent);
+        const template = await this.render?.(this.#context);
+        if (template) {
+            // const fragment = document.importNode(template.template.content, true);
+            const fragment = template.template.content.cloneNode(true);
+            this.#marker = template.marker;
+            this.#expressions = template.expressions;
+            render(fragment, this.#actions, this.#marker);
+            for (let index = 0; index < this.#actions.length; index++) {
+                const newExpression = template.expressions[index];
+                try {
+                    this.#actions[index](undefined, newExpression);
+                }
+                catch (error) {
+                    console.error(error);
+                }
+            }
+            document.adoptNode(fragment);
+            this.#root.appendChild(fragment);
+        }
         this.dispatchEvent(creatingEvent);
         await this.created?.(this.#context);
         this.dispatchEvent(createdEvent);
@@ -148,6 +216,7 @@ export default class Component extends HTMLElement {
                 }
             }
             this.#busy = false;
+            // this.#restart = false;
             await this.rendered?.(this.#context);
             this.dispatchEvent(renderedEvent);
             // resolve(undefined);
@@ -155,83 +224,6 @@ export default class Component extends HTMLElement {
             // });
         }).catch(console.error);
         return this[task];
-    }
-    async [setup]() {
-        const constructor = this.constructor;
-        const observedProperties = constructor.observedProperties;
-        const prototype = Object.getPrototypeOf(this);
-        const properties = observedProperties ?
-            observedProperties ?? [] :
-            [...Object.getOwnPropertyNames(this),
-                ...Object.getOwnPropertyNames(prototype)];
-        for (const property of properties) {
-            if ('attributeChangedCallback' === property ||
-                'disconnectedCallback' === property ||
-                'connectedCallback' === property ||
-                'adoptedCallback' === property ||
-                'constructor' === property ||
-                'disconnected' === property ||
-                'attribute' === property ||
-                'connected' === property ||
-                'rendered' === property ||
-                'created' === property ||
-                'adopted' === property ||
-                'render' === property ||
-                'setup' === property)
-                continue;
-            const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
-            if (!descriptor)
-                continue;
-            if (!descriptor.configurable)
-                continue;
-            if (typeof descriptor.value === 'function')
-                descriptor.value = descriptor.value.bind(this);
-            if (typeof descriptor.get === 'function')
-                descriptor.get = descriptor.get.bind(this);
-            if (typeof descriptor.set === 'function')
-                descriptor.set = descriptor.set.bind(this);
-            Object.defineProperty(this.#context, property, descriptor);
-            Object.defineProperty(this, property, {
-                enumerable: descriptor.enumerable,
-                configurable: false,
-                // configurable: descriptor.configurable,
-                get() {
-                    return this.#context[property];
-                },
-                set(value) {
-                    this.#context[property] = value;
-                    this[update]();
-                }
-            });
-        }
-        this.#context = context(this.#context, this[update].bind(this));
-        // this.dispatchEvent(renderingEvent);
-        const template = await this.render?.(this.#context);
-        if (template) {
-            const fragment = template.template.content.cloneNode(true);
-            this.#marker = template.marker;
-            this.#expressions = template.expressions;
-            render(fragment, this.#actions, this.#marker);
-            for (let index = 0; index < this.#actions.length; index++) {
-                const newExpression = template.expressions[index];
-                try {
-                    this.#actions[index](undefined, newExpression);
-                }
-                catch (error) {
-                    console.error(error);
-                }
-            }
-            document.adoptNode(fragment);
-            this.#root.appendChild(fragment);
-        }
-        // await this.rendered?.(this.#context);
-        // this.dispatchEvent(renderedEvent);
-        // this.#restart = false;
-        // this.#busy = false;
-        // await this[ update ]();
-        // this.dispatchEvent(creatingEvent);
-        // await this.created?.(this.#context);
-        // this.dispatchEvent(createdEvent);
     }
 }
 //# sourceMappingURL=component.js.map

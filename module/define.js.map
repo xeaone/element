@@ -1,1 +1,1 @@
-{"version":3,"file":"define.js","sourceRoot":"","sources":["../source/define.ts"],"names":[],"mappings":"AACA,MAAM,CAAC,OAAO,UAAU,MAAM,CAAE,IAAY,EAAE,WAAqC;IAC/E,IAAI,CAAC,cAAc,CAAC,GAAG,CAAC,IAAI,CAAC,EAAE;QAC3B,cAAc,CAAC,MAAM,CAAC,IAAI,EAAE,WAAW,CAAC,CAAC;KAC5C;AACL,CAAC"}
+{"version":3,"file":"define.js","sourceRoot":"","sources":["../source/define.ts"],"names":[],"mappings":"AACA,MAAM,CAAC,OAAO,UAAU,MAAM,CAAE,IAAY,EAAE,WAAqC;IAC/E,IAAI,cAAc,CAAC,GAAG,CAAC,IAAI,CAAC,KAAK,WAAW,EAAE;QAC1C,cAAc,CAAC,MAAM,CAAC,IAAI,EAAE,WAAW,CAAC,CAAC;KAC5C;AACL,CAAC"}

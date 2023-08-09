@@ -40,7 +40,7 @@ const banner = `/**
  */
 `;
 
-await (new Deno.Command('tsc').spawn()).output();
+await (new Deno.Command('npx tsc').spawn()).output();
 
 for await (const file of Deno.readDir('source')) {
     if (file.isDirectory) continue;

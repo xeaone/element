@@ -1,18 +1,12 @@
-/**
- * @version 9.0.1
- *
- * @license
- * Copyright (C) Alexander Elias
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * @module
- */
 import display from './display';
 import { symbol } from './html';
 import { includes } from './poly';
-const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
+// const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
+// const TEXT_NODE = Node.TEXT_NODE;
+// const ELEMENT_NODE = Node.ELEMENT_NODE;
+const filter = 1 + 4;
+const TEXT_NODE = 3;
+const ELEMENT_NODE = 1;
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
 // https://www.w3.org/TR/REC-html40/index/attributes.html
 const links = [
@@ -64,6 +58,7 @@ const ElementAction = function (source, target) {
         }
         else {
             this.actions.length = 0;
+            // const fragment = document.importNode(target.template.content, true);
             const fragment = target.template.content.cloneNode(true);
             Render(fragment, this.actions, target.marker);
             const l = this.actions.length;
@@ -133,7 +128,7 @@ const ElementAction = function (source, target) {
             this.end.parentNode?.insertBefore(node, this.end);
         }
         else {
-            if (this.end.previousSibling?.nodeType === Node.TEXT_NODE) {
+            if (this.end.previousSibling?.nodeType === TEXT_NODE) {
                 node = this.end.previousSibling;
                 node.textContent = display(target);
                 // node.textContent = target;
@@ -212,7 +207,7 @@ const TagAction = function (source, target) {
         const newElement = document.createElement(target);
         while (oldElement.firstChild)
             newElement.appendChild(oldElement.firstChild);
-        if (oldElement.nodeType === Node.ELEMENT_NODE) {
+        if (oldElement.nodeType === ELEMENT_NODE) {
             const attributeNames = oldElement.getAttributeNames();
             for (const attributeName of attributeNames) {
                 const attributeValue = oldElement.getAttribute(attributeName) ?? '';
@@ -229,7 +224,8 @@ const TagAction = function (source, target) {
 };
 export const Render = function (fragment, actions, marker) {
     const holders = new WeakSet();
-    const walker = document.createTreeWalker(document, filter, null);
+    // const walker = document.createTreeWalker(document, filter, null);
+    const walker = document.createTreeWalker(fragment, filter, null);
     walker.currentNode = fragment;
     let node = fragment.firstChild;
     while (node = walker.nextNode()) {
@@ -237,7 +233,7 @@ export const Render = function (fragment, actions, marker) {
             holders.delete(node.previousSibling);
             actions.push(() => undefined);
         }
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (node.nodeType === TEXT_NODE) {
             const startIndex = node.nodeValue?.indexOf(marker) ?? -1;
             if (startIndex === -1)
                 continue;
@@ -255,7 +251,7 @@ export const Render = function (fragment, actions, marker) {
             end.parentNode?.insertBefore(start, end);
             actions.push(ElementAction.bind({ marker, start, end, actions: [], }));
         }
-        else if (node.nodeType === Node.ELEMENT_NODE) {
+        else if (node.nodeType === ELEMENT_NODE) {
             if (node.nodeName === 'SCRIPT' || node.nodeName === 'STYLE') {
                 walker.nextSibling();
             }

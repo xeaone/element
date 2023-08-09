@@ -1,14 +1,3 @@
-/**
- * @version 9.0.1
- *
- * @license
- * Copyright (C) Alexander Elias
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * @module
- */
 import { replaceChildren } from './poly';
 import component from './component';
 import define from './define';
@@ -31,10 +20,10 @@ const transition = async function (route) {
             throw new Error('XElement - router handler requires a CustomElementConstructor');
         }
         if (route.construct.prototype instanceof component) {
-            route.instance = await route.construct.create();
+            route.instance = await route.construct.upgrade();
         }
         else {
-            route.tag = dash(route.construct.tag ?? route.construct.name);
+            route.tag = dash(route.construct.name);
             define(route.tag, route.construct);
             route.instance = document.createElement(route.tag);
         }
