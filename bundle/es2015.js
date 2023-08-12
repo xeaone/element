@@ -1,5 +1,5 @@
 /**
- * @version 9.1.0
+ * @version 9.1.1
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -538,7 +538,8 @@ var Component = class extends HTMLElement {
     if (customElements.get(tag) !== this)
       customElements.define(tag, this);
     const instance = document.createElement(tag);
-    customElements.upgrade(instance);
+    if (customElements.upgrade)
+      customElements.upgrade(instance);
     return instance;
   }
   /**
@@ -551,7 +552,8 @@ var Component = class extends HTMLElement {
         customElements.define(tag, this);
       const instance = document.createElement(tag);
       yield instance[create]();
-      customElements.upgrade(instance);
+      if (customElements.upgrade)
+        customElements.upgrade(instance);
       return instance;
     });
   }
