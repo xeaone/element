@@ -1,14 +1,753 @@
-/**
- * @version 9.1.0
- *
- * @license
- * Copyright (C) Alexander Elias
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * @module
- */
+// source/display.ts
+function display(data) {
+  switch (`${data}`) {
+    case "NaN":
+      return "";
+    case "null":
+      return "";
+    case "undefined":
+      return "";
+  }
+  switch (typeof data) {
+    case "string":
+      return data;
+    case "number":
+      return `${data}`;
+    case "bigint":
+      return `${data}`;
+    case "boolean":
+      return `${data}`;
+    case "function":
+      return `${data()}`;
+    case "symbol":
+      return String(data);
+    case "object":
+      return JSON.stringify(data);
+  }
+  throw new Error("XElement - display type not handled");
+}
 
-var Te=Object.defineProperty;var Re=(e,n,t)=>n in e?Te(e,n,{enumerable:!0,configurable:!0,writable:!0,value:t}):e[n]=t;var A=(e,n,t)=>(Re(e,typeof n!="symbol"?n+"":n,t),t),Q=(e,n,t)=>{if(!n.has(e))throw TypeError("Cannot "+t)};var u=(e,n,t)=>(Q(e,n,"read from private field"),t?t.call(e):n.get(e)),C=(e,n,t)=>{if(n.has(e))throw TypeError("Cannot add the same private member more than once");n instanceof WeakSet?n.add(e):n.set(e,t)},v=(e,n,t,o)=>(Q(e,n,"write to private field"),o?o.call(e,t):n.set(e,t),t);var w=(e,n,t)=>new Promise((o,s)=>{var i=c=>{try{d(t.next(c))}catch(m){s(m)}},l=c=>{try{d(t.throw(c))}catch(m){s(m)}},d=c=>c.done?o(c.value):Promise.resolve(c.value).then(i,l);d((t=t.apply(e,n)).next())});function L(e){switch(`${e}`){case"NaN":return"";case"null":return"";case"undefined":return""}switch(typeof e){case"string":return e;case"number":return`${e}`;case"bigint":return`${e}`;case"boolean":return`${e}`;case"function":return`${e()}`;case"symbol":return String(e);case"object":return JSON.stringify(e)}throw new Error("XElement - display type not handled")}var ee=()=>Math.floor(Math.random()*Date.now());var B=function(e,...n){for(;e.lastChild;)e.removeChild(e.lastChild);if(n!=null&&n.length)for(let t of n)e.appendChild(typeof t=="string"?e.ownerDocument.createTextNode(t):t)},I=function(e,n){return e.indexOf(n)!==-1},te="trustedTypes"in window?window.trustedTypes.createPolicy("x-element",{createHTML:e=>e}):void 0,ne=function(e){return te?te.createHTML(e):e};var $=Symbol("html"),oe=new WeakMap;function H(e,...n){let t=oe.get(e);if(t){let[o,s]=t;return{strings:e,template:o,expressions:n,symbol:$,marker:s}}else{let o=`X-${ee()}-X`,s="",i=e.length-1;for(let d=0;d<i;d++)s+=`${e[d]}${o}`;s+=e[i];let l=document.createElement("template");return l.innerHTML=ne(s),oe.set(e,[l,o]),{strings:e,template:l,expressions:n,symbol:$,marker:o}}}var Ae=1+4,ie=3,se=1,re=["src","href","data","action","srcdoc","xlink:href","cite","formaction","ping","poster","background","classid","codebase","longdesc","profile","usemap","icon","manifest","archive"],Me=/^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i,ce=function(e){return e===""||typeof e!="string"?!1:!Me.test(e)},Se=function(e,n){var o;let t=n.previousSibling;for(;t!==e;)(o=t==null?void 0:t.parentNode)==null||o.removeChild(t),t=n.previousSibling},ae=function(e,n){var t,o,s,i,l,d,c,m,b,N,r,h,p;if((n==null?void 0:n.symbol)===$)if(e=e!=null?e:{},n=n!=null?n:{},e.strings===n.strings){let a=this.actions.length;for(let f=0;f<a;f++)this.actions[f](e.expressions[f],n.expressions[f])}else{this.actions.length=0;let a=n.template.content.cloneNode(!0);le(a,this.actions,n.marker);let f=this.actions.length;for(let g=0;g<f;g++)this.actions[g]((t=e.expressions)==null?void 0:t[g],n.expressions[g]);document.adoptNode(a),Se(this.start,this.end),(o=this.end.parentNode)==null||o.insertBefore(a,this.end)}else if((n==null?void 0:n.constructor)===Array){e=e!=null?e:[],n=n!=null?n:[];let a=e.length,f=n.length,g=Math.min(a,f);for(let y=0;y<g;y++)this.actions[y](e[y],n[y]);if(a<f){let y=document.createElement("template");for(let P=a;P<f;P++){let V=document.createTextNode(""),J=document.createTextNode(""),Y=ae.bind({start:V,end:J,actions:[]});y.content.appendChild(V),y.content.appendChild(J),this.actions.push(Y),Y(e[P],n[P])}(s=this.end.parentNode)==null||s.insertBefore(y.content,this.end)}else if(a>f){for(let y=a-1;y>f-1;y--)if(((i=e[y])==null?void 0:i.symbol)===$){let{template:P}=e[y],V=P.content.childNodes.length+2;for(;V--;)(l=this.end.parentNode)==null||l.removeChild(this.end.previousSibling)}else(d=this.end.parentNode)==null||d.removeChild(this.end.previousSibling),(c=this.end.parentNode)==null||c.removeChild(this.end.previousSibling),(m=this.end.parentNode)==null||m.removeChild(this.end.previousSibling);this.actions.length=f}}else{if(e===n)return;if(typeof e!=typeof n)for(;this.end.previousSibling!==this.start;)(b=this.end.parentNode)==null||b.removeChild(this.end.previousSibling);let a;this.end.previousSibling===this.start?(a=document.createTextNode(L(n)),(N=this.end.parentNode)==null||N.insertBefore(a,this.end)):((r=this.end.previousSibling)==null?void 0:r.nodeType)===ie?(a=this.end.previousSibling,a.textContent=L(n)):(a=document.createTextNode(L(n)),(h=this.end.parentNode)==null||h.removeChild(this.end.previousSibling),(p=this.end.parentNode)==null||p.insertBefore(a,this.end))}},Pe=function(e,n){e!==n&&(e!=null&&e.startsWith("on")&&typeof this.value=="function"&&this.element.removeEventListener(e.slice(2),this.value),Reflect.set(this.element,e,void 0),this.element.removeAttribute(e),this.name=n==null?void 0:n.toLowerCase(),this.name&&(this.element.setAttribute(this.name,""),Reflect.set(this.element,this.name,!0)))},Le=function(e,n){if(e!==n)if(this.name==="value"){if(this.value=L(n),!this.name)return;Reflect.set(this.element,this.name,this.value),this.element.setAttribute(this.name,this.value)}else if(this.name.startsWith("on")){if(!this.name)return;if(typeof this.value=="function"&&this.element.removeEventListener(this.name.slice(2),this.value,!0),this.value=n,typeof this.value!="function")return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);this.element.addEventListener(this.name.slice(2),this.value,!0)}else if(I(re,this.name)){if(this.value=encodeURI(n),!this.name)return;if(ce(this.value)){this.element.removeAttribute(this.name),console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);return}Reflect.set(this.element,this.name,this.value),this.element.setAttribute(this.name,this.value)}else{if(this.value=n,!this.name)return;Reflect.set(this.element,this.name,this.value),this.element.setAttribute(this.name,this.value)}},Oe=function(e,n){var o,s,i,l;if(e===n)return;let t=this.element;if(n){(o=t.parentNode)==null||o.removeChild(t);let d=document.createElement(n);for(;t.firstChild;)d.appendChild(t.firstChild);if(t.nodeType===se){let c=t.getAttributeNames();for(let m of c){let b=(s=t.getAttribute(m))!=null?s:"";d.setAttribute(m,b)}}(i=this.holder.parentNode)==null||i.insertBefore(d,this.holder),this.element=d}else(l=t.parentNode)==null||l.removeChild(t),this.element=t},le=function(e,n,t){var l,d,c,m,b,N;let o=new WeakSet,s=document.createTreeWalker(e,Ae,null);s.currentNode=e;let i=e.firstChild;for(;i=s.nextNode();)if(o.has(i.previousSibling)&&(o.delete(i.previousSibling),n.push(()=>{})),i.nodeType===ie){let r=(d=(l=i.nodeValue)==null?void 0:l.indexOf(t))!=null?d:-1;if(r===-1)continue;r!==0&&(i.splitText(r),i=s.nextNode());let h=t.length;h!==((c=i.nodeValue)==null?void 0:c.length)&&i.splitText(h);let p=document.createTextNode(""),a=i;a.textContent="",(m=a.parentNode)==null||m.insertBefore(p,a),n.push(ae.bind({marker:t,start:p,end:a,actions:[]}))}else if(i.nodeType===se){(i.nodeName==="SCRIPT"||i.nodeName==="STYLE")&&s.nextSibling();let r={element:i};i.nodeName===t&&(o.add(i),r.holder=document.createTextNode(""),(b=i.parentNode)==null||b.insertBefore(r.holder,i),n.push(Oe.bind(r)));let h=i.getAttributeNames();for(let p of h){let a=(N=i.getAttribute(p))!=null?N:"",f=p.toUpperCase().includes(t),g=a.includes(t);if(f||g){let y={name:p,value:a,previous:void 0,get element(){return r.element}};f&&(i.removeAttribute(p),n.push(Pe.bind(y))),g&&(i.removeAttribute(p),n.push(Le.bind(y)))}else I(re,p)?ce(a)&&(i.removeAttribute(p),console.warn(`XElement - attribute name "${p}" and value "${a}" not allowed`)):p.startsWith("on")&&(i.removeAttribute(p),console.warn(`XElement - attribute name "${p}" not allowed`))}}else console.warn(`XElement - node type "${i.nodeType}" not handled`)},de=le;var he=function(e,n,t,o,s){if(typeof t=="symbol")return Reflect.set(n,t,o,s);let i=Reflect.get(n,t,s);return i===o||Number.isNaN(i)&&Number.isNaN(o)||(Reflect.set(n,t,o,s),e()),!0},ue=function(e,n,t,o){if(typeof t=="symbol")return Reflect.get(n,t,o);let s=Reflect.get(n,t,o);if(s){if(s.constructor===Function)return new Proxy(s,{apply(i,l,d){return Reflect.apply(i,o,d)}});if(s.constructor===Object||s.constructor===Array)return new Proxy(s,{get:ue.bind(null,e),set:he.bind(null,e),deleteProperty:pe.bind(null,e)})}return s},pe=function(e,n,t){return typeof t=="symbol"?Reflect.deleteProperty(n,t):(Reflect.deleteProperty(n,t),e(),!0)},$e=function(e,n){return new Proxy(e,{get:ue.bind(null,n),set:he.bind(null,n),deleteProperty:pe.bind(null,n)})},me=$e;function M(e){return e=e.replace(/([a-zA-Z])([A-Z])/g,"$1-$2"),e=e.toLowerCase(),e=e.includes("-")?e:`x-${e}`,e}var fe=new Event("adopted"),ye=new Event("adopting"),Ge=new Event("upgraded"),Je=new Event("upgrading"),Ee=new Event("creating"),ve=new Event("created"),xe=new Event("rendering"),be=new Event("rendered"),q=new Event("connected"),U=new Event("connecting"),we=new Event("attributed"),ge=new Event("attributing"),Ce=new Event("disconnected"),Ne=new Event("disconnecting");var X=Symbol("Task"),W=Symbol("Update"),F=Symbol("Create"),E,k,D,T,O,R,S,j,He,x=class extends HTMLElement{constructor(){var s;super();C(this,E,{});C(this,k,void 0);C(this,D,"");C(this,T,[]);C(this,O,[]);C(this,R,!1);C(this,S,!1);C(this,j,!1);A(this,He,Promise.resolve());let t=this.constructor;if(t.shadow&&!this.shadowRoot){let i=t.mode||"open";this.attachShadow({mode:i})}v(this,k,(s=this.shadowRoot)!=null?s:this)}static define(t=(o=>(o=this.tag)!=null?o:this.name)()){return t=M(t),customElements.get(t)!==this&&customElements.define(t,this),this}static create(t=(o=>(o=this.tag)!=null?o:this.name)()){t=M(t),customElements.get(t)!==this&&customElements.define(t,this);let s=document.createElement(t);return customElements.upgrade(s),s}static upgrade(){return w(this,arguments,function*(t=(o=>(o=this.tag)!=null?o:this.name)()){t=M(t),customElements.get(t)!==this&&customElements.define(t,this);let s=document.createElement(t);return yield s[F](),customElements.upgrade(s),s})}attributeChangedCallback(t,o,s){return w(this,null,function*(){var i,l;this.dispatchEvent(ge),yield(l=(i=this.attribute)==null?void 0:i.call(this,t,o,s))==null?void 0:l.catch(console.error),this.dispatchEvent(we)})}adoptedCallback(){return w(this,null,function*(){var t,o;this.dispatchEvent(ye),yield(o=(t=this.adopted)==null?void 0:t.call(this,u(this,E)))==null?void 0:o.catch(console.error),this.dispatchEvent(fe)})}connectedCallback(){return w(this,null,function*(){var t,o;u(this,j)?(this.dispatchEvent(U),yield(o=(t=this.connected)==null?void 0:t.call(this,u(this,E)))==null?void 0:o.catch(console.error),this.dispatchEvent(q)):yield this[F]()})}disconnectedCallback(){return w(this,null,function*(){var t,o;this.dispatchEvent(Ne),yield(o=(t=this.disconnected)==null?void 0:t.call(this,u(this,E)))==null?void 0:o.catch(console.error),this.dispatchEvent(Ce)})}[(He=X,F)](){return w(this,null,function*(){var d,c,m,b,N;v(this,j,!0),v(this,R,!0);let o=this.constructor.observedProperties,s=Object.getPrototypeOf(this),i=o?o!=null?o:[]:[...Object.getOwnPropertyNames(this),...Object.getOwnPropertyNames(s)];for(let r of i){if(r==="attributeChangedCallback"||r==="disconnectedCallback"||r==="connectedCallback"||r==="adoptedCallback"||r==="constructor"||r==="disconnected"||r==="attribute"||r==="connected"||r==="rendered"||r==="created"||r==="adopted"||r==="render"||r==="setup")continue;let h=(d=Object.getOwnPropertyDescriptor(this,r))!=null?d:Object.getOwnPropertyDescriptor(s,r);h&&h.configurable&&(typeof h.value=="function"&&(h.value=h.value.bind(this)),typeof h.get=="function"&&(h.get=h.get.bind(this)),typeof h.set=="function"&&(h.set=h.set.bind(this)),Object.defineProperty(u(this,E),r,h),Object.defineProperty(this,r,{configurable:!1,enumerable:h.enumerable,get(){return u(this,E)[r]},set(p){u(this,E)[r]=p,this[W]()}}))}v(this,E,me(u(this,E),this[W].bind(this)));let l=yield(c=this.render)==null?void 0:c.call(this,u(this,E));if(l){let r=l.template.content.cloneNode(!0);v(this,D,l.marker),v(this,O,l.expressions),de(r,u(this,T),u(this,D));for(let h=0;h<u(this,T).length;h++){let p=l.expressions[h];try{u(this,T)[h](void 0,p)}catch(a){console.error(a)}}document.adoptNode(r),u(this,k).appendChild(r)}this.dispatchEvent(Ee),yield(m=this.created)==null?void 0:m.call(this,u(this,E)),this.dispatchEvent(ve),this.dispatchEvent(U),yield(N=(b=this.connected)==null?void 0:b.call(this,u(this,E)))==null?void 0:N.catch(console.error),this.dispatchEvent(q),v(this,R,!1),v(this,S,!1),yield this[W]()})}[W](){return w(this,null,function*(){return u(this,R)?(v(this,S,!0),this[X]):(v(this,R,!0),this[X]=this[X].then(()=>w(this,null,function*(){var o,s;this.dispatchEvent(xe);let t=yield(o=this.render)==null?void 0:o.call(this,u(this,E));if(t)for(let i=0;i<u(this,T).length;i++){if(u(this,S)){yield Promise.resolve().then().catch(console.error),i=-1,v(this,S,!1);continue}let l=t.expressions[i],d=u(this,O)[i];try{u(this,T)[i](d,l)}catch(c){console.error(c)}u(this,O)[i]=t.expressions[i]}v(this,R,!1),yield(s=this.rendered)==null?void 0:s.call(this,u(this,E)),this.dispatchEvent(be)})).catch(console.error),this[X])})}};E=new WeakMap,k=new WeakMap,D=new WeakMap,T=new WeakMap,O=new WeakMap,R=new WeakMap,S=new WeakMap,j=new WeakMap,A(x,"html",H),A(x,"tag"),A(x,"shadow"),A(x,"mode"),A(x,"observedProperties");function K(e,n){customElements.get(e)!==n&&customElements.define(e,n)}var z=[],Z=[],_=function(e){return w(this,null,function*(){var n;if(e.instance)B(e.root,e.instance);else{let t=yield e.handler();if((t==null?void 0:t.prototype)instanceof HTMLElement)e.construct=t;else if(((n=t==null?void 0:t.default)==null?void 0:n.prototype)instanceof HTMLElement)e.construct=t.default;else throw new Error("XElement - router handler requires a CustomElementConstructor");e.construct.prototype instanceof x?e.instance=yield e.construct.upgrade():(e.tag=M(e.construct.name),K(e.tag,e.construct),e.instance=document.createElement(e.tag)),B(e.root,e.instance)}})},Xe=function(e){var i,l,d;if(e&&"canIntercept"in e&&e.canIntercept===!1||e&&"canTransition"in e&&e.canTransition===!1)return;let n=new URL((i=e==null?void 0:e.destination.url)!=null?i:location.href),t=new URL((d=(l=document.querySelector("base"))==null?void 0:l.href)!=null?d:location.origin);t.hash="",t.search="",n.hash="",n.search="";let o=n.href.replace(t.href,"/"),s=[];for(let c of Z)c.path===o&&s.push(c);for(let c of z){let m=!1;for(let b of s)if(b.root===c.root){m=!0;break}m||s.push(c)}if(e!=null&&e.intercept)return e.intercept({handler:()=>s.map(c=>_(c))});if(e!=null&&e.transitionWhile)return e.transitionWhile(s.map(c=>_(c)));s.map(c=>_(c))},ke=function(e,n,t){if(!e)throw new Error("XElement - router path required");if(!t)throw new Error("XElement - router handler required");if(!n)throw new Error("XElement - router root required");if(e==="/*"){for(let o of z)if(o.path===e&&o.root===n)throw new Error("XElement - router duplicate path on root");z.push({path:e,root:n,handler:t})}else{for(let o of Z)if(o.path===e&&o.root===n)throw new Error("XElement - router duplicate path on root");Z.push({path:e,root:n,handler:t,instance:void 0})}Reflect.get(window,"navigation").addEventListener("navigate",Xe)},G=ke;var yt={Component:x,component:x,Router:G,router:G,html:H};export{x as Component,G as Router,x as component,yt as default,H as html,G as router};
+// source/mark.ts
+var mark_default = () => Math.floor(Math.random() * Date.now());
+
+// source/poly.ts
+var replaceChildren = function(element, ...nodes) {
+  while (element.lastChild) {
+    element.removeChild(element.lastChild);
+  }
+  if (nodes?.length) {
+    for (const node of nodes) {
+      element.appendChild(
+        typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
+      );
+    }
+  }
+};
+var includes = function(item, search) {
+  return item.indexOf(search) !== -1;
+};
+var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : void 0;
+var createHTML = function(data) {
+  if (policy) {
+    return policy.createHTML(data);
+  } else {
+    return data;
+  }
+};
+
+// source/html.ts
+var symbol = Symbol("html");
+var cache = /* @__PURE__ */ new WeakMap();
+function html(strings, ...expressions) {
+  const value = cache.get(strings);
+  if (value) {
+    const [template, marker] = value;
+    return { strings, template, expressions, symbol, marker };
+  } else {
+    const marker = `X-${mark_default()}-X`;
+    let data = "";
+    const length = strings.length - 1;
+    for (let index = 0; index < length; index++) {
+      data += `${strings[index]}${marker}`;
+    }
+    data += strings[length];
+    const template = document.createElement("template");
+    template.innerHTML = createHTML(data);
+    cache.set(strings, [template, marker]);
+    return { strings, template, expressions, symbol, marker };
+  }
+}
+
+// source/render.ts
+var filter = 1 + 4;
+var TEXT_NODE = 3;
+var ELEMENT_NODE = 1;
+var links = [
+  "src",
+  "href",
+  "data",
+  "action",
+  "srcdoc",
+  "xlink:href",
+  "cite",
+  "formaction",
+  "ping",
+  "poster",
+  "background",
+  "classid",
+  "codebase",
+  "longdesc",
+  "profile",
+  "usemap",
+  "icon",
+  "manifest",
+  "archive"
+];
+var safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
+var dangerousLink = function(data) {
+  if (data === "")
+    return false;
+  if (typeof data !== "string")
+    return false;
+  return safePattern.test(data) ? false : true;
+};
+var removeBetween = function(start, end) {
+  let node = end.previousSibling;
+  while (node !== start) {
+    node?.parentNode?.removeChild(node);
+    node = end.previousSibling;
+  }
+};
+var ElementAction = function(source, target) {
+  if (target?.symbol === symbol) {
+    source = source ?? {};
+    target = target ?? {};
+    if (source.strings === target.strings) {
+      const l = this.actions.length;
+      for (let i = 0; i < l; i++) {
+        this.actions[i](source.expressions[i], target.expressions[i]);
+      }
+    } else {
+      this.actions.length = 0;
+      const fragment = target.template.content.cloneNode(true);
+      Render(fragment, this.actions, target.marker);
+      const l = this.actions.length;
+      for (let i = 0; i < l; i++) {
+        this.actions[i](source.expressions?.[i], target.expressions[i]);
+      }
+      document.adoptNode(fragment);
+      removeBetween(this.start, this.end);
+      this.end.parentNode?.insertBefore(fragment, this.end);
+    }
+  } else if (target?.constructor === Array) {
+    source = source ?? [];
+    target = target ?? [];
+    const oldLength = source.length;
+    const newLength = target.length;
+    const common = Math.min(oldLength, newLength);
+    for (let i = 0; i < common; i++) {
+      this.actions[i](source[i], target[i]);
+    }
+    if (oldLength < newLength) {
+      const template = document.createElement("template");
+      for (let i = oldLength; i < newLength; i++) {
+        const startChild = document.createTextNode("");
+        const endChild = document.createTextNode("");
+        const action = ElementAction.bind({
+          start: startChild,
+          end: endChild,
+          actions: []
+        });
+        template.content.appendChild(startChild);
+        template.content.appendChild(endChild);
+        this.actions.push(action);
+        action(source[i], target[i]);
+      }
+      this.end.parentNode?.insertBefore(template.content, this.end);
+    } else if (oldLength > newLength) {
+      for (let i = oldLength - 1; i > newLength - 1; i--) {
+        if (source[i]?.symbol === symbol) {
+          const { template } = source[i];
+          let removes = template.content.childNodes.length + 2;
+          while (removes--)
+            this.end.parentNode?.removeChild(this.end.previousSibling);
+        } else {
+          this.end.parentNode?.removeChild(this.end.previousSibling);
+          this.end.parentNode?.removeChild(this.end.previousSibling);
+          this.end.parentNode?.removeChild(this.end.previousSibling);
+        }
+      }
+      this.actions.length = newLength;
+    }
+  } else {
+    if (source === target)
+      return;
+    if (typeof source !== typeof target) {
+      while (this.end.previousSibling !== this.start) {
+        this.end.parentNode?.removeChild(this.end.previousSibling);
+      }
+    }
+    let node;
+    if (this.end.previousSibling === this.start) {
+      node = document.createTextNode(display(target));
+      this.end.parentNode?.insertBefore(node, this.end);
+    } else {
+      if (this.end.previousSibling?.nodeType === TEXT_NODE) {
+        node = this.end.previousSibling;
+        node.textContent = display(target);
+      } else {
+        node = document.createTextNode(display(target));
+        this.end.parentNode?.removeChild(this.end.previousSibling);
+        this.end.parentNode?.insertBefore(node, this.end);
+      }
+    }
+  }
+};
+var AttributeNameAction = function(source, target) {
+  if (source === target)
+    return;
+  if (source?.startsWith("on") && typeof this.value === "function") {
+    this.element.removeEventListener(source.slice(2), this.value);
+  }
+  Reflect.set(this.element, source, void 0);
+  this.element.removeAttribute(source);
+  this.name = target?.toLowerCase();
+  if (this.name) {
+    this.element.setAttribute(this.name, "");
+    Reflect.set(this.element, this.name, true);
+  }
+};
+var AttributeValueAction = function(source, target) {
+  if (source === target)
+    return;
+  if (this.name === "value") {
+    this.value = display(target);
+    if (!this.name)
+      return;
+    Reflect.set(this.element, this.name, this.value);
+    this.element.setAttribute(this.name, this.value);
+  } else if (this.name.startsWith("on")) {
+    if (!this.name)
+      return;
+    if (typeof this.value === "function") {
+      this.element.removeEventListener(this.name.slice(2), this.value, true);
+    }
+    this.value = target;
+    if (typeof this.value !== "function")
+      return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+    this.element.addEventListener(this.name.slice(2), this.value, true);
+  } else if (includes(links, this.name)) {
+    this.value = encodeURI(target);
+    if (!this.name)
+      return;
+    if (dangerousLink(this.value)) {
+      this.element.removeAttribute(this.name);
+      console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+      return;
+    }
+    Reflect.set(this.element, this.name, this.value);
+    this.element.setAttribute(this.name, this.value);
+  } else {
+    this.value = target;
+    if (!this.name)
+      return;
+    Reflect.set(this.element, this.name, this.value);
+    this.element.setAttribute(this.name, this.value);
+  }
+};
+var TagAction = function(source, target) {
+  if (source === target)
+    return;
+  const oldElement = this.element;
+  if (target) {
+    oldElement.parentNode?.removeChild(oldElement);
+    const newElement = document.createElement(target);
+    while (oldElement.firstChild)
+      newElement.appendChild(oldElement.firstChild);
+    if (oldElement.nodeType === ELEMENT_NODE) {
+      const attributeNames = oldElement.getAttributeNames();
+      for (const attributeName of attributeNames) {
+        const attributeValue = oldElement.getAttribute(attributeName) ?? "";
+        newElement.setAttribute(attributeName, attributeValue);
+      }
+    }
+    this.holder.parentNode?.insertBefore(newElement, this.holder);
+    this.element = newElement;
+  } else {
+    oldElement.parentNode?.removeChild(oldElement);
+    this.element = oldElement;
+  }
+};
+var Render = function(fragment, actions, marker) {
+  const holders = /* @__PURE__ */ new WeakSet();
+  const walker = document.createTreeWalker(fragment, filter, null);
+  walker.currentNode = fragment;
+  let node = fragment.firstChild;
+  while (node = walker.nextNode()) {
+    if (holders.has(node.previousSibling)) {
+      holders.delete(node.previousSibling);
+      actions.push(() => void 0);
+    }
+    if (node.nodeType === TEXT_NODE) {
+      const startIndex = node.nodeValue?.indexOf(marker) ?? -1;
+      if (startIndex === -1)
+        continue;
+      if (startIndex !== 0) {
+        node.splitText(startIndex);
+        node = walker.nextNode();
+      }
+      const endIndex = marker.length;
+      if (endIndex !== node.nodeValue?.length) {
+        node.splitText(endIndex);
+      }
+      const start = document.createTextNode("");
+      const end = node;
+      end.textContent = "";
+      end.parentNode?.insertBefore(start, end);
+      actions.push(ElementAction.bind({ marker, start, end, actions: [] }));
+    } else if (node.nodeType === ELEMENT_NODE) {
+      if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
+        walker.nextSibling();
+      }
+      const tMeta = {
+        element: node
+      };
+      if (node.nodeName === marker) {
+        holders.add(node);
+        tMeta.holder = document.createTextNode("");
+        node.parentNode?.insertBefore(tMeta.holder, node);
+        actions.push(TagAction.bind(tMeta));
+      }
+      const names = node.getAttributeNames();
+      for (const name of names) {
+        const value = node.getAttribute(name) ?? "";
+        const dynamicName = name.toUpperCase().includes(marker);
+        const dynamicValue = value.includes(marker);
+        if (dynamicName || dynamicValue) {
+          const aMeta = {
+            name,
+            value,
+            previous: void 0,
+            get element() {
+              return tMeta.element;
+            }
+          };
+          if (dynamicName) {
+            node.removeAttribute(name);
+            actions.push(AttributeNameAction.bind(aMeta));
+          }
+          if (dynamicValue) {
+            node.removeAttribute(name);
+            actions.push(AttributeValueAction.bind(aMeta));
+          }
+        } else {
+          if (includes(links, name)) {
+            if (dangerousLink(value)) {
+              node.removeAttribute(name);
+              console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
+            }
+          } else if (name.startsWith("on")) {
+            node.removeAttribute(name);
+            console.warn(`XElement - attribute name "${name}" not allowed`);
+          }
+        }
+      }
+    } else {
+      console.warn(`XElement - node type "${node.nodeType}" not handled`);
+    }
+  }
+};
+var render_default = Render;
+
+// source/context.ts
+var ContextSet = function(method, target, key, value, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.set(target, key, value, receiver);
+  const from = Reflect.get(target, key, receiver);
+  if (from === value)
+    return true;
+  if (Number.isNaN(from) && Number.isNaN(value))
+    return true;
+  Reflect.set(target, key, value, receiver);
+  method();
+  return true;
+};
+var ContextGet = function(method, target, key, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.get(target, key, receiver);
+  const value = Reflect.get(target, key, receiver);
+  if (value) {
+    if (value.constructor === Function) {
+      return new Proxy(value, {
+        apply(t, _, a) {
+          return Reflect.apply(t, receiver, a);
+        }
+      });
+    }
+    if (value.constructor === Object || value.constructor === Array) {
+      return new Proxy(value, {
+        get: ContextGet.bind(null, method),
+        set: ContextSet.bind(null, method),
+        deleteProperty: ContextDelete.bind(null, method)
+      });
+    }
+  }
+  return value;
+};
+var ContextDelete = function(method, target, key) {
+  if (typeof key === "symbol")
+    return Reflect.deleteProperty(target, key);
+  Reflect.deleteProperty(target, key);
+  method();
+  return true;
+};
+var Context = function(data, method) {
+  return new Proxy(data, {
+    get: ContextGet.bind(null, method),
+    set: ContextSet.bind(null, method),
+    deleteProperty: ContextDelete.bind(null, method)
+  });
+};
+var context_default = Context;
+
+// source/dash.ts
+function dash(data) {
+  data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
+  data = data.toLowerCase();
+  data = data.includes("-") ? data : `x-${data}`;
+  return data;
+}
+
+// source/events.ts
+var adoptedEvent = new Event("adopted");
+var adoptingEvent = new Event("adopting");
+var upgradedEvent = new Event("upgraded");
+var upgradingEvent = new Event("upgrading");
+var creatingEvent = new Event("creating");
+var createdEvent = new Event("created");
+var renderingEvent = new Event("rendering");
+var renderedEvent = new Event("rendered");
+var connectedEvent = new Event("connected");
+var connectingEvent = new Event("connecting");
+var attributedEvent = new Event("attributed");
+var attributingEvent = new Event("attributing");
+var disconnectedEvent = new Event("disconnected");
+var disconnectingEvent = new Event("disconnecting");
+
+// source/component.ts
+var task = Symbol("Task");
+var update = Symbol("Update");
+var create = Symbol("Create");
+var Component = class extends HTMLElement {
+  static html = html;
+  /**
+   * Defines the custom element and return the constructor.
+   */
+  static define(tag = this.tag ?? this.name) {
+    tag = dash(tag);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
+    return this;
+  }
+  /**
+   * Define, Create, Upgrade, and return element.
+   */
+  static create(tag = this.tag ?? this.name) {
+    tag = dash(tag);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
+    const instance = document.createElement(tag);
+    if (customElements.upgrade)
+      customElements.upgrade(instance);
+    return instance;
+  }
+  /**
+   * Define, Create, Upgrade, waits until first render, and return element.
+   */
+  static async upgrade(tag = this.tag ?? this.name) {
+    tag = dash(tag);
+    if (customElements.get(tag) !== this)
+      customElements.define(tag, this);
+    const instance = document.createElement(tag);
+    await instance[create]();
+    if (customElements.upgrade)
+      customElements.upgrade(instance);
+    return instance;
+  }
+  /**
+   * Configuration to define a element Tag name for use by the define() and create() method.
+   * Default value will use the function.constructor.name.
+   */
+  static tag;
+  /**
+   * Configuration to use shadow root.
+   * Default is false.
+   */
+  static shadow;
+  /**
+   * Configuration of the shadow mode attachment.
+   * Default is open.
+   */
+  static mode;
+  /**
+   * Alternative configuration optimization that allows the specific definition of reactive properties on the Element.
+   * Default will use getOwnPropertyNames on the Instance and Prototype to redfine properties as reactive.
+   */
+  static observedProperties;
+  #context = {};
+  #root;
+  #marker = "";
+  #actions = [];
+  #expressions = [];
+  #busy = false;
+  #restart = false;
+  #created = false;
+  [task] = Promise.resolve();
+  constructor() {
+    super();
+    const constructor = this.constructor;
+    const shadow = constructor.shadow;
+    if (shadow && !this.shadowRoot) {
+      const mode = constructor.mode || "open";
+      this.attachShadow({ mode });
+    }
+    this.#root = this.shadowRoot ?? this;
+  }
+  async attributeChangedCallback(name, oldValue, newValue) {
+    this.dispatchEvent(attributingEvent);
+    await this.attribute?.(name, oldValue, newValue)?.catch(console.error);
+    this.dispatchEvent(attributedEvent);
+  }
+  async adoptedCallback() {
+    this.dispatchEvent(adoptingEvent);
+    await this.adopted?.(this.#context)?.catch(console.error);
+    this.dispatchEvent(adoptedEvent);
+  }
+  async connectedCallback() {
+    if (!this.#created) {
+      await this[create]();
+    } else {
+      this.dispatchEvent(connectingEvent);
+      await this.connected?.(this.#context)?.catch(console.error);
+      this.dispatchEvent(connectedEvent);
+    }
+  }
+  async disconnectedCallback() {
+    this.dispatchEvent(disconnectingEvent);
+    await this.disconnected?.(this.#context)?.catch(console.error);
+    this.dispatchEvent(disconnectedEvent);
+  }
+  async [create]() {
+    this.#created = true;
+    this.#busy = true;
+    const constructor = this.constructor;
+    const observedProperties = constructor.observedProperties;
+    const prototype = Object.getPrototypeOf(this);
+    const properties = observedProperties ? observedProperties ?? [] : [
+      ...Object.getOwnPropertyNames(this),
+      ...Object.getOwnPropertyNames(prototype)
+    ];
+    for (const property of properties) {
+      if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnected" === property || "attribute" === property || "connected" === property || "rendered" === property || "created" === property || "adopted" === property || "render" === property || "setup" === property)
+        continue;
+      const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
+      if (!descriptor)
+        continue;
+      if (!descriptor.configurable)
+        continue;
+      if (typeof descriptor.value === "function")
+        descriptor.value = descriptor.value.bind(this);
+      if (typeof descriptor.get === "function")
+        descriptor.get = descriptor.get.bind(this);
+      if (typeof descriptor.set === "function")
+        descriptor.set = descriptor.set.bind(this);
+      Object.defineProperty(this.#context, property, descriptor);
+      Object.defineProperty(this, property, {
+        configurable: false,
+        enumerable: descriptor.enumerable,
+        // configurable: descriptor.configurable,
+        get() {
+          return this.#context[property];
+        },
+        set(value) {
+          this.#context[property] = value;
+          this[update]();
+        }
+      });
+    }
+    this.#context = context_default(this.#context, this[update].bind(this));
+    const template = await this.render?.(this.#context);
+    if (template) {
+      const fragment = template.template.content.cloneNode(true);
+      this.#marker = template.marker;
+      this.#expressions = template.expressions;
+      render_default(fragment, this.#actions, this.#marker);
+      for (let index = 0; index < this.#actions.length; index++) {
+        const newExpression = template.expressions[index];
+        try {
+          this.#actions[index](void 0, newExpression);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      document.adoptNode(fragment);
+      this.#root.appendChild(fragment);
+    }
+    this.dispatchEvent(creatingEvent);
+    await this.created?.(this.#context);
+    this.dispatchEvent(createdEvent);
+    this.dispatchEvent(connectingEvent);
+    await this.connected?.(this.#context)?.catch(console.error);
+    this.dispatchEvent(connectedEvent);
+    this.#busy = false;
+    this.#restart = false;
+    await this[update]();
+  }
+  async [update]() {
+    if (this.#busy) {
+      this.#restart = true;
+      return this[task];
+    }
+    this.#busy = true;
+    this[task] = this[task].then(async () => {
+      this.dispatchEvent(renderingEvent);
+      const template = await this.render?.(this.#context);
+      if (template) {
+        for (let index = 0; index < this.#actions.length; index++) {
+          if (this.#restart) {
+            await Promise.resolve().then().catch(console.error);
+            index = -1;
+            this.#restart = false;
+            continue;
+          }
+          const newExpression = template.expressions[index];
+          const oldExpression = this.#expressions[index];
+          try {
+            this.#actions[index](oldExpression, newExpression);
+          } catch (error) {
+            console.error(error);
+          }
+          this.#expressions[index] = template.expressions[index];
+        }
+      }
+      this.#busy = false;
+      await this.rendered?.(this.#context);
+      this.dispatchEvent(renderedEvent);
+    }).catch(console.error);
+    return this[task];
+  }
+};
+
+// source/define.ts
+function define(name, constructor) {
+  if (customElements.get(name) !== constructor) {
+    customElements.define(name, constructor);
+  }
+}
+
+// source/router.ts
+var alls = [];
+var routes = [];
+var transition = async function(route) {
+  if (route.instance) {
+    replaceChildren(route.root, route.instance);
+  } else {
+    const result = await route.handler();
+    if (result?.prototype instanceof HTMLElement) {
+      route.construct = result;
+    } else if (result?.default?.prototype instanceof HTMLElement) {
+      route.construct = result.default;
+    } else {
+      throw new Error("XElement - router handler requires a CustomElementConstructor");
+    }
+    if (route.construct.prototype instanceof Component) {
+      route.instance = await route.construct.upgrade();
+    } else {
+      route.tag = dash(route.construct.name);
+      define(route.tag, route.construct);
+      route.instance = document.createElement(route.tag);
+    }
+    replaceChildren(route.root, route.instance);
+  }
+};
+var navigate = function(event) {
+  if (event && "canIntercept" in event && event.canIntercept === false)
+    return;
+  if (event && "canTransition" in event && event.canTransition === false)
+    return;
+  const destination = new URL(event?.destination.url ?? location.href);
+  const base = new URL(document.querySelector("base")?.href ?? location.origin);
+  base.hash = "";
+  base.search = "";
+  destination.hash = "";
+  destination.search = "";
+  const pathname = destination.href.replace(base.href, "/");
+  const transitions = [];
+  for (const route of routes) {
+    if (route.path !== pathname)
+      continue;
+    transitions.push(route);
+  }
+  for (const all of alls) {
+    let has = false;
+    for (const transition2 of transitions) {
+      if (transition2.root === all.root) {
+        has = true;
+        break;
+      }
+    }
+    if (has)
+      continue;
+    transitions.push(all);
+  }
+  if (event?.intercept) {
+    return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
+  } else if (event?.transitionWhile) {
+    return event.transitionWhile(transitions.map((route) => transition(route)));
+  } else {
+    transitions.map((route) => transition(route));
+  }
+};
+var router = function(path, root, handler) {
+  if (!path)
+    throw new Error("XElement - router path required");
+  if (!handler)
+    throw new Error("XElement - router handler required");
+  if (!root)
+    throw new Error("XElement - router root required");
+  if (path === "/*") {
+    for (const all of alls) {
+      if (all.path === path && all.root === root) {
+        throw new Error("XElement - router duplicate path on root");
+      }
+    }
+    alls.push({ path, root, handler });
+  } else {
+    for (const route of routes) {
+      if (route.path === path && route.root === root) {
+        throw new Error("XElement - router duplicate path on root");
+      }
+    }
+    routes.push({ path, root, handler, instance: void 0 });
+  }
+  Reflect.get(window, "navigation").addEventListener("navigate", navigate);
+};
+var router_default = router;
+
+// source/index.ts
+var source_default = {
+  Component,
+  component: Component,
+  Router: router_default,
+  router: router_default,
+  html
+};
+export {
+  Component,
+  router_default as Router,
+  Component as component,
+  source_default as default,
+  html,
+  router_default as router
+};
 //# sourceMappingURL=x-element.js.map
