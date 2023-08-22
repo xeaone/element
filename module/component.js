@@ -1,5 +1,5 @@
 /**
- * @version 9.1.1
+ * @version 9.1.2
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -31,8 +31,8 @@ export default class Component extends HTMLElement {
     /**
      * Define, Create, Upgrade, and return element.
      */
-    static create(tag = this.tag ?? this.name) {
-        tag = dash(tag);
+    static create(tag) {
+        tag = dash(this.tag ?? this.name);
         if (customElements.get(tag) !== this)
             customElements.define(tag, this);
         const instance = document.createElement(tag);
@@ -43,8 +43,8 @@ export default class Component extends HTMLElement {
     /**
      * Define, Create, Upgrade, waits until first render, and return element.
      */
-    static async upgrade(tag = this.tag ?? this.name) {
-        tag = dash(tag);
+    static async upgrade(tag) {
+        tag = dash(this.tag ?? this.name);
         if (customElements.get(tag) !== this)
             customElements.define(tag, this);
         const instance = document.createElement(tag);

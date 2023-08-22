@@ -1,5 +1,5 @@
 /**
- * @version 9.1.1
+ * @version 9.1.2
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -60,10 +60,10 @@ export default class Component extends HTMLElement {
     /**
      * Define, Create, Upgrade, and return element.
      */
-    static create (tag: string = this.tag ?? this.name) {
-        tag = dash(tag);
+    static create<T extends Component> (this: typeof Component & (new () => T), tag?: string): T {
+        tag = dash(this.tag ?? this.name);
         if (customElements.get(tag) !== this) customElements.define(tag, this);
-        const instance = document.createElement(tag);
+        const instance = document.createElement(tag) as T;
         if (customElements.upgrade) customElements.upgrade(instance);
         return instance;
     }
@@ -71,11 +71,11 @@ export default class Component extends HTMLElement {
     /**
      * Define, Create, Upgrade, waits until first render, and return element.
      */
-    static async upgrade (tag: string = this.tag ?? this.name) {
-        tag = dash(tag);
+    static async upgrade<T extends Component> (this: typeof Component & (new () => T), tag?: string): Promise<T> {
+        tag = dash(this.tag ?? this.name);
         if (customElements.get(tag) !== this) customElements.define(tag, this);
-        const instance = document.createElement(tag);
-        await (instance as Component)[ create ]();
+        const instance = document.createElement(tag) as T;
+        await instance[ create ]();
         if (customElements.upgrade) customElements.upgrade(instance);
         return instance;
     }

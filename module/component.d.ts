@@ -1,5 +1,5 @@
 /**
- * @version 9.1.1
+ * @version 9.1.2
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -24,11 +24,11 @@ export default class Component extends HTMLElement {
     /**
      * Define, Create, Upgrade, and return element.
      */
-    static create(tag?: string): HTMLElement;
+    static create<T extends Component>(this: typeof Component & (new () => T), tag?: string): T;
     /**
      * Define, Create, Upgrade, waits until first render, and return element.
      */
-    static upgrade(tag?: string): Promise<HTMLElement>;
+    static upgrade<T extends Component>(this: typeof Component & (new () => T), tag?: string): Promise<T>;
     /**
      * Configuration to define a element Tag name for use by the define() and create() method.
      * Default value will use the function.constructor.name.

@@ -1,5 +1,5 @@
 /**
- * @version 9.1.1
+ * @version 9.1.2
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -177,7 +177,7 @@ var removeBetween = function(start, end) {
   }
 };
 var ElementAction = function(source, target) {
-  var _a, _b, _c, _d2, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+  var _a, _b2, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
   if ((target == null ? void 0 : target.symbol) === symbol) {
     source = source != null ? source : {};
     target = target != null ? target : {};
@@ -196,7 +196,7 @@ var ElementAction = function(source, target) {
       }
       document.adoptNode(fragment);
       removeBetween(this.start, this.end);
-      (_b = this.end.parentNode) == null ? void 0 : _b.insertBefore(fragment, this.end);
+      (_b2 = this.end.parentNode) == null ? void 0 : _b2.insertBefore(fragment, this.end);
     }
   } else if ((target == null ? void 0 : target.constructor) === Array) {
     source = source != null ? source : [];
@@ -225,7 +225,7 @@ var ElementAction = function(source, target) {
       (_c = this.end.parentNode) == null ? void 0 : _c.insertBefore(template.content, this.end);
     } else if (oldLength > newLength) {
       for (let i = oldLength - 1; i > newLength - 1; i--) {
-        if (((_d2 = source[i]) == null ? void 0 : _d2.symbol) === symbol) {
+        if (((_d = source[i]) == null ? void 0 : _d.symbol) === symbol) {
           const { template } = source[i];
           let removes = template.content.childNodes.length + 2;
           while (removes--)
@@ -315,7 +315,7 @@ var AttributeValueAction = function(source, target) {
   }
 };
 var TagAction = function(source, target) {
-  var _a, _b, _c, _d2;
+  var _a, _b2, _c, _d;
   if (source === target)
     return;
   const oldElement = this.element;
@@ -327,19 +327,19 @@ var TagAction = function(source, target) {
     if (oldElement.nodeType === ELEMENT_NODE) {
       const attributeNames = oldElement.getAttributeNames();
       for (const attributeName of attributeNames) {
-        const attributeValue = (_b = oldElement.getAttribute(attributeName)) != null ? _b : "";
+        const attributeValue = (_b2 = oldElement.getAttribute(attributeName)) != null ? _b2 : "";
         newElement.setAttribute(attributeName, attributeValue);
       }
     }
     (_c = this.holder.parentNode) == null ? void 0 : _c.insertBefore(newElement, this.holder);
     this.element = newElement;
   } else {
-    (_d2 = oldElement.parentNode) == null ? void 0 : _d2.removeChild(oldElement);
+    (_d = oldElement.parentNode) == null ? void 0 : _d.removeChild(oldElement);
     this.element = oldElement;
   }
 };
 var Render = function(fragment, actions, marker) {
-  var _a, _b, _c, _d2, _e, _f;
+  var _a, _b2, _c, _d, _e, _f;
   const holders = /* @__PURE__ */ new WeakSet();
   const walker = document.createTreeWalker(fragment, filter, null);
   walker.currentNode = fragment;
@@ -350,7 +350,7 @@ var Render = function(fragment, actions, marker) {
       actions.push(() => void 0);
     }
     if (node.nodeType === TEXT_NODE) {
-      const startIndex = (_b = (_a = node.nodeValue) == null ? void 0 : _a.indexOf(marker)) != null ? _b : -1;
+      const startIndex = (_b2 = (_a = node.nodeValue) == null ? void 0 : _a.indexOf(marker)) != null ? _b2 : -1;
       if (startIndex === -1)
         continue;
       if (startIndex !== 0) {
@@ -364,7 +364,7 @@ var Render = function(fragment, actions, marker) {
       const start = document.createTextNode("");
       const end = node;
       end.textContent = "";
-      (_d2 = end.parentNode) == null ? void 0 : _d2.insertBefore(start, end);
+      (_d = end.parentNode) == null ? void 0 : _d.insertBefore(start, end);
       actions.push(ElementAction.bind({ marker, start, end, actions: [] }));
     } else if (node.nodeType === ELEMENT_NODE) {
       if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
@@ -499,7 +499,7 @@ var disconnectingEvent = new Event("disconnecting");
 var task = Symbol("Task");
 var update = Symbol("Update");
 var create = Symbol("Create");
-var _context, _root, _marker, _actions, _expressions, _busy, _restart, _created, _d;
+var _context, _root, _marker, _actions, _expressions, _busy, _restart, _created, _b;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
@@ -512,7 +512,7 @@ var Component = class extends HTMLElement {
     __privateAdd(this, _busy, false);
     __privateAdd(this, _restart, false);
     __privateAdd(this, _created, false);
-    __publicField(this, _d, Promise.resolve());
+    __publicField(this, _b, Promise.resolve());
     const constructor = this.constructor;
     const shadow = constructor.shadow;
     if (shadow && !this.shadowRoot) {
@@ -533,8 +533,9 @@ var Component = class extends HTMLElement {
   /**
    * Define, Create, Upgrade, and return element.
    */
-  static create(tag = ((_b) => (_b = this.tag) != null ? _b : this.name)()) {
-    tag = dash(tag);
+  static create(tag) {
+    var _a;
+    tag = dash((_a = this.tag) != null ? _a : this.name);
     if (customElements.get(tag) !== this)
       customElements.define(tag, this);
     const instance = document.createElement(tag);
@@ -545,9 +546,10 @@ var Component = class extends HTMLElement {
   /**
    * Define, Create, Upgrade, waits until first render, and return element.
    */
-  static upgrade() {
-    return __async(this, arguments, function* (tag = ((_c) => (_c = this.tag) != null ? _c : this.name)()) {
-      tag = dash(tag);
+  static upgrade(tag) {
+    return __async(this, null, function* () {
+      var _a;
+      tag = dash((_a = this.tag) != null ? _a : this.name);
       if (customElements.get(tag) !== this)
         customElements.define(tag, this);
       const instance = document.createElement(tag);
@@ -559,43 +561,43 @@ var Component = class extends HTMLElement {
   }
   attributeChangedCallback(name, oldValue, newValue) {
     return __async(this, null, function* () {
-      var _a, _b;
+      var _a, _b2;
       this.dispatchEvent(attributingEvent);
-      yield (_b = (_a = this.attribute) == null ? void 0 : _a.call(this, name, oldValue, newValue)) == null ? void 0 : _b.catch(console.error);
+      yield (_b2 = (_a = this.attribute) == null ? void 0 : _a.call(this, name, oldValue, newValue)) == null ? void 0 : _b2.catch(console.error);
       this.dispatchEvent(attributedEvent);
     });
   }
   adoptedCallback() {
     return __async(this, null, function* () {
-      var _a, _b;
+      var _a, _b2;
       this.dispatchEvent(adoptingEvent);
-      yield (_b = (_a = this.adopted) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      yield (_b2 = (_a = this.adopted) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b2.catch(console.error);
       this.dispatchEvent(adoptedEvent);
     });
   }
   connectedCallback() {
     return __async(this, null, function* () {
-      var _a, _b;
+      var _a, _b2;
       if (!__privateGet(this, _created)) {
         yield this[create]();
       } else {
         this.dispatchEvent(connectingEvent);
-        yield (_b = (_a = this.connected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+        yield (_b2 = (_a = this.connected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b2.catch(console.error);
         this.dispatchEvent(connectedEvent);
       }
     });
   }
   disconnectedCallback() {
     return __async(this, null, function* () {
-      var _a, _b;
+      var _a, _b2;
       this.dispatchEvent(disconnectingEvent);
-      yield (_b = (_a = this.disconnected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b.catch(console.error);
+      yield (_b2 = (_a = this.disconnected) == null ? void 0 : _a.call(this, __privateGet(this, _context))) == null ? void 0 : _b2.catch(console.error);
       this.dispatchEvent(disconnectedEvent);
     });
   }
-  [(_d = task, create)]() {
+  [(_b = task, create)]() {
     return __async(this, null, function* () {
-      var _a, _b, _c, _d2, _e;
+      var _a, _b2, _c, _d, _e;
       __privateSet(this, _created, true);
       __privateSet(this, _busy, true);
       const constructor = this.constructor;
@@ -634,7 +636,7 @@ var Component = class extends HTMLElement {
         });
       }
       __privateSet(this, _context, context_default(__privateGet(this, _context), this[update].bind(this)));
-      const template = yield (_b = this.render) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+      const template = yield (_b2 = this.render) == null ? void 0 : _b2.call(this, __privateGet(this, _context));
       if (template) {
         const fragment = template.template.content.cloneNode(true);
         __privateSet(this, _marker, template.marker);
@@ -655,7 +657,7 @@ var Component = class extends HTMLElement {
       yield (_c = this.created) == null ? void 0 : _c.call(this, __privateGet(this, _context));
       this.dispatchEvent(createdEvent);
       this.dispatchEvent(connectingEvent);
-      yield (_e = (_d2 = this.connected) == null ? void 0 : _d2.call(this, __privateGet(this, _context))) == null ? void 0 : _e.catch(console.error);
+      yield (_e = (_d = this.connected) == null ? void 0 : _d.call(this, __privateGet(this, _context))) == null ? void 0 : _e.catch(console.error);
       this.dispatchEvent(connectedEvent);
       __privateSet(this, _busy, false);
       __privateSet(this, _restart, false);
@@ -670,7 +672,7 @@ var Component = class extends HTMLElement {
       }
       __privateSet(this, _busy, true);
       this[task] = this[task].then(() => __async(this, null, function* () {
-        var _a, _b;
+        var _a, _b2;
         this.dispatchEvent(renderingEvent);
         const template = yield (_a = this.render) == null ? void 0 : _a.call(this, __privateGet(this, _context));
         if (template) {
@@ -692,7 +694,7 @@ var Component = class extends HTMLElement {
           }
         }
         __privateSet(this, _busy, false);
-        yield (_b = this.rendered) == null ? void 0 : _b.call(this, __privateGet(this, _context));
+        yield (_b2 = this.rendered) == null ? void 0 : _b2.call(this, __privateGet(this, _context));
         this.dispatchEvent(renderedEvent);
       })).catch(console.error);
       return this[task];
@@ -765,13 +767,13 @@ var transition = function(route) {
   });
 };
 var navigate = function(event) {
-  var _a, _b, _c;
+  var _a, _b2, _c;
   if (event && "canIntercept" in event && event.canIntercept === false)
     return;
   if (event && "canTransition" in event && event.canTransition === false)
     return;
   const destination = new URL((_a = event == null ? void 0 : event.destination.url) != null ? _a : location.href);
-  const base = new URL((_c = (_b = document.querySelector("base")) == null ? void 0 : _b.href) != null ? _c : location.origin);
+  const base = new URL((_c = (_b2 = document.querySelector("base")) == null ? void 0 : _b2.href) != null ? _c : location.origin);
   base.hash = "";
   base.search = "";
   destination.hash = "";
