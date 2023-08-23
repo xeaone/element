@@ -1,5 +1,5 @@
 /**
- * @version 9.1.2
+ * @version 9.1.3
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -82,7 +82,7 @@ export default class Component extends HTMLElement {
     /**
      * Called every an observed attribute changes.
      */
-    protected attribute?(name: string, oldValue: string, newValue: string): void | Promise<void>;
+    protected attribute?(name: string, from: string, to: string): void | Promise<void>;
     [task]: Promise<void>;
     constructor();
     protected attributeChangedCallback(name: string, oldValue: string, newValue: string): Promise<void>;

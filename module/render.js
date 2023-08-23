@@ -1,5 +1,5 @@
 /**
- * @version 9.1.2
+ * @version 9.1.3
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -178,15 +178,15 @@ const AttributeValueAction = function (source, target) {
         this.element.setAttribute(this.name, this.value);
     }
     else if (this.name.startsWith('on')) {
-        // if (source?.toString() === target?.toString()) return;
         if (!this.name)
             return;
         if (typeof this.value === 'function') {
             this.element.removeEventListener(this.name.slice(2), this.value, true);
         }
-        this.value = target;
-        if (typeof this.value !== 'function')
+        if (typeof target !== 'function') {
             return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+        }
+        this.value = function () { return target.call(this, ...arguments); };
         this.element.addEventListener(this.name.slice(2), this.value, true);
     }
     else if (includes(links, this.name)) {
