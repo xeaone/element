@@ -1,5 +1,5 @@
 /**
- * @version 9.1.5
+ * @version 9.1.6
  *
  * @license
  * Copyright (C) Alexander Elias
