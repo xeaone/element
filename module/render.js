@@ -1,5 +1,5 @@
 /**
- * @version 9.1.7
+ * @version 9.1.8
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -126,9 +126,19 @@ const AttributeNameAction = function (source, target) {
         Reflect.deleteProperty(this.element, source);
     }
     this.name = target?.toLowerCase() || '';
-    if (isBool(this.name)) {
+    if (!this.name) {
+        return;
+    }
+    else if (hasOn(this.name)) {
+        return;
+    }
+    else if (isBool(this.name)) {
         this.element.setAttribute(this.name, '');
         Reflect.set(this.element, this.name, true);
+    }
+    else {
+        this.element.setAttribute(this.name, '');
+        Reflect.set(this.element, this.name, undefined);
     }
 };
 const AttributeValueAction = function (source, target) {
@@ -143,6 +153,7 @@ const AttributeValueAction = function (source, target) {
         Reflect.set(this.element, this.name, this.value);
     }
     else if (hasOn(this.name)) {
+        // console.log(this.name, source, target, this.element);
         if (!this.name)
             return;
         if (typeof this.value === 'function') {
