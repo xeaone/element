@@ -1,62 +1,21 @@
+import { hasOn, isMarker, isValue, sliceOn, isLink, isBool, hasMarker, dangerousLink, removeBetween } from './tools';
 import display from './display';
 import { symbol } from './html';
-import { includes } from './poly';
 import { Actions } from './types';
 
-// const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 // const TEXT_NODE = Node.TEXT_NODE;
 // const ELEMENT_NODE = Node.ELEMENT_NODE;
+// const FILTER = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 
-const filter = 1 + 4;
+const FILTER = 1 + 4;
 const TEXT_NODE = 3;
 const ELEMENT_NODE = 1;
 
-// https://html.spec.whatwg.org/multipage/indices.html#attributes-1
-// https://www.w3.org/TR/REC-html40/index/attributes.html
-const links = [
-    'src',
-    'href',
-    'data',
-    'action',
-    'srcdoc',
-    'xlink:href',
-    'cite',
-    'formaction',
-    'ping',
-    'poster',
-    'background',
-    'classid',
-    'codebase',
-    'longdesc',
-    'profile',
-    'usemap',
-    'icon',
-    'manifest',
-    'archive'
-];
-
-// const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
-const safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
-
-const dangerousLink = function (data: string) {
-    if (data === '') return false;
-    if (typeof data !== 'string') return false;
-    return safePattern.test(data) ? false : true;
-};
-
-const removeBetween = function (start: Node, end: Node) {
-    let node = end.previousSibling;
-    while (node !== start) {
-        node?.parentNode?.removeChild(node);
-        node = end.previousSibling;
-    }
-};
-
-const ElementAction = function (this: {
-    start: Text;
-    end: Text;
-    actions: Actions;
-}, source: any, target: any) {
+const ElementAction = function (
+    this: { start: Text, end: Text, actions: Actions, },
+    source: any,
+    target: any
+): void {
 
     if (target?.symbol === symbol) {
 
@@ -141,79 +100,75 @@ const ElementAction = function (this: {
         }
 
     } else {
-        if (source === target) return;
-
-        if (typeof source !== typeof target) {
-            while (this.end.previousSibling !== this.start) {
-                this.end.parentNode?.removeChild(this.end.previousSibling as ChildNode);
-            }
-        }
-
-        let node;
-        if (this.end.previousSibling === this.start) {
-            node = document.createTextNode(display(target));
-            // node = document.createTextNode(target);
-            this.end.parentNode?.insertBefore(node, this.end);
+        if (source === target) {
+            return;
+        } else if (this.end.previousSibling === this.start) {
+            this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
+        } else if (
+            this.end.previousSibling?.nodeType === TEXT_NODE &&
+            this.end.previousSibling?.previousSibling === this.start
+        ) {
+            this.end.previousSibling.textContent = display(target);
         } else {
-            if (this.end.previousSibling?.nodeType === TEXT_NODE) {
-                node = this.end.previousSibling;
-                node.textContent = display(target);
-                // node.textContent = target;
-            } else {
-                node = document.createTextNode(display(target));
-                // node = document.createTextNode(target);
-                this.end.parentNode?.removeChild(this.end.previousSibling as ChildNode);
-                this.end.parentNode?.insertBefore(node, this.end);
-            }
+            removeBetween(this.start, this.end);
+            this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
         }
-
     }
 
 };
 
-const AttributeNameAction = function (this: {
-    element: Element,
-    name: string,
-    value: any,
-}, source: any, target: any) {
-    if (source === target) return;
-
-    if (source?.startsWith('on') && typeof this.value === 'function') {
-        this.element.removeEventListener(source.slice(2), this.value);
+const AttributeNameAction = function (
+    this: { element: Element, name: string, value: any, },
+    source: any,
+    target: any
+): void {
+    if (source === target) {
+        return;
+    } else if (isValue(source)) {
+        this.element.removeAttribute(source);
+        Reflect.set(this.element, source, null);
+    } else if (hasOn(source)) {
+        if (typeof this.value === 'function') {
+            this.element.removeEventListener(sliceOn(source), this.value, true);
+        }
+    } else if (isLink(source)) {
+        this.element.removeAttribute(source);
+    } else if (isBool(source)) {
+        this.element.removeAttribute(source);
+    } else if (source) {
+        this.element.removeAttribute(source);
+        Reflect.deleteProperty(this.element, source);
     }
 
-    Reflect.set(this.element, source, undefined);
-    this.element.removeAttribute(source);
-    this.name = target?.toLowerCase();
+    this.name = target?.toLowerCase() || '';
 
-    if (this.name) {
+    if (isBool(this.name)) {
         this.element.setAttribute(this.name, '');
         Reflect.set(this.element, this.name, true);
     }
 
 };
 
-const AttributeValueAction = function (this: {
-    element: Element,
-    name: string,
-    value: any,
-}, source: any, target: any) {
-    if (source === target) return;
+const AttributeValueAction = function (
+    this: { element: Element, name: string, value: any, },
+    source: any,
+    target: any
+): void {
+    if (source === target) {
+        return;
+    } else if (isValue(this.name)) {
 
-    if (
-        this.name === 'value'
-    ) {
         this.value = display(target);
         if (!this.name) return;
-        Reflect.set(this.element, this.name, this.value);
         this.element.setAttribute(this.name, this.value);
-    } else if (
-        this.name.startsWith('on')
-    ) {
+        Reflect.set(this.element, this.name, this.value);
+
+    } else if (hasOn(this.name)) {
+
         if (!this.name) return;
 
         if (typeof this.value === 'function') {
-            this.element.removeEventListener(this.name.slice(2), this.value, true);
+            this.element.removeEventListener(sliceOn(this.name), this.value, true);
         }
 
         if (typeof target !== 'function') {
@@ -221,13 +176,11 @@ const AttributeValueAction = function (this: {
         }
 
         this.value = function () { return target.call(this, ...arguments); };
+        this.element.addEventListener(sliceOn(this.name), this.value, true);
 
-        this.element.addEventListener(this.name.slice(2), this.value, true);
-    } else if (
-        includes(links, this.name)
-    ) {
+    } else if (isLink(this.name)) {
+
         this.value = encodeURI(target);
-
         if (!this.name) return;
 
         if (dangerousLink(this.value)) {
@@ -236,20 +189,20 @@ const AttributeValueAction = function (this: {
             return;
         }
 
-        Reflect.set(this.element, this.name, this.value);
         this.element.setAttribute(this.name, this.value);
     } else {
         this.value = target;
         if (!this.name) return;
-        Reflect.set(this.element, this.name, this.value);
         this.element.setAttribute(this.name, this.value);
+        Reflect.set(this.element, this.name, this.value);
     }
 };
 
-const TagAction = function (this: {
-    element: Element,
-    holder: Text,
-}, source: any, target: any) {
+const TagAction = function (
+    this: { element: Element, holder: Text, },
+    source: any,
+    target: any
+): void {
     if (source === target) return;
 
     const oldElement = this.element;
@@ -280,8 +233,7 @@ const TagAction = function (this: {
 
 export const Render = function (fragment: DocumentFragment, actions: Actions, marker: string) {
     const holders = new WeakSet();
-    // const walker = document.createTreeWalker(document, filter, null);
-    const walker = document.createTreeWalker(fragment, filter, null);
+    const walker = document.createTreeWalker(fragment, FILTER, null);
 
     walker.currentNode = fragment;
 
@@ -326,7 +278,7 @@ export const Render = function (fragment: DocumentFragment, actions: Actions, ma
                 element: node as Element,
             };
 
-            if (node.nodeName === marker) {
+            if (isMarker(node.nodeName, marker)) {
                 holders.add(node);
                 tMeta.holder = document.createTextNode('');
                 node.parentNode?.insertBefore(tMeta.holder, node);
@@ -336,10 +288,8 @@ export const Render = function (fragment: DocumentFragment, actions: Actions, ma
             const names = (node as Element).getAttributeNames();
             for (const name of names) {
                 const value = (node as Element).getAttribute(name) ?? '';
-                const dynamicName = (name.toUpperCase()).includes(marker);
-                const dynamicValue = value.includes(marker);
 
-                if (dynamicName || dynamicValue) {
+                if (hasMarker(name, marker) || hasMarker(value, marker)) {
 
                     const aMeta = {
                         name,
@@ -350,23 +300,23 @@ export const Render = function (fragment: DocumentFragment, actions: Actions, ma
                         },
                     };
 
-                    if (dynamicName) {
+                    if (hasMarker(name, marker)) {
                         (node as Element).removeAttribute(name);
                         actions.push(AttributeNameAction.bind(aMeta));
                     }
 
-                    if (dynamicValue) {
+                    if (hasMarker(value, marker)) {
                         (node as Element).removeAttribute(name);
                         actions.push(AttributeValueAction.bind(aMeta));
                     }
 
                 } else {
-                    if (includes(links, name)) {
+                    if (isLink(name)) {
                         if (dangerousLink(value)) {
                             (node as Element).removeAttribute(name);
                             console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
                         }
-                    } else if (name.startsWith('on')) {
+                    } else if (hasOn(name)) {
                         (node as Element).removeAttribute(name);
                         console.warn(`XElement - attribute name "${name}" not allowed`);
                     }

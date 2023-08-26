@@ -13,7 +13,8 @@ export default function html (strings: TemplateStringsArray, ...expressions: Exp
 
         return { strings, template, expressions, symbol, marker };
     } else {
-        const marker = `X-${mark()}-X`;
+        const marker = `x-${mark()}-x`;
+        // const marker = `X-${mark()}-X`;
 
         let data = '';
 

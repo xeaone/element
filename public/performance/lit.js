@@ -26,12 +26,20 @@ class LitTest extends LitElement {
         console.timeEnd('overwrite');
     }
 
+    increment() {
+        console.time('increment');
+        for (var i = 0; i < this.items.length; i++) this.items[ i ]++;
+        this.requestUpdate();
+        console.timeEnd('increment');
+    }
+
     render() {
         const t = html`
             <link rel="stylesheet" href="./index.css">
             <h2>Count: ${this.count.toLocaleString()}</h2>
             <input type="number" @input=${this.oninput} value=${this.count}>
             <button @click=${this.overwrite}>overwrite</button>
+            <button @click=${this.increment}>increment</button>
             <div>${this.items.map(item => html`<div class="box">${item}</div>`)}</div>
         `;
 
