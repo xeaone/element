@@ -1,5 +1,5 @@
 /**
- * @version 9.1.3
+ * @version 9.1.4
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -55,6 +55,95 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 
+// source/tools.ts
+var links = [
+  "src",
+  "href",
+  "data",
+  "action",
+  "srcdoc",
+  "xlink:href",
+  "cite",
+  "formaction",
+  "ping",
+  "poster",
+  "background",
+  "classid",
+  "codebase",
+  "longdesc",
+  "profile",
+  "usemap",
+  "icon",
+  "manifest",
+  "archive"
+];
+var bools = [
+  "allowfullscreen",
+  "async",
+  "autofocus",
+  "autoplay",
+  "checked",
+  "controls",
+  "default",
+  "defer",
+  "disabled",
+  "formnovalidate",
+  "inert",
+  "ismap",
+  "itemscope",
+  "loop",
+  "multiple",
+  "muted",
+  "nomodule",
+  "novalidate",
+  "open",
+  "playsinline",
+  "readonly",
+  "required",
+  "reversed",
+  "selected"
+];
+var isLink = function(data) {
+  return data && typeof data === "string" ? links.indexOf(data) !== -1 : false;
+};
+var isBool = function(data) {
+  return data && typeof data === "string" ? bools.indexOf(data) !== -1 : false;
+};
+var patternValue = /^value$/i;
+var isValue = function(data) {
+  return data && typeof data === "string" ? patternValue.test(data) : false;
+};
+var patternOn = /^on/i;
+var hasOn = function(data) {
+  return data && typeof data === "string" ? patternOn.test(data) : false;
+};
+var sliceOn = function(data) {
+  var _a;
+  return data && typeof data === "string" ? (_a = data == null ? void 0 : data.toLowerCase()) == null ? void 0 : _a.slice(2) : "";
+};
+var isMarker = function(data, marker) {
+  return data && typeof data === "string" ? data.toLowerCase() === marker.toLowerCase() : false;
+};
+var hasMarker = function(data, marker) {
+  return data && typeof data === "string" ? data.toLowerCase().indexOf(marker.toLowerCase()) !== -1 : false;
+};
+var safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
+var dangerousLink = function(data) {
+  if (data === "")
+    return false;
+  if (typeof data !== "string")
+    return false;
+  return safePattern.test(data) ? false : true;
+};
+var removeBetween = function(start, end) {
+  var _a;
+  let node = end.previousSibling;
+  while (node !== start) {
+    (_a = node == null ? void 0 : node.parentNode) == null ? void 0 : _a.removeChild(node);
+    node = end.previousSibling;
+  }
+};
+
 // source/display.ts
 function display(data) {
   switch (`${data}`) {
@@ -100,9 +189,6 @@ var replaceChildren = function(element, ...nodes) {
     }
   }
 };
-var includes = function(item, search) {
-  return item.indexOf(search) !== -1;
-};
 var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : void 0;
 var createHTML = function(data) {
   if (policy) {
@@ -121,7 +207,7 @@ function html(strings, ...expressions) {
     const [template, marker] = value;
     return { strings, template, expressions, symbol, marker };
   } else {
-    const marker = `X-${mark_default()}-X`;
+    const marker = `x-${mark_default()}-x`;
     let data = "";
     const length = strings.length - 1;
     for (let index = 0; index < length; index++) {
@@ -136,48 +222,11 @@ function html(strings, ...expressions) {
 }
 
 // source/render.ts
-var filter = 1 + 4;
+var FILTER = 1 + 4;
 var TEXT_NODE = 3;
 var ELEMENT_NODE = 1;
-var links = [
-  "src",
-  "href",
-  "data",
-  "action",
-  "srcdoc",
-  "xlink:href",
-  "cite",
-  "formaction",
-  "ping",
-  "poster",
-  "background",
-  "classid",
-  "codebase",
-  "longdesc",
-  "profile",
-  "usemap",
-  "icon",
-  "manifest",
-  "archive"
-];
-var safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
-var dangerousLink = function(data) {
-  if (data === "")
-    return false;
-  if (typeof data !== "string")
-    return false;
-  return safePattern.test(data) ? false : true;
-};
-var removeBetween = function(start, end) {
-  var _a;
-  let node = end.previousSibling;
-  while (node !== start) {
-    (_a = node == null ? void 0 : node.parentNode) == null ? void 0 : _a.removeChild(node);
-    node = end.previousSibling;
-  }
-};
 var ElementAction = function(source, target) {
-  var _a, _b2, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+  var _a, _b2, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
   if ((target == null ? void 0 : target.symbol) === symbol) {
     source = source != null ? source : {};
     target = target != null ? target : {};
@@ -239,57 +288,56 @@ var ElementAction = function(source, target) {
       this.actions.length = newLength;
     }
   } else {
-    if (source === target)
+    if (source === target) {
       return;
-    if (typeof source !== typeof target) {
-      while (this.end.previousSibling !== this.start) {
-        (_i = this.end.parentNode) == null ? void 0 : _i.removeChild(this.end.previousSibling);
-      }
-    }
-    let node;
-    if (this.end.previousSibling === this.start) {
-      node = document.createTextNode(display(target));
-      (_j = this.end.parentNode) == null ? void 0 : _j.insertBefore(node, this.end);
+    } else if (this.end.previousSibling === this.start) {
+      (_i = this.end.parentNode) == null ? void 0 : _i.insertBefore(document.createTextNode(display(target)), this.end);
+    } else if (((_j = this.end.previousSibling) == null ? void 0 : _j.nodeType) === TEXT_NODE && ((_k = this.end.previousSibling) == null ? void 0 : _k.previousSibling) === this.start) {
+      this.end.previousSibling.textContent = display(target);
     } else {
-      if (((_k = this.end.previousSibling) == null ? void 0 : _k.nodeType) === TEXT_NODE) {
-        node = this.end.previousSibling;
-        node.textContent = display(target);
-      } else {
-        node = document.createTextNode(display(target));
-        (_l = this.end.parentNode) == null ? void 0 : _l.removeChild(this.end.previousSibling);
-        (_m = this.end.parentNode) == null ? void 0 : _m.insertBefore(node, this.end);
-      }
+      removeBetween(this.start, this.end);
+      (_l = this.end.parentNode) == null ? void 0 : _l.insertBefore(document.createTextNode(display(target)), this.end);
     }
   }
 };
 var AttributeNameAction = function(source, target) {
-  if (source === target)
+  if (source === target) {
     return;
-  if ((source == null ? void 0 : source.startsWith("on")) && typeof this.value === "function") {
-    this.element.removeEventListener(source.slice(2), this.value);
+  } else if (isValue(source)) {
+    this.element.removeAttribute(source);
+    Reflect.set(this.element, source, null);
+  } else if (hasOn(source)) {
+    if (typeof this.value === "function") {
+      this.element.removeEventListener(sliceOn(source), this.value, true);
+    }
+  } else if (isLink(source)) {
+    this.element.removeAttribute(source);
+  } else if (isBool(source)) {
+    this.element.removeAttribute(source);
+  } else if (source) {
+    this.element.removeAttribute(source);
+    Reflect.deleteProperty(this.element, source);
   }
-  Reflect.set(this.element, source, void 0);
-  this.element.removeAttribute(source);
-  this.name = target == null ? void 0 : target.toLowerCase();
-  if (this.name) {
+  this.name = (target == null ? void 0 : target.toLowerCase()) || "";
+  if (isBool(this.name)) {
     this.element.setAttribute(this.name, "");
     Reflect.set(this.element, this.name, true);
   }
 };
 var AttributeValueAction = function(source, target) {
-  if (source === target)
+  if (source === target) {
     return;
-  if (this.name === "value") {
+  } else if (isValue(this.name)) {
     this.value = display(target);
     if (!this.name)
       return;
-    Reflect.set(this.element, this.name, this.value);
     this.element.setAttribute(this.name, this.value);
-  } else if (this.name.startsWith("on")) {
+    Reflect.set(this.element, this.name, this.value);
+  } else if (hasOn(this.name)) {
     if (!this.name)
       return;
     if (typeof this.value === "function") {
-      this.element.removeEventListener(this.name.slice(2), this.value, true);
+      this.element.removeEventListener(sliceOn(this.name), this.value, true);
     }
     if (typeof target !== "function") {
       return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
@@ -297,8 +345,8 @@ var AttributeValueAction = function(source, target) {
     this.value = function() {
       return target.call(this, ...arguments);
     };
-    this.element.addEventListener(this.name.slice(2), this.value, true);
-  } else if (includes(links, this.name)) {
+    this.element.addEventListener(sliceOn(this.name), this.value, true);
+  } else if (isLink(this.name)) {
     this.value = encodeURI(target);
     if (!this.name)
       return;
@@ -307,14 +355,13 @@ var AttributeValueAction = function(source, target) {
       console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
       return;
     }
-    Reflect.set(this.element, this.name, this.value);
     this.element.setAttribute(this.name, this.value);
   } else {
     this.value = target;
     if (!this.name)
       return;
-    Reflect.set(this.element, this.name, this.value);
     this.element.setAttribute(this.name, this.value);
+    Reflect.set(this.element, this.name, this.value);
   }
 };
 var TagAction = function(source, target) {
@@ -344,7 +391,7 @@ var TagAction = function(source, target) {
 var Render = function(fragment, actions, marker) {
   var _a, _b2, _c, _d, _e, _f;
   const holders = /* @__PURE__ */ new WeakSet();
-  const walker = document.createTreeWalker(fragment, filter, null);
+  const walker = document.createTreeWalker(fragment, FILTER, null);
   walker.currentNode = fragment;
   let node = fragment.firstChild;
   while (node = walker.nextNode()) {
@@ -376,7 +423,7 @@ var Render = function(fragment, actions, marker) {
       const tMeta = {
         element: node
       };
-      if (node.nodeName === marker) {
+      if (isMarker(node.nodeName, marker)) {
         holders.add(node);
         tMeta.holder = document.createTextNode("");
         (_e = node.parentNode) == null ? void 0 : _e.insertBefore(tMeta.holder, node);
@@ -385,9 +432,7 @@ var Render = function(fragment, actions, marker) {
       const names = node.getAttributeNames();
       for (const name of names) {
         const value = (_f = node.getAttribute(name)) != null ? _f : "";
-        const dynamicName = name.toUpperCase().includes(marker);
-        const dynamicValue = value.includes(marker);
-        if (dynamicName || dynamicValue) {
+        if (hasMarker(name, marker) || hasMarker(value, marker)) {
           const aMeta = {
             name,
             value,
@@ -396,21 +441,21 @@ var Render = function(fragment, actions, marker) {
               return tMeta.element;
             }
           };
-          if (dynamicName) {
+          if (hasMarker(name, marker)) {
             node.removeAttribute(name);
             actions.push(AttributeNameAction.bind(aMeta));
           }
-          if (dynamicValue) {
+          if (hasMarker(value, marker)) {
             node.removeAttribute(name);
             actions.push(AttributeValueAction.bind(aMeta));
           }
         } else {
-          if (includes(links, name)) {
+          if (isLink(name)) {
             if (dangerousLink(value)) {
               node.removeAttribute(name);
               console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
             }
-          } else if (name.startsWith("on")) {
+          } else if (hasOn(name)) {
             node.removeAttribute(name);
             console.warn(`XElement - attribute name "${name}" not allowed`);
           }
@@ -502,7 +547,8 @@ var disconnectingEvent = new Event("disconnecting");
 var task = Symbol("Task");
 var update = Symbol("Update");
 var create = Symbol("Create");
-var _context, _root, _marker, _actions, _expressions, _busy, _restart, _created, _b;
+var tick = () => Promise.resolve();
+var _context, _root, _marker, _actions, _expressions, _queued, _started, _restart, _created, _b;
 var Component = class extends HTMLElement {
   constructor() {
     var _a;
@@ -512,7 +558,8 @@ var Component = class extends HTMLElement {
     __privateAdd(this, _marker, "");
     __privateAdd(this, _actions, []);
     __privateAdd(this, _expressions, []);
-    __privateAdd(this, _busy, false);
+    __privateAdd(this, _queued, false);
+    __privateAdd(this, _started, false);
     __privateAdd(this, _restart, false);
     __privateAdd(this, _created, false);
     __publicField(this, _b, Promise.resolve());
@@ -602,7 +649,8 @@ var Component = class extends HTMLElement {
     return __async(this, null, function* () {
       var _a, _b2, _c, _d, _e;
       __privateSet(this, _created, true);
-      __privateSet(this, _busy, true);
+      __privateSet(this, _queued, true);
+      __privateSet(this, _started, true);
       const constructor = this.constructor;
       const observedProperties = constructor.observedProperties;
       const prototype = Object.getPrototypeOf(this);
@@ -662,26 +710,31 @@ var Component = class extends HTMLElement {
       this.dispatchEvent(connectingEvent);
       yield (_e = (_d = this.connected) == null ? void 0 : _d.call(this, __privateGet(this, _context))) == null ? void 0 : _e.catch(console.error);
       this.dispatchEvent(connectedEvent);
-      __privateSet(this, _busy, false);
+      __privateSet(this, _queued, false);
+      __privateSet(this, _started, false);
       __privateSet(this, _restart, false);
       yield this[update]();
     });
   }
   [update]() {
     return __async(this, null, function* () {
-      if (__privateGet(this, _busy)) {
+      if (__privateGet(this, _queued) && !__privateGet(this, _started)) {
+        return this[task];
+      }
+      if (__privateGet(this, _queued) && __privateGet(this, _started)) {
         __privateSet(this, _restart, true);
         return this[task];
       }
-      __privateSet(this, _busy, true);
+      __privateSet(this, _queued, true);
       this[task] = this[task].then(() => __async(this, null, function* () {
         var _a, _b2;
         this.dispatchEvent(renderingEvent);
         const template = yield (_a = this.render) == null ? void 0 : _a.call(this, __privateGet(this, _context));
+        __privateSet(this, _started, true);
         if (template) {
           for (let index = 0; index < __privateGet(this, _actions).length; index++) {
             if (__privateGet(this, _restart)) {
-              yield Promise.resolve().then().catch(console.error);
+              yield tick();
               index = -1;
               __privateSet(this, _restart, false);
               continue;
@@ -696,7 +749,8 @@ var Component = class extends HTMLElement {
             __privateGet(this, _expressions)[index] = template.expressions[index];
           }
         }
-        __privateSet(this, _busy, false);
+        __privateSet(this, _queued, false);
+        __privateSet(this, _started, false);
         yield (_b2 = this.rendered) == null ? void 0 : _b2.call(this, __privateGet(this, _context));
         this.dispatchEvent(renderedEvent);
       })).catch(console.error);
@@ -709,7 +763,8 @@ _root = new WeakMap();
 _marker = new WeakMap();
 _actions = new WeakMap();
 _expressions = new WeakMap();
-_busy = new WeakMap();
+_queued = new WeakMap();
+_started = new WeakMap();
 _restart = new WeakMap();
 _created = new WeakMap();
 __publicField(Component, "html", html);

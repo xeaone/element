@@ -1,5 +1,5 @@
 /**
- * @version 9.1.3
+ * @version 9.1.4
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -20,9 +20,6 @@ export const replaceChildren = function (element, ...nodes) {
                 node);
         }
     }
-};
-export const includes = function (item, search) {
-    return item.indexOf(search) !== -1;
 };
 const policy = 'trustedTypes' in window ?
     window.trustedTypes.createPolicy('x-element', { createHTML: (data) => data }) :

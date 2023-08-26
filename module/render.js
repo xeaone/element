@@ -1,5 +1,5 @@
 /**
- * @version 9.1.3
+ * @version 9.1.4
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -9,54 +9,15 @@
  *
  * @module
  */
+import { hasOn, isMarker, isValue, sliceOn, isLink, isBool, hasMarker, dangerousLink, removeBetween } from './tools';
 import display from './display';
 import { symbol } from './html';
-import { includes } from './poly';
-// const filter = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
 // const TEXT_NODE = Node.TEXT_NODE;
 // const ELEMENT_NODE = Node.ELEMENT_NODE;
-const filter = 1 + 4;
+// const FILTER = NodeFilter.SHOW_ELEMENT + NodeFilter.SHOW_TEXT;
+const FILTER = 1 + 4;
 const TEXT_NODE = 3;
 const ELEMENT_NODE = 1;
-// https://html.spec.whatwg.org/multipage/indices.html#attributes-1
-// https://www.w3.org/TR/REC-html40/index/attributes.html
-const links = [
-    'src',
-    'href',
-    'data',
-    'action',
-    'srcdoc',
-    'xlink:href',
-    'cite',
-    'formaction',
-    'ping',
-    'poster',
-    'background',
-    'classid',
-    'codebase',
-    'longdesc',
-    'profile',
-    'usemap',
-    'icon',
-    'manifest',
-    'archive'
-];
-// const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
-const safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
-const dangerousLink = function (data) {
-    if (data === '')
-        return false;
-    if (typeof data !== 'string')
-        return false;
-    return safePattern.test(data) ? false : true;
-};
-const removeBetween = function (start, end) {
-    let node = end.previousSibling;
-    while (node !== start) {
-        node?.parentNode?.removeChild(node);
-        node = end.previousSibling;
-    }
-};
 const ElementAction = function (source, target) {
     if (target?.symbol === symbol) {
         source = source ?? {};
@@ -125,71 +86,75 @@ const ElementAction = function (source, target) {
         }
     }
     else {
-        if (source === target)
+        if (source === target) {
             return;
-        if (typeof source !== typeof target) {
-            while (this.end.previousSibling !== this.start) {
-                this.end.parentNode?.removeChild(this.end.previousSibling);
-            }
         }
-        let node;
-        if (this.end.previousSibling === this.start) {
-            node = document.createTextNode(display(target));
-            // node = document.createTextNode(target);
-            this.end.parentNode?.insertBefore(node, this.end);
+        else if (this.end.previousSibling === this.start) {
+            this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
+        }
+        else if (this.end.previousSibling?.nodeType === TEXT_NODE &&
+            this.end.previousSibling?.previousSibling === this.start) {
+            this.end.previousSibling.textContent = display(target);
         }
         else {
-            if (this.end.previousSibling?.nodeType === TEXT_NODE) {
-                node = this.end.previousSibling;
-                node.textContent = display(target);
-                // node.textContent = target;
-            }
-            else {
-                node = document.createTextNode(display(target));
-                // node = document.createTextNode(target);
-                this.end.parentNode?.removeChild(this.end.previousSibling);
-                this.end.parentNode?.insertBefore(node, this.end);
-            }
+            removeBetween(this.start, this.end);
+            this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
         }
     }
 };
 const AttributeNameAction = function (source, target) {
-    if (source === target)
+    if (source === target) {
         return;
-    if (source?.startsWith('on') && typeof this.value === 'function') {
-        this.element.removeEventListener(source.slice(2), this.value);
     }
-    Reflect.set(this.element, source, undefined);
-    this.element.removeAttribute(source);
-    this.name = target?.toLowerCase();
-    if (this.name) {
+    else if (isValue(source)) {
+        this.element.removeAttribute(source);
+        Reflect.set(this.element, source, null);
+    }
+    else if (hasOn(source)) {
+        if (typeof this.value === 'function') {
+            this.element.removeEventListener(sliceOn(source), this.value, true);
+        }
+    }
+    else if (isLink(source)) {
+        this.element.removeAttribute(source);
+    }
+    else if (isBool(source)) {
+        this.element.removeAttribute(source);
+    }
+    else if (source) {
+        this.element.removeAttribute(source);
+        Reflect.deleteProperty(this.element, source);
+    }
+    this.name = target?.toLowerCase() || '';
+    if (isBool(this.name)) {
         this.element.setAttribute(this.name, '');
         Reflect.set(this.element, this.name, true);
     }
 };
 const AttributeValueAction = function (source, target) {
-    if (source === target)
+    if (source === target) {
         return;
-    if (this.name === 'value') {
+    }
+    else if (isValue(this.name)) {
         this.value = display(target);
         if (!this.name)
             return;
-        Reflect.set(this.element, this.name, this.value);
         this.element.setAttribute(this.name, this.value);
+        Reflect.set(this.element, this.name, this.value);
     }
-    else if (this.name.startsWith('on')) {
+    else if (hasOn(this.name)) {
         if (!this.name)
             return;
         if (typeof this.value === 'function') {
-            this.element.removeEventListener(this.name.slice(2), this.value, true);
+            this.element.removeEventListener(sliceOn(this.name), this.value, true);
         }
         if (typeof target !== 'function') {
             return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
         }
         this.value = function () { return target.call(this, ...arguments); };
-        this.element.addEventListener(this.name.slice(2), this.value, true);
+        this.element.addEventListener(sliceOn(this.name), this.value, true);
     }
-    else if (includes(links, this.name)) {
+    else if (isLink(this.name)) {
         this.value = encodeURI(target);
         if (!this.name)
             return;
@@ -198,15 +163,14 @@ const AttributeValueAction = function (source, target) {
             console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
             return;
         }
-        Reflect.set(this.element, this.name, this.value);
         this.element.setAttribute(this.name, this.value);
     }
     else {
         this.value = target;
         if (!this.name)
             return;
-        Reflect.set(this.element, this.name, this.value);
         this.element.setAttribute(this.name, this.value);
+        Reflect.set(this.element, this.name, this.value);
     }
 };
 const TagAction = function (source, target) {
@@ -235,8 +199,7 @@ const TagAction = function (source, target) {
 };
 export const Render = function (fragment, actions, marker) {
     const holders = new WeakSet();
-    // const walker = document.createTreeWalker(document, filter, null);
-    const walker = document.createTreeWalker(fragment, filter, null);
+    const walker = document.createTreeWalker(fragment, FILTER, null);
     walker.currentNode = fragment;
     let node = fragment.firstChild;
     while (node = walker.nextNode()) {
@@ -269,7 +232,7 @@ export const Render = function (fragment, actions, marker) {
             const tMeta = {
                 element: node,
             };
-            if (node.nodeName === marker) {
+            if (isMarker(node.nodeName, marker)) {
                 holders.add(node);
                 tMeta.holder = document.createTextNode('');
                 node.parentNode?.insertBefore(tMeta.holder, node);
@@ -278,9 +241,7 @@ export const Render = function (fragment, actions, marker) {
             const names = node.getAttributeNames();
             for (const name of names) {
                 const value = node.getAttribute(name) ?? '';
-                const dynamicName = (name.toUpperCase()).includes(marker);
-                const dynamicValue = value.includes(marker);
-                if (dynamicName || dynamicValue) {
+                if (hasMarker(name, marker) || hasMarker(value, marker)) {
                     const aMeta = {
                         name,
                         value,
@@ -289,23 +250,23 @@ export const Render = function (fragment, actions, marker) {
                             return tMeta.element;
                         },
                     };
-                    if (dynamicName) {
+                    if (hasMarker(name, marker)) {
                         node.removeAttribute(name);
                         actions.push(AttributeNameAction.bind(aMeta));
                     }
-                    if (dynamicValue) {
+                    if (hasMarker(value, marker)) {
                         node.removeAttribute(name);
                         actions.push(AttributeValueAction.bind(aMeta));
                     }
                 }
                 else {
-                    if (includes(links, name)) {
+                    if (isLink(name)) {
                         if (dangerousLink(value)) {
                             node.removeAttribute(name);
                             console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
                         }
                     }
-                    else if (name.startsWith('on')) {
+                    else if (hasOn(name)) {
                         node.removeAttribute(name);
                         console.warn(`XElement - attribute name "${name}" not allowed`);
                     }

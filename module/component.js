@@ -1,5 +1,5 @@
 /**
- * @version 9.1.3
+ * @version 9.1.4
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -17,6 +17,7 @@ import { createdEvent, creatingEvent, renderedEvent, renderingEvent, adoptedEven
 const task = Symbol('Task');
 const update = Symbol('Update');
 const create = Symbol('Create');
+const tick = () => Promise.resolve();
 export default class Component extends HTMLElement {
     static html = html;
     /**
@@ -78,7 +79,8 @@ export default class Component extends HTMLElement {
     #marker = '';
     #actions = [];
     #expressions = [];
-    #busy = false;
+    #queued = false;
+    #started = false;
     #restart = false;
     #created = false;
     [task] = Promise.resolve();
@@ -119,7 +121,8 @@ export default class Component extends HTMLElement {
     }
     async [create]() {
         this.#created = true;
-        this.#busy = true;
+        this.#queued = true;
+        this.#started = true;
         const constructor = this.constructor;
         const observedProperties = constructor.observedProperties;
         const prototype = Object.getPrototypeOf(this);
@@ -194,25 +197,33 @@ export default class Component extends HTMLElement {
         this.dispatchEvent(connectingEvent);
         await this.connected?.(this.#context)?.catch(console.error);
         this.dispatchEvent(connectedEvent);
-        this.#busy = false;
+        this.#queued = false;
+        this.#started = false;
         this.#restart = false;
         await this[update]();
     }
     async [update]() {
-        if (this.#busy) {
+        if (this.#queued && !this.#started) {
+            // console.debug('Update: queued and not started');
+            return this[task];
+        }
+        if (this.#queued && this.#started) {
+            // console.debug('Update: queued and started');
             this.#restart = true;
             return this[task];
         }
-        this.#busy = true;
+        this.#queued = true;
         this[task] = this[task].then(async () => {
-            // await new Promise((resolve) => {
-            // window.requestIdleCallback(async () => {
+            // console.debug('Update: in progress');
+            // await tick();
             this.dispatchEvent(renderingEvent);
             const template = await this.render?.(this.#context);
+            this.#started = true;
             if (template) {
                 for (let index = 0; index < this.#actions.length; index++) {
                     if (this.#restart) {
-                        await Promise.resolve().then().catch(console.error);
+                        // console.debug('Update: restart');
+                        await tick();
                         index = -1;
                         this.#restart = false;
                         continue;
@@ -228,13 +239,10 @@ export default class Component extends HTMLElement {
                     this.#expressions[index] = template.expressions[index];
                 }
             }
-            this.#busy = false;
-            // this.#restart = false;
+            this.#queued = false;
+            this.#started = false;
             await this.rendered?.(this.#context);
             this.dispatchEvent(renderedEvent);
-            // resolve(undefined);
-            // });
-            // });
         }).catch(console.error);
         return this[task];
     }

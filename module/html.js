@@ -1,5 +1,5 @@
 /**
- * @version 9.1.3
+ * @version 9.1.4
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -21,7 +21,8 @@ export default function html(strings, ...expressions) {
         return { strings, template, expressions, symbol, marker };
     }
     else {
-        const marker = `X-${mark()}-X`;
+        const marker = `x-${mark()}-x`;
+        // const marker = `X-${mark()}-X`;
         let data = '';
         const length = strings.length - 1;
         for (let index = 0; index < length; index++) {
