@@ -1,5 +1,5 @@
 /**
- * @version 9.1.4
+ * @version 9.1.5
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -78,6 +78,7 @@ var links = [
   "archive"
 ];
 var bools = [
+  "hidden",
   "allowfullscreen",
   "async",
   "autofocus",

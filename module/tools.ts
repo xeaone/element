@@ -1,5 +1,5 @@
 /**
- * @version 9.1.4
+ * @version 9.1.5
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -35,6 +35,7 @@ const links = [
 
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
 const bools = [
+    'hidden',
     'allowfullscreen',
     'async',
     'autofocus',
