@@ -1,5 +1,5 @@
 /**
- * @version 9.1.8
+ * @version 9.1.9
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -268,6 +268,7 @@ var AttributeNameAction = function(source, target) {
     this.element.removeAttribute(source);
   } else if (isBool(source)) {
     this.element.removeAttribute(source);
+    Reflect.set(this.element, source, false);
   } else if (source) {
     this.element.removeAttribute(source);
     Reflect.deleteProperty(this.element, source);
@@ -725,9 +726,24 @@ function define(name, constructor) {
 // source/router.ts
 var alls = [];
 var routes = [];
+var wait = function(element) {
+  if (element && element instanceof Component) {
+    return new Promise(
+      (resolve) => element.addEventListener(
+        "rendered",
+        () => requestAnimationFrame(
+          () => resolve(void 0)
+        ),
+        { once: true }
+      )
+    );
+  }
+};
 var transition = async function(route) {
   if (route.instance) {
+    const rendered = wait(route.instance);
     replaceChildren(route.root, route.instance);
+    await rendered;
   } else {
     const result = await route.handler();
     if (result?.prototype instanceof HTMLElement) {
@@ -744,7 +760,9 @@ var transition = async function(route) {
       define(route.tag, route.construct);
       route.instance = document.createElement(route.tag);
     }
+    const rendered = wait(route.instance);
     replaceChildren(route.root, route.instance);
+    await rendered;
   }
 };
 var navigate = function(event) {
@@ -778,11 +796,15 @@ var navigate = function(event) {
     transitions.push(all);
   }
   if (event?.intercept) {
-    return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
+    return event.intercept({
+      handler: async () => {
+        await Promise.all(transitions.map((route) => transition(route)));
+      }
+    });
   } else if (event?.transitionWhile) {
-    return event.transitionWhile(transitions.map((route) => transition(route)));
+    return event.transitionWhile(Promise.all(transitions.map((route) => transition(route))));
   } else {
-    transitions.map((route) => transition(route));
+    Promise.all(transitions.map((route) => transition(route)));
   }
 };
 var router = function(path, root, handler) {

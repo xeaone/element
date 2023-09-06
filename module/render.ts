@@ -1,5 +1,5 @@
 /**
- * @version 9.1.8
+ * @version 9.1.9
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -146,6 +146,7 @@ const AttributeNameAction = function (
         this.element.removeAttribute(source);
     } else if (isBool(source)) {
         this.element.removeAttribute(source);
+        Reflect.set(this.element, source, false);
     } else if (source) {
         this.element.removeAttribute(source);
         Reflect.deleteProperty(this.element, source);

@@ -1,5 +1,5 @@
 /**
- * @version 9.1.8
+ * @version 9.1.9
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -18,11 +18,39 @@ import dash from './dash';
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
 
+// const position = function (parent: Element) {
+//     return {
+//         parent: parent?.scrollTop,
+//         body: document?.body?.scrollTop,
+//         documentElement: document?.documentElement?.scrollTop,
+//     };
+// };
+
+const wait = function (element: Element) {
+    if (element && element instanceof component) {
+        return new Promise(resolve =>
+            element.addEventListener('rendered', () =>
+                requestAnimationFrame(() =>
+                    resolve(undefined)
+                ),
+                { once: true }
+            )
+        );
+    }
+};
+
+// window.addEventListener('popstate', (event) => {
+//     console.log(event);
+// });
+
 const transition = async function (route: Route) {
     if (route.instance) {
+        const rendered = wait(route.instance);
         replaceChildren(route.root, route.instance);
+        await rendered;
     } else {
         const result = await route.handler();
+
         if ((result as CustomElementConstructor)?.prototype instanceof HTMLElement) {
             route.construct = result as CustomElementConstructor;
         } else if (((result as Module)?.default as CustomElementConstructor)?.prototype instanceof HTMLElement) {
@@ -39,7 +67,9 @@ const transition = async function (route: Route) {
             route.instance = document.createElement(route.tag);
         }
 
+        const rendered = wait(route.instance);
         replaceChildren(route.root, route.instance);
+        await rendered;
     }
 };
 
@@ -57,6 +87,8 @@ const navigate = function (event?: any) {
 
     const pathname = destination.href.replace(base.href, '/');
     const transitions: Array<Route> = [];
+
+    // window.history.replaceState(destination.href, JSON.stringify(position(route.root)));
 
     for (const route of routes) {
         if (route.path !== pathname) continue;
@@ -79,11 +111,15 @@ const navigate = function (event?: any) {
     }
 
     if (event?.intercept) {
-        return event.intercept({ handler: () => transitions.map((route) => transition(route)) });
+        return event.intercept({
+            handler: async () => {
+                await Promise.all(transitions.map((route) => transition(route)));
+            }
+        });
     } else if (event?.transitionWhile) {
-        return event.transitionWhile(transitions.map((route) => transition(route)));
+        return event.transitionWhile(Promise.all(transitions.map((route) => transition(route))));
     } else {
-        transitions.map((route) => transition(route));
+        Promise.all(transitions.map((route) => transition(route)));
     }
 };
 
