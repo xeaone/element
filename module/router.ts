@@ -1,5 +1,5 @@
 /**
- * @version 9.1.9
+ * @version 9.1.10
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -11,9 +11,10 @@
  */
 import { Route, Handler, Module } from './types';
 import { replaceChildren } from './poly';
-import component from './component';
+import component, { task } from './component';
 import define from './define';
 import dash from './dash';
+import upgrade from './upgrade';
 
 const alls: Array<Route> = [];
 const routes: Array<Route> = [];
@@ -26,17 +27,15 @@ const routes: Array<Route> = [];
 //     };
 // };
 
-const wait = function (element: Element) {
-    if (element && element instanceof component) {
-        return new Promise(resolve =>
-            element.addEventListener('rendered', () =>
-                requestAnimationFrame(() =>
-                    resolve(undefined)
-                ),
-                { once: true }
-            )
-        );
-    }
+const tick = function (element: Element) {
+    return new Promise(async resolve => {
+        if (element && element instanceof component) {
+            await element[ task ];
+            requestAnimationFrame(() => resolve(undefined));
+        } else {
+            requestAnimationFrame(() => resolve(undefined));
+        }
+    });
 };
 
 // window.addEventListener('popstate', (event) => {
@@ -45,9 +44,9 @@ const wait = function (element: Element) {
 
 const transition = async function (route: Route) {
     if (route.instance) {
-        const rendered = wait(route.instance);
+        const ready = tick(route.instance);
         replaceChildren(route.root, route.instance);
-        await rendered;
+        await ready;
     } else {
         const result = await route.handler();
 
@@ -56,20 +55,21 @@ const transition = async function (route: Route) {
         } else if (((result as Module)?.default as CustomElementConstructor)?.prototype instanceof HTMLElement) {
             route.construct = (result as Module).default as CustomElementConstructor;
         } else {
-            throw new Error('XElement - router handler requires a CustomElementConstructor');
+            throw new Error('XElement - router handler requires Module or CustomElementConstructor');
         }
 
         if (route.construct.prototype instanceof component) {
-            route.instance = await (route.construct as typeof component).upgrade();
+            route.instance = await (route.construct as typeof component).create();
         } else {
             route.tag = dash(route.construct.name);
             define(route.tag, route.construct);
             route.instance = document.createElement(route.tag);
+            upgrade(route.instance);
         }
 
-        const rendered = wait(route.instance);
+        const ready = tick(route.instance);
         replaceChildren(route.root, route.instance);
-        await rendered;
+        await ready;
     }
 };
 

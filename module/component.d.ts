@@ -1,5 +1,5 @@
 /**
- * @version 9.1.9
+ * @version 9.1.10
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -11,9 +11,9 @@
  */
 import html from './html';
 import { HTML } from './types';
-declare const task: unique symbol;
-declare const update: unique symbol;
-declare const create: unique symbol;
+export declare const task: unique symbol;
+export declare const update: unique symbol;
+export declare const create: unique symbol;
 export default class Component extends HTMLElement {
     #private;
     static html: typeof html;
@@ -92,4 +92,3 @@ export default class Component extends HTMLElement {
     protected [create](): Promise<void>;
     protected [update](): Promise<void>;
 }
-export {};

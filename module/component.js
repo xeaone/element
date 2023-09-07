@@ -1,5 +1,5 @@
 /**
- * @version 9.1.9
+ * @version 9.1.10
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -14,10 +14,12 @@ import context from './context';
 import html from './html';
 import dash from './dash';
 import { createdEvent, creatingEvent, renderedEvent, renderingEvent, adoptedEvent, adoptingEvent, connectedEvent, connectingEvent, attributedEvent, attributingEvent, disconnectedEvent, disconnectingEvent, } from './events';
-const task = Symbol('Task');
-const update = Symbol('Update');
-const create = Symbol('Create');
+import define from './define';
+import upgrade from './upgrade';
 const tick = () => Promise.resolve();
+export const task = Symbol('Task');
+export const update = Symbol('Update');
+export const create = Symbol('Create');
 export default class Component extends HTMLElement {
     static html = html;
     /**
@@ -25,8 +27,7 @@ export default class Component extends HTMLElement {
      */
     static define(tag = this.tag ?? this.name) {
         tag = dash(tag);
-        if (customElements.get(tag) !== this)
-            customElements.define(tag, this);
+        define(tag, this);
         return this;
     }
     /**
@@ -34,11 +35,9 @@ export default class Component extends HTMLElement {
      */
     static create(tag) {
         tag = dash(this.tag ?? this.name);
-        if (customElements.get(tag) !== this)
-            customElements.define(tag, this);
+        define(tag, this);
         const instance = document.createElement(tag);
-        if (customElements.upgrade)
-            customElements.upgrade(instance);
+        upgrade(instance);
         return instance;
     }
     /**
@@ -46,12 +45,10 @@ export default class Component extends HTMLElement {
      */
     static async upgrade(tag) {
         tag = dash(this.tag ?? this.name);
-        if (customElements.get(tag) !== this)
-            customElements.define(tag, this);
+        define(tag, this);
         const instance = document.createElement(tag);
+        upgrade(instance);
         await instance[create]();
-        if (customElements.upgrade)
-            customElements.upgrade(instance);
         return instance;
     }
     /**

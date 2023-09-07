@@ -1,5 +1,5 @@
 /**
- * @version 9.1.9
+ * @version 9.1.10
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -10,9 +10,10 @@
  * @module
  */
 import { replaceChildren } from './poly';
-import component from './component';
+import component, { task } from './component';
 import define from './define';
 import dash from './dash';
+import upgrade from './upgrade';
 const alls = [];
 const routes = [];
 // const position = function (parent: Element) {
@@ -22,19 +23,25 @@ const routes = [];
 //         documentElement: document?.documentElement?.scrollTop,
 //     };
 // };
-const wait = function (element) {
-    if (element && element instanceof component) {
-        return new Promise(resolve => element.addEventListener('rendered', () => requestAnimationFrame(() => resolve(undefined)), { once: true }));
-    }
+const tick = function (element) {
+    return new Promise(async (resolve) => {
+        if (element && element instanceof component) {
+            await element[task];
+            requestAnimationFrame(() => resolve(undefined));
+        }
+        else {
+            requestAnimationFrame(() => resolve(undefined));
+        }
+    });
 };
 // window.addEventListener('popstate', (event) => {
 //     console.log(event);
 // });
 const transition = async function (route) {
     if (route.instance) {
-        const rendered = wait(route.instance);
+        const ready = tick(route.instance);
         replaceChildren(route.root, route.instance);
-        await rendered;
+        await ready;
     }
     else {
         const result = await route.handler();
@@ -45,19 +52,20 @@ const transition = async function (route) {
             route.construct = result.default;
         }
         else {
-            throw new Error('XElement - router handler requires a CustomElementConstructor');
+            throw new Error('XElement - router handler requires Module or CustomElementConstructor');
         }
         if (route.construct.prototype instanceof component) {
-            route.instance = await route.construct.upgrade();
+            route.instance = await route.construct.create();
         }
         else {
             route.tag = dash(route.construct.name);
             define(route.tag, route.construct);
             route.instance = document.createElement(route.tag);
+            upgrade(route.instance);
         }
-        const rendered = wait(route.instance);
+        const ready = tick(route.instance);
         replaceChildren(route.root, route.instance);
-        await rendered;
+        await ready;
     }
 };
 const navigate = function (event) {

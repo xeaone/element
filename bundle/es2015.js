@@ -1,5 +1,5 @@
 /**
- * @version 9.1.9
+ * @version 9.1.10
  *
  * @license
  * Copyright (C) Alexander Elias
@@ -552,11 +552,25 @@ var attributingEvent = new Event("attributing");
 var disconnectedEvent = new Event("disconnected");
 var disconnectingEvent = new Event("disconnecting");
 
+// source/define.ts
+function define(name, constructor) {
+  if (customElements.get(name) !== constructor) {
+    customElements.define(name, constructor);
+  }
+}
+
+// source/upgrade.ts
+var upgrade_default = (instance) => {
+  if (customElements.upgrade) {
+    customElements.upgrade(instance);
+  }
+};
+
 // source/component.ts
+var tick = () => Promise.resolve();
 var task = Symbol("Task");
 var update = Symbol("Update");
 var create = Symbol("Create");
-var tick = () => Promise.resolve();
 var _context, _root, _marker, _actions, _expressions, _queued, _started, _restart, _created, _b;
 var Component = class extends HTMLElement {
   constructor() {
@@ -585,8 +599,7 @@ var Component = class extends HTMLElement {
    */
   static define(tag = ((_a) => (_a = this.tag) != null ? _a : this.name)()) {
     tag = dash(tag);
-    if (customElements.get(tag) !== this)
-      customElements.define(tag, this);
+    define(tag, this);
     return this;
   }
   /**
@@ -595,11 +608,9 @@ var Component = class extends HTMLElement {
   static create(tag) {
     var _a;
     tag = dash((_a = this.tag) != null ? _a : this.name);
-    if (customElements.get(tag) !== this)
-      customElements.define(tag, this);
+    define(tag, this);
     const instance = document.createElement(tag);
-    if (customElements.upgrade)
-      customElements.upgrade(instance);
+    upgrade_default(instance);
     return instance;
   }
   /**
@@ -609,12 +620,10 @@ var Component = class extends HTMLElement {
     return __async(this, null, function* () {
       var _a;
       tag = dash((_a = this.tag) != null ? _a : this.name);
-      if (customElements.get(tag) !== this)
-        customElements.define(tag, this);
+      define(tag, this);
       const instance = document.createElement(tag);
+      upgrade_default(instance);
       yield instance[create]();
-      if (customElements.upgrade)
-        customElements.upgrade(instance);
       return instance;
     });
   }
@@ -798,36 +807,26 @@ __publicField(Component, "mode");
  */
 __publicField(Component, "observedProperties");
 
-// source/define.ts
-function define(name, constructor) {
-  if (customElements.get(name) !== constructor) {
-    customElements.define(name, constructor);
-  }
-}
-
 // source/router.ts
 var alls = [];
 var routes = [];
-var wait = function(element) {
-  if (element && element instanceof Component) {
-    return new Promise(
-      (resolve) => element.addEventListener(
-        "rendered",
-        () => requestAnimationFrame(
-          () => resolve(void 0)
-        ),
-        { once: true }
-      )
-    );
-  }
+var tick2 = function(element) {
+  return new Promise((resolve) => __async(this, null, function* () {
+    if (element && element instanceof Component) {
+      yield element[task];
+      requestAnimationFrame(() => resolve(void 0));
+    } else {
+      requestAnimationFrame(() => resolve(void 0));
+    }
+  }));
 };
 var transition = function(route) {
   return __async(this, null, function* () {
     var _a;
     if (route.instance) {
-      const rendered = wait(route.instance);
+      const ready = tick2(route.instance);
       replaceChildren(route.root, route.instance);
-      yield rendered;
+      yield ready;
     } else {
       const result = yield route.handler();
       if ((result == null ? void 0 : result.prototype) instanceof HTMLElement) {
@@ -835,18 +834,19 @@ var transition = function(route) {
       } else if (((_a = result == null ? void 0 : result.default) == null ? void 0 : _a.prototype) instanceof HTMLElement) {
         route.construct = result.default;
       } else {
-        throw new Error("XElement - router handler requires a CustomElementConstructor");
+        throw new Error("XElement - router handler requires Module or CustomElementConstructor");
       }
       if (route.construct.prototype instanceof Component) {
-        route.instance = yield route.construct.upgrade();
+        route.instance = yield route.construct.create();
       } else {
         route.tag = dash(route.construct.name);
         define(route.tag, route.construct);
         route.instance = document.createElement(route.tag);
+        upgrade_default(route.instance);
       }
-      const rendered = wait(route.instance);
+      const ready = tick2(route.instance);
       replaceChildren(route.root, route.instance);
-      yield rendered;
+      yield ready;
     }
   });
 };
