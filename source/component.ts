@@ -28,12 +28,14 @@ import {
     disconnectedEvent,
     disconnectingEvent,
 } from './events';
-
-const task = Symbol('Task');
-const update = Symbol('Update');
-const create = Symbol('Create');
+import define from './define';
+import upgrade from './upgrade';
 
 const tick = () => Promise.resolve();
+
+export const task = Symbol('Task');
+export const update = Symbol('Update');
+export const create = Symbol('Create');
 
 export default class Component extends HTMLElement {
 
@@ -44,7 +46,7 @@ export default class Component extends HTMLElement {
      */
     static define (tag: string = this.tag ?? this.name) {
         tag = dash(tag);
-        if (customElements.get(tag) !== this) customElements.define(tag, this);
+        define(tag, this);
         return this;
     }
 
@@ -53,9 +55,9 @@ export default class Component extends HTMLElement {
      */
     static create<T extends Component> (this: typeof Component & (new () => T), tag?: string): T {
         tag = dash(this.tag ?? this.name);
-        if (customElements.get(tag) !== this) customElements.define(tag, this);
+        define(tag, this);
         const instance = document.createElement(tag) as T;
-        if (customElements.upgrade) customElements.upgrade(instance);
+        upgrade(instance);
         return instance;
     }
 
@@ -64,10 +66,10 @@ export default class Component extends HTMLElement {
      */
     static async upgrade<T extends Component> (this: typeof Component & (new () => T), tag?: string): Promise<T> {
         tag = dash(this.tag ?? this.name);
-        if (customElements.get(tag) !== this) customElements.define(tag, this);
+        define(tag, this);
         const instance = document.createElement(tag) as T;
+        upgrade(instance);
         await instance[ create ]();
-        if (customElements.upgrade) customElements.upgrade(instance);
         return instance;
     }
 
