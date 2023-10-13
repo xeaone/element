@@ -14,11 +14,11 @@ const ELEMENT_CHILDREN = 'ElementChildren';
 
 const space = /\s|\t|\n|\f|\r/;
 const texted = /script|textarea/i;
-const closed = /area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param|embed/i;
+const voids = /area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param|embed|\!doctype/i;
 
 // const PareCache = new WeakMap();
 
-export default function parse(data: string): HTMLTemplateElement {
+export default function parse (data: string): HTMLTemplateElement {
     const template = document.createElement('template');
     const content = template.content;
     const l = data.length;
@@ -32,7 +32,7 @@ export default function parse(data: string): HTMLTemplateElement {
         if (texted.test(elementName)) {
             mode = TEXT;
             n = elementNode ?? content;
-        }else if (closed.test(elementName)) {
+        } else if (voids.test(elementName)) {
             mode = ELEMENT_CHILDREN;
         } else {
             n = elementNode ?? content;
@@ -66,9 +66,9 @@ export default function parse(data: string): HTMLTemplateElement {
     let attributeValue = '';
 
     for (i; i < l; i++) {
-        const c = data[i];
+        const c = data[ i ];
         if (mode === ELEMENT_CHILDREN) {
-            const next = data[i + 1];
+            const next = data[ i + 1 ];
             if (c === '<' && next === '/') { // close tag
                 i++;
                 n = n.parentElement ?? content;
@@ -134,10 +134,10 @@ export default function parse(data: string): HTMLTemplateElement {
             } else if (c === '>') {
                 attributeNameValue();
                 elementChildrenMode();
-            } else if (c === '{' && data[i+1] === '{') {
+            } else if (c === '{' && data[ i + 1 ] === '{') {
                 i++;
                 attributeValue += '{{';
-            } else if (c === '}' && data[i+1] === '}') {
+            } else if (c === '}' && data[ i + 1 ] === '}') {
                 i++;
                 attributeValue += '}}';
             } else {
@@ -162,7 +162,7 @@ export default function parse(data: string): HTMLTemplateElement {
                 mode = ATTRIBUTE_NAME;
             }
         } else if (mode === TEXT) {
-            const next = data[i + 1];
+            const next = data[ i + 1 ];
             if (c === '<' && next === '/') { // close tag
                 if (text) n.appendChild(n.ownerDocument.createTextNode(text));
                 text = '';
@@ -178,7 +178,7 @@ export default function parse(data: string): HTMLTemplateElement {
                 text = '';
                 comment = '';
                 mode = COMMENT;
-                i = i+3;
+                i = i + 3;
                 // console.log('textMode -> commentMode');
             } else if (c === '<') { // start element
                 if (text) n.appendChild(n.ownerDocument.createTextNode(text));
@@ -203,9 +203,9 @@ export default function parse(data: string): HTMLTemplateElement {
                 text += c;
             }
         } else if (mode === COMMENT) {
-            if (c === '-' && data[i+1] === '-' && data[i+2] === '>') { // close comment
+            if (c === '-' && data[ i + 1 ] === '-' && data[ i + 2 ] === '>') { // close comment
                 n.appendChild(n.ownerDocument.createComment(comment));
-                i = i+2;
+                i = i + 2;
                 mode = ELEMENT_CHILDREN;
             } else { // collect comment
                 comment += c;
@@ -214,11 +214,11 @@ export default function parse(data: string): HTMLTemplateElement {
             throw new Error('parse mode error');
         }
         // } else if (mode === IGNORE) {
-            // if (c === '>') { // close ignored
-                // mode = ELEMENT_CHILDREN;
-            // } else { // collect ignored
-                // current += c;
-            // }
+        // if (c === '>') { // close ignored
+        // mode = ELEMENT_CHILDREN;
+        // } else { // collect ignored
+        // current += c;
+        // }
         // }
     }
 
