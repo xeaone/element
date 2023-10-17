@@ -40,13 +40,14 @@ export type vChild = vElement | vComment | vCdata | vText;
 export type vNode = vDocument | vAttribute | vElement | vComment | vCdata | vText;
 
 export type vMode =
-    typeof TEXT | typeof CHILDREN |
-    typeof CDATA | typeof COMMENT | typeof RESTRICTED |
+    typeof TEXT |
+    typeof CDATA |
+    typeof COMMENT |
+    typeof CHILDREN |
+    typeof RESTRICTED |
     typeof TAG_OPEN_NAME | typeof TAG_CLOSE_NAME |
     typeof ATTRIBUTE_NAME | typeof ATTRIBUTE_VALUE;
 
-
-// export type vAttribute = [ name: string, value: string ];
 export type vAttribute = {
     name: string,
     value: string,
@@ -136,20 +137,7 @@ export const appendText = (parent: vParent) => {
 };
 
 export const appendAttribute = (element: vElement) => {
-    // const attribute: vAttribute = [ name, '' ];
     const attribute: vAttribute = { parent: element, name: '', value: '' };
     element.attributes.push(attribute);
     return attribute as vAttribute;
-};
-
-export const appendAttributeName = (element: vElement, name: string) => {
-    const attr = element.attributes[ element.attributes.length - 1 ];
-    if (!attr) throw new Error(`expected attr ${element.name}`);
-    attr[ 0 ] += name;
-};
-
-export const appendAttributeValue = (element: vElement, value: string) => {
-    const attr = element.attributes[ element.attributes.length - 1 ];
-    if (!attr) throw new Error(`expected attr ${element.name}`);
-    attr[ 1 ] += value;
 };

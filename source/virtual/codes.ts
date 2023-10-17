@@ -5,8 +5,8 @@ const code = (data: string) => {
     return result;
 };
 
-const _0 = code('0');
-const _9 = code('9');
+// const _0 = code('0');
+// const _9 = code('9');
 
 const _A = code('A');
 const _Z = code('Z');
@@ -27,30 +27,28 @@ const s = code(' ');
 const bang = code('!');
 const dash = code('-');
 const equal = code('=');
-const lesser = code('<');
-const greater = code('>');
+const less = code('<');
+const great = code('>');
 const forward = code('/');
 
-const openCurelyBraket = code('{');
-const closeCurelyBraket = code('}');
+const curlOpen = code('{');
+const curlClose = code('}');
 
-const openSquareBraket = code('[');
-const closeSquareBraket = code(']');
+const squareOpen = code('[');
+const squareClose = code(']');
 
 export const isBang = (code: number) => code === bang;
 export const isDash = (code: number) => code === dash;
 export const isEqual = (code: number) => code === equal;
-export const isLesser = (code: number) => code === lesser;
-export const isGreater = (code: number) => code === greater;
+export const isLess = (code: number) => code === less;
+export const isGreat = (code: number) => code === great;
 export const isForward = (code: number) => code === forward;
 
-export const isOpenCurelyBracket = (code: number) => code === openCurelyBraket;
-export const isCloseCurelyBracket = (code: number) => code === closeCurelyBraket;
+export const isCurlOpen = (code: number) => code === curlOpen;
+export const isCurlClose = (code: number) => code === curlClose;
 
-export const isOpenSquareBracket = (code: number) => code === openSquareBraket;
-export const isCloseSquareBracket = (code: number) => code === closeSquareBraket;
-
-// export const isOpenTag = (code: number) => code === lesser;
+export const isSquareOpen = (code: number) => code === squareOpen;
+export const isSquareClose = (code: number) => code === squareClose;
 
 export const isAlphabet = (code: number) =>
     (code >= _A && code <= _Z) ||
@@ -64,11 +62,4 @@ export const isSpace = (code: number) =>
     code === f ||
     code === r ||
     code === s ||
-    false;
-
-export const isName = (code: number) =>
-    code === dash ||
-    (code >= _0 && code <= _9) ||
-    (code >= _A && code <= _Z) ||
-    (code >= _a && code <= _z) ||
     false;

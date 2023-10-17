@@ -1,9 +1,8 @@
 import {
-    isName,
     isAlphabet,
-    isOpenSquareBracket, isCloseSquareBracket,
-    isOpenCurelyBracket, isCloseCurelyBracket,
-    isLesser, isBang, isSpace, isDash, isEqual, isForward, isGreater,
+    isCurlOpen, isCurlClose,
+    isSquareOpen, isSquareClose,
+    isLess, isBang, isSpace, isDash, isEqual, isForward, isGreat,
 } from './codes';
 
 import {
@@ -12,10 +11,10 @@ import {
     TAG_OPEN_NAME, TAG_CLOSE_NAME,
     ATTRIBUTE_NAME, ATTRIBUTE_VALUE,
 
-    vMode, vNode, vChild, vText, vCdata, vParent, vElement, vComment, vDocument, vAttribute,
+    vMode, vNode, vText, vCdata, vParent, vElement, vComment, vDocument, vAttribute,
 
     isRestricted, isVoided, appendText, appendCdata, appendComment, appendElement,
-    appendAttribute, appendAttributeName, appendAttributeValue,
+    appendAttribute,
 } from './tool';
 
 type vEvents = {
@@ -27,31 +26,16 @@ export default function parse (data: string, events?: vEvents) {
     const l = data.length;
     const root = new vDocument();
 
-    let i = 0;
-    let back = 0;
-    let forward = 0;
+    let i: number = 0;
+    let c: string = '';
+
     let mode: vMode = CHILDREN;
     let node: vNode = root;
 
-    let tagClose = '';
+    // let tagClose = '';
 
     for (i; i < l; i++) {
 
-        if (back && forward) {
-            throw new Error('expected forward or back');
-        }
-
-        if (back) {
-            i = i - back;
-            back = 0;
-        }
-
-        if (forward) {
-            i = i + forward;
-            forward = 0;
-        }
-
-        const c = data[ i ];
         const c1 = data.codePointAt(i) as number;
         const c2 = data.codePointAt(i + 1) as number;
         const c3 = data.codePointAt(i + 2) as number;
@@ -59,25 +43,27 @@ export default function parse (data: string, events?: vEvents) {
 
         if (mode === CHILDREN) {
 
-            if (isLesser(c1) && isBang(c2) && isOpenSquareBracket(c3)) { // <![
+            if (isLess(c1) && isBang(c2) && isSquareOpen(c3)) { // <![
                 node = appendCdata(node as vParent);
                 mode = CDATA;
-                forward = 8;
-            } else if (isLesser(c1) && isBang(c2) && isDash(c3) && isDash(c4)) { // <!--
+                i += 8;
+            } else if (isLess(c1) && isBang(c2) && isDash(c3) && isDash(c4)) { // <!--
                 node = appendComment(node as vParent);
                 mode = COMMENT;
-                forward = 3;
-            } else if (isLesser(c1) && isForward(c2)) { // </
+                i += 3;
+            } else if (isLess(c1) && isForward(c2)) { // </
                 mode = TAG_CLOSE_NAME;
-                forward = 1;
+                i += 1;
             } else if (
-                isLesser(c1) && isAlphabet(c2) || // <[a-zA-Z]
-                isLesser(c1) && isOpenCurelyBracket(c2) && isOpenCurelyBracket(c3) // <{{
+                isLess(c1) && isAlphabet(c2) || // <[a-zA-Z]
+                isLess(c1) && isCurlOpen(c2) && isCurlOpen(c3) // <{{
             ) {
                 node = appendElement(node as vParent);
                 mode = TAG_OPEN_NAME;
             } else {
                 node = appendText(node as vParent);
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 node.data += c;
                 mode = TEXT;
             }
@@ -93,7 +79,7 @@ export default function parse (data: string, events?: vEvents) {
                 events?.element(node as vElement);
                 node = appendAttribute(node as vElement);
                 mode = ATTRIBUTE_NAME;
-            } else if (isGreater(c1)) {
+            } else if (isGreat(c1)) {
                 events?.element(node as vElement);
                 if (isRestricted(node.name)) {
                     node = appendText(node as vParent);
@@ -105,6 +91,8 @@ export default function parse (data: string, events?: vEvents) {
                     mode = CHILDREN;
                 }
             } else {
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 node.name += c;
             }
 
@@ -116,7 +104,7 @@ export default function parse (data: string, events?: vEvents) {
             // if (isSpace(c1)) {
             //     continue;
             // } else
-            if (isGreater(c1)) {
+            if (isGreat(c1)) {
                 if (isRestricted(node.name)) {
                     node = node.parent;
                     node = appendText(node as vParent);
@@ -125,15 +113,15 @@ export default function parse (data: string, events?: vEvents) {
                     node = node.parent;
                     mode = CHILDREN;
                 } else {
-                    if (node.name !== tagClose) {
-                        console.warn(`tag close not found ${node.name} ${tagClose}`);
-                    }
+                    // if (node.name !== tagClose) {
+                    //     console.warn(`tag close not found ${node.name} ${tagClose}`);
+                    // }
                     node = node.parent;
                     mode = CHILDREN;
                 }
-                tagClose = '';
+                // tagClose = '';
             } else {
-                tagClose += c;
+                // tagClose += c;
             }
 
         } else if (mode === ATTRIBUTE_NAME) {
@@ -147,30 +135,34 @@ export default function parse (data: string, events?: vEvents) {
                 events?.attribute(node as vAttribute);
                 node = node.parent;
                 mode = TAG_OPEN_NAME;
-                back = 1;
-            } else if (isGreater(c1)) {
+                i -= 1;
+            } else if (isGreat(c1)) {
                 events?.attribute(node as vAttribute);
                 node = node.parent;
                 mode = TAG_OPEN_NAME;
-                back = 1;
+                i -= 1;
             } else if (isEqual(c1)) {
                 mode = ATTRIBUTE_VALUE;
             } else {
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 node.name += c;
             }
 
         } else if (mode === ATTRIBUTE_VALUE) {
 
             if (
-                (node as vAttribute).value.charAt(0) === '"' ||
-                (node as vAttribute).value.charAt(0) === '\''
+                (node as vAttribute).value.startsWith('"') ||
+                (node as vAttribute).value.startsWith('\'')
             ) {
-                if ((node as vAttribute).value.charAt(0) === c) {
+                if ((node as vAttribute).value.codePointAt(0) === c1) {
                     (node as vAttribute).value = (node as vAttribute).value.slice(1);
                     events?.attribute(node as vAttribute);
                     node = node.parent;
                     mode = TAG_OPEN_NAME;
                 } else {
+                    c = String.fromCodePoint(c1);
+                    i += c.length - 1;
                     (node as vAttribute).value += c;
                 }
             } else if (isForward(c1) || isSpace(c1) && isSpace(c2)) {
@@ -179,12 +171,12 @@ export default function parse (data: string, events?: vEvents) {
                 events?.attribute(node as vAttribute);
                 node = node.parent;
                 mode = TAG_OPEN_NAME;
-                back = 1;
-            } else if (isGreater(c1)) {
+                i -= 1;
+            } else if (isGreat(c1)) {
                 events?.attribute(node as vAttribute);
                 node = node.parent;
                 mode = TAG_OPEN_NAME;
-                back = 1;
+                i -= 1;
 
                 // } else if (equal('{{')) {
                 //     i++;
@@ -193,60 +185,70 @@ export default function parse (data: string, events?: vEvents) {
                 //     i++;
                 //     appendAttributeValue(node as vElement, '}}');
             } else {
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 (node as vAttribute).value += c;
             }
 
         } else if (mode === TEXT) {
 
-            if (isLesser(c1)) {
+            if (isLess(c1)) {
                 node = node.parent;
                 mode = CHILDREN;
-                back = 1;
-            } else if (isOpenCurelyBracket(c1) && isOpenCurelyBracket(c2)) {
+                i -= 1;
+            } else if (isCurlOpen(c1) && isCurlOpen(c2)) {
                 node = node.parent;
                 node = appendText(node as vParent);
                 (node as vText).data += '{{';
-                forward = 1;
-            } else if (isCloseCurelyBracket(c1) && isCloseCurelyBracket(c2)) {
+                i += 1;
+            } else if (isCurlClose(c1) && isCurlClose(c2)) {
                 (node as vText).data += '}}';
                 node = node.parent;
                 node = appendText(node as vParent);
-                forward = 1;
+                i += 1;
             } else {
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 (node as vText).data += c;
             }
 
         } else if (mode === CDATA) {
 
-            if (isCloseSquareBracket(c1) && isCloseSquareBracket(c2) && isGreater(c3)) { // ]]>
+            if (isSquareClose(c1) && isSquareClose(c2) && isGreat(c3)) { // ]]>
                 node = node.parent;
                 mode = CHILDREN;
-                forward = 2;
+                i += 2;
             } else {
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 (node as vCdata).data += c;
             }
 
         } else if (mode === COMMENT) {
 
-            if (isDash(c1) && isDash(c2) && isGreater(c3)) { // -->
+            if (isDash(c1) && isDash(c2) && isGreat(c3)) { // -->
                 node = node.parent;
                 mode = CHILDREN;
-                forward = 2;
+                i += 2;
             } else {
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 (node as vComment).data += c;
             }
 
         } else if (mode === RESTRICTED) {
 
             if (
-                isLesser(c1) &&
+                isLess(c1) &&
                 isForward(c2) &&
                 data.substring(i + 2, i + 2 + node.parent.name.length).toLowerCase() === node.parent.name.toLowerCase()
             ) {
                 node = node.parent;
                 mode = TAG_CLOSE_NAME;
-                forward = 2 + node.name.length;
+                i += 2 + node.name.length;
             } else {
+                c = String.fromCodePoint(c1);
+                i += c.length - 1;
                 (node as vText).data += c;
             }
 
