@@ -1,113 +1,101 @@
 import {
-    isBang, isDash, isEqual, isForward, isGreater, isLeftSquareBracket, isLesser, isName, isSpace
-} from './codes.ts';
+    isName,
+    isAlphabet,
+    isOpenSquareBracket, isCloseSquareBracket,
+    isOpenCurelyBracket, isCloseCurelyBracket,
+    isLesser, isBang, isSpace, isDash, isEqual, isForward, isGreater,
+} from './codes';
 
 import {
+    CHILDREN,
+    RESTRICTED, TEXT, CDATA, COMMENT,
+    TAG_OPEN_NAME, TAG_CLOSE_NAME,
     ATTRIBUTE_NAME, ATTRIBUTE_VALUE,
-    TAG, TEXT, BANG, CDATA, COMMENT, TEXTED_NAME,
-    CHILDREN, TAG_OPEN_NAME, TAG_CLOSE_NAME,
 
-    vText, vCdata, vChild, vParent, vElement, vComment, vDocument, vAttribute,
+    vMode, vNode, vChild, vText, vCdata, vParent, vElement, vComment, vDocument, vAttribute,
 
-    isTexted, isVoided, appendText, appendCdata, appendComment, appendElement,
+    isRestricted, isVoided, appendText, appendCdata, appendComment, appendElement,
     appendAttribute, appendAttributeName, appendAttributeValue,
-} from './tool.ts';
+} from './tool';
 
-export default function parse (data: string) {
+type vEvents = {
+    element: (node: vElement) => void,
+    attribute: (node: vAttribute) => void,
+};
+
+export default function parse (data: string, events?: vEvents) {
     const l = data.length;
     const root = new vDocument();
 
     let i = 0;
-    let ii = 0;
-    let ll = 0;
-    let mode = CHILDREN;
-    let attr: vAttribute | undefined;
-    let node: vDocument | vChild = root;
+    let back = 0;
+    let forward = 0;
+    let mode: vMode = CHILDREN;
+    let node: vNode = root;
 
-    const equal = (part: string) => {
-        for (ii = 0, ll = part.length; ii < ll; ii++) {
-            if (data[ i + ii ] !== part[ ii ]) return false;
-        }
-        return true;
-        //    data.substring(i, i + part.length) === part
-    };
-
-    let skip = 0;
+    let tagClose = '';
 
     for (i; i < l; i++) {
 
-        if (skip) {
-            skip--;
-            continue;
+        if (back && forward) {
+            throw new Error('expected forward or back');
+        }
+
+        if (back) {
+            i = i - back;
+            back = 0;
+        }
+
+        if (forward) {
+            i = i + forward;
+            forward = 0;
         }
 
         const c = data[ i ];
-        const code = data.codePointAt(i) as number;
+        const c1 = data.codePointAt(i) as number;
+        const c2 = data.codePointAt(i + 1) as number;
+        const c3 = data.codePointAt(i + 2) as number;
+        const c4 = data.codePointAt(i + 3) as number;
 
         if (mode === CHILDREN) {
 
-            if (isLesser(code)) {
-                mode = TAG;
+            if (isLesser(c1) && isBang(c2) && isOpenSquareBracket(c3)) { // <![
+                node = appendCdata(node as vParent);
+                mode = CDATA;
+                forward = 8;
+            } else if (isLesser(c1) && isBang(c2) && isDash(c3) && isDash(c4)) { // <!--
+                node = appendComment(node as vParent);
+                mode = COMMENT;
+                forward = 3;
+            } else if (isLesser(c1) && isForward(c2)) { // </
+                mode = TAG_CLOSE_NAME;
+                forward = 1;
+            } else if (
+                isLesser(c1) && isAlphabet(c2) || // <[a-zA-Z]
+                isLesser(c1) && isOpenCurelyBracket(c2) && isOpenCurelyBracket(c3) // <{{
+            ) {
+                node = appendElement(node as vParent);
+                mode = TAG_OPEN_NAME;
             } else {
                 node = appendText(node as vParent);
                 node.data += c;
                 mode = TEXT;
             }
 
-        } else if (mode === BANG) {
-
-            if (isLeftSquareBracket(code)) {
-                node = appendCdata(node as vParent);
-                mode = CDATA;
-                skip = 6;
-            } else if (isDash(code)) {
-                node = appendComment(node as vParent);
-                mode = COMMENT;
-                skip = 1;
-            } else {
-                throw new Error('expected comment or cdata');
-            }
-
-        } else if (mode === TAG) {
-
-            if (isSpace(code)) {
-                continue;
-            } else if (isForward(code)) {
-                mode = TAG_CLOSE_NAME;
-            } else if (isBang(code)) {
-                mode = BANG;
-            } else if (isGreater(code)) {
-                if (isTexted(node.name)) {
-                    node = appendText(node as vParent);
-                    mode = TEXT;
-                } else if (isVoided(node.name)) {
-                    node = node.parent;
-                    mode = CHILDREN;
-                } else {
-                    mode = CHILDREN;
-                }
-                // i++;
-                // } else if (equal('<?')) {
-                // i++;
-                // } else if (equal('<!')) {
-                // i++;
-            } else {
-                node = appendElement(node as vParent);
-                node.name += c;
-                mode = TAG_OPEN_NAME;
-            }
-
         } else if (mode === TAG_OPEN_NAME) {
 
-            if (isSpace(code)) {
-                attr = appendAttribute(node as vElement, '');
-                mode = ATTRIBUTE_NAME;
-            } else if (isName(code)) {
-                node.name += c;
-            } else if (isForward(code)) {
+            if (
+                isForward(c1) ||
+                isSpace(c1) && isSpace(c2)
+            ) {
                 continue;
-            } else if (isGreater(code)) {
-                if (isTexted(node.name)) {
+            } else if (isSpace(c1)) {
+                events?.element(node as vElement);
+                node = appendAttribute(node as vElement);
+                mode = ATTRIBUTE_NAME;
+            } else if (isGreater(c1)) {
+                events?.element(node as vElement);
+                if (isRestricted(node.name)) {
                     node = appendText(node as vParent);
                     mode = TEXT;
                 } else if (isVoided(node.name)) {
@@ -117,68 +105,87 @@ export default function parse (data: string) {
                     mode = CHILDREN;
                 }
             } else {
-                throw new Error('expexted GreaterThan or Space');
+                node.name += c;
             }
 
         } else if (mode === TAG_CLOSE_NAME) {
+            // if closed tag does not match tag
+            // then close previous siblining with the close tag as text
+            // handle the reset of everything as text unless match close tag found then close
 
-            if (isGreater(code)) {
-                node = node.parent;
-                mode = CHILDREN;
+            // if (isSpace(c1)) {
+            //     continue;
+            // } else
+            if (isGreater(c1)) {
+                if (isRestricted(node.name)) {
+                    node = node.parent;
+                    node = appendText(node as vParent);
+                    mode = TEXT;
+                } else if (isVoided(node.name)) {
+                    node = node.parent;
+                    mode = CHILDREN;
+                } else {
+                    if (node.name !== tagClose) {
+                        console.warn(`tag close not found ${node.name} ${tagClose}`);
+                    }
+                    node = node.parent;
+                    mode = CHILDREN;
+                }
+                tagClose = '';
             } else {
-                continue;
+                tagClose += c;
             }
 
         } else if (mode === ATTRIBUTE_NAME) {
 
-            if (!attr) {
-                throw new Error('expected attr');
-            } else if (isSpace(code)) {
-                attr = undefined;
+            if (
+                isForward(c1) ||
+                isSpace(c1) && isSpace(c2)
+            ) {
+                continue;
+            } else if (isSpace(c1)) {
+                events?.attribute(node as vAttribute);
+                node = node.parent;
                 mode = TAG_OPEN_NAME;
-            } else if (isForward(code)) {
-                attr = undefined;
+                back = 1;
+            } else if (isGreater(c1)) {
+                events?.attribute(node as vAttribute);
+                node = node.parent;
                 mode = TAG_OPEN_NAME;
-            } else if (isGreater(code)) {
-                attr = undefined;
-                if (isTexted(node.name)) {
-                    node = appendText(node as vParent);
-                    mode = TEXT;
-                } else if (isVoided(node.name)) {
-                    node = node.parent;
-                    mode = CHILDREN;
-                } else {
-                    mode = CHILDREN;
-                }
-            } else if (isEqual(code)) {
+                back = 1;
+            } else if (isEqual(c1)) {
                 mode = ATTRIBUTE_VALUE;
             } else {
-                // appendAttributeName(node as vElement, c);
-                attr[ 0 ] += c;
+                node.name += c;
             }
 
         } else if (mode === ATTRIBUTE_VALUE) {
 
-            if (!attr) {
-                throw new Error('expected attr');
-            } else if (attr[ 1 ][ 0 ] === '"' || attr[ 1 ][ 0 ] === `'`) {
-                if (attr[ 1 ][ 0 ] === c) {
-                    attr[ 1 ] = attr[ 1 ].slice(1);
-                    attr = undefined;
+            if (
+                (node as vAttribute).value.charAt(0) === '"' ||
+                (node as vAttribute).value.charAt(0) === '\''
+            ) {
+                if ((node as vAttribute).value.charAt(0) === c) {
+                    (node as vAttribute).value = (node as vAttribute).value.slice(1);
+                    events?.attribute(node as vAttribute);
+                    node = node.parent;
                     mode = TAG_OPEN_NAME;
                 } else {
-                    appendAttributeValue(node as vElement, c);
+                    (node as vAttribute).value += c;
                 }
-            } else if (isSpace(code)) {
-                attr = undefined;
+            } else if (isForward(c1) || isSpace(c1) && isSpace(c2)) {
+                continue;
+            } else if (isSpace(c1)) {
+                events?.attribute(node as vAttribute);
+                node = node.parent;
                 mode = TAG_OPEN_NAME;
-            } else if (isForward(code)) {
-                attr = undefined;
+                back = 1;
+            } else if (isGreater(c1)) {
+                events?.attribute(node as vAttribute);
+                node = node.parent;
                 mode = TAG_OPEN_NAME;
-            } else if (isGreater(code)) {
-                attr = undefined;
-                mode = TAG_OPEN_NAME;
-                console.log('here');
+                back = 1;
+
                 // } else if (equal('{{')) {
                 //     i++;
                 //     appendAttributeValue(node as vElement, '{{');
@@ -186,52 +193,61 @@ export default function parse (data: string) {
                 //     i++;
                 //     appendAttributeValue(node as vElement, '}}');
             } else {
-                appendAttributeValue(node as vElement, c);
+                (node as vAttribute).value += c;
             }
 
         } else if (mode === TEXT) {
 
-            if (isLesser(code)) {
-                node = node.parent;
-                mode = TAG;
-                // } else if (equal('{{')) {
-                //     i++;
-                //     (node as vText).data += '{{';
-                // } else if (equal('}}')) {
-                //     i++;
-                //     (node as vText).data += '}}';
-            } else {
-                (node as vText).data += c;
-            }
-
-        } else if (mode === TEXTED_NAME) {
-
-            if (equal(`</${node.name}>`)) {
-                skip = 1 + node.name.length;
+            if (isLesser(c1)) {
                 node = node.parent;
                 mode = CHILDREN;
+                back = 1;
+            } else if (isOpenCurelyBracket(c1) && isOpenCurelyBracket(c2)) {
+                node = node.parent;
+                node = appendText(node as vParent);
+                (node as vText).data += '{{';
+                forward = 1;
+            } else if (isCloseCurelyBracket(c1) && isCloseCurelyBracket(c2)) {
+                (node as vText).data += '}}';
+                node = node.parent;
+                node = appendText(node as vParent);
+                forward = 1;
             } else {
                 (node as vText).data += c;
-            }
-
-        } else if (mode === COMMENT) {
-
-            if (equal('-->')) {
-                skip = 2;
-                node = node.parent;
-                mode = CHILDREN;
-            } else {
-                (node as vComment).data += c;
             }
 
         } else if (mode === CDATA) {
 
-            if (equal(']]>')) {
-                skip = 2;
+            if (isCloseSquareBracket(c1) && isCloseSquareBracket(c2) && isGreater(c3)) { // ]]>
                 node = node.parent;
                 mode = CHILDREN;
+                forward = 2;
             } else {
                 (node as vCdata).data += c;
+            }
+
+        } else if (mode === COMMENT) {
+
+            if (isDash(c1) && isDash(c2) && isGreater(c3)) { // -->
+                node = node.parent;
+                mode = CHILDREN;
+                forward = 2;
+            } else {
+                (node as vComment).data += c;
+            }
+
+        } else if (mode === RESTRICTED) {
+
+            if (
+                isLesser(c1) &&
+                isForward(c2) &&
+                data.substring(i + 2, i + 2 + node.parent.name.length).toLowerCase() === node.parent.name.toLowerCase()
+            ) {
+                node = node.parent;
+                mode = TAG_CLOSE_NAME;
+                forward = 2 + node.name.length;
+            } else {
+                (node as vText).data += c;
             }
 
         } else {

@@ -2,7 +2,7 @@ import {
     isVoided,
     vCdata, vChild, vComment, vDocument, vElement, vText,
     CDATA_SECTION_NODE, COMMENT_NODE, DOCUMENT_FRAGMENT_NODE, ELEMENT_NODE, TEXT_NODE,
-} from './tool.ts';
+} from './tool';
 
 const stringify = (virtual: vDocument | vChild) => {
     const type = virtual.type;
@@ -28,9 +28,16 @@ const stringify = (virtual: vDocument | vChild) => {
         const attributes = (virtual as vElement).attributes;
         const element: string[] = [ `<${name}` ];
 
-        for (const [ name, value ] of attributes) {
-            if (value) element.push(` ${name}="${value}"`);
-            else element.push(` ${name}`);
+        for (const attribute of attributes) {
+            if (attribute.name) {
+                if (attribute.value) {
+                    element.push(` ${attribute.name}="${attribute.value}"`);
+                } else {
+                    element.push(` ${attribute.name}`);
+                }
+            } else {
+                console.log('at nope');
+            }
         }
 
         if (isVoided(name)) {

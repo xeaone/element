@@ -2,8 +2,14 @@
     "compilerOptions": {
 
         "strict": true,
-        "esModuleInterop": true,
+        "allowJs": true,
+        "isolatedModules": true,
+        "esModuleInterop": false,
         "experimentalDecorators": true,
+
+        "noEmit": true,
+        "moduleResolution": "Bundler",
+        "allowImportingTsExtensions": true,
 
         "sourceMap": true,
         "declaration": true,
@@ -13,7 +19,7 @@
         "target": "ESNext",
         "lib": [ "ESNext", "DOM", "DOM.Iterable" ],
 
-        "outDir": "module/"
+        "outDir": "module/",
 
     },
     "include": [ "source/*" ],

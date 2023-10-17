@@ -19,6 +19,7 @@
     "tasks": {
         "d": "deno run -A scripts/deploy.ts",
         "t": "deno test -A scripts/test.ts",
-        "w": "deno run -A scripts/watch.ts"
+        "w": "deno run -A scripts/watch.ts",
+        "tv": "deno run -A scripts/virtual-test.ts"
     }
 }

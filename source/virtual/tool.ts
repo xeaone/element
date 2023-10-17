@@ -1,21 +1,16 @@
 
-export const TAG = 'TAG';
-export const BANG = 'BANG';
-
 export const TEXT = 'TEXT';
 export const CDATA = 'CDATA';
 export const COMMENT = 'COMMENT';
+export const CHILDREN = 'CHILDREN';
+
+export const RESTRICTED = 'RESTRICTED';
 
 export const TAG_OPEN_NAME = 'TAG_OPEN_NAME';
 export const TAG_CLOSE_NAME = 'TAG_CLOSE_NAME';
 
-export const ELEMENT_OPEN = 'ELEMENT_OPEN';
-export const CHILDREN = 'CHILDREN';
-
 export const ATTRIBUTE_NAME = 'ATTRIBUTE_NAME';
 export const ATTRIBUTE_VALUE = 'ATTRIBUTE_VALUE';
-
-export const TEXTED_NAME = 'TEXTED_NAME';
 
 export const TEXT_NODE = 3;
 export const ELEMENT_NODE = 1;
@@ -23,11 +18,14 @@ export const COMMENT_NODE = 8;
 export const CDATA_SECTION_NODE = 4;
 export const DOCUMENT_FRAGMENT_NODE = 11;
 
-export const texted = /^(style|script|textarea)$/i;
-export const voided = /^(area|base|basefont|br|col|frame|hr|img|input|isindex|link|meta|param|embed)$/i;
+// https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#non-replaceable-character-data
+const restricted = /^(style|script|textarea)$/i;
+export const isRestricted = (data: string) => restricted.test(data);
 
-export const isTexted = (data: string) => texted.test(data);
+// https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#void-elements
+const voided = /^(area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)$/i;
 export const isVoided = (data: string) => voided.test(data);
+// const voided = /^(basefont|frame|isindex)$/i;
 
 // const HTMLEscapes = [
 //     [ '&', '&amp;' ],
@@ -37,9 +35,23 @@ export const isVoided = (data: string) => voided.test(data);
 //     [ "'", '&#39;' ],
 // ] as const;
 
-export type vAttribute = [ name: string, value: string ];
 export type vParent = vDocument | vElement;
 export type vChild = vElement | vComment | vCdata | vText;
+export type vNode = vDocument | vAttribute | vElement | vComment | vCdata | vText;
+
+export type vMode =
+    typeof TEXT | typeof CHILDREN |
+    typeof CDATA | typeof COMMENT | typeof RESTRICTED |
+    typeof TAG_OPEN_NAME | typeof TAG_CLOSE_NAME |
+    typeof ATTRIBUTE_NAME | typeof ATTRIBUTE_VALUE;
+
+
+// export type vAttribute = [ name: string, value: string ];
+export type vAttribute = {
+    name: string,
+    value: string,
+    parent: vElement,
+};
 
 export class vCdata {
     type = 4;
@@ -65,6 +77,16 @@ export class vText {
     type = 3;
     data = '';
     name = '#text';
+    parent: vParent;
+    constructor (parent: vParent) {
+        this.parent = parent;
+    }
+}
+
+export class vRestricted {
+    type = 1;
+    name = '';
+    data = '';
     parent: vParent;
     constructor (parent: vParent) {
         this.parent = parent;
@@ -113,8 +135,9 @@ export const appendText = (parent: vParent) => {
     return child;
 };
 
-export const appendAttribute = (element: vElement, name: string) => {
-    const attribute: vAttribute = [ name, '' ];
+export const appendAttribute = (element: vElement) => {
+    // const attribute: vAttribute = [ name, '' ];
+    const attribute: vAttribute = { parent: element, name: '', value: '' };
     element.attributes.push(attribute);
     return attribute as vAttribute;
 };

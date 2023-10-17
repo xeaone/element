@@ -30,7 +30,12 @@ const equal = code('=');
 const lesser = code('<');
 const greater = code('>');
 const forward = code('/');
-const leftSquareBraket = code('[');
+
+const openCurelyBraket = code('{');
+const closeCurelyBraket = code('}');
+
+const openSquareBraket = code('[');
+const closeSquareBraket = code(']');
 
 export const isBang = (code: number) => code === bang;
 export const isDash = (code: number) => code === dash;
@@ -38,7 +43,19 @@ export const isEqual = (code: number) => code === equal;
 export const isLesser = (code: number) => code === lesser;
 export const isGreater = (code: number) => code === greater;
 export const isForward = (code: number) => code === forward;
-export const isLeftSquareBracket = (code: number) => code === leftSquareBraket;
+
+export const isOpenCurelyBracket = (code: number) => code === openCurelyBraket;
+export const isCloseCurelyBracket = (code: number) => code === closeCurelyBraket;
+
+export const isOpenSquareBracket = (code: number) => code === openSquareBraket;
+export const isCloseSquareBracket = (code: number) => code === closeSquareBraket;
+
+// export const isOpenTag = (code: number) => code === lesser;
+
+export const isAlphabet = (code: number) =>
+    (code >= _A && code <= _Z) ||
+    (code >= _a && code <= _z) ||
+    false;
 
 export const isSpace = (code: number) =>
     code === b ||

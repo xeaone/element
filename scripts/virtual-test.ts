@@ -1,5 +1,5 @@
-import parse from './parse.ts';
-import stringify from './stringify.ts';
+import parse from '../tmp/virtual/parse.js';
+import stringify from '../tmp/virtual/stringify.js';
 
 const original =/*html*/`
 <html>
@@ -56,18 +56,34 @@ const original =/*html*/`
 
     <svg><![CDATA[Some <CDATA> data & then some]]></svg>
 
+    <div>Open {{in}} Close</div>
+
+    <{{tag}}></{{tag}}>
+
+    <div {{attr1}}></div>
+    <div {{attr2}}></div>
+    <div {{attr3}}="3"></div>
+    <!-- <div attr4={{attr4}}></div> -->
+    <div attr5="{{attr5}}"></div>
+    <div attr6="{{attr6.1}} {{attr6.2}}"></div>
+
+    <script>restricted</script>
+
 </body>
 </html>
 `;
 
 console.time('parse');
-const v = parse(original);
+const a = parse(original);
 console.timeEnd('parse');
 
-const s = JSON.stringify(v, (key, value) => key === 'parent' ? undefined : value, '\t');
-const j = JSON.parse(s);
-await Deno.writeTextFile('tmp/parsed.json', s);
-await Deno.writeTextFile('tmp/write.html', stringify(j));
-const fileResult = await Deno.readTextFile('tmp/write.html');
+const b = JSON.stringify(a, (key, value) => key === 'parent' ? undefined : value, '\t');
+const c = JSON.parse(b);
+const d = stringify(c);
 
-console.log(fileResult === original ? 'PASS' : 'FAIL');
+await Deno.writeTextFile('tmp/parsed.json', b);
+await Deno.writeTextFile('tmp/write.html', d);
+// const fileResult = await Deno.readTextFile('tmp/write.html');
+// console.log(fileResult === original ? 'PASS' : 'FAIL');
+
+console.log(d === original ? 'PASS' : 'FAIL');
