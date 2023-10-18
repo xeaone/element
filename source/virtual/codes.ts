@@ -8,12 +8,6 @@ const code = (data: string) => {
 // const _0 = code('0');
 // const _9 = code('9');
 
-const _A = code('A');
-const _Z = code('Z');
-
-const _a = code('a');
-const _z = code('z');
-
 const b = code('\b');
 const t = code('\t');
 const n = code('\n');
@@ -50,10 +44,22 @@ export const isCurlClose = (code: number) => code === curlClose;
 export const isSquareOpen = (code: number) => code === squareOpen;
 export const isSquareClose = (code: number) => code === squareClose;
 
+const _A = code('A');
+const _a = code('a');
+const _Z = code('Z');
+const _z = code('z');
 export const isAlphabet = (code: number) =>
     (code >= _A && code <= _Z) ||
     (code >= _a && code <= _z) ||
     false;
+
+const _D = code('D');
+const _d = code('d');
+export const isD = (code: number) => code >= _D || code <= _d;
+
+const _O = code('O');
+const _o = code('o');
+export const isO = (code: number) => code >= _O || code <= _o;
 
 export const isSpace = (code: number) =>
     code === b ||

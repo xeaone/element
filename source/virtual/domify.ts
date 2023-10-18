@@ -1,30 +1,37 @@
-import { vDocument, vChild, TEXT_NODE, vText, COMMENT_NODE, vComment, CDATA_SECTION_NODE, vCdata, ELEMENT_NODE, vElement, DOCUMENT_FRAGMENT_NODE } from './tool';
+import {
+    vNode,
+    TEXT_NODE, ELEMENT_NODE, COMMENT_NODE, CDATA_SECTION_NODE, DOCUMENT_FRAGMENT_NODE, ATTRIBUTE_NODE,
+} from './tool';
 
-export const domify = (virtual: vDocument | vChild, owner: Document = document) => {
+export const domify = (virtual: vNode, owner: Document = document): Node => {
     const type = virtual.type;
 
     if (type === TEXT_NODE) {
-        const data = (virtual as vText).data;
-        return owner.createTextNode(data);
+        return owner.createTextNode(virtual.data);
     }
 
     if (type === COMMENT_NODE) {
-        const data = (virtual as vComment).data;
-        return owner.createComment(data);
+        return owner.createComment(virtual.data);
     }
 
     if (type === CDATA_SECTION_NODE) {
-        const data = (virtual as vCdata).data;
-        return owner.createCDATASection(data);
+        return owner.createCDATASection(virtual.data);
+    }
+
+    if (type === ATTRIBUTE_NODE) {
+        const attribute = owner.createAttribute(virtual.name);
+        attribute.value = virtual.value;
+        return attribute;
     }
 
     if (type === ELEMENT_NODE) {
-        if (!parent) throw new Error('expected parent');
-        const name = (virtual as vElement).name;
-        const children = (virtual as vElement).children;
-        const element = owner.createElement(name);
+        const element = owner.createElement(virtual.name);
 
-        for (const child of children) {
+        for (const attribute of virtual.attributes) {
+            element.setAttribute(attribute.name, attribute.value);
+        }
+
+        for (const child of virtual.children) {
             element.appendChild(domify(child, element.ownerDocument));
         }
 
@@ -32,17 +39,16 @@ export const domify = (virtual: vDocument | vChild, owner: Document = document) 
     }
 
     if (type === DOCUMENT_FRAGMENT_NODE) {
-        const children = (virtual as vDocument).children;
         const template = owner.createElement('template');
 
-        for (const child of children) {
+        for (const child of virtual.children) {
             template.appendChild(domify(child, template.ownerDocument));
         }
 
         return template;
     }
 
-    throw new Error('invalid type');
+    throw new Error('type not valid');
 };
 
 export default domify;

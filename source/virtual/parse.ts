@@ -2,7 +2,7 @@ import {
     isAlphabet,
     isCurlOpen, isCurlClose,
     isSquareOpen, isSquareClose,
-    isLess, isBang, isSpace, isDash, isEqual, isForward, isGreat,
+    isLess, isBang, isSpace, isDash, isEqual, isForward, isGreat, isD, isO,
 } from './codes';
 
 import {
@@ -11,10 +11,11 @@ import {
     TAG_OPEN_NAME, TAG_CLOSE_NAME,
     ATTRIBUTE_NAME, ATTRIBUTE_VALUE,
 
-    vMode, vNode, vText, vCdata, vParent, vElement, vComment, vDocument, vAttribute,
+    vMode, vNode, vText, vCdata, vParent, vElement, vComment, vFragment, vAttribute,
 
     isRestricted, isVoided, appendText, appendCdata, appendComment, appendElement,
     appendAttribute,
+    createFragment,
 } from './tool';
 
 type vEvents = {
@@ -22,17 +23,15 @@ type vEvents = {
     attribute: (node: vAttribute) => void,
 };
 
-export default function parse (data: string, events?: vEvents) {
+export default function parse (data: string, events?: vEvents): vFragment {
     const l = data.length;
-    const root = new vDocument();
+    const root = createFragment();
 
     let i: number = 0;
     let c: string = '';
 
     let mode: vMode = CHILDREN;
     let node: vNode = root;
-
-    // let tagClose = '';
 
     for (i; i < l; i++) {
 
@@ -43,14 +42,18 @@ export default function parse (data: string, events?: vEvents) {
 
         if (mode === CHILDREN) {
 
-            if (isLess(c1) && isBang(c2) && isSquareOpen(c3)) { // <![
-                node = appendCdata(node as vParent);
-                mode = CDATA;
-                i += 8;
-            } else if (isLess(c1) && isBang(c2) && isDash(c3) && isDash(c4)) { // <!--
+            if (isLess(c1) && isBang(c2) && isDash(c3) && isDash(c4)) { // <!--
                 node = appendComment(node as vParent);
                 mode = COMMENT;
                 i += 3;
+            // } else if (isLess(c1) && isBang(c2) && isD(c3) && isO(c4)) { // <!DO or <!do
+            //     node = appendDoctype(node as vParent);
+            //     mode = DOCTYPE;
+            //     i += ;
+            } else if (isLess(c1) && isBang(c2) && isSquareOpen(c3)) { // <![
+                node = appendCdata(node as vParent);
+                mode = CDATA;
+                i += 8;
             } else if (isLess(c1) && isForward(c2)) { // </
                 mode = TAG_CLOSE_NAME;
                 i += 1;
@@ -83,7 +86,7 @@ export default function parse (data: string, events?: vEvents) {
                 events?.element(node as vElement);
                 if (isRestricted(node.name)) {
                     node = appendText(node as vParent);
-                    mode = TEXT;
+                    mode = RESTRICTED;
                 } else if (isVoided(node.name)) {
                     node = node.parent;
                     mode = CHILDREN;
@@ -106,9 +109,13 @@ export default function parse (data: string, events?: vEvents) {
             // } else
             if (isGreat(c1)) {
                 if (isRestricted(node.name)) {
+                    // throw new Error('not handled');
+                    // node = node.parent;
+                    // node = appendText(node as vRestricted);
+                    // mode = TEXT;
+                    // mode = RESTRICTED;
                     node = node.parent;
-                    node = appendText(node as vParent);
-                    mode = TEXT;
+                    mode = CHILDREN;
                 } else if (isVoided(node.name)) {
                     node = node.parent;
                     mode = CHILDREN;
@@ -243,8 +250,14 @@ export default function parse (data: string, events?: vEvents) {
                 isForward(c2) &&
                 data.substring(i + 2, i + 2 + node.parent.name.length).toLowerCase() === node.parent.name.toLowerCase()
             ) {
+
+                // console.log(
+                //     data.substring(i + 2, i + 2 + node.parent.name.length).toLowerCase(),
+                //     node.parent.name.toLowerCase()
+                // );
+
                 node = node.parent;
-                mode = TAG_CLOSE_NAME;
+                mode = CHILDREN;
                 i += 2 + node.name.length;
             } else {
                 c = String.fromCodePoint(c1);

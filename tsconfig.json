@@ -4,7 +4,7 @@
         "strict": true,
         "allowJs": true,
         "isolatedModules": true,
-        "esModuleInterop": false,
+        "esModuleInterop": true,
         "experimentalDecorators": true,
 
         "noEmit": true,

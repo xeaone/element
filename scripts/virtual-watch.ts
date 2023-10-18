@@ -1,22 +1,29 @@
-import * as esbuild from 'https://deno.land/x/esbuild@v0.19.2/mod.js';
+import { basename } from 'https://deno.land/std@0.204.0/path/mod.ts';
 
-const result = await esbuild.context({
-    color: true,
-    bundle: true,
-    sourcemap: true,
-    treeShaking: true,
-    format: 'esm',
-    target: 'esnext',
-    logLevel: 'debug',
-    platform: 'browser',
-    outdir: './tmp/virtual/.',
-    entryPoints: [
-        './source/virtual/codes.ts',
-        './source/virtual/domify.ts',
-        './source/virtual/parse.ts',
-        './source/virtual/stringify.ts',
-        './source/virtual/tool.ts',
-    ],
-});
+const handle = async (path: string) => {
+    console.log('building:', path);
 
-await result.watch();
+    const data = (
+        await Deno.readTextFile(`source/virtual/${path}`)
+    ).replace(
+        /([}]\s*from\s*['"].*?)(['"];)$/gm,
+        '$1.ts$2'
+    );
+
+    await Deno.writeTextFile(`tmp/virtual/${path}`, data);
+};
+
+(async () => {
+    const entries = Deno.readDir('source/virtual');
+    for await (const entry of entries) {
+        await handle(entry.name);
+    }
+})();
+
+const watcher = Deno.watchFs('source/virtual');
+for await (const event of watcher) {
+    if (![ 'create', 'modify', 'remove' ].includes(event.kind)) continue;
+    for (const path of event.paths) {
+        await handle(basename(path));
+    }
+}

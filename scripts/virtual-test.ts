@@ -1,89 +1,295 @@
-import parse from '../tmp/virtual/parse.js';
-import stringify from '../tmp/virtual/stringify.js';
+import { assertEquals } from 'https://deno.land/std@0.204.0/assert/mod.ts';
 
-const original =/*html*/`
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>All HTML Elements</title>
-</head>
-<body>
+import parse from '../tmp/virtual/parse.ts';
+import stringify from '../tmp/virtual/stringify.ts';
+import { vCdata, vComment, vElement } from '../tmp/virtual/tool.ts';
 
-    <h1>All Valid HTML Elements</h1>
+// const json = function (data: any, format?: string) {
+//     return JSON.stringify(data, (key, value) => key === 'parent' ? undefined : value, format);
+// };
 
-    <p>This document contains all valid HTML elements.</p>
+const ELEMENT_NODE = 1;
+const ATTRIBUTE_NODE = 2;
+const TEXT_NODE = 3;
+const CDATA_SECTION_NODE = 4;
+const COMMENT_NODE = 8;
 
-    <h2>Heading 2</h2>
-    <h3>Heading 3</h3>
-    <h4>Heading 4</h4>
-    <h5>Heading 5</h5>
-    <h6>Heading 6</h6>
-
-    <p>This is a paragraph.</p>
-    <p>You can use paragraphs to format your text.</p>
-
-    <ul>
-        <li>This is an unordered list item.</li>
-        <li>This is another unordered list item.</li>
-    </ul>
-
-    <ol>
-        <li>This is an ordered list item.</li>
-        <li>This is another ordered list item.</li>
-    </ol>
-
-    <img src="https://example.com/image.jpg" alt="Image alt text">
-
-    <a href="https://example.com">This is a link.</a>
-
-    <form action="/action_page.php">
-        <input type="text" name="firstname" placeholder="First name">
-        <input type="text" name="lastname" placeholder="Last name">
-        <input type="submit" value="Submit">
-        <input type="checkbox" checked>
-        <input type="text" value="${'quotes'}">
-    </form>
-
-    <hr>
+Deno.test('voids', () => {
+    const input = /*html*/`
+    <area>
+    <base>
     <br>
-    <div>This is a division.</div>
-    <span>This is a span.</span>
-    <pre>This is preformatted text.</pre>
-    <code>This is code text.</code>
-    <blockquote cite="https://example.com">This is a blockquote.</blockquote>
-    <address>This is an address.</address>
-    <abbr title="test">WWW</abbr>
+    <col>
+    <command>
+    <embed>
+    <hr>
+    <img>
+    <input>
+    <keygen>
+    <link>
+    <meta>
+    <param>
+    <source>
+    <track>
+    <wbr>
+    `;
+    const parsed = parse(input);
+    // const children = parsed.children;
 
-    <svg><![CDATA[Some <CDATA> data & then some]]></svg>
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
 
-    <div>Open {{in}} Close</div>
+// Deno.test('doctype', () => {
+//     const input = /*html*/`<!DOCTYPE html>`;
+//     const parsed = parse(input);
+//     const children = parsed.children;
+//     console.log(children[ 0 ]);
+//     const output = stringify(parsed);
+//     console.log(output);
+//     assertEquals(input, output);
+// });
 
-    <{{tag}}></{{tag}}>
+Deno.test('textarea', () => {
+    const input = /*html*/`<textarea><div>test</div></textarea>`;
+    const parsed = parse(input);
 
-    <div {{attr1}}></div>
-    <div {{attr2}}></div>
-    <div {{attr3}}="3"></div>
-    <!-- <div attr4={{attr4}}></div> -->
-    <div attr5="{{attr5}}"></div>
-    <div attr6="{{attr6.1}} {{attr6.2}}"></div>
+    assertEquals(parsed.children.length, 1);
+    assertEquals(parsed.children[ 0 ].name, 'textarea');
+    assertEquals(parsed.children[ 0 ].type, ELEMENT_NODE);
 
-    <script>restricted</script>
+    assertEquals((parsed.children[ 0 ] as any).children.length, 1);
+    assertEquals((parsed.children[ 0 ] as any).children[ 0 ].name, '#text');
+    assertEquals((parsed.children[ 0 ] as any).children[ 0 ].type, TEXT_NODE);
 
-</body>
-</html>
-`;
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
 
-console.time('parse');
-const a = parse(original);
-console.timeEnd('parse');
+Deno.test('script', () => {
+    const input = /*html*/`<script>const v = '<html>In a string</html>';</script>`;
+    const parsed = parse(input);
 
-const b = JSON.stringify(a, (key, value) => key === 'parent' ? undefined : value, '\t');
-const c = JSON.parse(b);
-const d = stringify(c);
+    assertEquals(parsed.children.length, 1);
+    assertEquals(parsed.children[ 0 ].name, 'script');
+    assertEquals(parsed.children[ 0 ].type, ELEMENT_NODE);
 
-await Deno.writeTextFile('tmp/parsed.json', b);
-await Deno.writeTextFile('tmp/write.html', d);
-// const fileResult = await Deno.readTextFile('tmp/write.html');
-// console.log(fileResult === original ? 'PASS' : 'FAIL');
+    assertEquals((parsed.children[ 0 ] as any).children.length, 1);
+    assertEquals((parsed.children[ 0 ] as any).children[ 0 ].name, '#text');
+    assertEquals((parsed.children[ 0 ] as any).children[ 0 ].type, TEXT_NODE);
 
-console.log(d === original ? 'PASS' : 'FAIL');
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('style', () => {
+    const input = /*html*/`<style>body { background: blue; }</style>`;
+    const parsed = parse(input);
+
+    assertEquals(parsed.children.length, 1);
+    assertEquals(parsed.children[ 0 ].name, 'style');
+    assertEquals(parsed.children[ 0 ].type, ELEMENT_NODE);
+
+    assertEquals((parsed.children[ 0 ] as any).children.length, 1);
+    assertEquals((parsed.children[ 0 ] as any).children[ 0 ].name, '#text');
+    assertEquals((parsed.children[ 0 ] as any).children[ 0 ].type, TEXT_NODE);
+
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('comment', () => {
+    const input = /*html*/`<!-- This should be <COMMENT>. -->`;
+    const parsed = parse(input);
+
+    const children = parsed.children;
+    const child = parsed.children[ 0 ] as vComment;
+
+    assertEquals(children.length, 1);
+    assertEquals(child.name, '#comment');
+    assertEquals(child.type, COMMENT_NODE);
+    assertEquals(child.data, ' This should be <COMMENT>. ');
+
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('cdata', () => {
+    const input = /*html*/`<![CDATA[ This should be <CDATA>. ]]>`;
+    const parsed = parse(input);
+
+    const children = parsed.children;
+    const child = parsed.children[ 0 ] as vCdata;
+
+    assertEquals(children.length, 1);
+    assertEquals(child.name, '#cdata-section');
+    assertEquals(child.type, CDATA_SECTION_NODE);
+    assertEquals(child.data, ' This should be <CDATA>. ');
+
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('dynamic text', () => {
+    const input = /*html*/`<div>Open {{in}} Close</div>`;
+    const parsed = parse(input);
+
+    assertEquals(parsed.children.length, 1);
+    assertEquals(parsed.children[ 0 ].name, 'div');
+    assertEquals(parsed.children[ 0 ].type, ELEMENT_NODE);
+
+    assertEquals((parsed.children[ 0 ] as vElement).children.length, 3);
+    assertEquals((parsed.children[ 0 ] as vElement).children[ 1 ].name, '#text');
+    assertEquals((parsed.children[ 0 ] as vElement).children[ 1 ].type, TEXT_NODE);
+
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('dynamic attribute name without value', () => {
+    const input = /*html*/`<div {{attr}}></div>`;
+    const parsed = parse(input);
+
+    const children = parsed.children;
+    const element = children[ 0 ] as vElement;
+    assertEquals(children.length, 1);
+    assertEquals(element.name, 'div');
+    assertEquals(element.type, ELEMENT_NODE);
+    assertEquals(element.children.length, 0);
+
+    const attributes = element.attributes;
+    const attribute = attributes[ 0 ];
+    assertEquals(attributes.length, 1);
+    assertEquals(attribute.value, '');
+    assertEquals(attribute.name, '{{attr}}');
+    assertEquals(attribute.type, ATTRIBUTE_NODE);
+
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('dynamic attribute name with standard value quoted', () => {
+    const input = /*html*/`<div {{attr}}="standard-value-quoted"></div>`;
+    const parsed = parse(input);
+
+    const children = parsed.children;
+    const element = children[ 0 ] as vElement;
+    assertEquals(children.length, 1);
+    assertEquals(element.name, 'div');
+    assertEquals(element.type, ELEMENT_NODE);
+    assertEquals(element.children.length, 0);
+
+    const attributes = element.attributes;
+    const attribute = attributes[ 0 ];
+    assertEquals(attributes.length, 1);
+    assertEquals(attribute.value, 'standard-value-quoted');
+    assertEquals(attribute.name, '{{attr}}');
+    assertEquals(attribute.type, ATTRIBUTE_NODE);
+
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('dynamic attribute name with dynamic value quoted', () => {
+    const input = /*html*/`<div {{dyanmic-name}}="{{dynamic-value}}"></div>`;
+    const parsed = parse(input);
+
+    const children = parsed.children;
+    const element = children[ 0 ] as vElement;
+    assertEquals(children.length, 1);
+    assertEquals(element.name, 'div');
+    assertEquals(element.type, ELEMENT_NODE);
+    assertEquals(element.children.length, 0);
+
+    const attributes = element.attributes;
+    const attribute = attributes[ 0 ];
+    assertEquals(attributes.length, 1);
+    assertEquals(attribute.value, '{{dynamic-value}}');
+    assertEquals(attribute.name, '{{dyanmic-name}}');
+    assertEquals(attribute.type, ATTRIBUTE_NODE);
+
+    const output = stringify(parsed);
+    assertEquals(input, output);
+});
+
+Deno.test('dynamic attribute name with dynamic value not quoted', () => {
+    const input = /*html*/`<div {{dyanmic-name}}={{dynamic-value}}></div>`;
+    const parsed = parse(input);
+
+    const children = parsed.children;
+    const element = children[ 0 ] as vElement;
+    assertEquals(children.length, 1);
+    assertEquals(element.name, 'div');
+    assertEquals(element.type, ELEMENT_NODE);
+    assertEquals(element.children.length, 0);
+
+    const attributes = element.attributes;
+    const attribute = attributes[ 0 ];
+    assertEquals(attributes.length, 1);
+    assertEquals(attribute.value, '{{dynamic-value}}');
+    assertEquals(attribute.name, '{{dyanmic-name}}');
+    assertEquals(attribute.type, ATTRIBUTE_NODE);
+
+    const output = stringify(parsed);
+    assertEquals(/*html*/`<div {{dyanmic-name}}="{{dynamic-value}}"></div>`, output);
+});
+
+//     <div attr4.1="{{attr4.2}} {{attr4.3}}"></div>
+//     <{{tag}}></{{tag}}>
+
+
+// const html = function (parts: TemplateStringsArray, ...variabes: any[]) {
+//     return parts.map((part, index) => part += (variabes[ index ] ?? '')).join('');
+// };
+
+// type Construct = <T extends Record<any, any>>(t: T) => T;
+
+// const component = <T extends Record<any, any>> (
+//     construct: Construct,
+//     render: (t: Parameters<Construct>) => string,
+// ) => {
+
+
+// };
+
+// type C = {
+//     title: string,
+// };
+
+// component(
+//     o => ({
+
+//         title: 'hello world'
+
+//     }),
+//     // o => {
+
+//     //     o.title = 'hello world';
+
+//     // },
+//     o => html`
+
+//         <div>${o.title}</div>
+
+//     `,
+// );
+
+
+// const component = function (data: any) {
+//     return {
+//         html: function (parts: TemplateStringsArray, ...variabes: any[]) {
+//             return parts.map((part, index) => part += (variabes[ index ] ?? ''));
+//         }
+//     };
+// };
+
+// (o = {
+//     title: 'hello world'
+// }) => component(o).html`
+
+//     <div>${o.title}</div>
+
+// `;
+
+// () => component({})
+//     () => html``;
