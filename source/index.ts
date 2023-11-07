@@ -1,9 +1,14 @@
-import Component from './component';
 import Router from './router';
 import html from './html';
 
-export { Component };
-export { Component as component };
+import * as symbols from './symbols';
+export * from './symbols';
+
+import * as define from './define';
+export * from './define';
+
+import * as types from './types';
+export * from './types';
 
 export { Router };
 export { Router as router };
@@ -12,12 +17,12 @@ export { html };
 
 export default {
 
-    Component,
-    component: Component,
-
     Router,
     router: Router,
 
     html,
 
+    ...define,
+    ...symbols,
+    ...types,
 };

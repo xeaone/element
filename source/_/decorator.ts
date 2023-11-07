@@ -3,10 +3,10 @@ import bind from './bind';
 import dash from './dash';
 
 import {
-    Internal,
     DefineInit,
-    Instance,
-    Constructor,
+    Internal,
+    Component,
+    ComponentInternal
 } from './types';
 
 import {
@@ -22,8 +22,6 @@ import {
     rendered,
     state,
     update,
-    extend,
-    shadow,
 } from './symbols';
 
 import {
@@ -45,11 +43,10 @@ import {
     disconnectedEvent,
     disconnectingEvent,
 } from './events';
-import { replaceChildren } from './poly';
 
 const tick = () => Promise.resolve();
 
-const createMethod = async function (this: Instance) {
+const createMethod = async function (this: ComponentInternal) {
     this[ internal ].created = true;
     this[ internal ].queued = true;
     this[ internal ].started = true;
@@ -100,9 +97,9 @@ const createMethod = async function (this: Instance) {
 
     this.dispatchEvent(renderingEvent);
 
-    await this.$state?.(this[ internal ].state);
+    await this[ state ]?.(this[ internal ].state);
 
-    const template = await this.$render?.(this[ internal ].state);
+    const template = await this[ render ]?.(this[ internal ].state);
     if (template) {
 
         // const fragment = document.importNode(template.template.content, true);
@@ -128,11 +125,11 @@ const createMethod = async function (this: Instance) {
     }
 
     this.dispatchEvent(creatingEvent);
-    await this.$created?.(this[ internal ].state)?.catch(console.error);
+    await this[ created ]?.(this[ internal ].state)?.catch(console.error);
     this.dispatchEvent(createdEvent);
 
     this.dispatchEvent(connectingEvent);
-    await this.$connected?.(this[ internal ].state)?.catch(console.error);
+    await this[ connected ]?.(this[ internal ].state)?.catch(console.error);
     this.dispatchEvent(connectedEvent);
 
     this[ internal ].queued = false;
@@ -141,7 +138,7 @@ const createMethod = async function (this: Instance) {
     await this[ update ]();
 };
 
-const updateMethod = async function (this: Instance) {
+const updateMethod = async function (this: ComponentInternal) {
 
     if (this[ internal ].queued && !this[ internal ].started) {
         // console.debug('Update: queued and not started');
@@ -160,7 +157,7 @@ const updateMethod = async function (this: Instance) {
         // await tick();
 
         this.dispatchEvent(renderingEvent);
-        const template = await this.$render?.(this[ internal ].state);
+        const template = await this[ render ]?.(this[ internal ].state);
 
         this[ internal ].started = true;
 
@@ -192,7 +189,7 @@ const updateMethod = async function (this: Instance) {
         this[ internal ].queued = false;
         this[ internal ].started = false;
 
-        await this.$rendered?.(this[ internal ].state)?.catch(console.error);;
+        await this[ rendered ]?.(this[ internal ].state)?.catch(console.error);;
         this.dispatchEvent(renderedEvent);
 
     }).catch(console.error);
@@ -200,52 +197,42 @@ const updateMethod = async function (this: Instance) {
     return this[ internal ].task;
 };
 
-const attributeChangedCallback = async function (this: Instance, name: string, oldValue: string, newValue: string) {
+const attributeChangedCallback = async function (this: ComponentInternal, name: string, oldValue: string, newValue: string) {
     this.dispatchEvent(attributingEvent);
-    await this.$attributed?.(name, oldValue, newValue)?.catch(console.error);
+    await this[ attributed ]?.(name, oldValue, newValue)?.catch(console.error);
     this.dispatchEvent(attributedEvent);
 };
 
-const adoptedCallback = async function (this: Instance) {
+const adoptedCallback = async function (this: ComponentInternal) {
     this.dispatchEvent(adoptingEvent);
-    await this.$adopted?.(this[ internal ].state)?.catch(console.error);
+    await this[ adopted ]?.(this[ internal ].state)?.catch(console.error);
     this.dispatchEvent(adoptedEvent);
 };
 
-const connectedCallback = async function (this: Instance) {
+const connectedCallback = async function (this: ComponentInternal) {
     if (!this[ internal ].created) {
         await this[ create ]();
     } else {
         this.dispatchEvent(connectingEvent);
-        await this.$connected?.(this[ internal ].state)?.catch(console.error);
+        await this[ connected ]?.(this[ internal ].state)?.catch(console.error);
         this.dispatchEvent(connectedEvent);
     }
 };
 
-const disconnectedCallback = async function (this: Instance) {
+const disconnectedCallback = async function (this: ComponentInternal) {
     this.dispatchEvent(disconnectingEvent);
-    await this.$disconnected?.(this[ internal ].state)?.catch(console.error);
+    await this[ disconnected ]?.(this[ internal ].state)?.catch(console.error);
     this.dispatchEvent(disconnectedEvent);
 };
 
-const init = (target: Constructor) => {
-// const init = (target: Constructor, defineInit?: DefineInit) => {
-    // defineInit = typeof defineInit === 'string' ? { tag: defineInit } : { ...defineInit };
+const init = (defineInit: DefineInit, target: CustomElementConstructor) => {
 
-    // const $extend = defineInit.extend ?? target.$extend;
-    // const $shadow = defineInit.shadow ?? target.$shadow ?? 'open';
-    // const $tag = dash(defineInit.tag ?? target.$tag ?? target.name);
-
-    const $mount = target.$mount;
-    const $extend = target.$extend;
-    const $shadow =  target.$shadow ?? 'open';
-    const $tag = dash(target.$tag ?? target.name);
+    const shadow = defineInit.shadow ?? 'open';
 
     Object.defineProperties(target, {
-        $tag: { value: $tag },
-        $shadow: { value: $shadow },
-        $extend: { value: $extend },
-        $mount: { value: $mount },
+        [tag]: {
+            value: dash(defineInit.tag ?? target.name)
+        }
     });
 
     Object.defineProperties(target.prototype, {
@@ -256,12 +243,13 @@ const init = (target: Constructor) => {
                     created: false,
                     restart: false,
                     started: false,
+                    // shadow,
                     marker: '',
                     actions: [],
                     expressions: [],
                     task: Promise.resolve(),
                     state: context({}, this[ update ].bind(this)),
-                    root: $shadow == 'open' || $shadow == 'closed' ? this.attachShadow({ mode: $shadow }) : this
+                    root: shadow !== 'none' && !this.shadowRoot ? this.attachShadow({ mode: shadow }) : this
                 };
                 Object.defineProperty(this, internal, {
                     value,
@@ -280,44 +268,46 @@ const init = (target: Constructor) => {
         attributeChangedCallback: { value: attributeChangedCallback },
     });
 
-    if (customElements.get($tag) !== target) {
-        customElements.define($tag, target, { extends: $extend });
+    if (customElements.get((target as any)[tag]) !== target) {
+        customElements.define((target as any)[tag], target);
     }
 
-    if ($mount) {
-        const ready = () => {
-            const container = $mount === 'body' ? document.body : document.querySelector($mount);
-            if (!container) throw new Error('XElement mount - container not found');
-
-            const $tag = dash(target.$tag ?? target.name);
-            const $extend = target.$extend;
-            const element = document.createElement($extend || $tag, $extend ? { is: $tag } : undefined);
-
-            customElements.upgrade(element);
-            replaceChildren(container, element)
-        };
-        if (document.readyState === 'loading') {
-            document.addEventListener('readystatechange', ready, { once: true });
-        } else {
-            ready();
-        }
-    }
-
-    // return target;
+    return target;
 };
 
-export const define = () => (constructor: Constructor, context?: ClassDecoratorContext) => {
-// export const define = (defineInit?: DefineInit) => (constructor: Constructor, context?: ClassDecoratorContext) => {
-    const target = constructor;
-
+export const define = (defineInit?: DefineInit) => (target: CustomElementConstructor, context?: ClassDecoratorContext) => {
+    defineInit = defineInit && typeof defineInit === 'object' ? defineInit : { tag: defineInit };
     if (context !== undefined) {
-        return context.addInitializer(() => init(target));
-        // return context.addInitializer(() => init(target, defineInit));
+        return context.addInitializer(() => init(defineInit, target));
     } else {
-        return init(target);
-        // return init(target, defineInit);
+        return init(defineInit, target);
     }
-
 };
 
-export default define;
+export const mount = (query: string = 'body') => (target: CustomElementConstructor, context?: ClassDecoratorContext) => {
+    const init = () => {
+        const element = document.createElement((target as any)[ tag ]);
+
+        customElements.upgrade(element);
+        document.querySelector(query ?? 'body')?.replaceChildren(element);
+
+        return target;
+    };
+    if (context !== undefined) {
+        return context.addInitializer(init);
+    } else {
+        return init();
+    }
+};
+
+// export const shadowSymbol = Symbol('Mode');
+// export const shadow = (mode: 'open' | 'closed' | 'none' = 'open') => (target: CustomElementConstructor, context?: ClassDecoratorContext) => {
+//     const init = () => {
+//         target.prototype[ shadowSymbol ] = mode;
+//     };
+//     if (context !== undefined) {
+//         return context.addInitializer(init);
+//     } else {
+//         return init();
+//     }
+// }

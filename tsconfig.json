@@ -5,7 +5,9 @@
         "allowJs": true,
         "isolatedModules": true,
         "esModuleInterop": true,
+
         "experimentalDecorators": true,
+        "useDefineForClassFields": false,
 
         "noEmit": true,
         "moduleResolution": "Bundler",

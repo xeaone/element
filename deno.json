@@ -1,4 +1,13 @@
 {
+    "compilerOptions": {
+        "lib": [
+            "dom",
+            "dom.iterable",
+            "dom.asynciterable",
+            "deno.ns",
+            "deno.unstable"
+        ]
+    },
     "lint": {
         "include": [
             "scripts"

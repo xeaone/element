@@ -1,7 +1,6 @@
 import { Route, Handler, Module } from './types';
 import { replaceChildren } from './poly';
-import component, { task } from './component';
-import define from './define';
+// import component, { task } from './component';
 import dash from './dash';
 import upgrade from './upgrade';
 
@@ -18,8 +17,9 @@ const routes: Array<Route> = [];
 
 const tick = function (element: Element) {
     return new Promise(async resolve => {
-        if (element && element instanceof component) {
-            await element[ task ];
+        if (element && element) {
+        // if (element && element instanceof component) {
+            // await element[ task ];
             requestAnimationFrame(() => resolve(undefined));
         } else {
             requestAnimationFrame(() => resolve(undefined));
@@ -47,14 +47,18 @@ const transition = async function (route: Route) {
             throw new Error('XElement - router handler requires Module or CustomElementConstructor');
         }
 
-        if (route.construct.prototype instanceof component) {
-            route.instance = await (route.construct as typeof component).create();
-        } else {
+        // if (route.construct.prototype instanceof component) {
+        //     route.instance = await (route.construct as typeof component).create();
+        // } else {
             route.tag = dash(route.construct.name);
-            define(route.tag, route.construct);
+
+            if (customElements.get(route.tag) !== route.construct) {
+                customElements.define(route.tag, route.construct);
+            }
+
             route.instance = document.createElement(route.tag);
             upgrade(route.instance);
-        }
+        // }
 
         const ready = tick(route.instance);
         replaceChildren(route.root, route.instance);
