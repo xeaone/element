@@ -1,0 +1,21 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decorator</title>
+
+    <script>
+        const base = document.createElement('base');
+        if (location.host.startsWith('localhost')) base.href = "/decorator/";
+        else base.href = "/element/";
+        document.head.prepend(base);
+    </script>
+
+    <script type="module" src="./index.js" defer></script>
+</head>
+
+<body>
+</body>
+
+</html>

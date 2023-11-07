@@ -1,5 +1,10 @@
 import { assertEquals } from 'https://deno.land/std@0.204.0/assert/mod.ts';
 
+
+import { parseHTML } from 'https://esm.sh/linkedom';
+
+const { document, customElements, HTMLElement } = parseHTML(`<!DOCTYPE html><html><head><title></title></head><body></body></html>`);
+
 import parse from '../tmp/virtual/parse.ts';
 import stringify from '../tmp/virtual/stringify.ts';
 import { vCdata, vComment, vElement } from '../tmp/virtual/tool.ts';
@@ -234,62 +239,72 @@ Deno.test('dynamic attribute name with dynamic value not quoted', () => {
     assertEquals(/*html*/`<div {{dyanmic-name}}="{{dynamic-value}}"></div>`, output);
 });
 
+Deno.test('decorator', () => {
+
+    const html = (strings: TemplateStringsArray,  ...variabes: any[]) => {
+        return strings.join('');
+    };
+
+    const state = Symbol('state');
+    const render = Symbol('render');
+    const define = (tag?: string) => (target: any, context?: ClassDecoratorContext) => {
+
+        const init = () => customElements.define(tag ?? '', target);
+
+        if (context !== undefined) {
+            context.addInitializer(init);
+        } else {
+            init();
+        }
+
+        if (Reflect.has(target.prototype, state)) {
+        }
+
+        if (Reflect.has(target.prototype, render)) {
+        }
+
+        return target;
+    };
+
+    @define('x-test')
+    class XTest extends HTMLElement {
+
+        [state] (s, e) {
+            s.title = 'hello world';
+        }
+
+        [render] = (s, e) => html`
+        <div>${e.nodeName}</div>
+        `
+
+    }
+
+});
+
 //     <div attr4.1="{{attr4.2}} {{attr4.3}}"></div>
 //     <{{tag}}></{{tag}}>
-
 
 // const html = function (parts: TemplateStringsArray, ...variabes: any[]) {
 //     return parts.map((part, index) => part += (variabes[ index ] ?? '')).join('');
 // };
 
-// type Construct = <T extends Record<any, any>>(t: T) => T;
-
-// const component = <T extends Record<any, any>> (
-//     construct: Construct,
-//     render: (t: Parameters<Construct>) => string,
+// const component = <C extends Record<any, any>, E extends HTMLElement> (
+//     create: (element: E) => C,
+//     render: (context: C) => string,
 // ) => {
 
-
 // };
 
-// type C = {
+// type Context = {
 //     title: string,
 // };
+// // component<Context, HTMLElement>(
+// component(e => ({
 
-// component(
-//     o => ({
-
-//         title: 'hello world'
-
-//     }),
-//     // o => {
-
-//     //     o.title = 'hello world';
-
-//     // },
-//     o => html`
-
-//         <div>${o.title}</div>
-
-//     `,
-// );
-
-
-// const component = function (data: any) {
-//     return {
-//         html: function (parts: TemplateStringsArray, ...variabes: any[]) {
-//             return parts.map((part, index) => part += (variabes[ index ] ?? ''));
-//         }
-//     };
-// };
-
-// (o = {
 //     title: 'hello world'
-// }) => component(o).html`
 
-//     <div>${o.title}</div>
+// }), c => html`
 
-// `;
+//     <div>${c.title}</div>
 
-// () => component({})
-//     () => html``;
+// `);

@@ -1,3 +1,4 @@
+// Array.from({length: 200}, (_,i) => String.fromCharCode(i));
 
 const code = (data: string) => {
     const result = data.codePointAt(0);

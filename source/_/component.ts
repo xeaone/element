@@ -1,4 +1,4 @@
-import render from './render';
+import render from './bind';
 import context from './context';
 import html from './html';
 import dash from './dash';

@@ -1,7 +1,7 @@
 import { component, html } from './x-element.js';
 import highlight from './modules/highlight.js';
 
-const componentExample = highlight(/*js*/`
+const componentExample = highlight(`
 import { component, html } from '/x-element.js';
 
 export default class greet extends component {

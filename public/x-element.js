@@ -1,14 +1,856 @@
-/**
- * @version 9.1.10
- *
- * @license
- * Copyright (C) Alexander Elias
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * @module
- */
+var __defProp = Object.defineProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 
-var ke=Object.defineProperty;var $e=(e,t,n)=>t in e?ke(e,t,{enumerable:!0,configurable:!0,writable:!0,value:n}):e[t]=n;var L=(e,t,n)=>($e(e,typeof t!="symbol"?t+"":t,n),n),ae=(e,t,n)=>{if(!t.has(e))throw TypeError("Cannot "+n)};var h=(e,t,n)=>(ae(e,t,"read from private field"),n?n.call(e):t.get(e)),g=(e,t,n)=>{if(t.has(e))throw TypeError("Cannot add the same private member more than once");t instanceof WeakSet?t.add(e):t.set(e,n)},m=(e,t,n,o)=>(ae(e,t,"write to private field"),o?o.call(e,n):t.set(e,n),n);var b=(e,t,n)=>new Promise((o,s)=>{var i=a=>{try{d(n.next(a))}catch(f){s(f)}},l=a=>{try{d(n.throw(a))}catch(f){s(f)}},d=a=>a.done?o(a.value):Promise.resolve(a.value).then(i,l);d((n=n.apply(e,t)).next())});var He=["src","href","data","action","srcdoc","xlink:href","cite","formaction","ping","poster","background","classid","codebase","longdesc","profile","usemap","icon","manifest","archive"],De=["hidden","allowfullscreen","async","autofocus","autoplay","checked","controls","default","defer","disabled","formnovalidate","inert","ismap","itemscope","loop","multiple","muted","nomodule","novalidate","open","playsinline","readonly","required","reversed","selected"],W=function(e){return e&&typeof e=="string"?He.indexOf(e)!==-1:!1},_=function(e){return e&&typeof e=="string"?De.indexOf(e)!==-1:!1},Xe=/^value$/i,z=function(e){return e&&typeof e=="string"?Xe.test(e):!1},je=/^on/i,H=function(e){return e&&typeof e=="string"?je.test(e):!1},K=function(e){var t;return e&&typeof e=="string"?(t=e==null?void 0:e.toLowerCase())==null?void 0:t.slice(2):""},ce=function(e,t){return e&&typeof e=="string"?e.toLowerCase()===t.toLowerCase():!1},D=function(e,t){return e&&typeof e=="string"?e.toLowerCase().indexOf(t.toLowerCase())!==-1:!1};var Be=/^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i,Z=function(e){return e===""||typeof e!="string"?!1:!Be.test(e)},G=function(e,t){var o;let n=t.previousSibling;for(;n!==e;)(o=n==null?void 0:n.parentNode)==null||o.removeChild(n),n=t.previousSibling};function k(e){switch(`${e}`){case"NaN":return"";case"null":return"";case"undefined":return""}switch(typeof e){case"string":return e;case"number":return`${e}`;case"bigint":return`${e}`;case"boolean":return`${e}`;case"function":return`${e()}`;case"symbol":return String(e);case"object":return JSON.stringify(e)}throw new Error("XElement - display type not handled")}var le=()=>Math.floor(Math.random()*Date.now());var J=function(e,...t){for(;e.lastChild;)e.removeChild(e.lastChild);if(t!=null&&t.length)for(let n of t)e.appendChild(typeof n=="string"?e.ownerDocument.createTextNode(n):n)},de="trustedTypes"in window?window.trustedTypes.createPolicy("x-element",{createHTML:e=>e}):void 0,he=function(e){return de?de.createHTML(e):e};var X=Symbol("html"),ue=new WeakMap;function j(e,...t){let n=ue.get(e);if(n){let[o,s]=n;return{strings:e,template:o,expressions:t,symbol:X,marker:s}}else{let o=`x-${le()}-x`,s="",i=e.length-1;for(let d=0;d<i;d++)s+=`${e[d]}${o}`;s+=e[i];let l=document.createElement("template");return l.innerHTML=he(s),ue.set(e,[l,o]),{strings:e,template:l,expressions:t,symbol:X,marker:o}}}var Ve=1+4,pe=3,fe=1,me=function(e,t){var n,o,s,i,l,d,a,f,v,T,r,p;if((t==null?void 0:t.symbol)===X)if(e=e!=null?e:{},t=t!=null?t:{},e.strings===t.strings){let c=this.actions.length;for(let u=0;u<c;u++)this.actions[u](e.expressions[u],t.expressions[u])}else{this.actions.length=0;let c=t.template.content.cloneNode(!0);ye(c,this.actions,t.marker);let u=this.actions.length;for(let w=0;w<u;w++)this.actions[w]((n=e.expressions)==null?void 0:n[w],t.expressions[w]);document.adoptNode(c),G(this.start,this.end),(o=this.end.parentNode)==null||o.insertBefore(c,this.end)}else if((t==null?void 0:t.constructor)===Array){e=e!=null?e:[],t=t!=null?t:[];let c=e.length,u=t.length,w=Math.min(c,u);for(let x=0;x<w;x++)this.actions[x](e[x],t[x]);if(c<u){let x=document.createElement("template");for(let S=c;S<u;S++){let I=document.createTextNode(""),se=document.createTextNode(""),re=me.bind({start:I,end:se,actions:[]});x.content.appendChild(I),x.content.appendChild(se),this.actions.push(re),re(e[S],t[S])}(s=this.end.parentNode)==null||s.insertBefore(x.content,this.end)}else if(c>u){for(let x=c-1;x>u-1;x--)if(((i=e[x])==null?void 0:i.symbol)===X){let{template:S}=e[x],I=S.content.childNodes.length+2;for(;I--;)(l=this.end.parentNode)==null||l.removeChild(this.end.previousSibling)}else(d=this.end.parentNode)==null||d.removeChild(this.end.previousSibling),(a=this.end.parentNode)==null||a.removeChild(this.end.previousSibling),(f=this.end.parentNode)==null||f.removeChild(this.end.previousSibling);this.actions.length=u}}else{if(e===t)return;this.end.previousSibling===this.start?(v=this.end.parentNode)==null||v.insertBefore(document.createTextNode(k(t)),this.end):((T=this.end.previousSibling)==null?void 0:T.nodeType)===pe&&((r=this.end.previousSibling)==null?void 0:r.previousSibling)===this.start?this.end.previousSibling.textContent=k(t):(G(this.start,this.end),(p=this.end.parentNode)==null||p.insertBefore(document.createTextNode(k(t)),this.end))}},qe=function(e,t){if(e!==t)if(z(e)?(this.element.removeAttribute(e),Reflect.set(this.element,e,null)):H(e)?typeof this.value=="function"&&this.element.removeEventListener(K(e),this.value,!0):W(e)?this.element.removeAttribute(e):_(e)?(this.element.removeAttribute(e),Reflect.set(this.element,e,!1)):e&&(this.element.removeAttribute(e),Reflect.deleteProperty(this.element,e)),this.name=(t==null?void 0:t.toLowerCase())||"",this.name){if(H(this.name))return;_(this.name)?(this.element.setAttribute(this.name,""),Reflect.set(this.element,this.name,!0)):(this.element.setAttribute(this.name,""),Reflect.set(this.element,this.name,void 0))}else return},Fe=function(e,t){if(e!==t)if(z(this.name)){if(this.value=k(t),!this.name)return;this.element.setAttribute(this.name,this.value),Reflect.set(this.element,this.name,this.value)}else if(H(this.name)){if(!this.name)return;if(typeof this.value=="function"&&this.element.removeEventListener(K(this.name),this.value,!0),typeof t!="function")return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);this.value=function(){return t.call(this,...arguments)},this.element.addEventListener(K(this.name),this.value,!0)}else if(W(this.name)){if(this.value=encodeURI(t),!this.name)return;if(Z(this.value)){this.element.removeAttribute(this.name),console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);return}this.element.setAttribute(this.name,this.value)}else{if(this.value=t,!this.name)return;this.element.setAttribute(this.name,this.value),Reflect.set(this.element,this.name,this.value)}},Ie=function(e,t){var o,s,i,l;if(e===t)return;let n=this.element;if(t){(o=n.parentNode)==null||o.removeChild(n);let d=document.createElement(t);for(;n.firstChild;)d.appendChild(n.firstChild);if(n.nodeType===fe){let a=n.getAttributeNames();for(let f of a){let v=(s=n.getAttribute(f))!=null?s:"";d.setAttribute(f,v)}}(i=this.holder.parentNode)==null||i.insertBefore(d,this.holder),this.element=d}else(l=n.parentNode)==null||l.removeChild(n),this.element=n},ye=function(e,t,n){var l,d,a,f,v,T;let o=new WeakSet,s=document.createTreeWalker(e,Ve,null);s.currentNode=e;let i=e.firstChild;for(;i=s.nextNode();)if(o.has(i.previousSibling)&&(o.delete(i.previousSibling),t.push(()=>{})),i.nodeType===pe){let r=(d=(l=i.nodeValue)==null?void 0:l.indexOf(n))!=null?d:-1;if(r===-1)continue;r!==0&&(i.splitText(r),i=s.nextNode());let p=n.length;p!==((a=i.nodeValue)==null?void 0:a.length)&&i.splitText(p);let c=document.createTextNode(""),u=i;u.textContent="",(f=u.parentNode)==null||f.insertBefore(c,u),t.push(me.bind({marker:n,start:c,end:u,actions:[]}))}else if(i.nodeType===fe){(i.nodeName==="SCRIPT"||i.nodeName==="STYLE")&&s.nextSibling();let r={element:i};ce(i.nodeName,n)&&(o.add(i),r.holder=document.createTextNode(""),(v=i.parentNode)==null||v.insertBefore(r.holder,i),t.push(Ie.bind(r)));let p=i.getAttributeNames();for(let c of p){let u=(T=i.getAttribute(c))!=null?T:"";if(D(c,n)||D(u,n)){let w={name:c,value:u,previous:void 0,get element(){return r.element}};D(c,n)&&(i.removeAttribute(c),t.push(qe.bind(w))),D(u,n)&&(i.removeAttribute(c),t.push(Fe.bind(w)))}else W(c)?Z(u)&&(i.removeAttribute(c),console.warn(`XElement - attribute name "${c}" and value "${u}" not allowed`)):H(c)&&(i.removeAttribute(c),console.warn(`XElement - attribute name "${c}" not allowed`))}}else console.warn(`XElement - node type "${i.nodeType}" not handled`)},xe=ye;var Ee=function(e,t,n,o,s){if(typeof n=="symbol")return Reflect.set(t,n,o,s);let i=Reflect.get(t,n,s);return i===o||Number.isNaN(i)&&Number.isNaN(o)||(Reflect.set(t,n,o,s),e()),!0},be=function(e,t,n,o){if(typeof n=="symbol")return Reflect.get(t,n,o);let s=Reflect.get(t,n,o);if(s){if(s.constructor===Function)return new Proxy(s,{apply(i,l,d){return Reflect.apply(i,o,d)}});if(s.constructor===Object||s.constructor===Array)return new Proxy(s,{get:be.bind(null,e),set:Ee.bind(null,e),deleteProperty:ve.bind(null,e)})}return s},ve=function(e,t,n){return typeof n=="symbol"?Reflect.deleteProperty(t,n):(Reflect.deleteProperty(t,n),e(),!0)},We=function(e,t){return new Proxy(e,{get:be.bind(null,t),set:Ee.bind(null,t),deleteProperty:ve.bind(null,t)})},we=We;function M(e){return e=e.replace(/([a-zA-Z])([A-Z])/g,"$1-$2"),e=e.toLowerCase(),e=e.includes("-")?e:`x-${e}`,e}var ge=new Event("adopted"),Ce=new Event("adopting"),lt=new Event("upgraded"),dt=new Event("upgrading"),Ne=new Event("creating"),Te=new Event("created"),Re=new Event("rendering"),Ae=new Event("rendered"),Y=new Event("connected"),Q=new Event("connecting"),Le=new Event("attributed"),Me=new Event("attributing"),Pe=new Event("disconnected"),Oe=new Event("disconnecting");function P(e,t){customElements.get(e)!==t&&customElements.define(e,t)}var B=e=>{customElements.upgrade&&customElements.upgrade(e)};var Ke=()=>Promise.resolve(),R=Symbol("Task"),U=Symbol("Update"),ee=Symbol("Create"),y,V,q,A,$,C,N,O,F,Ue,E=class extends HTMLElement{constructor(){var s;super();g(this,y,{});g(this,V,void 0);g(this,q,"");g(this,A,[]);g(this,$,[]);g(this,C,!1);g(this,N,!1);g(this,O,!1);g(this,F,!1);L(this,Ue,Promise.resolve());let n=this.constructor;if(n.shadow&&!this.shadowRoot){let i=n.mode||"open";this.attachShadow({mode:i})}m(this,V,(s=this.shadowRoot)!=null?s:this)}static define(n=(o=>(o=this.tag)!=null?o:this.name)()){return n=M(n),P(n,this),this}static create(n){var s;n=M((s=this.tag)!=null?s:this.name),P(n,this);let o=document.createElement(n);return B(o),o}static upgrade(n){return b(this,null,function*(){var s;n=M((s=this.tag)!=null?s:this.name),P(n,this);let o=document.createElement(n);return B(o),yield o[ee](),o})}attributeChangedCallback(n,o,s){return b(this,null,function*(){var i,l;this.dispatchEvent(Me),yield(l=(i=this.attribute)==null?void 0:i.call(this,n,o,s))==null?void 0:l.catch(console.error),this.dispatchEvent(Le)})}adoptedCallback(){return b(this,null,function*(){var n,o;this.dispatchEvent(Ce),yield(o=(n=this.adopted)==null?void 0:n.call(this,h(this,y)))==null?void 0:o.catch(console.error),this.dispatchEvent(ge)})}connectedCallback(){return b(this,null,function*(){var n,o;h(this,F)?(this.dispatchEvent(Q),yield(o=(n=this.connected)==null?void 0:n.call(this,h(this,y)))==null?void 0:o.catch(console.error),this.dispatchEvent(Y)):yield this[ee]()})}disconnectedCallback(){return b(this,null,function*(){var n,o;this.dispatchEvent(Oe),yield(o=(n=this.disconnected)==null?void 0:n.call(this,h(this,y)))==null?void 0:o.catch(console.error),this.dispatchEvent(Pe)})}[(Ue=R,ee)](){return b(this,null,function*(){var d,a,f,v,T;m(this,F,!0),m(this,C,!0),m(this,N,!0);let o=this.constructor.observedProperties,s=Object.getPrototypeOf(this),i=o?o!=null?o:[]:[...Object.getOwnPropertyNames(this),...Object.getOwnPropertyNames(s)];for(let r of i){if(r==="attributeChangedCallback"||r==="disconnectedCallback"||r==="connectedCallback"||r==="adoptedCallback"||r==="constructor"||r==="disconnected"||r==="attribute"||r==="connected"||r==="rendered"||r==="created"||r==="adopted"||r==="render"||r==="setup")continue;let p=(d=Object.getOwnPropertyDescriptor(this,r))!=null?d:Object.getOwnPropertyDescriptor(s,r);p&&p.configurable&&(typeof p.value=="function"&&(p.value=p.value.bind(this)),typeof p.get=="function"&&(p.get=p.get.bind(this)),typeof p.set=="function"&&(p.set=p.set.bind(this)),Object.defineProperty(h(this,y),r,p),Object.defineProperty(this,r,{configurable:!1,enumerable:p.enumerable,get(){return h(this,y)[r]},set(c){h(this,y)[r]=c,this[U]()}}))}m(this,y,we(h(this,y),this[U].bind(this)));let l=yield(a=this.render)==null?void 0:a.call(this,h(this,y));if(l){let r=l.template.content.cloneNode(!0);m(this,q,l.marker),m(this,$,l.expressions),xe(r,h(this,A),h(this,q));for(let p=0;p<h(this,A).length;p++){let c=l.expressions[p];try{h(this,A)[p](void 0,c)}catch(u){console.error(u)}}document.adoptNode(r),h(this,V).appendChild(r)}this.dispatchEvent(Ne),yield(f=this.created)==null?void 0:f.call(this,h(this,y)),this.dispatchEvent(Te),this.dispatchEvent(Q),yield(T=(v=this.connected)==null?void 0:v.call(this,h(this,y)))==null?void 0:T.catch(console.error),this.dispatchEvent(Y),m(this,C,!1),m(this,N,!1),m(this,O,!1),yield this[U]()})}[U](){return b(this,null,function*(){return h(this,C)&&!h(this,N)?this[R]:h(this,C)&&h(this,N)?(m(this,O,!0),this[R]):(m(this,C,!0),this[R]=this[R].then(()=>b(this,null,function*(){var o,s;this.dispatchEvent(Re);let n=yield(o=this.render)==null?void 0:o.call(this,h(this,y));if(m(this,N,!0),n)for(let i=0;i<h(this,A).length;i++){if(h(this,O)){yield Ke(),i=-1,m(this,O,!1);continue}let l=n.expressions[i],d=h(this,$)[i];try{h(this,A)[i](d,l)}catch(a){console.error(a)}h(this,$)[i]=n.expressions[i]}m(this,C,!1),m(this,N,!1),yield(s=this.rendered)==null?void 0:s.call(this,h(this,y)),this.dispatchEvent(Ae)})).catch(console.error),this[R])})}};y=new WeakMap,V=new WeakMap,q=new WeakMap,A=new WeakMap,$=new WeakMap,C=new WeakMap,N=new WeakMap,O=new WeakMap,F=new WeakMap,L(E,"html",j),L(E,"tag"),L(E,"shadow"),L(E,"mode"),L(E,"observedProperties");var ne=[],oe=[],Se=function(e){return new Promise(t=>b(this,null,function*(){e&&e instanceof E?(yield e[R],requestAnimationFrame(()=>t(void 0))):requestAnimationFrame(()=>t(void 0))}))},te=function(e){return b(this,null,function*(){var t;if(e.instance){let n=Se(e.instance);J(e.root,e.instance),yield n}else{let n=yield e.handler();if((n==null?void 0:n.prototype)instanceof HTMLElement)e.construct=n;else if(((t=n==null?void 0:n.default)==null?void 0:t.prototype)instanceof HTMLElement)e.construct=n.default;else throw new Error("XElement - router handler requires Module or CustomElementConstructor");e.construct.prototype instanceof E?e.instance=yield e.construct.create():(e.tag=M(e.construct.name),P(e.tag,e.construct),e.instance=document.createElement(e.tag),B(e.instance));let o=Se(e.instance);J(e.root,e.instance),yield o}})},_e=function(e){var i,l,d;if(e&&"canIntercept"in e&&e.canIntercept===!1||e&&"canTransition"in e&&e.canTransition===!1)return;let t=new URL((i=e==null?void 0:e.destination.url)!=null?i:location.href),n=new URL((d=(l=document.querySelector("base"))==null?void 0:l.href)!=null?d:location.origin);n.hash="",n.search="",t.hash="",t.search="";let o=t.href.replace(n.href,"/"),s=[];for(let a of oe)a.path===o&&s.push(a);for(let a of ne){let f=!1;for(let v of s)if(v.root===a.root){f=!0;break}f||s.push(a)}if(e!=null&&e.intercept)return e.intercept({handler:()=>b(this,null,function*(){yield Promise.all(s.map(a=>te(a)))})});if(e!=null&&e.transitionWhile)return e.transitionWhile(Promise.all(s.map(a=>te(a))));Promise.all(s.map(a=>te(a)))},ze=function(e,t,n){if(!e)throw new Error("XElement - router path required");if(!n)throw new Error("XElement - router handler required");if(!t)throw new Error("XElement - router root required");if(e==="/*"){for(let o of ne)if(o.path===e&&o.root===t)throw new Error("XElement - router duplicate path on root");ne.push({path:e,root:t,handler:n})}else{for(let o of oe)if(o.path===e&&o.root===t)throw new Error("XElement - router duplicate path on root");oe.push({path:e,root:t,handler:n,instance:void 0})}Reflect.get(window,"navigation").addEventListener("navigate",_e)},ie=ze;var kt={Component:E,component:E,Router:ie,router:ie,html:j};export{E as Component,ie as Router,E as component,kt as default,j as html,ie as router};
+// source/poly.ts
+var replaceChildren = function(element, ...nodes) {
+  while (element.lastChild) {
+    element.removeChild(element.lastChild);
+  }
+  if (nodes?.length) {
+    for (const node of nodes) {
+      element.appendChild(
+        typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
+      );
+    }
+  }
+};
+var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : void 0;
+var createHTML = function(data) {
+  if (policy) {
+    return policy.createHTML(data);
+  } else {
+    return data;
+  }
+};
+
+// source/dash.ts
+function dash(data) {
+  data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
+  data = data.toLowerCase();
+  data = data.includes("-") ? data : `x-${data}`;
+  return data;
+}
+
+// source/upgrade.ts
+var upgrade_default = (instance) => {
+  if (customElements.upgrade) {
+    customElements.upgrade(instance);
+  }
+};
+
+// source/router.ts
+var alls = [];
+var routes = [];
+var tick = function(element) {
+  return new Promise(async (resolve) => {
+    if (element && element) {
+      requestAnimationFrame(() => resolve(void 0));
+    } else {
+      requestAnimationFrame(() => resolve(void 0));
+    }
+  });
+};
+var transition = async function(route) {
+  if (route.instance) {
+    const ready = tick(route.instance);
+    replaceChildren(route.root, route.instance);
+    await ready;
+  } else {
+    const result = await route.handler();
+    if (result?.prototype instanceof HTMLElement) {
+      route.construct = result;
+    } else if (result?.default?.prototype instanceof HTMLElement) {
+      route.construct = result.default;
+    } else {
+      throw new Error("XElement - router handler requires Module or CustomElementConstructor");
+    }
+    route.tag = dash(route.construct.name);
+    if (customElements.get(route.tag) !== route.construct) {
+      customElements.define(route.tag, route.construct);
+    }
+    route.instance = document.createElement(route.tag);
+    upgrade_default(route.instance);
+    const ready = tick(route.instance);
+    replaceChildren(route.root, route.instance);
+    await ready;
+  }
+};
+var navigate = function(event) {
+  if (event && "canIntercept" in event && event.canIntercept === false)
+    return;
+  if (event && "canTransition" in event && event.canTransition === false)
+    return;
+  const destination = new URL(event?.destination.url ?? location.href);
+  const base = new URL(document.querySelector("base")?.href ?? location.origin);
+  base.hash = "";
+  base.search = "";
+  destination.hash = "";
+  destination.search = "";
+  const pathname = destination.href.replace(base.href, "/");
+  const transitions = [];
+  for (const route of routes) {
+    if (route.path !== pathname)
+      continue;
+    transitions.push(route);
+  }
+  for (const all of alls) {
+    let has = false;
+    for (const transition2 of transitions) {
+      if (transition2.root === all.root) {
+        has = true;
+        break;
+      }
+    }
+    if (has)
+      continue;
+    transitions.push(all);
+  }
+  if (event?.intercept) {
+    return event.intercept({
+      handler: async () => {
+        await Promise.all(transitions.map((route) => transition(route)));
+      }
+    });
+  } else if (event?.transitionWhile) {
+    return event.transitionWhile(Promise.all(transitions.map((route) => transition(route))));
+  } else {
+    Promise.all(transitions.map((route) => transition(route)));
+  }
+};
+var router = function(path, root, handler) {
+  if (!path)
+    throw new Error("XElement - router path required");
+  if (!handler)
+    throw new Error("XElement - router handler required");
+  if (!root)
+    throw new Error("XElement - router root required");
+  if (path === "/*") {
+    for (const all of alls) {
+      if (all.path === path && all.root === root) {
+        throw new Error("XElement - router duplicate path on root");
+      }
+    }
+    alls.push({ path, root, handler });
+  } else {
+    for (const route of routes) {
+      if (route.path === path && route.root === root) {
+        throw new Error("XElement - router duplicate path on root");
+      }
+    }
+    routes.push({ path, root, handler, instance: void 0 });
+  }
+  Reflect.get(window, "navigation").addEventListener("navigate", navigate);
+};
+var router_default = router;
+
+// source/mark.ts
+var mark_default = () => Math.floor(Math.random() * Date.now());
+
+// source/html.ts
+var symbol = Symbol("html");
+var cache = /* @__PURE__ */ new WeakMap();
+function html(strings, ...expressions) {
+  const value = cache.get(strings);
+  if (value) {
+    const [template, marker] = value;
+    return { strings, template, expressions, symbol, marker };
+  } else {
+    const marker = `x-${mark_default()}-x`;
+    let data = "";
+    const length = strings.length - 1;
+    for (let index = 0; index < length; index++) {
+      data += `${strings[index]}${marker}`;
+    }
+    data += strings[length];
+    const template = document.createElement("template");
+    template.innerHTML = createHTML(data);
+    cache.set(strings, [template, marker]);
+    return { strings, template, expressions, symbol, marker };
+  }
+}
+
+// source/symbols.ts
+var symbols_exports = {};
+__export(symbols_exports, {
+  adopted: () => adopted,
+  attributed: () => attributed,
+  connected: () => connected,
+  create: () => create,
+  created: () => created,
+  disconnected: () => disconnected,
+  extend: () => extend,
+  internal: () => internal,
+  render: () => render,
+  rendered: () => rendered,
+  shadow: () => shadow,
+  state: () => state,
+  tag: () => tag,
+  update: () => update
+});
+var update = Symbol("XUpdate");
+var create = Symbol("XCreate");
+var created = Symbol("XCreated");
+var adopted = Symbol("XAdopted");
+var rendered = Symbol("XRendered");
+var connected = Symbol("XConnected");
+var attributed = Symbol("XAttributed");
+var disconnected = Symbol("XDisconnected");
+var tag = Symbol("XTag");
+var shadow = Symbol("XShadow");
+var extend = Symbol("XExtend");
+var internal = Symbol("XInternal");
+var state = Symbol("XState");
+var render = Symbol("XRender");
+
+// source/define.ts
+var define_exports = {};
+__export(define_exports, {
+  default: () => define_default,
+  define: () => define
+});
+
+// source/context.ts
+var ContextSet = function(method, target, key, value, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.set(target, key, value, receiver);
+  const from = Reflect.get(target, key, receiver);
+  if (from === value)
+    return true;
+  if (Number.isNaN(from) && Number.isNaN(value))
+    return true;
+  Reflect.set(target, key, value, receiver);
+  method();
+  return true;
+};
+var ContextGet = function(method, target, key, receiver) {
+  if (typeof key === "symbol")
+    return Reflect.get(target, key, receiver);
+  const value = Reflect.get(target, key, receiver);
+  if (value) {
+    if (value.constructor === Function) {
+      return new Proxy(value, {
+        apply(t, _, a) {
+          return Reflect.apply(t, receiver, a);
+        }
+      });
+    }
+    if (value.constructor === Object || value.constructor === Array) {
+      return new Proxy(value, {
+        get: ContextGet.bind(null, method),
+        set: ContextSet.bind(null, method),
+        deleteProperty: ContextDelete.bind(null, method)
+      });
+    }
+  }
+  return value;
+};
+var ContextDelete = function(method, target, key) {
+  if (typeof key === "symbol")
+    return Reflect.deleteProperty(target, key);
+  Reflect.deleteProperty(target, key);
+  method();
+  return true;
+};
+var Context = function(data, method) {
+  return new Proxy(data, {
+    get: ContextGet.bind(null, method),
+    set: ContextSet.bind(null, method),
+    deleteProperty: ContextDelete.bind(null, method)
+  });
+};
+var context_default = Context;
+
+// source/tools.ts
+var links = [
+  "src",
+  "href",
+  "data",
+  "action",
+  "srcdoc",
+  "xlink:href",
+  "cite",
+  "formaction",
+  "ping",
+  "poster",
+  "background",
+  "classid",
+  "codebase",
+  "longdesc",
+  "profile",
+  "usemap",
+  "icon",
+  "manifest",
+  "archive"
+];
+var bools = [
+  "hidden",
+  "allowfullscreen",
+  "async",
+  "autofocus",
+  "autoplay",
+  "checked",
+  "controls",
+  "default",
+  "defer",
+  "disabled",
+  "formnovalidate",
+  "inert",
+  "ismap",
+  "itemscope",
+  "loop",
+  "multiple",
+  "muted",
+  "nomodule",
+  "novalidate",
+  "open",
+  "playsinline",
+  "readonly",
+  "required",
+  "reversed",
+  "selected"
+];
+var isLink = function(data) {
+  return data && typeof data === "string" ? links.indexOf(data) !== -1 : false;
+};
+var isBool = function(data) {
+  return data && typeof data === "string" ? bools.indexOf(data) !== -1 : false;
+};
+var patternValue = /^value$/i;
+var isValue = function(data) {
+  return data && typeof data === "string" ? patternValue.test(data) : false;
+};
+var patternOn = /^on/i;
+var hasOn = function(data) {
+  return data && typeof data === "string" ? patternOn.test(data) : false;
+};
+var sliceOn = function(data) {
+  return data && typeof data === "string" ? data?.toLowerCase()?.slice(2) : "";
+};
+var isMarker = function(data, marker) {
+  return data && typeof data === "string" ? data.toLowerCase() === marker.toLowerCase() : false;
+};
+var hasMarker = function(data, marker) {
+  return data && typeof data === "string" ? data.toLowerCase().indexOf(marker.toLowerCase()) !== -1 : false;
+};
+var safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
+var dangerousLink = function(data) {
+  if (data === "")
+    return false;
+  if (typeof data !== "string")
+    return false;
+  return safePattern.test(data) ? false : true;
+};
+var removeBetween = function(start, end) {
+  let node = end.previousSibling;
+  while (node !== start) {
+    node?.parentNode?.removeChild(node);
+    node = end.previousSibling;
+  }
+};
+
+// source/display.ts
+function display(data) {
+  switch (`${data}`) {
+    case "NaN":
+      return "";
+    case "null":
+      return "";
+    case "undefined":
+      return "";
+  }
+  switch (typeof data) {
+    case "string":
+      return data;
+    case "number":
+      return `${data}`;
+    case "bigint":
+      return `${data}`;
+    case "boolean":
+      return `${data}`;
+    case "function":
+      return `${data()}`;
+    case "symbol":
+      return String(data);
+    case "object":
+      return JSON.stringify(data);
+  }
+  throw new Error("XElement - display type not handled");
+}
+
+// source/bind.ts
+var FILTER = 1 + 4;
+var TEXT_NODE = 3;
+var ELEMENT_NODE = 1;
+var ElementAction = function(source, target) {
+  if (target?.symbol === symbol) {
+    source = source ?? {};
+    target = target ?? {};
+    if (source.strings === target.strings) {
+      const l = this.actions.length;
+      for (let i = 0; i < l; i++) {
+        this.actions[i](source.expressions[i], target.expressions[i]);
+      }
+    } else {
+      this.actions.length = 0;
+      const fragment = target.template.content.cloneNode(true);
+      Bind(fragment, this.actions, target.marker);
+      const l = this.actions.length;
+      for (let i = 0; i < l; i++) {
+        this.actions[i](source.expressions?.[i], target.expressions[i]);
+      }
+      document.adoptNode(fragment);
+      removeBetween(this.start, this.end);
+      this.end.parentNode?.insertBefore(fragment, this.end);
+    }
+  } else if (target?.constructor === Array) {
+    source = source ?? [];
+    target = target ?? [];
+    const oldLength = source.length;
+    const newLength = target.length;
+    const common = Math.min(oldLength, newLength);
+    for (let i = 0; i < common; i++) {
+      this.actions[i](source[i], target[i]);
+    }
+    if (oldLength < newLength) {
+      const template = document.createElement("template");
+      for (let i = oldLength; i < newLength; i++) {
+        const startChild = document.createTextNode("");
+        const endChild = document.createTextNode("");
+        const action = ElementAction.bind({
+          start: startChild,
+          end: endChild,
+          actions: []
+        });
+        template.content.appendChild(startChild);
+        template.content.appendChild(endChild);
+        this.actions.push(action);
+        action(source[i], target[i]);
+      }
+      this.end.parentNode?.insertBefore(template.content, this.end);
+    } else if (oldLength > newLength) {
+      for (let i = oldLength - 1; i > newLength - 1; i--) {
+        if (source[i]?.symbol === symbol) {
+          const { template } = source[i];
+          let removes = template.content.childNodes.length + 2;
+          while (removes--)
+            this.end.parentNode?.removeChild(this.end.previousSibling);
+        } else {
+          this.end.parentNode?.removeChild(this.end.previousSibling);
+          this.end.parentNode?.removeChild(this.end.previousSibling);
+          this.end.parentNode?.removeChild(this.end.previousSibling);
+        }
+      }
+      this.actions.length = newLength;
+    }
+  } else {
+    if (source === target) {
+      return;
+    } else if (this.end.previousSibling === this.start) {
+      this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
+    } else if (this.end.previousSibling?.nodeType === TEXT_NODE && this.end.previousSibling?.previousSibling === this.start) {
+      this.end.previousSibling.textContent = display(target);
+    } else {
+      removeBetween(this.start, this.end);
+      this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
+    }
+  }
+};
+var AttributeNameAction = function(source, target) {
+  if (source === target) {
+    return;
+  } else if (isValue(source)) {
+    this.element.removeAttribute(source);
+    Reflect.set(this.element, source, null);
+  } else if (hasOn(source)) {
+    if (typeof this.value === "function") {
+      this.element.removeEventListener(sliceOn(source), this.value, true);
+    }
+  } else if (isLink(source)) {
+    this.element.removeAttribute(source);
+  } else if (isBool(source)) {
+    this.element.removeAttribute(source);
+    Reflect.set(this.element, source, false);
+  } else if (source) {
+    this.element.removeAttribute(source);
+    Reflect.deleteProperty(this.element, source);
+  }
+  this.name = target?.toLowerCase() || "";
+  if (!this.name) {
+    return;
+  } else if (hasOn(this.name)) {
+    return;
+  } else if (isBool(this.name)) {
+    this.element.setAttribute(this.name, "");
+    Reflect.set(this.element, this.name, true);
+  } else {
+    this.element.setAttribute(this.name, "");
+    Reflect.set(this.element, this.name, void 0);
+  }
+};
+var AttributeValueAction = function(source, target) {
+  if (source === target) {
+    return;
+  } else if (isValue(this.name)) {
+    this.value = display(target);
+    if (!this.name)
+      return;
+    this.element.setAttribute(this.name, this.value);
+    Reflect.set(this.element, this.name, this.value);
+  } else if (hasOn(this.name)) {
+    if (!this.name)
+      return;
+    if (typeof this.value === "function") {
+      this.element.removeEventListener(sliceOn(this.name), this.value, true);
+    }
+    if (typeof target !== "function") {
+      return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+    }
+    this.value = function() {
+      return target.call(this, ...arguments);
+    };
+    this.element.addEventListener(sliceOn(this.name), this.value, true);
+  } else if (isLink(this.name)) {
+    this.value = encodeURI(target);
+    if (!this.name)
+      return;
+    if (dangerousLink(this.value)) {
+      this.element.removeAttribute(this.name);
+      console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
+      return;
+    }
+    this.element.setAttribute(this.name, this.value);
+  } else {
+    this.value = target;
+    if (!this.name)
+      return;
+    this.element.setAttribute(this.name, this.value);
+    Reflect.set(this.element, this.name, this.value);
+  }
+};
+var TagAction = function(source, target) {
+  if (source === target)
+    return;
+  const oldElement = this.element;
+  if (target) {
+    oldElement.parentNode?.removeChild(oldElement);
+    const newElement = document.createElement(target);
+    while (oldElement.firstChild)
+      newElement.appendChild(oldElement.firstChild);
+    if (oldElement.nodeType === ELEMENT_NODE) {
+      const attributeNames = oldElement.getAttributeNames();
+      for (const attributeName of attributeNames) {
+        const attributeValue = oldElement.getAttribute(attributeName) ?? "";
+        newElement.setAttribute(attributeName, attributeValue);
+      }
+    }
+    this.holder.parentNode?.insertBefore(newElement, this.holder);
+    this.element = newElement;
+  } else {
+    oldElement.parentNode?.removeChild(oldElement);
+    this.element = oldElement;
+  }
+};
+var Bind = function(fragment, actions, marker) {
+  const holders = /* @__PURE__ */ new WeakSet();
+  const walker = document.createTreeWalker(fragment, FILTER, null);
+  walker.currentNode = fragment;
+  let node = fragment.firstChild;
+  while (node = walker.nextNode()) {
+    if (holders.has(node.previousSibling)) {
+      holders.delete(node.previousSibling);
+      actions.push(() => void 0);
+    }
+    if (node.nodeType === TEXT_NODE) {
+      const startIndex = node.nodeValue?.indexOf(marker) ?? -1;
+      if (startIndex === -1)
+        continue;
+      if (startIndex !== 0) {
+        node.splitText(startIndex);
+        node = walker.nextNode();
+      }
+      const endIndex = marker.length;
+      if (endIndex !== node.nodeValue?.length) {
+        node.splitText(endIndex);
+      }
+      const start = document.createTextNode("");
+      const end = node;
+      end.textContent = "";
+      end.parentNode?.insertBefore(start, end);
+      actions.push(ElementAction.bind({ marker, start, end, actions: [] }));
+    } else if (node.nodeType === ELEMENT_NODE) {
+      if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
+        walker.nextSibling();
+      }
+      const tMeta = {
+        element: node
+      };
+      if (isMarker(node.nodeName, marker)) {
+        holders.add(node);
+        tMeta.holder = document.createTextNode("");
+        node.parentNode?.insertBefore(tMeta.holder, node);
+        actions.push(TagAction.bind(tMeta));
+      }
+      const names = node.getAttributeNames();
+      for (const name of names) {
+        const value = node.getAttribute(name) ?? "";
+        if (hasMarker(name, marker) || hasMarker(value, marker)) {
+          const aMeta = {
+            name,
+            value,
+            previous: void 0,
+            get element() {
+              return tMeta.element;
+            }
+          };
+          if (hasMarker(name, marker)) {
+            node.removeAttribute(name);
+            actions.push(AttributeNameAction.bind(aMeta));
+          }
+          if (hasMarker(value, marker)) {
+            node.removeAttribute(name);
+            actions.push(AttributeValueAction.bind(aMeta));
+          }
+        } else {
+          if (isLink(name)) {
+            if (dangerousLink(value)) {
+              node.removeAttribute(name);
+              console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
+            }
+          } else if (hasOn(name)) {
+            node.removeAttribute(name);
+            console.warn(`XElement - attribute name "${name}" not allowed`);
+          }
+        }
+      }
+    } else {
+      console.warn(`XElement - node type "${node.nodeType}" not handled`);
+    }
+  }
+};
+var bind_default = Bind;
+
+// source/events.ts
+var adoptedEvent = new Event("adopted");
+var adoptingEvent = new Event("adopting");
+var upgradedEvent = new Event("upgraded");
+var upgradingEvent = new Event("upgrading");
+var creatingEvent = new Event("creating");
+var createdEvent = new Event("created");
+var renderingEvent = new Event("rendering");
+var renderedEvent = new Event("rendered");
+var connectedEvent = new Event("connected");
+var connectingEvent = new Event("connecting");
+var attributedEvent = new Event("attributed");
+var attributingEvent = new Event("attributing");
+var disconnectedEvent = new Event("disconnected");
+var disconnectingEvent = new Event("disconnecting");
+
+// source/define.ts
+var tick2 = () => Promise.resolve();
+var createMethod = async function() {
+  this[internal].created = true;
+  this[internal].queued = true;
+  this[internal].started = true;
+  this.dispatchEvent(renderingEvent);
+  await this.$state?.(this[internal].state);
+  const template = await this.$render?.(this[internal].state);
+  if (template) {
+    const fragment = template.template.content.cloneNode(true);
+    this[internal].marker = template.marker;
+    this[internal].expressions = template.expressions;
+    bind_default(fragment, this[internal].actions, this[internal].marker);
+    for (let index = 0; index < this[internal].actions.length; index++) {
+      const newExpression = template.expressions[index];
+      try {
+        this[internal].actions[index](void 0, newExpression);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    document.adoptNode(fragment);
+    this[internal].root.appendChild(fragment);
+  }
+  this.dispatchEvent(creatingEvent);
+  await this.$created?.(this[internal].state)?.catch(console.error);
+  this.dispatchEvent(createdEvent);
+  this.dispatchEvent(connectingEvent);
+  await this.$connected?.(this[internal].state)?.catch(console.error);
+  this.dispatchEvent(connectedEvent);
+  this[internal].queued = false;
+  this[internal].started = false;
+  this[internal].restart = false;
+  await this[update]();
+};
+var updateMethod = async function() {
+  if (this[internal].queued && !this[internal].started) {
+    return this[internal].task;
+  }
+  if (this[internal].queued && this[internal].started) {
+    this[internal].restart = true;
+    return this[internal].task;
+  }
+  this[internal].queued = true;
+  this[internal].task = this[internal].task.then(async () => {
+    this.dispatchEvent(renderingEvent);
+    const template = await this.$render?.(this[internal].state);
+    this[internal].started = true;
+    if (template) {
+      for (let index = 0; index < this[internal].actions.length; index++) {
+        if (this[internal].restart) {
+          await tick2();
+          index = -1;
+          this[internal].restart = false;
+          continue;
+        }
+        const newExpression = template.expressions[index];
+        const oldExpression = this[internal].expressions[index];
+        try {
+          this[internal].actions[index](oldExpression, newExpression);
+        } catch (error) {
+          console.error(error);
+        }
+        this[internal].expressions[index] = template.expressions[index];
+      }
+    }
+    this[internal].queued = false;
+    this[internal].started = false;
+    await this.$rendered?.(this[internal].state)?.catch(console.error);
+    ;
+    this.dispatchEvent(renderedEvent);
+  }).catch(console.error);
+  return this[internal].task;
+};
+var attributeChangedCallback = async function(name, oldValue, newValue) {
+  this.dispatchEvent(attributingEvent);
+  await this.$attributed?.(name, oldValue, newValue)?.catch(console.error);
+  this.dispatchEvent(attributedEvent);
+};
+var adoptedCallback = async function() {
+  this.dispatchEvent(adoptingEvent);
+  await this.$adopted?.(this[internal].state)?.catch(console.error);
+  this.dispatchEvent(adoptedEvent);
+};
+var connectedCallback = async function() {
+  if (!this[internal].created) {
+    await this[create]();
+  } else {
+    this.dispatchEvent(connectingEvent);
+    await this.$connected?.(this[internal].state)?.catch(console.error);
+    this.dispatchEvent(connectedEvent);
+  }
+};
+var disconnectedCallback = async function() {
+  this.dispatchEvent(disconnectingEvent);
+  await this.$disconnected?.(this[internal].state)?.catch(console.error);
+  this.dispatchEvent(disconnectedEvent);
+};
+var init = (target) => {
+  const $mount = target.$mount;
+  const $extend = target.$extend;
+  const $shadow = target.$shadow ?? "open";
+  const $tag = dash(target.$tag ?? target.name);
+  Object.defineProperties(target, {
+    $tag: { value: $tag },
+    $shadow: { value: $shadow },
+    $extend: { value: $extend },
+    $mount: { value: $mount }
+  });
+  Object.defineProperties(target.prototype, {
+    [internal]: {
+      get: function() {
+        const value = {
+          queued: false,
+          created: false,
+          restart: false,
+          started: false,
+          marker: "",
+          actions: [],
+          expressions: [],
+          task: Promise.resolve(),
+          state: context_default({}, this[update].bind(this)),
+          root: $shadow == "open" || $shadow == "closed" ? this.attachShadow({ mode: $shadow }) : this
+        };
+        Object.defineProperty(this, internal, {
+          value,
+          configurable: false,
+          enumerable: false,
+          writable: false
+        });
+        return value;
+      }
+    },
+    [create]: { value: createMethod },
+    [update]: { value: updateMethod },
+    adoptedCallback: { value: adoptedCallback },
+    connectedCallback: { value: connectedCallback },
+    disconnectedCallback: { value: disconnectedCallback },
+    attributeChangedCallback: { value: attributeChangedCallback }
+  });
+  if (customElements.get($tag) !== target) {
+    customElements.define($tag, target, { extends: $extend });
+  }
+  if ($mount) {
+    const ready = () => {
+      const container = $mount === "body" ? document.body : document.querySelector($mount);
+      if (!container)
+        throw new Error("XElement mount - container not found");
+      const $tag2 = dash(target.$tag ?? target.name);
+      const $extend2 = target.$extend;
+      const element = document.createElement($extend2 || $tag2, $extend2 ? { is: $tag2 } : void 0);
+      customElements.upgrade(element);
+      replaceChildren(container, element);
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("readystatechange", ready, { once: true });
+    } else {
+      ready();
+    }
+  }
+};
+var define = () => (constructor, context) => {
+  const target = constructor;
+  if (context !== void 0) {
+    return context.addInitializer(() => init(target));
+  } else {
+    return init(target);
+  }
+};
+var define_default = define;
+
+// source/types.ts
+var types_exports = {};
+
+// source/index.ts
+var source_default = {
+  Router: router_default,
+  router: router_default,
+  html,
+  ...define_exports,
+  ...symbols_exports,
+  ...types_exports
+};
+export {
+  router_default as Router,
+  adopted,
+  attributed,
+  connected,
+  create,
+  created,
+  source_default as default,
+  define,
+  disconnected,
+  extend,
+  html,
+  internal,
+  render,
+  rendered,
+  router_default as router,
+  shadow,
+  state,
+  tag,
+  update
+};
 //# sourceMappingURL=x-element.js.map

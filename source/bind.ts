@@ -35,7 +35,7 @@ const ElementAction = function (
             // const fragment = document.importNode(target.template.content, true);
             const fragment = target.template.content.cloneNode(true);
 
-            Render(fragment, this.actions, target.marker);
+            Bind(fragment, this.actions, target.marker);
 
             const l = this.actions.length;
             for (let i = 0; i < l; i++) {
@@ -240,7 +240,7 @@ const TagAction = function (
 
 };
 
-export const Render = function (fragment: DocumentFragment, actions: Actions, marker: string) {
+export const Bind = function (fragment: DocumentFragment, actions: Actions, marker: string) {
     const holders = new WeakSet();
     const walker = document.createTreeWalker(fragment, FILTER, null);
 
@@ -337,4 +337,4 @@ export const Render = function (fragment: DocumentFragment, actions: Actions, ma
     }
 };
 
-export default Render;
+export default Bind;
