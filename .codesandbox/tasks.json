@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "docker": {
+      "name": "Run container",
+      "command": "print hello world",
+      "runAtStart": true,
+      "preview": {
+        "port": 8080
+      }
+    }
+  }
+}
