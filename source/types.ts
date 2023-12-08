@@ -42,6 +42,7 @@ export type MountInit = string | {
 }
 
 export type Internal = {
+    setup: boolean,
     queued: boolean,
     created: boolean,
     restart: boolean,
@@ -52,21 +53,42 @@ export type Internal = {
     task: Promise<void>,
     state: Record<any,any>,
     root: Element | ShadowRoot,
+
+    create: () => Promise<void>,
+    update: () => Promise<void>,
 }
 
-export interface Prototype extends HTMLElement {
+export abstract class Component extends HTMLElement {
 
-    $state: (context: Record<any, any>) => void | Promise<void>;
-    // $state (context: Record<any, any>): void | Promise<void>;
-    // [ state ] (context: Record<any, any>): void | Promise<void>;
+    /**
+     * The tag name.
+     */
+    static readonly $tag?: string;
+
+    /**
+     * A shdow of open, closed, or none (which does not use shadow) defaults to open.
+     */
+    static readonly  $shadow?: Shadow;
+
+    /**
+     * A selector that mounts an instance of the element.
+     */
+    static $mount?: string;
+
+    /**
+     * A tag name to extend.
+     */
+    static $extend?: string;
+
+    // abstract $state <S extends any>(state: S): void | Promise<void>;
+    abstract $state: (state: Record<any,any> | any) => void | Promise<void>;
 
     /**
      * Invoked when triggered from reactive properties.
      * @category rendering
      */
-    $render: (context: Record<any, any>) => HTML | Promise<HTML>;
-    // $render (context: Record<any, any>): HTML | Promise<HTML>;
-    // [render] (context: Record<any, any>): HTML | Promise<HTML>;
+    // abstract $render<S extends any>(state: S): HTML | Promise<HTML>;
+    abstract $render: (state: Record<any,any> | any) => HTML | Promise<HTML>;
 
     /**
      * Called one time when an element is created. cycle: Created -> Connected -> Rendered.
@@ -102,38 +124,11 @@ export interface Prototype extends HTMLElement {
      * Called every an observed attribute changes.
      */
     $attributed?(name: string, from: string, to: string): void | Promise<void>;
-}
-
-export interface Constructor {
-
-    /**
-     * The tag name.
-     */
-    $tag?: string;
-
-    /**
-     * A selector that mounts an instance of the element.
-     */
-    $mount?: string;
-
-    /**
-     * A tag name to extend.
-     */
-    $extend?: string;
-
-    /**
-     * A shdow of open, closed, or none (which does not use shadow) defaults to open.
-     */
-    $shadow?: Shadow;
-
-    prototype: Prototype;
-    new (): Prototype;
-    // new (...params: any[]): HTMLElement;
 
 };
 
-export interface Instance extends Prototype {
-    readonly [ internal ]: Internal;
+export interface Instance extends Component {
+    readonly $internal: Internal;
 
     /**
      * Invoked once on connectedCallback.

@@ -1,7 +1,17 @@
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __decorateClass = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
+  for (var i = decorators.length - 1, decorator; i >= 0; i--)
+    if (decorator = decorators[i])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result)
+    __defProp(target, key, result);
+  return result;
 };
 
 // source/poly.ts
@@ -250,57 +260,6 @@ __export(define_exports, {
   default: () => define_default,
   define: () => define
 });
-
-// source/context.ts
-var ContextSet = function(method, target, key, value, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.set(target, key, value, receiver);
-  const from = Reflect.get(target, key, receiver);
-  if (from === value)
-    return true;
-  if (Number.isNaN(from) && Number.isNaN(value))
-    return true;
-  Reflect.set(target, key, value, receiver);
-  method();
-  return true;
-};
-var ContextGet = function(method, target, key, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.get(target, key, receiver);
-  const value = Reflect.get(target, key, receiver);
-  if (value) {
-    if (value.constructor === Function) {
-      return new Proxy(value, {
-        apply(t, _, a) {
-          return Reflect.apply(t, receiver, a);
-        }
-      });
-    }
-    if (value.constructor === Object || value.constructor === Array) {
-      return new Proxy(value, {
-        get: ContextGet.bind(null, method),
-        set: ContextSet.bind(null, method),
-        deleteProperty: ContextDelete.bind(null, method)
-      });
-    }
-  }
-  return value;
-};
-var ContextDelete = function(method, target, key) {
-  if (typeof key === "symbol")
-    return Reflect.deleteProperty(target, key);
-  Reflect.deleteProperty(target, key);
-  method();
-  return true;
-};
-var Context = function(data, method) {
-  return new Proxy(data, {
-    get: ContextGet.bind(null, method),
-    set: ContextSet.bind(null, method),
-    deleteProperty: ContextDelete.bind(null, method)
-  });
-};
-var context_default = Context;
 
 // source/tools.ts
 var links = [
@@ -689,111 +648,122 @@ var disconnectingEvent = new Event("disconnecting");
 
 // source/define.ts
 var tick2 = () => Promise.resolve();
+var setupInstance = function() {
+  if (this.$internal.setup)
+    return;
+  else
+    this.$internal.setup = true;
+};
 var createMethod = async function() {
-  this[internal].created = true;
-  this[internal].queued = true;
-  this[internal].started = true;
+  this.$internal.created = true;
+  this.$internal.queued = true;
+  this.$internal.started = true;
   this.dispatchEvent(renderingEvent);
-  await this.$state?.(this[internal].state);
-  const template = await this.$render?.(this[internal].state);
+  await this.$state?.(this.$internal.state);
+  const template = await this.$render?.(this.$internal.state);
   if (template) {
     const fragment = template.template.content.cloneNode(true);
-    this[internal].marker = template.marker;
-    this[internal].expressions = template.expressions;
-    bind_default(fragment, this[internal].actions, this[internal].marker);
-    for (let index = 0; index < this[internal].actions.length; index++) {
+    this.$internal.marker = template.marker;
+    this.$internal.expressions = template.expressions;
+    bind_default(fragment, this.$internal.actions, this.$internal.marker);
+    for (let index = 0; index < this.$internal.actions.length; index++) {
       const newExpression = template.expressions[index];
       try {
-        this[internal].actions[index](void 0, newExpression);
+        this.$internal.actions[index](void 0, newExpression);
       } catch (error) {
         console.error(error);
       }
     }
     document.adoptNode(fragment);
-    this[internal].root.appendChild(fragment);
+    this.$internal.root.appendChild(fragment);
   }
   this.dispatchEvent(creatingEvent);
-  await this.$created?.(this[internal].state)?.catch(console.error);
+  await this.$created?.(this.$internal.state)?.catch(console.error);
   this.dispatchEvent(createdEvent);
   this.dispatchEvent(connectingEvent);
-  await this.$connected?.(this[internal].state)?.catch(console.error);
+  await this.$connected?.(this.$internal.state)?.catch(console.error);
   this.dispatchEvent(connectedEvent);
-  this[internal].queued = false;
-  this[internal].started = false;
-  this[internal].restart = false;
-  await this[internal].update();
+  this.$internal.queued = false;
+  this.$internal.started = false;
+  this.$internal.restart = false;
+  await this.$internal.update();
 };
 var updateMethod = async function() {
-  if (this[internal].queued && !this[internal].started) {
-    return this[internal].task;
+  if (this.$internal.queued && !this.$internal.started) {
+    return this.$internal.task;
   }
-  if (this[internal].queued && this[internal].started) {
-    this[internal].restart = true;
-    return this[internal].task;
+  if (this.$internal.queued && this.$internal.started) {
+    this.$internal.restart = true;
+    return this.$internal.task;
   }
-  this[internal].queued = true;
-  this[internal].task = this[internal].task.then(async () => {
+  this.$internal.queued = true;
+  this.$internal.task = this.$internal.task.then(async () => {
     this.dispatchEvent(renderingEvent);
-    const template = await this.$render?.(this[internal].state);
-    this[internal].started = true;
+    const template = await this.$render?.(this.$internal.state);
+    this.$internal.started = true;
     if (template) {
-      for (let index = 0; index < this[internal].actions.length; index++) {
-        if (this[internal].restart) {
+      for (let index = 0; index < this.$internal.actions.length; index++) {
+        if (this.$internal.restart) {
           await tick2();
           index = -1;
-          this[internal].restart = false;
+          this.$internal.restart = false;
           continue;
         }
         const newExpression = template.expressions[index];
-        const oldExpression = this[internal].expressions[index];
+        const oldExpression = this.$internal.expressions[index];
         try {
-          this[internal].actions[index](oldExpression, newExpression);
+          this.$internal.actions[index](oldExpression, newExpression);
         } catch (error) {
           console.error(error);
         }
-        this[internal].expressions[index] = template.expressions[index];
+        this.$internal.expressions[index] = template.expressions[index];
       }
     }
-    this[internal].queued = false;
-    this[internal].started = false;
-    await this.$rendered?.(this[internal].state)?.catch(console.error);
+    this.$internal.queued = false;
+    this.$internal.started = false;
+    await this.$rendered?.(this.$internal.state)?.catch(console.error);
     ;
     this.dispatchEvent(renderedEvent);
   }).catch(console.error);
-  return this[internal].task;
+  return this.$internal.task;
 };
 var attributeChangedCallback = async function(name, oldValue, newValue) {
+  setupInstance.call(this);
   this.dispatchEvent(attributingEvent);
   await this.$attributed?.(name, oldValue, newValue)?.catch(console.error);
   this.dispatchEvent(attributedEvent);
 };
 var adoptedCallback = async function() {
+  setupInstance.call(this);
   this.dispatchEvent(adoptingEvent);
-  await this.$adopted?.(this[internal].state)?.catch(console.error);
+  await this.$adopted?.(this.$internal.state)?.catch(console.error);
   this.dispatchEvent(adoptedEvent);
 };
 var connectedCallback = async function() {
-  if (!this[internal].created) {
-    await this[internal].create();
+  setupInstance.call(this);
+  if (!this.$internal.created) {
+    await this.$internal.create();
   } else {
     this.dispatchEvent(connectingEvent);
-    await this.$connected?.(this[internal].state)?.catch(console.error);
+    await this.$connected?.(this.$internal.state)?.catch(console.error);
     this.dispatchEvent(connectedEvent);
   }
 };
 var disconnectedCallback = async function() {
+  setupInstance.call(this);
   this.dispatchEvent(disconnectingEvent);
-  await this.$disconnected?.(this[internal].state)?.catch(console.error);
+  await this.$disconnected?.(this.$internal.state)?.catch(console.error);
   this.dispatchEvent(disconnectedEvent);
 };
 var init2 = (target, tag2) => {
   const $tag = dash(tag2);
   Object.defineProperties(target, { $tag: { value: $tag } });
   Object.defineProperties(target.prototype, {
-    [internal]: {
+    $internal: {
       get() {
         const $shadow = target.$shadow;
         const value = {
+          setup: false,
           queued: false,
           created: false,
           restart: false,
@@ -804,14 +774,15 @@ var init2 = (target, tag2) => {
           task: Promise.resolve(),
           create: createMethod.bind(this),
           update: updateMethod.bind(this),
-          state: context_default({}, updateMethod.bind(this)),
+          state: {},
+          // state: context({}, updateMethod.bind(this)),
           root: $shadow === "open" || $shadow === "closed" ? this.attachShadow({ mode: $shadow }) : this
         };
-        Object.defineProperty(this, internal, {
+        Object.defineProperty(this, "$internal", {
           value,
-          configurable: false,
+          writable: false,
           enumerable: false,
-          writable: false
+          configurable: false
         });
         return value;
       }
@@ -828,9 +799,7 @@ var init2 = (target, tag2) => {
   return target;
 };
 var define = function(tag2) {
-  console.log(arguments);
-  return (constructor, context) => {
-    console.log(arguments);
+  return function(constructor, context) {
     if (context !== void 0) {
       return context.addInitializer(() => init2(constructor, tag2));
     } else {
@@ -883,32 +852,32 @@ var source_default = {
   ...types_exports
 };
 var text = function(selector) {
-  return function(value, context) {
+  console.log(arguments);
+  return function(target, nameOrContext) {
     console.log(arguments);
   };
 };
-export {
-  Component,
-  router_default as Router,
-  adopted,
-  attributed,
-  connected,
-  create,
-  created,
-  source_default as default,
-  define,
-  disconnected,
-  extend,
-  html,
-  internal,
-  mount,
-  render,
-  rendered,
-  router_default as router,
-  shadow,
-  state,
-  tag,
-  text,
-  update
+
+// public/idea/index.ts
+var XTest = class extends HTMLElement {
+  constructor() {
+    super(...arguments);
+    this.count = 0;
+    this.$state = (s) => {
+      s.count = 0;
+      setInterval(() => s.count++, 1e3);
+    };
+    this.$render = (s) => html`
+        <strong>${s.count}</strong>
+        <strong id="count"></strong>
+    `;
+  }
 };
-//# sourceMappingURL=x-element.js.map
+__decorateClass([
+  text("#count")
+], XTest.prototype, "count", 2);
+XTest = __decorateClass([
+  mount("body"),
+  define("x-test")
+], XTest);
+//# sourceMappingURL=index.js.map

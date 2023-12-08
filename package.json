@@ -12,7 +12,8 @@
             "default": "./module/index.js"
         }
     },
-    "scripts": {},
+    "scripts": {
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/xeaone/element.git"
@@ -24,13 +25,13 @@
         "url": "https://github.com/xeaone/element/issues"
     },
     "homepage": "https://github.com/xeaone/element#readme",
-    "keywords": [],
+    "keywords": [ ],
     "directories": {
         "bundle": "bundle",
         "module": "module"
     },
     "version": "9.1.10",
     "devDependencies": {
-        "typescript": "^5.2.2"
+        "typescript": "^5.4.0-dev.20231108"
     }
 }

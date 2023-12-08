@@ -30,6 +30,7 @@
         "t": "deno test -A scripts/test.ts",
         "w": "deno run -A scripts/watch.ts",
         "tv": "deno test scripts/virtual-test.ts",
-        "wv": "deno run -A scripts/virtual-watch.ts"
+        "watch-idea": "deno run -A scripts/watch-idea.ts",
+        "watch-virtual": "deno run -A scripts/watch-virtual.ts"
     }
 }

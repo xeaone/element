@@ -10,7 +10,7 @@ export const attributed = Symbol('XAttributed');
 export const disconnected = Symbol('XDisconnected');
 
 export const tag = Symbol('XTag');
-export const shadow = Symbol('XShadow');
+// export const shadow = Symbol('XShadow');
 export const extend = Symbol('XExtend');
 export const internal = Symbol('XInternal');
 
