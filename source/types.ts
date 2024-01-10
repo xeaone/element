@@ -1,142 +1,73 @@
-import { attributed, adopted, connected, created, disconnected, internal, render, rendered, tag, state, create, update, extend, shadow } from './symbols';
 
-export type Action = (source: any, target: any) => void;
-export type Actions = Array<Action>;
+// interface Context {
+//     update: () => void,
+// }
 
-export type Expressions = Array<any>;
+// export type Variable = string | number | Array<any> | Record<any, any> | ((context: Context) => any);
 
-export type HTML = {
-    strings: TemplateStringsArray,
-    template: HTMLTemplateElement,
-    expressions: Expressions,
-    marker: string,
-    symbol: symbol,
-};
+export type Marker = string;
 
-export type Attribute = { name: string, value: string; };
+export type Container = string | Element
 
-// export type VirtualNode = FragmentNode | ElementNode | AttributeNode | TextNode;
-// export type VirtualNode = any;
+export type Template = HTMLTemplateElement;
 
-export type Module = { default: CustomElementConstructor; };
-export type Handler = () => Module | CustomElementConstructor | Promise<Module | CustomElementConstructor>;
-export type Route = {
-    path: string;
-    root: Element;
-    handler: Handler;
-    tag?: string;
-    instance?: Element;
-    construct?: CustomElementConstructor;
-};
+export type Variables = Variable[];
 
-export type Shadow = 'open' | 'closed' | 'none';
+export type Variable = string | number | Array<any> | Record<any, any> | (() => any);
 
-export type DefineInit = string | {
-    tag?: string,
-    extend?: string,
-    shadow?: Shadow,
+export interface Initialize {
+    (container?: string | Element): Element | DocumentFragment
 }
 
-export type MountInit = string | {
-    selector?: string,
+export interface Binder {
+
+    // array
+    start?: Text, // maybe weakref
+    end?: Text,  // maybe weakref
+    length?: number,
+    markers?: Node[],
+    results?: any[],
+
+    meta: Record<any, any>,
+
+    result: any,
+    variable: Variable,
+
+    node: Node | null,
+    nodeReference: WeakRef<Node>,
+
+    owner: Element | null,
+    ownerReference: WeakRef<Element> | undefined,
+
+    remove: () => void,
+    replace: (node:Node) => void,
+
+    // isOnce: boolean,
+    // isReactive: boolean,
+    // isInstance: boolean,
+    // isInitialized: boolean,
+
 }
 
-export type Internal = {
-    setup: boolean,
-    queued: boolean,
-    created: boolean,
-    restart: boolean,
-    started: boolean,
-    marker: string,
-    actions: Actions,
-    expressions: Expressions,
-    task: Promise<void>,
-    state: Record<any,any>,
-    root: Element | ShadowRoot,
+export type BindersCache = Set<Binder>;
 
-    create: () => Promise<void>,
-    update: () => Promise<void>,
-}
+export type TemplateCache = { template: Template, marker: Marker, };
 
-export abstract class Component extends HTMLElement {
+export type TemplatesCache = WeakMap<TemplateStringsArray, TemplateCache>;
 
-    /**
-     * The tag name.
-     */
-    static readonly $tag?: string;
+export type ContainersCache = WeakMap<Element, HTMLTemplateElement>;
 
-    /**
-     * A shdow of open, closed, or none (which does not use shadow) defaults to open.
-     */
-    static readonly  $shadow?: Shadow;
+export interface Global {
 
-    /**
-     * A selector that mounts an instance of the element.
-     */
-    static $mount?: string;
+    // QueueNext: Promise<void> | undefined,
+    // QueueCurrent: Promise<void> | undefined,
 
-    /**
-     * A tag name to extend.
-     */
-    static $extend?: string;
+    BindersCache: BindersCache,
+    TemplatesCache: TemplatesCache,
+    ContainersCache: ContainersCache,
 
-    // abstract $state <S extends any>(state: S): void | Promise<void>;
-    abstract $state: (state: Record<any,any> | any) => void | Promise<void>;
-
-    /**
-     * Invoked when triggered from reactive properties.
-     * @category rendering
-     */
-    // abstract $render<S extends any>(state: S): HTML | Promise<HTML>;
-    abstract $render: (state: Record<any,any> | any) => HTML | Promise<HTML>;
-
-    /**
-     * Called one time when an element is created. cycle: Created -> Connected -> Rendered.
-     * @category lifecycle
-     */
-    $created?(context: Record<any, any>): void | Promise<void>;
-
-    /**
-     * Called every time the element is Connected to a document. cycle: Connected -> Rendered.
-     * @category lifecycle
-     */
-    $connected?(context: Record<any, any>): void | Promise<void>;
-
-    /**
-     * Called every time the element is needs to render. cycle: Rendered.
-     * @category lifecycle
-     */
-    $rendered?(context: Record<any, any>): void | Promise<void>;
-
-    /**
-     * Called every time the element disconnected from a document.
-     * @category lifecycle
-     */
-    $disconnected?(context: Record<any, any>): void | Promise<void>;
-
-    /**
-     * Called every time the element adopted into a new document.
-     * @category lifecycle
-     */
-    $adopted?(context: Record<any, any>): void | Promise<void>;
-
-    /**
-     * Called every an observed attribute changes.
-     */
-    $attributed?(name: string, from: string, to: string): void | Promise<void>;
-
-};
-
-export interface Instance extends Component {
-    readonly $internal: Internal;
-
-    /**
-     * Invoked once on connectedCallback.
-     */
-    readonly [ create ]: () => Promise<void>;
-
-    /**
-     * Invoked every state change callback.
-     */
-    readonly [ update ]: () => Promise<void>;
+    MarkerSymbol: symbol,
+    InstanceSymbol: symbol
+    TemplateSymbol: symbol
+    VariablesSymbol: symbol,
 }

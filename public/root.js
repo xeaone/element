@@ -1,4 +1,4 @@
-import { component, html } from './x-element.js';
+import { html } from './x-element.js';
 import highlight from './modules/highlight.js';
 
 const componentExample = highlight(`
@@ -23,16 +23,24 @@ import { router } from '/x-element.js';
 router('/', document.body, ()=> import('/greet.js'));
 `);
 
-export default class root extends component  {
+// export default class root extends component  {
 
-    created() {
-        this.querySelector('#router').innerHTML = routerExample;
-        this.querySelector('#component').innerHTML = componentExample;
-    }
+//     created() {
+//         this.querySelector('#router').innerHTML = routerExample;
+//         this.querySelector('#component').innerHTML = componentExample;
+//     }
 
-    render = () => html`
+//     render = () =>
+// }
 
-    <section>
+const connected = () => {
+    document.querySelector('#router').innerHTML = routerExample;
+    document.querySelector('#component').innerHTML = componentExample;
+};
+
+export default html`
+
+    <section onConnected=${connected}>
 
         <h2>Vision</h2>
         <h4>Provide a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.</h4>
@@ -84,5 +92,4 @@ export default class root extends component  {
 
     </section>
 
-    `
-}
+`('main')

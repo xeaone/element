@@ -1,3 +1,17 @@
+
+export const {
+    SHOW_TEXT,
+    SHOW_ELEMENT,
+} = NodeFilter;
+
+export const {
+    TEXT_NODE,
+    COMMENT_NODE,
+    ELEMENT_NODE,
+    ATTRIBUTE_NODE,
+    DOCUMENT_FRAGMENT_NODE,
+} = Node;
+
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
 // https://www.w3.org/TR/REC-html40/index/attributes.html
 const links = [
@@ -19,7 +33,7 @@ const links = [
     'usemap',
     'icon',
     'manifest',
-    'archive'
+    'archive',
 ];
 
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
@@ -53,64 +67,152 @@ const bools = [
 
 export const isLink = function (data: string): boolean {
     return data && typeof data === 'string' ?
-        links.indexOf(data) !== -1 :
-        false;
+        links.indexOf(data.toLowerCase()) !== -1 : false;
 };
 
 export const isBool = function (data: string): boolean {
     return data && typeof data === 'string' ?
-        bools.indexOf(data) !== -1 :
-        false;
+        bools.indexOf(data.toLowerCase()) !== -1 : false;
+};
+
+export const isIterable = function (data: any): boolean {
+    return data && typeof data !== 'string' &&
+        typeof data[ Symbol.iterator ] === 'function';
+};
+
+const patternAnimation = /^onanimation$/i;
+export const isAnimation = function (data: string): boolean {
+    return data && typeof data === 'string' ?
+        patternAnimation.test(data) : false;
+};
+
+const patternTimeout = /^ontimeout$/i;
+export const isTimeout = function (data: string): boolean {
+    return data && typeof data === 'string' ?
+        patternTimeout.test(data) : false;
 };
 
 const patternValue = /^value$/i;
 export const isValue = function (data: string): boolean {
     return data && typeof data === 'string' ?
-        patternValue.test(data) :
-        false;
+        patternValue.test(data) : false;
 };
 
 const patternOn = /^on/i;
 export const hasOn = function (data: string): boolean {
     return data && typeof data === 'string' ?
-        patternOn.test(data) :
-        false;
+        patternOn.test(data) : false;
 };
 
-export const sliceOn = function (data: string): string {
+// export const sliceOn = function (data: string): string {
+//     return data && typeof data === 'string' ?
+//         data?.toLowerCase()?.slice(2) :
+//         '';
+// };
+
+const patternMarker = /^x-[0-9]{10}-x$/;
+export const isMarker = function (data: string): boolean {
     return data && typeof data === 'string' ?
-        data?.toLowerCase()?.slice(2) :
-        '';
+        patternMarker.test(data) : false;
 };
 
-export const isMarker = function (data: string, marker: string): boolean {
-    return data && typeof data === 'string' ?
-        data.toLowerCase() === marker.toLowerCase() :
-        false;
-};
+// export const isMarker = function (data: string, marker: string): boolean {
+//     return data && typeof data === 'string' ?
+//         data === marker : false;
+// };
 
 export const hasMarker = function (data: string, marker: string): boolean {
     return data && typeof data === 'string' ?
-        data.toLowerCase().indexOf(marker.toLowerCase()) !== -1 :
-        false;
+        data.indexOf(marker) !== -1 : false;
 };
 
-export const includes = function (item: string | Array<any>, search: any) {
-    return item.indexOf(search) !== -1;
+// export const includes = function (item: string | Array<any>, search: any) {
+//     return item.indexOf(search) !== -1;
+// };
+
+export const mark = function (): string {
+    return `x-${`${Math.floor(Math.random() * Date.now())}`.slice(0, 10)}-x`;
 };
 
 // const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 const safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
-export const dangerousLink = function (data: string) {
+export const dangerousLink = function (data: string): boolean {
     if (data === '') return false;
     if (typeof data !== 'string') return false;
     return safePattern.test(data) ? false : true;
 };
 
+/**
+ *  DOM mod methods
+ */
+
 export const removeBetween = function (start: Node, end: Node) {
     let node = end.previousSibling;
-    while (node !== start) {
-        node?.parentNode?.removeChild(node);
+    while (node && node !== start) {
+        node.parentNode?.removeChild(node);
         node = end.previousSibling;
     }
+};
+
+export const removeNode = function (node: Node): void {
+    (node.parentNode as Node).removeChild(node);
+};
+
+export const beforeNode = function (node: Node, child: Node): void {
+    (child.parentNode as Node).insertBefore(node as Node, child);
+};
+
+export const afterNode = function (node: Node, child: Node): void {
+    (child.parentNode as Node).insertBefore(node, child.nextSibling);
+};
+
+export const replaceNode = function (node: Node, child: Node): void {
+    (child.parentNode as Node).replaceChild(node, child);
+};
+
+export const replaceChildren = function (element: Element | Document | DocumentFragment, ...nodes: (Node | string)[]): void {
+
+    while (element.lastChild) {
+        element.removeChild(element.lastChild);
+    }
+
+    for (const node of nodes) {
+        element.appendChild(
+            typeof node === 'string' ?
+                (element.ownerDocument as Document).createTextNode(node) :
+                node
+        );
+    }
+
+};
+
+export const createAttribute = function (owner: Element, name: string, value?: string): Attr {
+    const attribute = owner.ownerDocument.createAttribute(name);
+    attribute.value = value ?? '';
+    owner.setAttributeNode(attribute);
+    return attribute;
+};
+
+export const removeAttribute = function (node: Attr): Attr {
+    return (node.ownerElement as Element).removeAttributeNode(node);
+};
+
+/**
+ * Node methods
+ */
+
+export const isText = function (node: Node | null): boolean {
+    return node?.nodeType === TEXT_NODE;
+};
+
+export const isAttribute = function (node: Node | null): boolean {
+    return node?.nodeType === ATTRIBUTE_NODE;
+};
+
+export const isElement = function (node: Node | null): boolean {
+    return node?.nodeType === ELEMENT_NODE;
+};
+
+export const isComment = function (node: Node | null): boolean {
+    return node?.nodeType === COMMENT_NODE;
 };
