@@ -1,58 +1,54 @@
-import Router from './router';
-import html from './html';
+import { InstanceSymbol, MarkerSymbol, TemplateSymbol, TemplatesCache, VariablesSymbol } from './global';
+import { Initialize, Variables } from './types';
+import { initialize } from './initialize';
+import { update } from './update';
+import { mark } from './tools';
 
-import * as symbols from './symbols';
-export * from './symbols';
+// const query = (node: Node, selector: Selector) => selector.reduce((n, s) => n[ s ], node);
 
-import * as mount from './mount';
-export * from './mount';
+export { update };
 
-import * as define from './define';
-export * from './define';
+/**
+ *
+ * @description
+ * @param strings
+ * @param variables
+ * @returns {DocumentFragment}
+ */
 
-import * as shadow from './shadow';
-export * from './shadow';
+export const html = function (strings: TemplateStringsArray, ...variables: Variables): Initialize {
+    let marker: string;
+    let template: HTMLTemplateElement;
 
-import * as types from './types';
-export * from './types';
+    const cache = TemplatesCache.get(strings);
 
-export { Router };
-export { Router as router };
+    if (cache) {
+        marker = cache.marker;
+        template = cache.template;
+    } else {
+        marker = mark();
 
-export { html };
+        let innerHTML = '';
 
-export default {
+        const length = strings.length - 1;
+        for (let index = 0; index < length; index++) {
+            innerHTML += `${strings[ index ]}${marker}`;
+        }
 
-    Router,
-    router: Router,
+        innerHTML += strings[ length ];
 
-    html,
+        template = document.createElement('template');
+        template.innerHTML = innerHTML;
 
-    ...mount,
-    ...shadow,
-    ...define,
-
-    ...symbols,
-    ...types,
-
-};
-
-export const text = function (selector: string) {
-        console.log(arguments);
-    return function (target: any,  nameOrContext: string | ClassFieldDecoratorContext) {
-        console.log(arguments);
-        // if (nameOrContext === 'string') {
-        //     const reference = Symbol('XTextReference');
-        //     target[internal]
-        //     Object.defineProperties(target.prototype, {
-        //         [ nameOrContext ]: {
-        //             get () { return this[ reference ]; },
-        //             set (value) { this[ reference ] = value; },
-        //         }
-        //     });
-        // } else {
-
-        // }
-
+        TemplatesCache.set(strings, { template, marker });
     }
-}
+
+    const meta = {
+        [ InstanceSymbol ]: true,
+        [ MarkerSymbol ]: marker,
+        [ TemplateSymbol ]: template,
+        [ VariablesSymbol ]: variables,
+    };
+
+    return Object.assign(initialize.bind(meta, template, variables, marker), meta);
+};
