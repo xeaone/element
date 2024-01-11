@@ -55,30 +55,58 @@ var links = [
   "manifest",
   "archive"
 ];
+var bools = [
+  "hidden",
+  "allowfullscreen",
+  "async",
+  "autofocus",
+  "autoplay",
+  "checked",
+  "controls",
+  "default",
+  "defer",
+  "disabled",
+  "formnovalidate",
+  "inert",
+  "ismap",
+  "itemscope",
+  "loop",
+  "multiple",
+  "muted",
+  "nomodule",
+  "novalidate",
+  "open",
+  "playsinline",
+  "readonly",
+  "required",
+  "reversed",
+  "selected"
+];
 var isLink = function(data) {
   return data && typeof data === "string" ? links.indexOf(data.toLowerCase()) !== -1 : false;
+};
+var isBool = function(data) {
+  return data && typeof data === "string" ? bools.indexOf(data.toLowerCase()) !== -1 : false;
 };
 var isIterable = function(data) {
   return data && typeof data !== "string" && typeof data[Symbol.iterator] === "function";
 };
-var patternAnimation = /^onanimation$/i;
-var isAnimation = function(data) {
-  return data && typeof data === "string" ? patternAnimation.test(data) : false;
-};
-var patternTimeout = /^ontimeout$/i;
-var isTimeout = function(data) {
-  return data && typeof data === "string" ? patternTimeout.test(data) : false;
+var patternValue = /^value$/i;
+var isValue = function(data) {
+  return data && typeof data === "string" ? patternValue.test(data) : false;
 };
 var patternOn = /^on/i;
 var hasOn = function(data) {
   return data && typeof data === "string" ? patternOn.test(data) : false;
 };
-var patternMarker = /^x-[0-9]{10}-x$/;
-var isMarker = function(data) {
-  return data && typeof data === "string" ? patternMarker.test(data) : false;
+var matchMarker = function(data, marker) {
+  return data && typeof data === "string" ? data === marker : false;
 };
 var hasMarker = function(data, marker) {
   return data && typeof data === "string" ? data.indexOf(marker) !== -1 : false;
+};
+var sliceOn = function(data) {
+  return data && typeof data === "string" ? data?.toLowerCase()?.slice(2) : "";
 };
 var mark = function() {
   return `x-${`${Math.floor(Math.random() * Date.now())}`.slice(0, 10)}-x`;
@@ -114,53 +142,338 @@ var replaceChildren = function(element2, ...nodes) {
     );
   }
 };
-var createAttribute = function(owner, name, value) {
-  const attribute2 = owner.ownerDocument.createAttribute(name);
-  attribute2.value = value ?? "";
-  owner.setAttributeNode(attribute2);
-  return attribute2;
-};
-var removeAttribute = function(node) {
-  return node.ownerElement.removeAttributeNode(node);
-};
-var isText = function(node) {
-  return node?.nodeType === TEXT_NODE;
-};
-var isAttribute = function(node) {
-  return node?.nodeType === ATTRIBUTE_NODE;
-};
-var isElement = function(node) {
-  return node?.nodeType === ELEMENT_NODE;
-};
-var isComment = function(node) {
-  return node?.nodeType === COMMENT_NODE;
+
+// source/attribute-name.ts
+var attributeName = function(element2, data, source, target) {
+  if (source === target) {
+    return;
+  } else if (isValue(source)) {
+    element2.removeAttribute(source);
+    Reflect.set(element2, source, null);
+  } else if (hasOn(source)) {
+    if (typeof data.value === "function") {
+      element2.removeEventListener(sliceOn(source), data.value, true);
+    }
+  } else if (isLink(source)) {
+    element2.removeAttribute(source);
+  } else if (isBool(source)) {
+    element2.removeAttribute(source);
+    Reflect.set(element2, source, false);
+  } else if (source) {
+    element2.removeAttribute(source);
+    Reflect.deleteProperty(element2, source);
+  }
+  data.name = target?.toLowerCase() || "";
+  if (!data.name) {
+    return;
+  } else if (hasOn(data.name)) {
+    return;
+  } else if (isBool(data.name)) {
+    element2.setAttribute(data.name, "");
+    Reflect.set(element2, data.name, true);
+  } else {
+    element2.setAttribute(data.name, "");
+    Reflect.set(element2, data.name, void 0);
+  }
 };
 
-// source/intersection.ts
-var connectedEvent = new CustomEvent("connected");
-var disconnectedEvent = new CustomEvent("disconnected");
-var intersectionElements = /* @__PURE__ */ new WeakMap();
-var intersectionObserver = new IntersectionObserver((entries) => {
-  for (const entry of entries) {
-    const intersectionElement = intersectionElements.get(entry.target);
-    if (!intersectionElement) {
-      intersectionElements.set(entry.target, { wasConnected: false, isIntersecting: entry.isIntersecting });
-    } else if (entry.target.isConnected === true && intersectionElement.wasConnected === false) {
-      intersectionElement.wasConnected = true;
-      intersectionElement.isIntersecting = entry.isIntersecting;
-      entry.target.dispatchEvent(connectedEvent);
-    } else if (entry.target.isConnected === false && intersectionElement.wasConnected === true) {
-      intersectionElement.wasConnected = false;
-      intersectionElement.isIntersecting = entry.isIntersecting;
-      entry.target.dispatchEvent(disconnectedEvent);
+// source/attribute-value.ts
+var attributeValue = function(element2, data, source, target) {
+  console.log(arguments);
+  if (source === target) {
+    return;
+  } else if (isValue(data.name)) {
+    data.value = target;
+    if (!data.name)
+      return;
+    element2.setAttribute(data.name, data.value);
+    Reflect.set(element2, data.name, data.value);
+  } else if (hasOn(data.name)) {
+    if (element2.hasAttribute(data.name)) {
+      element2.removeAttribute(data.name);
+    }
+    if (typeof data.value === "function") {
+      element2.removeEventListener(sliceOn(data.name), data.value, true);
+    }
+    if (typeof target !== "function") {
+      return console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+    }
+    data.value = function() {
+      const result = target.call(this, ...arguments);
+      if (data.result !== result) {
+        data.result = result;
+        console.log(result);
+      }
+      return data.result;
+    };
+    element2.addEventListener(sliceOn(data.name), data.value, true);
+  } else if (isLink(data.name)) {
+    data.value = encodeURI(target);
+    if (!data.name)
+      return;
+    if (dangerousLink(data.value)) {
+      element2.removeAttribute(data.name);
+      console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+      return;
+    }
+    element2.setAttribute(data.name, data.value);
+  } else {
+    data.value = target;
+    if (!data.name)
+      return;
+    element2.setAttribute(data.name, data.value);
+    Reflect.set(element2, data.name, data.value);
+  }
+};
+
+// source/text.ts
+var text = function(node, data, source, target) {
+  if (target === null || target === void 0) {
+    if (node.textContent === "") {
+      return;
     } else {
+      node.textContent = "";
+    }
+  } else if (target instanceof Node) {
+    if (!data.start) {
+      data.start = document.createTextNode("");
+      beforeNode(data.start, node);
+    }
+    if (!data.end) {
+      node.textContent = "";
+      data.end = node;
+    }
+    removeBetween(data.start, data.end);
+    beforeNode(target, data.end);
+  } else if (target?.[InstanceSymbol]) {
+    if (!data.start) {
+      data.start = document.createTextNode("");
+      beforeNode(data.start, node);
+    }
+    if (!data.end) {
+      node.textContent = "";
+      data.end = node;
+    }
+    removeBetween(data.start, data.end);
+    beforeNode(target(), data.end);
+  } else if (isIterable(target)) {
+    if (data.length === void 0) {
+      data.length = 0;
+    }
+    if (!data.results) {
+      data.results = [];
+    }
+    if (!data.markers) {
+      data.markers = [];
+    }
+    if (!data.start) {
+      data.start = document.createTextNode("");
+      beforeNode(data.start, node);
+    }
+    if (!data.end) {
+      node.textContent = "";
+      data.end = node;
+    }
+    const oldLength = data.length;
+    const newLength = target.length;
+    const commonLength = Math.min(oldLength, newLength);
+    for (let index = 0; index < commonLength; index++) {
+      if (data.results[index]?.[TemplateSymbol] === target[index]?.[TemplateSymbol]) {
+        Object.assign(data.results[index][VariablesSymbol], target[index][VariablesSymbol]);
+      } else {
+        data.results[index] = target[index];
+      }
+    }
+    if (oldLength < newLength) {
+      while (data.length !== target.length) {
+        const marker = document.createTextNode("");
+        data.markers.push(marker);
+        data.results.push(target[data.length]);
+        beforeNode(marker, data.end);
+        data.length++;
+      }
+    } else if (oldLength > newLength) {
+      const last = data.markers[target.length - 1];
+      while (data.length !== target.length) {
+        const previous = data.end.previousSibling;
+        if (previous === last)
+          break;
+        removeNode(previous);
+      }
+      data.length = target.length;
+      data.results.length = target.length;
+      data.markers.length = target.length;
+    }
+  } else {
+    if (node.textContent === `${target}`) {
+      return;
+    } else {
+      node.textContent = `${target}`;
     }
   }
-}, {
-  threshold: 1,
-  // rootMargin: '100000%',
-  root: document.documentElement
-});
+};
+
+// source/action.ts
+var element = function(node, data, source, target) {
+  console.warn("element action not implemented");
+};
+var action = function(binder) {
+  const node = binder.node;
+  if (!node) {
+    return;
+  }
+  const variables = binder.variables;
+  for (const instruction of binder.instructions) {
+    const { type, data } = instruction;
+    const variable = variables[instruction.index];
+    const isFunction = typeof variable === "function";
+    const isInstance = isFunction && variable[InstanceSymbol];
+    const isOnce = (type === 2 || type === 3) && data.name.startsWith("on");
+    const isReactive = !isInstance && !isOnce && isFunction;
+    if (!isReactive || isOnce) {
+      binder.remove();
+    }
+    const source = data.source;
+    const target = isReactive ? variable() : variable;
+    if ("source" in data && source === target) {
+      return;
+    }
+    if (instruction.type === 1) {
+      element(node, data, source, target);
+    } else if (instruction.type === 2) {
+      attributeName(node, data, source, target);
+    } else if (instruction.type === 3) {
+      attributeValue(node, data, source, target);
+    } else if (instruction.type === 4) {
+      text(node, data, source, target);
+    } else {
+      throw new Error("instruction type not valid");
+    }
+  }
+};
+
+// source/bind.ts
+var bind = function(variables, instructions, references) {
+  const binder = {
+    result: void 0,
+    get node() {
+      const [reference] = references;
+      const node = reference.deref();
+      if (node) {
+        return node;
+      } else {
+        BindersCache.delete(this);
+        return null;
+      }
+    },
+    get references() {
+      return references;
+    },
+    get instructions() {
+      if (instructions.length) {
+        BindersCache.delete(this);
+      }
+      return instructions;
+    },
+    get variables() {
+      return variables;
+    },
+    remove() {
+      BindersCache.delete(this);
+    }
+  };
+  BindersCache.add(binder);
+  action(binder);
+};
+
+// source/initialize.ts
+var FILTER = SHOW_ELEMENT + SHOW_TEXT;
+var initialize = function(template, variables, marker, container) {
+  const fragment = template.content.cloneNode(true);
+  const walker = document.createTreeWalker(fragment, FILTER, null);
+  let node;
+  let startIndex;
+  let endIndex;
+  let index = 0;
+  while (walker.nextNode()) {
+    node = walker.currentNode;
+    const type = node.nodeType;
+    if (type === TEXT_NODE) {
+      let text2 = node;
+      startIndex = text2.nodeValue?.indexOf(marker) ?? -1;
+      if (startIndex === -1)
+        continue;
+      if (startIndex !== 0) {
+        text2.splitText(startIndex);
+        node = walker.nextNode();
+        text2 = node;
+      }
+      endIndex = marker.length;
+      if (endIndex !== text2.nodeValue?.length) {
+        text2.splitText(endIndex);
+      }
+      const references = [new WeakRef(text2)];
+      const instructions = [{ type: 4, index: index++, data: {} }];
+      bind(variables, instructions, references);
+    } else if (type === ELEMENT_NODE) {
+      const element2 = node;
+      const tag = element2.tagName.toLowerCase();
+      if (tag === "STYLE" || tag === "SCRIPT") {
+        walker.nextSibling();
+      }
+      let instructions;
+      let references;
+      if (matchMarker(tag, marker)) {
+        references = [new WeakRef(element2)];
+        instructions = [{ type: 1, index: index++, data: { tag } }];
+      }
+      const names = element2.getAttributeNames();
+      for (const name of names) {
+        const value = element2.getAttribute(name) ?? "";
+        const matchMarkerName = matchMarker(name, marker);
+        const hasMarkerValue = hasMarker(value, marker);
+        if (matchMarkerName || hasMarkerValue) {
+          references = references ?? [new WeakRef(element2)];
+          instructions = instructions ?? [];
+          const data = { name, value };
+          if (matchMarkerName) {
+            instructions.push({ type: 2, index: index++, data });
+          }
+          if (hasMarkerValue) {
+            instructions.push({ type: 3, index: index++, data });
+          }
+        } else {
+          if (isLink(name)) {
+            if (dangerousLink(value)) {
+              element2.removeAttribute(name);
+              console.warn(`attribute name "${name}" and value "${value}" not allowed`);
+            }
+          } else if (hasOn(name)) {
+            element2.removeAttribute(name);
+            console.warn(`attribute name "${name}" not allowed`);
+          }
+        }
+        if (instructions && references) {
+          bind(variables, instructions, references);
+        }
+      }
+    } else {
+      console.warn(`walker node type "${type}" not handled`);
+    }
+  }
+  if (typeof container === "string") {
+    const selection = document.querySelector(container);
+    if (!selection)
+      throw new Error("query not found");
+    replaceChildren(selection, fragment);
+    return selection;
+  } else if (container instanceof Element) {
+    replaceChildren(container, fragment);
+    return container;
+  } else {
+    return fragment;
+  }
+};
 
 // source/update.ts
 var Next;
@@ -199,344 +512,6 @@ var update = async function() {
       Current = void 0;
     })();
     await Current;
-  }
-};
-
-// source/action.ts
-var comment = function(node, binder, result) {
-  console.warn("comment action not implemented");
-};
-var element = function(node, binder, result) {
-  console.warn("element action not implemented");
-};
-var attribute = function(node, binder, result) {
-  const name = node.name;
-  if (hasOn(name)) {
-    if (isAnimation(name)) {
-      const isArray = Array.isArray(binder.result);
-      const method = isArray ? binder.result[0] : binder.result;
-      const handle = async () => {
-        if (binder.owner?.isConnected) {
-          const result2 = method();
-          if (binder.result === result2) {
-            requestAnimationFrame(handle);
-          } else {
-            binder.result = result2;
-            await update();
-            requestAnimationFrame(handle);
-          }
-        } else {
-          requestAnimationFrame(handle);
-        }
-      };
-      requestAnimationFrame(handle);
-    } else if (isTimeout(name)) {
-      const isArray = Array.isArray(binder.result);
-      const method = isArray ? binder.result[0] : binder.result;
-      const time = isArray ? binder.result[1] : void 0;
-      const handle = async () => {
-        const result2 = method();
-        if (binder.result === result2) {
-          return;
-        } else {
-          binder.result = result2;
-          await update();
-        }
-      };
-      setTimeout(handle, time);
-    } else {
-      const owner2 = binder.owner;
-      if (owner2) {
-        const eventName = name.substring(2);
-        const isArray = Array.isArray(result);
-        const [method, options] = isArray ? result : [result, void 0];
-        if (typeof method === "function") {
-          owner2.addEventListener(eventName, async function(event) {
-            const returned = method(event);
-            if (binder.meta.returned !== returned) {
-              binder.meta.returned = returned;
-              await update();
-            }
-          }, options);
-          intersectionObserver.observe(owner2);
-        } else {
-          console.error(`${name} requiures function or array with function`);
-        }
-      }
-    }
-    const owner = binder.owner;
-    if (owner) {
-      owner.removeAttributeNode(node);
-    }
-  } else if (node.value === "") {
-    console.log(node.name, node.value, name, result);
-    if (name !== result) {
-      if (result) {
-        binder.replace(createAttribute(binder.owner, result));
-        removeAttribute(node);
-        Reflect.set(binder.owner, result, true);
-      } else {
-        removeAttribute(node);
-        Reflect.set(binder.owner, result, true);
-      }
-    }
-  } else if (result instanceof Attr) {
-  } else {
-    node.value = result;
-  }
-};
-var text = function(node, binder, result) {
-  if (result === null || result === void 0) {
-    if (node.textContent === "") {
-      return;
-    } else {
-      node.textContent = "";
-    }
-  } else if (result instanceof Node) {
-    if (!binder.start) {
-      binder.start = document.createTextNode("");
-      beforeNode(binder.start, node);
-    }
-    if (!binder.end) {
-      node.textContent = "";
-      binder.end = node;
-    }
-    removeBetween(binder.start, binder.end);
-    beforeNode(result, binder.end);
-  } else if (result?.[InstanceSymbol]) {
-    if (!binder.start) {
-      binder.start = document.createTextNode("");
-      beforeNode(binder.start, node);
-    }
-    if (!binder.end) {
-      node.textContent = "";
-      binder.end = node;
-    }
-    removeBetween(binder.start, binder.end);
-    beforeNode(result(), binder.end);
-  } else if (isIterable(result)) {
-    if (binder.length === void 0) {
-      binder.length = 0;
-    }
-    if (!binder.results) {
-      binder.results = [];
-    }
-    if (!binder.markers) {
-      binder.markers = [];
-    }
-    if (!binder.start) {
-      binder.start = document.createTextNode("");
-      beforeNode(binder.start, node);
-    }
-    if (!binder.end) {
-      node.textContent = "";
-      binder.end = node;
-    }
-    const oldLength = binder.length;
-    const newLength = result.length;
-    const commonLength = Math.min(oldLength, newLength);
-    for (let index = 0; index < commonLength; index++) {
-      if (binder.results[index]?.[TemplateSymbol] === result[index]?.[TemplateSymbol]) {
-        Object.assign(binder.results[index][VariablesSymbol], result[index][VariablesSymbol]);
-      } else {
-        binder.results[index] = result[index];
-      }
-    }
-    if (oldLength < newLength) {
-      while (binder.length !== result.length) {
-        const marker = document.createTextNode("");
-        binder.markers.push(marker);
-        binder.results.push(result[binder.length]);
-        beforeNode(marker, binder.end);
-        bind(marker, binder.results, binder.length);
-        binder.length++;
-      }
-    } else if (oldLength > newLength) {
-      const last = binder.markers[result.length - 1];
-      while (binder.length !== result.length) {
-        const previous = binder.end.previousSibling;
-        if (previous === last)
-          break;
-        removeNode(previous);
-      }
-      binder.length = result.length;
-      binder.results.length = result.length;
-      binder.markers.length = result.length;
-    }
-  } else {
-    if (node.textContent === `${result}`) {
-      return;
-    } else {
-      node.textContent = `${result}`;
-    }
-  }
-};
-var action = function(binder) {
-  const node = binder.node;
-  if (!node) {
-    return;
-  }
-  const variable = binder.variable;
-  const isFunction = typeof variable === "function";
-  const isInstance = isFunction && variable[InstanceSymbol];
-  const isOnce = node.nodeType === ATTRIBUTE_NODE && node?.name.startsWith("on");
-  const isReactive = !isInstance && !isOnce && isFunction;
-  if (!isReactive || isOnce) {
-    binder.remove();
-  }
-  let result;
-  if (isReactive) {
-    result = variable();
-  } else {
-    result = variable;
-  }
-  if (binder.result === result) {
-    return;
-  }
-  if (binder.result?.constructor !== result?.constructor) {
-    delete binder.start;
-    delete binder.end;
-    delete binder.markers;
-    delete binder.results;
-    delete binder.length;
-  }
-  if (isText(node)) {
-    text(node, binder, result);
-  } else if (isAttribute(node)) {
-    attribute(node, binder, result);
-  } else if (isElement(node)) {
-    element(node, binder, result);
-  } else if (isComment(node)) {
-    comment(node, binder, result);
-  } else {
-    console.warn(`action node type "${node.nodeType}" not handled`);
-  }
-  binder.result = result;
-};
-
-// source/bind.ts
-var bind = function(node, variables, index) {
-  const binder = {
-    meta: {},
-    result: void 0,
-    nodeReference: new WeakRef(node),
-    get node() {
-      const node2 = this.nodeReference.deref();
-      if (node2) {
-        return node2;
-      } else {
-        BindersCache.delete(this);
-        return null;
-      }
-    },
-    ownerReference: node.ownerElement || node.parentElement ? new WeakRef(node.ownerElement ?? node.parentElement) : void 0,
-    get owner() {
-      const node2 = this.ownerReference?.deref();
-      if (node2) {
-        return node2;
-      } else {
-        BindersCache.delete(this);
-        return null;
-      }
-    },
-    get variable() {
-      return variables[index];
-    },
-    remove() {
-      BindersCache.delete(this);
-    },
-    replace(node2) {
-      this.nodeReference = new WeakRef(node2);
-    }
-    // isOnce,
-    // isReactive,
-    // isInstance,
-    // isInitialized: false,
-  };
-  BindersCache.add(binder);
-  action(binder);
-};
-
-// source/initialize.ts
-var FILTER = SHOW_ELEMENT + SHOW_TEXT;
-var initialize = function(template, variables, marker, container) {
-  const fragment = template.content.cloneNode(true);
-  const walker = document.createTreeWalker(fragment, FILTER, null);
-  let text2;
-  let attribute2;
-  let element2;
-  let type;
-  let name;
-  let value;
-  let names;
-  let node;
-  let startIndex;
-  let endIndex;
-  let index = 0;
-  while (walker.nextNode()) {
-    node = walker.currentNode;
-    type = node.nodeType;
-    if (type === TEXT_NODE) {
-      text2 = node;
-      startIndex = text2.nodeValue?.indexOf(marker) ?? -1;
-      if (startIndex === -1)
-        continue;
-      if (startIndex !== 0) {
-        text2.splitText(startIndex);
-        node = walker.nextNode();
-        text2 = node;
-      }
-      endIndex = marker.length;
-      if (endIndex !== text2.nodeValue?.length) {
-        text2.splitText(endIndex);
-      }
-      bind(text2, variables, index++);
-    } else if (type === ELEMENT_NODE) {
-      element2 = node;
-      if (element2.nodeName === "SCRIPT" || element2.nodeName === "STYLE") {
-        walker.nextSibling();
-      }
-      if (isMarker(element2.nodeName, marker)) {
-        bind(element2, variables, index++);
-      }
-      names = element2.getAttributeNames();
-      for (name of names) {
-        value = element2.getAttribute(name) ?? "";
-        if (hasMarker(name, marker) || hasMarker(value, marker)) {
-          attribute2 = element2.getAttributeNode(name);
-          if (hasMarker(name, marker)) {
-            bind(attribute2, variables, index++);
-          }
-          if (hasMarker(value, marker)) {
-            bind(attribute2, variables, index++);
-          }
-        } else {
-          if (isLink(name)) {
-            if (dangerousLink(value)) {
-              element2.removeAttribute(name);
-              console.warn(`attribute name "${name}" and value "${value}" not allowed`);
-            }
-          } else if (hasOn(name)) {
-            element2.removeAttribute(name);
-            console.warn(`attribute name "${name}" not allowed`);
-          }
-        }
-      }
-    } else {
-      console.warn(`walker node type "${type}" not handled`);
-    }
-  }
-  if (typeof container === "string") {
-    const selection = document.querySelector(container);
-    if (!selection)
-      throw new Error("query not found");
-    replaceChildren(selection, fragment);
-    return selection;
-  } else if (container instanceof Element) {
-    replaceChildren(container, fragment);
-    return container;
-  } else {
-    return fragment;
   }
 };
 

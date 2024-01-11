@@ -1,10 +1,16 @@
-import { ELEMENT_NODE, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE, dangerousLink, hasMarker, hasOn, isLink, isMarker, replaceChildren } from './tools';
-import { Marker, Template, Variables, Container } from './types';
+import { ELEMENT_NODE, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE, dangerousLink, hasMarker, hasOn, isLink, isMarker, matchMarker, replaceChildren } from './tools';
+import { Marker, Template, Variables, Container, References, Instructions } from './types';
 import { ContainersCache } from './global';
 import { update } from './update';
 import { bind } from './bind';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
+
+// const InstructionsCache:WeakMap<Element, Instructions> = new WeakMap();
+
+// type ReferenceId = symbol;
+// type ReferenceNode = WeakRef<Element | Attr | Text>;
+// const References: Map<ReferenceKey, ReferenceValue> = new Map();
 
 export const initialize = function (template: Template, variables: Variables, marker: Marker, container?: Container): Element | DocumentFragment {
 
@@ -32,14 +38,14 @@ export const initialize = function (template: Template, variables: Variables, ma
     const fragment = template.content.cloneNode(true) as DocumentFragment;
     const walker = document.createTreeWalker(fragment, FILTER, null);
 
-    let text: Text;
-    let attribute: Attr;
-    let element: Element;
+    // let text: Text;
+    // let attribute: Attr;
+    // let element: Element;
 
-    let type: number;
-    let name: string;
-    let value: string;
-    let names: string[];
+    // let type: number;
+    // let name: string;
+    // let value: string;
+    // let names: string[];
     let node: Node | null;
 
     let startIndex: number;
@@ -49,17 +55,17 @@ export const initialize = function (template: Template, variables: Variables, ma
 
     while (walker.nextNode()) {
         node = walker.currentNode;
-        type = node.nodeType;
+        const type = node.nodeType;
 
         if (type === TEXT_NODE) {
-            text = node as Text;
+            let text = node as Text;
 
             startIndex = text.nodeValue?.indexOf(marker) ?? -1;
             if (startIndex === -1) continue;
 
             if (startIndex !== 0) {
                 text.splitText(startIndex);
-                node = walker.nextNode();
+                node = walker.nextNode() as Node | null;
                 text = node as Text;
             }
 
@@ -68,32 +74,47 @@ export const initialize = function (template: Template, variables: Variables, ma
                 text.splitText(endIndex);
             }
 
-            bind(text, variables, index++);
+            const references: References = [new WeakRef(text)];
+            const instructions: Instructions = [{ type: 4, index: index++, data: {} }];
+            bind(variables, instructions, references);
 
         } else if (type === ELEMENT_NODE) {
-            element = node as Element;
+            const element = node as Element;
+            const tag = element.tagName.toLowerCase();
 
-            if (element.nodeName === 'SCRIPT' || element.nodeName === 'STYLE') {
+            if (tag === 'STYLE' || tag === 'SCRIPT') {
                 walker.nextSibling();
             }
 
-            if (isMarker(element.nodeName, marker)) {
-                bind(element, variables, index++);
+            let instructions: Instructions | undefined;
+            let references: References | undefined;
+
+            if (matchMarker(tag, marker)) {
+                references = [new WeakRef(element)];
+                instructions = [{ type: 1, index: index++, data: { tag } }];
             }
 
-            names = element.getAttributeNames();
-            for (name of names) {
-                value = element.getAttribute(name) ?? '';
+            const names = element.getAttributeNames();
+            for (const name of names) {
+                const value = element.getAttribute(name) ?? '';
 
-                if (hasMarker(name, marker) || hasMarker(value, marker)) {
-                    attribute = element.getAttributeNode(name) as Attr;
+                const matchMarkerName = matchMarker(name, marker);
+                const hasMarkerValue = hasMarker(value, marker);
 
-                    if (hasMarker(name, marker)) {
-                        bind(attribute, variables, index++);
+                if (matchMarkerName || hasMarkerValue) {
+
+                    references = references ?? [new WeakRef(element)];
+                    instructions = instructions ?? [];
+
+                    const data = { name, value };
+
+                    if (matchMarkerName) {
+                        instructions.push({ type: 2, index: index++, data });
                     }
 
-                    if (hasMarker(value, marker)) {
-                        bind(attribute, variables, index++);
+                    // handle value bindings
+                    if (hasMarkerValue) {
+                        instructions.push({ type: 3, index: index++, data });
                     }
 
                 } else {
@@ -107,6 +128,12 @@ export const initialize = function (template: Template, variables: Variables, ma
                         console.warn(`attribute name "${name}" not allowed`);
                     }
                 }
+
+                if (instructions && references) {
+                    // InstructionsCache.set(element, instructions);
+                    bind(variables, instructions, references);
+                }
+
             }
         } else {
             console.warn(`walker node type "${type}" not handled`);

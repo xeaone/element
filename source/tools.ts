@@ -104,26 +104,26 @@ export const hasOn = function (data: string): boolean {
         patternOn.test(data) : false;
 };
 
-// export const sliceOn = function (data: string): string {
-//     return data && typeof data === 'string' ?
-//         data?.toLowerCase()?.slice(2) :
-//         '';
-// };
-
-const patternMarker = /^x-[0-9]{10}-x$/;
+const patternMarker = /^x-[0-9]{10}-x$/i;
 export const isMarker = function (data: string): boolean {
     return data && typeof data === 'string' ?
         patternMarker.test(data) : false;
 };
 
-// export const isMarker = function (data: string, marker: string): boolean {
-//     return data && typeof data === 'string' ?
-//         data === marker : false;
-// };
+export const matchMarker = function (data: string, marker: string): boolean {
+    return data && typeof data === 'string' ?
+        data === marker : false;
+};
 
 export const hasMarker = function (data: string, marker: string): boolean {
     return data && typeof data === 'string' ?
         data.indexOf(marker) !== -1 : false;
+};
+
+export const sliceOn = function (data: string): string {
+    return data && typeof data === 'string' ?
+        data?.toLowerCase()?.slice(2) :
+        '';
 };
 
 // export const includes = function (item: string | Array<any>, search: any) {
@@ -184,6 +184,15 @@ export const replaceChildren = function (element: Element | Document | DocumentF
         );
     }
 
+};
+
+/**
+ * Attr DOM
+ */
+
+export const addAttribute = function (owner: Element, attribute: Attr): Attr {
+    owner.setAttributeNode(attribute);
+    return attribute;
 };
 
 export const createAttribute = function (owner: Element, name: string, value?: string): Attr {
