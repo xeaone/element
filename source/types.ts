@@ -19,6 +19,8 @@ export interface Initialize {
     (container?: string | Element): Element | DocumentFragment
 }
 
+export type BinderType = 1 | 2 | 3 | 4;
+
 export interface Binder {
 
     // array
@@ -28,19 +30,22 @@ export interface Binder {
     markers?: Node[],
     results?: any[],
 
-    meta: Record<any, any>,
-
     result: any,
-    variable: Variable,
+
+    // variable: Variable,
 
     node: Node | null,
-    nodeReference: WeakRef<Node>,
+    // nodeReference: WeakRef<Node>,
 
-    owner: Element | null,
-    ownerReference: WeakRef<Element> | undefined,
+    // owner: Element | null,
+    // ownerReference: WeakRef<Element> | undefined,
 
     remove: () => void,
-    replace: (node:Node) => void,
+    // replace: (node:Node) => void,
+
+    variables: Variables,
+    references: References,
+    instructions: Instructions,
 
     // isOnce: boolean,
     // isReactive: boolean,
@@ -71,3 +76,11 @@ export interface Global {
     TemplateSymbol: symbol
     VariablesSymbol: symbol,
 }
+
+
+
+export type Reference = WeakRef<Element | Attr | Text>
+export type References = Reference[];
+
+export type Instruction = { type: 1 | 2 | 3 | 4, index: number, data: Record<any,any>, }
+export type Instructions = Instruction[];
