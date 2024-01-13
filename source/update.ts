@@ -6,13 +6,13 @@ let Current: Promise<void> | undefined;
 
 export const next = async function (): Promise<void> {
     await Current;
-    await (new Promise(resolve => {
+    await new Promise(resolve => {
         queueMicrotask(async () => {
             Next = undefined;
             await update();
             resolve(undefined);
         });
-    }));
+    });
 };
 
 export const update = async function (): Promise<void> {
@@ -28,20 +28,39 @@ export const update = async function (): Promise<void> {
         }
     } else {
 
-        Current = (async () => {
-            const binders = BindersCache.values();
+        // Current = (async () => {
+        //     const binders = BindersCache.values();
 
-            for (const binder of binders) {
-                try {
-                    await action(binder);
-                } catch (error) {
-                    console.error(error);
+        //     for (const binder of binders) {
+        //         try {
+        //             await action(binder);
+        //         } catch (error) {
+        //             console.error(error);
+        //         }
+        //     }
+
+        //     // Next = undefined;
+        //     Current = undefined;
+        // })();
+
+        Current = new Promise(resolve => {
+            queueMicrotask(async () => {
+                const binders = BindersCache.values();
+
+                for (const binder of binders) {
+                    try {
+                        await action(binder);
+                    } catch (error) {
+                        console.error(error);
+                    }
                 }
-            }
 
-            // Next = undefined;
-            Current = undefined;
-        })();
+                // Next = undefined;
+                Current = undefined;
+
+                resolve();
+            });
+        });
 
         await Current;
     }

@@ -1,12 +1,12 @@
 // import { router } from './x-element.js';
 
 const main = document.querySelector('main');
+const pathname = location.pathname.toLowerCase().replace(/\/+$/, '');
 
-switch (location.pathname.toLowerCase().replace(/\/+$/, '')) {
-    case '': await import('./root.js');
-    case '/guide': await import('./guide.js');
+switch (pathname) {
+    case '': await import('./root.js'); break;
+    case '/guide': await import('./guide.js'); break;
 }
-
 
 // router('/', main, () => import('./root.js'));
 // router('/guide', main, () => import('./guide.js'));

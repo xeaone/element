@@ -91,101 +91,107 @@ const inputComponent = () => html`
 const inputCode = highlight(inputComponent.toString());
 
 const checkComponent = () => html`
-<div>${checked ? 'Is Checked' : 'Is Not Checked'}</div>
+<div>${()=>checked ? 'Is Checked' : 'Is Not Checked'}</div>
 <input type="checkbox" ${()=>checked ? 'checked' : ''} oninput=${e => checked = e.target.checked} />
 `;
 const checkCode = highlight(checkComponent.toString());
 
 const radioComponent = () => html`
-<div>${radioShared}</div>
-<input type="radio" name="radio" ${radioShared === radioOne ? 'checked' : ''} oninput=${() => radioShared = 'one'} />
-<input type="radio" name="radio" ${radioShared === radioTwo ? 'checked' : ''} oninput=${() => radioShared = 'two'} />
+<div>${() => radioShared}</div>
+<input type="radio" name="radio" ${() => radioShared === radioOne ? 'checked' : ''} oninput=${() => {
+    console.log(radioShared);
+    return radioShared = 'one';
+}} />
+<input type="radio" name="radio" ${() => radioShared === radioTwo ? 'checked' : ''} oninput=${() => {
+    console.log(radioShared);
+    return radioShared = 'two';
+}} />
 `;
 const radioCode = highlight(radioComponent.toString());
 
-const mapComponent = () => html`
-<ul>
-    ${fruits.map(fruit => html` <li>${fruit}</li> `)}
-</ul>
-`;
-const mapCode = highlight(mapComponent.toString());
-
-const styleComponent = () => html`
-<div style=${`color: ${color}`}>Look at my style</div>
-<button onclick=${() => color = color()}>Change Color</button>
-`;
-const styleCode = highlight(styleComponent.toString());
-
 const classComponent = () => html`
-<div class=${active ? 'default class-color' : 'default'}>Look at my class</div>
+<div class=${()=>active ? 'default class-color' : 'default'}>Look at my class</div>
 <button onclick=${() => active = !active}>Toggle Class</button>
 `;
 const classCode = highlight(classComponent.toString());
 
-const fruitsComponent = () => html`
-<div>${fruit}</div>
-<select value=${fruit} oninput=${(e) => fruit = e.target.value}>
-    ${fruits.map(fruit => html`
-        <option value=${fruit} ${fruit === fruit ? 'selected' : ''}>${fruit}</option>
-    `)}
-</select>
+const styleComponent = () => html`
+<div style=${()=>`color: ${color}`}>Look at my style</div>
+<button onclick=${() => color = Color()}>Change Color</button>
 `;
-const fruitsCode = highlight(fruitsComponent.toString());
+const styleCode = highlight(styleComponent.toString());
 
-const carsComponent = () => html`
-<div>${car}</div>
-<select oninput=${e => car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
-    ${cars.map(car => html`
-        <option value=${car} ${car.includes(car) ? 'selected' : ''}>${car}</option>
-    `)}
-</select>
+const mapComponent = () => html`
+<ul>
+    ${()=>fruits.map(fruit => html` <li>${()=>fruit}</li> `)}
+</ul>
 `;
-const carsCode = highlight(carsComponent.toString());
+const mapCode = highlight(mapComponent.toString());
 
-const selectBooleanComponent = () => html`
-<div>${boolean}</div>
-<select value=${boolean} oninput=${e => boolean = JSON.parse(e.target.value)}>
-    <option value="true">yes</option>
-    <option value="false">no</option>
-</select>
-`;
-const selectBooleanCode = highlight(selectBooleanComponent.toString());
+// const fruitsComponent = () => html`
+// <div>${fruit}</div>
+// <select value=${fruit} oninput=${(e) => fruit = e.target.value}>
+//     ${fruits.map(fruit => html`
+//         <option value=${fruit} ${fruit === fruit ? 'selected' : ''}>${fruit}</option>
+//     `)}
+// </select>
+// `;
+// const fruitsCode = highlight(fruitsComponent.toString());
 
-const selectNumberComponent = () => html`
-<div>${number}</div>
-<select value=${number} oninput=${e => number = JSON.parse(e.target.value)}>
-    <option value="0">zero</option>
-    <option value="1">one</option>
-    <option value="2">two</option>
-</select>
-`;
-const selectNumberCode = highlight(selectNumberComponent.toString());
+// const carsComponent = () => html`
+// <div>${car}</div>
+// <select oninput=${e => car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
+//     ${cars.map(car => html`
+//         <option value=${car} ${car.includes(car) ? 'selected' : ''}>${car}</option>
+//     `)}
+// </select>
+// `;
+// const carsCode = highlight(carsComponent.toString());
 
-const connected = () => { console.log('connected'); };
-const disconnected = () => { console.log('disconnected'); };
+// const selectBooleanComponent = () => html`
+// <div>${boolean}</div>
+// <select value=${boolean} oninput=${e => boolean = JSON.parse(e.target.value)}>
+//     <option value="true">yes</option>
+//     <option value="false">no</option>
+// </select>
+// `;
+// const selectBooleanCode = highlight(selectBooleanComponent.toString());
 
-const rendered = () => {
-    console.log('rendered');
-    for (const name of names) {
-        const codeElement = querySelector(`#${name}Code`);
-        const sourceElement = querySelector(`#${name}Source`);
-        if (codeElement) {
-            const code =  `${name}Code`;
-            if (cache.get(codeElement) !== code) {
-                cache.set(codeElement, code);
-                codeElement.innerHTML = code;
-            }
-        }
-        if (sourceElement) {
-            const componentElement = querySelector(`#${name}Component`);
-            const source = highlight(componentElement.innerHTML, 'html');
-            if (cache.get(sourceElement) !== source) {
-                cache.set(sourceElement, source);
-                sourceElement.innerHTML = source;
-            }
-        }
-    }
-};
+// const selectNumberComponent = () => html`
+// <div>${number}</div>
+// <select value=${number} oninput=${e => number = JSON.parse(e.target.value)}>
+//     <option value="0">zero</option>
+//     <option value="1">one</option>
+//     <option value="2">two</option>
+// </select>
+// `;
+// const selectNumberCode = highlight(selectNumberComponent.toString());
+
+// const connected = () => { console.log('connected'); };
+// const disconnected = () => { console.log('disconnected'); };
+
+// const rendered = () => {
+//     console.log('rendered');
+//     for (const name of names) {
+//         const codeElement = querySelector(`#${name}Code`);
+//         const sourceElement = querySelector(`#${name}Source`);
+//         if (codeElement) {
+//             const code =  `${name}Code`;
+//             if (cache.get(codeElement) !== code) {
+//                 cache.set(codeElement, code);
+//                 codeElement.innerHTML = code;
+//             }
+//         }
+//         if (sourceElement) {
+//             const componentElement = querySelector(`#${name}Component`);
+//             const source = highlight(componentElement.innerHTML, 'html');
+//             if (cache.get(sourceElement) !== source) {
+//                 cache.set(sourceElement, source);
+//                 sourceElement.innerHTML = source;
+//             }
+//         }
+//     }
+// };
 
 /*
     <style>
@@ -295,6 +301,20 @@ export default html`
         }
     </style>
 
+
+
+    <section id="radio">
+        <h3>Radio</h3>
+        <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
+        <pre id="radioCode"></pre>
+        <pre id="radioComponent">${radioComponent()}</pre>
+        <pre id="radioSource"></pre>
+    </section>
+
+`('main');
+
+/*
+
     <!-- <section>
         <h3>Options</h3>
         <pre id="optionsCode"></pre>
@@ -316,13 +336,7 @@ export default html`
         <pre id="checkSource"></pre>
     </section>
 
-    <section id="radio">
-        <h3>Radio</h3>
-        <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
-        <pre id="radioCode"></pre>
-        <pre id="radioComponent">${radioComponent()}</pre>
-        <pre id="radioSource"></pre>
-    </section>
+
 
     <section id="class">
         <h3>Class</h3>
@@ -338,4 +352,8 @@ export default html`
         <pre id="styleSource"></pre>
     </section>
 
-`('main');
+
+
+
+
+*/

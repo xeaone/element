@@ -42,19 +42,21 @@ export const action = function (binder: Binder) {
         const variable = variables[ instruction.index ];
         const isFunction = typeof variable === 'function';
         const isInstance = isFunction && (variable as any)[InstanceSymbol];
-        const isOnce = (type === 2 || type === 3) && data.name.startsWith('on');
+        const isOnce = type === 3 && data.name.startsWith('on');
         const isReactive = !isInstance && !isOnce && isFunction;
 
-        // move this to the Binder
-        if (!isReactive || isOnce) {
-            binder.remove();
+        if (isOnce || isInstance || !isFunction) {
+            binder.instructions.splice(binder.instructions.indexOf(instruction), 1);
+            if (!binder.instructions) {
+                binder.remove();
+            }
         }
 
-        const source = data.source;
+        const source = instruction.source;
         const target = isReactive ? variable() : variable;
 
-        if ('source' in data && source === target) {
-            return;
+        if ('source' in instruction && source === target) {
+            continue;
         }
 
         if (instruction.type === 1) {
@@ -69,7 +71,7 @@ export const action = function (binder: Binder) {
             throw new Error('instruction type not valid');
         }
 
-        // data.source = target;
+        instruction.source = target;
     }
 
 };

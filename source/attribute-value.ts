@@ -1,22 +1,34 @@
-import { update } from './update.ts';
 import { isValue, hasOn, isLink, dangerousLink, sliceOn } from './tools.ts';
+import { update } from './update.ts';
 
 export const attributeValue = function (element: Element, data: any, source: any, target: any): void {
-    console.log(arguments);
+    console.log(element, source, target);
 
     if (source === target) {
         return;
-    } else if (isValue(data.name)) {
+    }
 
+    if (isValue(data.name)) {
+        data.value = target;
         // data.value = display(target);
-        data.value = target
-        if (!data.name) return;
+        // if (!data.name) return;
         element.setAttribute(data.name, data.value);
         Reflect.set(element, data.name, data.value);
-
-    } else if (hasOn(data.name)) {
-
+    } else if (isLink(data.name)) {
+        data.value = encodeURI(target);
         // if (!data.name) return;
+
+        if (dangerousLink(data.value)) {
+            element.removeAttribute(data.name);
+            console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+            return;
+        }
+
+        element.setAttribute(data.name, data.value);
+    } else if (hasOn(data.name)) {
+        console.log(data);
+
+
         if (element.hasAttribute(data.name)) {
             element.removeAttribute(data.name);
         }
@@ -33,30 +45,16 @@ export const attributeValue = function (element: Element, data: any, source: any
             const result = target.call(this, ...arguments);
             if (data.result !== result) {
                 data.result = result;
-                console.log(result);
-                
-                // update();
+                update();
             }
-            return data.result;
+            return result;
         };
 
         element.addEventListener(sliceOn(data.name), data.value, true);
 
-    } else if (isLink(data.name)) {
-
-        data.value = encodeURI(target);
-        if (!data.name) return;
-
-        if (dangerousLink(data.value)) {
-            element.removeAttribute(data.name);
-            console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
-            return;
-        }
-
-        element.setAttribute(data.name, data.value);
     } else {
         data.value = target;
-        if (!data.name) return;
+        // if (!data.name) return;
         element.setAttribute(data.name, data.value);
         Reflect.set(element, data.name, data.value);
     }
