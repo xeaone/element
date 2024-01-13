@@ -145,50 +145,105 @@ var replaceChildren = function(element2, ...nodes) {
 
 // source/attribute-name.ts
 var attributeName = function(element2, data, source, target) {
+  console.log(arguments);
+  source = source?.toLowerCase() ?? "";
+  target = target?.toLowerCase() ?? "";
   if (source === target) {
     return;
-  } else if (isValue(source)) {
-    element2.removeAttribute(source);
-    Reflect.set(element2, source, null);
-  } else if (hasOn(source)) {
+  }
+  if (hasOn(source)) {
     if (typeof data.value === "function") {
       element2.removeEventListener(sliceOn(source), data.value, true);
     }
-  } else if (isLink(source)) {
+  } else if (isValue(source)) {
     element2.removeAttribute(source);
+    Reflect.set(element2, source, null);
   } else if (isBool(source)) {
+    console.log(data, source, target);
     element2.removeAttribute(source);
     Reflect.set(element2, source, false);
+  } else if (isLink(source)) {
+    element2.removeAttribute(source);
+    Reflect.deleteProperty(element2, source);
   } else if (source) {
     element2.removeAttribute(source);
     Reflect.deleteProperty(element2, source);
   }
-  data.name = target?.toLowerCase() || "";
-  if (!data.name) {
+  if (hasOn(target)) {
     return;
-  } else if (hasOn(data.name)) {
-    return;
-  } else if (isBool(data.name)) {
-    element2.setAttribute(data.name, "");
-    Reflect.set(element2, data.name, true);
+  } else if (isBool(target)) {
+    element2.setAttribute(target, "");
+    Reflect.set(element2, target, true);
+  } else if (target) {
+    element2.setAttribute(target, "");
+    Reflect.set(element2, target, null);
+  }
+  data.name = target || "";
+};
+
+// source/update.ts
+var Next;
+var Current;
+var next = async function() {
+  await Current;
+  await new Promise((resolve) => {
+    queueMicrotask(async () => {
+      Next = void 0;
+      await update();
+      resolve(void 0);
+    });
+  });
+};
+var update = async function() {
+  if (Current) {
+    console.log("Is Current");
+    if (Next) {
+      console.log("Is Next");
+      await Next;
+    } else {
+      console.log("Not Next");
+      Next = next();
+      await Next;
+    }
   } else {
-    element2.setAttribute(data.name, "");
-    Reflect.set(element2, data.name, void 0);
+    Current = new Promise((resolve) => {
+      queueMicrotask(async () => {
+        const binders = BindersCache.values();
+        for (const binder of binders) {
+          try {
+            await action(binder);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+        Current = void 0;
+        resolve();
+      });
+    });
+    await Current;
   }
 };
 
 // source/attribute-value.ts
 var attributeValue = function(element2, data, source, target) {
-  console.log(arguments);
+  console.log(element2, source, target);
   if (source === target) {
     return;
-  } else if (isValue(data.name)) {
+  }
+  if (isValue(data.name)) {
     data.value = target;
-    if (!data.name)
-      return;
     element2.setAttribute(data.name, data.value);
     Reflect.set(element2, data.name, data.value);
+  } else if (isLink(data.name)) {
+    data.value = encodeURI(target);
+    if (dangerousLink(data.value)) {
+      element2.removeAttribute(data.name);
+      console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+      return;
+    }
+    element2.setAttribute(data.name, data.value);
   } else if (hasOn(data.name)) {
+    console.log(data);
     if (element2.hasAttribute(data.name)) {
       element2.removeAttribute(data.name);
     }
@@ -202,25 +257,13 @@ var attributeValue = function(element2, data, source, target) {
       const result = target.call(this, ...arguments);
       if (data.result !== result) {
         data.result = result;
-        console.log(result);
+        update();
       }
-      return data.result;
+      return result;
     };
     element2.addEventListener(sliceOn(data.name), data.value, true);
-  } else if (isLink(data.name)) {
-    data.value = encodeURI(target);
-    if (!data.name)
-      return;
-    if (dangerousLink(data.value)) {
-      element2.removeAttribute(data.name);
-      console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
-      return;
-    }
-    element2.setAttribute(data.name, data.value);
   } else {
     data.value = target;
-    if (!data.name)
-      return;
     element2.setAttribute(data.name, data.value);
     Reflect.set(element2, data.name, data.value);
   }
@@ -328,15 +371,18 @@ var action = function(binder) {
     const variable = variables[instruction.index];
     const isFunction = typeof variable === "function";
     const isInstance = isFunction && variable[InstanceSymbol];
-    const isOnce = (type === 2 || type === 3) && data.name.startsWith("on");
+    const isOnce = type === 3 && data.name.startsWith("on");
     const isReactive = !isInstance && !isOnce && isFunction;
-    if (!isReactive || isOnce) {
-      binder.remove();
+    if (isOnce || isInstance || !isFunction) {
+      binder.instructions.splice(binder.instructions.indexOf(instruction), 1);
+      if (!binder.instructions) {
+        binder.remove();
+      }
     }
-    const source = data.source;
+    const source = instruction.source;
     const target = isReactive ? variable() : variable;
-    if ("source" in data && source === target) {
-      return;
+    if ("source" in instruction && source === target) {
+      continue;
     }
     if (instruction.type === 1) {
       element(node, data, source, target);
@@ -349,28 +395,26 @@ var action = function(binder) {
     } else {
       throw new Error("instruction type not valid");
     }
+    instruction.source = target;
   }
 };
 
 // source/bind.ts
-var bind = function(variables, instructions, references) {
+var bind = function(variables, instructions, reference) {
   const binder = {
-    result: void 0,
+    reference,
     get node() {
-      const [reference] = references;
       const node = reference.deref();
       if (node) {
         return node;
       } else {
+        console.log("binder remove by no node");
         BindersCache.delete(this);
         return null;
       }
     },
-    get references() {
-      return references;
-    },
     get instructions() {
-      if (instructions.length) {
+      if (!instructions.length) {
         BindersCache.delete(this);
       }
       return instructions;
@@ -412,9 +456,9 @@ var initialize = function(template, variables, marker, container) {
       if (endIndex !== text2.nodeValue?.length) {
         text2.splitText(endIndex);
       }
-      const references = [new WeakRef(text2)];
+      const reference = new WeakRef(text2);
       const instructions = [{ type: 4, index: index++, data: {} }];
-      bind(variables, instructions, references);
+      bind(variables, instructions, reference);
     } else if (type === ELEMENT_NODE) {
       const element2 = node;
       const tag = element2.tagName.toLowerCase();
@@ -422,9 +466,9 @@ var initialize = function(template, variables, marker, container) {
         walker.nextSibling();
       }
       let instructions;
-      let references;
+      let reference;
       if (matchMarker(tag, marker)) {
-        references = [new WeakRef(element2)];
+        reference = new WeakRef(element2);
         instructions = [{ type: 1, index: index++, data: { tag } }];
       }
       const names = element2.getAttributeNames();
@@ -433,15 +477,18 @@ var initialize = function(template, variables, marker, container) {
         const matchMarkerName = matchMarker(name, marker);
         const hasMarkerValue = hasMarker(value, marker);
         if (matchMarkerName || hasMarkerValue) {
-          references = references ?? [new WeakRef(element2)];
+          reference = reference ?? new WeakRef(element2);
           instructions = instructions ?? [];
           const data = { name, value };
           if (matchMarkerName) {
+            data.name = "";
             instructions.push({ type: 2, index: index++, data });
           }
           if (hasMarkerValue) {
+            data.value = "";
             instructions.push({ type: 3, index: index++, data });
           }
+          element2.removeAttribute(name);
         } else {
           if (isLink(name)) {
             if (dangerousLink(value)) {
@@ -453,9 +500,9 @@ var initialize = function(template, variables, marker, container) {
             console.warn(`attribute name "${name}" not allowed`);
           }
         }
-        if (instructions && references) {
-          bind(variables, instructions, references);
-        }
+      }
+      if (instructions && reference) {
+        bind(variables, instructions, reference);
       }
     } else {
       console.warn(`walker node type "${type}" not handled`);
@@ -472,46 +519,6 @@ var initialize = function(template, variables, marker, container) {
     return container;
   } else {
     return fragment;
-  }
-};
-
-// source/update.ts
-var Next;
-var Current;
-var next = async function() {
-  await Current;
-  await new Promise((resolve) => {
-    queueMicrotask(async () => {
-      Next = void 0;
-      await update();
-      resolve(void 0);
-    });
-  });
-};
-var update = async function() {
-  if (Current) {
-    console.log("Is Current");
-    if (Next) {
-      console.log("Is Next");
-      await Next;
-    } else {
-      console.log("Not Next");
-      Next = next();
-      await Next;
-    }
-  } else {
-    Current = (async () => {
-      const binders = BindersCache.values();
-      for (const binder of binders) {
-        try {
-          await action(binder);
-        } catch (error) {
-          console.error(error);
-        }
-      }
-      Current = void 0;
-    })();
-    await Current;
   }
 };
 

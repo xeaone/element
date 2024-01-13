@@ -1,30 +1,26 @@
-import { Binder, Instructions, References, Variables } from './types';
+import { Binder, Instructions, Reference, References, Variables } from './types';
 import { BindersCache } from './global';
 import { action } from './action';
 
-export const bind = function (variables: Variables, instructions: Instructions, references: References) {
+export const bind = function (variables: Variables, instructions: Instructions, reference: Reference) {
 
     const binder: Binder = {
 
-        result: undefined,
+        reference,
 
         get node () {
-            const [ reference ] = references;
             const node = reference.deref();
             if (node) {
                 return node;
             } else {
+                console.log('binder remove by no node');
                 BindersCache.delete(this);
                 return null;
             }
         },
 
-        get references () {
-            return references;
-        },
-
         get instructions () {
-            if (instructions.length) {
+            if (!instructions.length) {
                 BindersCache.delete(this);
             }
             return instructions;

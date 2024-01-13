@@ -24,13 +24,13 @@ export type BinderType = 1 | 2 | 3 | 4;
 export interface Binder {
 
     // array
-    start?: Text, // maybe weakref
-    end?: Text,  // maybe weakref
-    length?: number,
-    markers?: Node[],
-    results?: any[],
+    // start?: Text, // maybe weakref
+    // end?: Text,  // maybe weakref
+    // length?: number,
+    // markers?: Node[],
+    // results?: any[],
 
-    result: any,
+    // result: any,
 
     // variable: Variable,
 
@@ -43,8 +43,8 @@ export interface Binder {
     remove: () => void,
     // replace: (node:Node) => void,
 
+    reference: Reference,
     variables: Variables,
-    references: References,
     instructions: Instructions,
 
     // isOnce: boolean,
@@ -82,5 +82,10 @@ export interface Global {
 export type Reference = WeakRef<Element | Attr | Text>
 export type References = Reference[];
 
-export type Instruction = { type: 1 | 2 | 3 | 4, index: number, data: Record<any,any>, }
+export type Instruction = {
+    type: 1 | 2 | 3 | 4,
+    index: number,
+    data: Record<any, any>,
+    source?: any,
+};
 export type Instructions = Instruction[];

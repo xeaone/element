@@ -1,12 +1,10 @@
-import { ELEMENT_NODE, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE, dangerousLink, hasMarker, hasOn, isLink, isMarker, matchMarker, replaceChildren } from './tools';
-import { Marker, Template, Variables, Container, References, Instructions } from './types';
+import { ELEMENT_NODE, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE, dangerousLink, hasMarker, hasOn, isLink, matchMarker, replaceChildren } from './tools';
+import { Marker, Template, Variables, Container, Instructions, Reference } from './types';
 import { ContainersCache } from './global';
 import { update } from './update';
 import { bind } from './bind';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
-
-// const InstructionsCache:WeakMap<Element, Instructions> = new WeakMap();
 
 // type ReferenceId = symbol;
 // type ReferenceNode = WeakRef<Element | Attr | Text>;
@@ -74,9 +72,9 @@ export const initialize = function (template: Template, variables: Variables, ma
                 text.splitText(endIndex);
             }
 
-            const references: References = [new WeakRef(text)];
+            const reference: Reference = new WeakRef(text);
             const instructions: Instructions = [{ type: 4, index: index++, data: {} }];
-            bind(variables, instructions, references);
+            bind(variables, instructions, reference);
 
         } else if (type === ELEMENT_NODE) {
             const element = node as Element;
@@ -87,36 +85,37 @@ export const initialize = function (template: Template, variables: Variables, ma
             }
 
             let instructions: Instructions | undefined;
-            let references: References | undefined;
+            let reference: Reference | undefined;
 
             if (matchMarker(tag, marker)) {
-                references = [new WeakRef(element)];
+                reference = new WeakRef(element);
                 instructions = [{ type: 1, index: index++, data: { tag } }];
             }
 
             const names = element.getAttributeNames();
             for (const name of names) {
                 const value = element.getAttribute(name) ?? '';
-
                 const matchMarkerName = matchMarker(name, marker);
                 const hasMarkerValue = hasMarker(value, marker);
 
                 if (matchMarkerName || hasMarkerValue) {
 
-                    references = references ?? [new WeakRef(element)];
+                    reference = reference ?? new WeakRef(element);
                     instructions = instructions ?? [];
 
                     const data = { name, value };
 
                     if (matchMarkerName) {
+                        data.name = '';
                         instructions.push({ type: 2, index: index++, data });
                     }
 
-                    // handle value bindings
                     if (hasMarkerValue) {
+                        data.value = '';
                         instructions.push({ type: 3, index: index++, data });
                     }
 
+                    element.removeAttribute(name);
                 } else {
                     if (isLink(name)) {
                         if (dangerousLink(value)) {
@@ -129,12 +128,12 @@ export const initialize = function (template: Template, variables: Variables, ma
                     }
                 }
 
-                if (instructions && references) {
-                    // InstructionsCache.set(element, instructions);
-                    bind(variables, instructions, references);
-                }
-
             }
+
+            if (instructions && reference) {
+                bind(variables, instructions, reference);
+            }
+
         } else {
             console.warn(`walker node type "${type}" not handled`);
         }
