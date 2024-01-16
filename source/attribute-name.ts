@@ -1,6 +1,7 @@
 import { hasOn, isBool, isLink, isValue, sliceOn } from './tools';
+import { Binder } from './types';
 
-export const attributeName = function (element: Element, data: any, source: any, target: any): void {
+export const attributeName = function (element: Element, binder: Binder, source: any, target: any): void {
     console.log(arguments);
 
     source = source?.toLowerCase() ?? '';
@@ -12,15 +13,15 @@ export const attributeName = function (element: Element, data: any, source: any,
 
     if (hasOn(source)) {
 
-        if (typeof data.value === 'function') {
-            element.removeEventListener(sliceOn(source), data.value, true);
+        if (typeof binder.value === 'function') {
+            element.removeEventListener(sliceOn(source), binder.value, true);
         }
 
     } else if (isValue(source)) {
         element.removeAttribute(source);
         Reflect.set(element, source, null);
     } else if (isBool(source)) {
-        console.log(data, source, target);
+        console.log(binder, source, target);
         element.removeAttribute(source);
         Reflect.set(element, source, false);
     } else if (isLink(source)) {
@@ -41,6 +42,6 @@ export const attributeName = function (element: Element, data: any, source: any,
         Reflect.set(element, target, null);
     }
 
-    data.name = target || '';
+    binder.name = target || '';
 
 };

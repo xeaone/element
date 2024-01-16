@@ -2,7 +2,7 @@ import { InstanceSymbol, TemplateSymbol, VariablesSymbol } from './global';
 import { beforeNode, isIterable, removeBetween, removeNode } from './tools';
 import { Binder } from './types';
 
-export const text = function (node: Text, data: any, source: any, target: any) {
+export const text = function (node: Text, binder: Binder, source: any, target: any) {
 
     if (target === null || target === undefined) {
         if (node.textContent === '') {
@@ -12,102 +12,102 @@ export const text = function (node: Text, data: any, source: any, target: any) {
         }
     } else if (target instanceof Node) {
 
-        if (!data.start) {
-            data.start = document.createTextNode('');
-            beforeNode(data.start, node);
+        if (!binder.start) {
+            binder.start = document.createTextNode('');
+            beforeNode(binder.start, node);
         }
 
-        if (!data.end) {
+        if (!binder.end) {
             node.textContent = '';
-            data.end = node;
+            binder.end = node;
         }
 
-        removeBetween(data.start, data.end);
-        beforeNode(target, data.end);
+        removeBetween(binder.start, binder.end);
+        beforeNode(target, binder.end);
 
     } else if (target?.[ InstanceSymbol ]) {
 
-        if (!data.start) {
-            data.start = document.createTextNode('');
-            beforeNode(data.start, node);
+        if (!binder.start) {
+            binder.start = document.createTextNode('');
+            beforeNode(binder.start, node);
         }
 
-        if (!data.end) {
+        if (!binder.end) {
             node.textContent = '';
-            data.end = node;
+            binder.end = node;
         }
 
-        removeBetween(data.start, data.end);
-        beforeNode(target(), data.end);
+        removeBetween(binder.start, binder.end);
+        beforeNode(target(), binder.end);
 
     } else if (isIterable(target)) {
 
-        if (data.length === undefined) {
-            data.length = 0;
+        if (binder.length === undefined) {
+            binder.length = 0;
         }
 
-        if (!data.results) {
-            data.results = [];
+        if (!binder.results) {
+            binder.results = [];
         }
 
-        if (!data.markers) {
-            data.markers = [];
+        if (!binder.markers) {
+            binder.markers = [];
         }
 
-        if (!data.start) {
-            data.start = document.createTextNode('');
-            beforeNode(data.start, node);
+        if (!binder.start) {
+            binder.start = document.createTextNode('');
+            beforeNode(binder.start, node);
         }
 
-        if (!data.end) {
+        if (!binder.end) {
             node.textContent = '';
-            data.end = node;
+            binder.end = node;
         }
 
-        const oldLength = data.length;
+        const oldLength = binder.length;
         const newLength = target.length;
         const commonLength = Math.min(oldLength, newLength);
 
         for (let index = 0; index < commonLength; index++) {
 
-            if (data.results[ index ]?.[TemplateSymbol] === target[ index ]?.[TemplateSymbol]) {
-                Object.assign(data.results[ index ][VariablesSymbol], target[ index ][VariablesSymbol]);
+            if (binder.results[ index ]?.[TemplateSymbol] === target[ index ]?.[TemplateSymbol]) {
+                Object.assign(binder.results[ index ][VariablesSymbol], target[ index ][VariablesSymbol]);
             } else {
-                data.results[ index ] = target[ index ];
+                binder.results[ index ] = target[ index ];
             }
 
         }
 
         if (oldLength < newLength) {
-            while (data.length !== target.length) {
+            while (binder.length !== target.length) {
                 const marker = document.createTextNode('');
-                data.markers.push(marker);
-                data.results.push(target[ data.length ]);
-                beforeNode(marker, data.end);
-                // bind(marker, data.results, data.length);
-                data.length++;
+                binder.markers.push(marker);
+                binder.results.push(target[ binder.length ]);
+                beforeNode(marker, binder.end);
+                // bind(marker, binder.results, binder.length);
+                binder.length++;
             }
         } else if (oldLength > newLength) {
-            const last = data.markers[ target.length - 1 ];
+            const last = binder.markers[ target.length - 1 ];
 
-            while (data.length !== target.length) {
-                // const previous = data.end.previousSibling;
+            while (binder.length !== target.length) {
+                // const previous = binder.end.previousSibling;
                 // removeNode(previous as Node);
-                // const last = data.markers[ data.markers.length - 1 ];
+                // const last = binder.markers[ binder.markers.length - 1 ];
                 // if (previous === last) {
-                //     data.markers.pop();
-                //     data.results.pop();
-                //     data.length--;
+                //     binder.markers.pop();
+                //     binder.results.pop();
+                //     binder.length--;
                 // }
 
-                const previous = data.end.previousSibling;
+                const previous = binder.end.previousSibling;
                 if (previous === last) break;
                 removeNode(previous as Node);
             }
 
-            data.length = target.length;
-            data.results.length = target.length;
-            data.markers.length = target.length;
+            binder.length = target.length;
+            binder.results.length = target.length;
+            binder.markers.length = target.length;
         }
 
     } else {

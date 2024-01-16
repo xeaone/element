@@ -3,6 +3,7 @@ var global = window.XGLOBAL ?? (window.XGLOBAL = Object.freeze({
   // QueueNext: undefined,
   // QueueCurrent: undefined,
   BindersCache: /* @__PURE__ */ new Set(),
+  // VirtualCache: new WeakMap(),
   TemplatesCache: /* @__PURE__ */ new WeakMap(),
   ContainersCache: /* @__PURE__ */ new WeakMap(),
   MarkerSymbol: Symbol("marker"),
@@ -14,6 +15,7 @@ var {
   // QueueNext,
   // QueueCurrent,
   BindersCache,
+  // VirtualCache,
   TemplatesCache,
   ContainersCache,
   MarkerSymbol,
@@ -143,8 +145,78 @@ var replaceChildren = function(element2, ...nodes) {
   }
 };
 
+// source/reference.ts
+var Reference = function(data) {
+  return {
+    data,
+    get: function() {
+      if (this.data instanceof WeakRef) {
+        return this.data.deref();
+      } else {
+        return this.data;
+      }
+    },
+    set: function(data2) {
+      if (data2 instanceof Node) {
+        this.data = new WeakRef(data2);
+        return data2;
+      } else {
+        this.data = data2;
+        return data2;
+      }
+    }
+  };
+};
+
+// source/bind.ts
+var bind = function(type, index, variables, referenceNode, referenceName, referenceValue) {
+  const binder = {
+    type,
+    // index,
+    // variables,
+    // references,
+    get variable() {
+      return variables[index];
+    },
+    set variable(data) {
+      variables[index] = data;
+    },
+    get node() {
+      const node = referenceNode.get();
+      if (node) {
+        return node;
+      } else {
+        console.log("binder remove by no node");
+        BindersCache.delete(this);
+        return void 0;
+      }
+    },
+    get name() {
+      return referenceName.get();
+    },
+    set name(name) {
+      referenceName.set(name);
+    },
+    get value() {
+      return referenceValue.get();
+    },
+    set value(value) {
+      referenceValue.set(value);
+    },
+    remove() {
+      console.log("binder remove");
+      BindersCache.delete(this);
+    },
+    add() {
+      BindersCache.add(binder);
+    }
+  };
+  binder.add();
+  return binder;
+};
+
 // source/attribute-name.ts
-var attributeName = function(element2, data, source, target) {
+var attributeName = function(element2, binder, source, target) {
   console.log(arguments);
   source = source?.toLowerCase() ?? "";
   target = target?.toLowerCase() ?? "";
@@ -152,14 +224,14 @@ var attributeName = function(element2, data, source, target) {
     return;
   }
   if (hasOn(source)) {
-    if (typeof data.value === "function") {
-      element2.removeEventListener(sliceOn(source), data.value, true);
+    if (typeof binder.value === "function") {
+      element2.removeEventListener(sliceOn(source), binder.value, true);
     }
   } else if (isValue(source)) {
     element2.removeAttribute(source);
     Reflect.set(element2, source, null);
   } else if (isBool(source)) {
-    console.log(data, source, target);
+    console.log(binder, source, target);
     element2.removeAttribute(source);
     Reflect.set(element2, source, false);
   } else if (isLink(source)) {
@@ -178,7 +250,7 @@ var attributeName = function(element2, data, source, target) {
     element2.setAttribute(target, "");
     Reflect.set(element2, target, null);
   }
-  data.name = target || "";
+  binder.name = target || "";
 };
 
 // source/update.ts
@@ -225,52 +297,51 @@ var update = async function() {
 };
 
 // source/attribute-value.ts
-var attributeValue = function(element2, data, source, target) {
-  console.log(element2, source, target);
+var attributeValue = function(element2, binder, source, target) {
   if (source === target) {
     return;
   }
-  if (isValue(data.name)) {
-    data.value = target;
-    element2.setAttribute(data.name, data.value);
-    Reflect.set(element2, data.name, data.value);
-  } else if (isLink(data.name)) {
-    data.value = encodeURI(target);
-    if (dangerousLink(data.value)) {
-      element2.removeAttribute(data.name);
-      console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+  if (isValue(binder.name)) {
+    binder.value = target;
+    element2.setAttribute(binder.name, binder.value);
+    Reflect.set(element2, binder.name, binder.value);
+  } else if (isLink(binder.name)) {
+    binder.value = encodeURI(target);
+    if (dangerousLink(binder.value)) {
+      element2.removeAttribute(binder.name);
+      console.warn(`XElement - attribute name "${binder.name}" and value "${binder.value}" not allowed`);
       return;
     }
-    element2.setAttribute(data.name, data.value);
-  } else if (hasOn(data.name)) {
-    console.log(data);
-    if (element2.hasAttribute(data.name)) {
-      element2.removeAttribute(data.name);
+    element2.setAttribute(binder.name, binder.value);
+  } else if (hasOn(binder.name)) {
+    console.log(binder);
+    if (element2.hasAttribute(binder.name)) {
+      element2.removeAttribute(binder.name);
     }
-    if (typeof data.value === "function") {
-      element2.removeEventListener(sliceOn(data.name), data.value, true);
+    if (typeof source === "function") {
+      element2.removeEventListener(sliceOn(binder.name), source, true);
     }
     if (typeof target !== "function") {
-      return console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+      return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
     }
-    data.value = function() {
+    binder.value = function() {
       const result = target.call(this, ...arguments);
-      if (data.result !== result) {
-        data.result = result;
+      if (binder.result !== result) {
+        binder.result = result;
         update();
       }
       return result;
     };
-    element2.addEventListener(sliceOn(data.name), data.value, true);
+    element2.addEventListener(sliceOn(binder.name), binder.value, true);
   } else {
-    data.value = target;
-    element2.setAttribute(data.name, data.value);
-    Reflect.set(element2, data.name, data.value);
+    binder.value = target;
+    element2.setAttribute(binder.name, binder.value);
+    Reflect.set(element2, binder.name, binder.value);
   }
 };
 
 // source/text.ts
-var text = function(node, data, source, target) {
+var text = function(node, binder, source, target) {
   if (target === null || target === void 0) {
     if (node.textContent === "") {
       return;
@@ -278,74 +349,74 @@ var text = function(node, data, source, target) {
       node.textContent = "";
     }
   } else if (target instanceof Node) {
-    if (!data.start) {
-      data.start = document.createTextNode("");
-      beforeNode(data.start, node);
+    if (!binder.start) {
+      binder.start = document.createTextNode("");
+      beforeNode(binder.start, node);
     }
-    if (!data.end) {
+    if (!binder.end) {
       node.textContent = "";
-      data.end = node;
+      binder.end = node;
     }
-    removeBetween(data.start, data.end);
-    beforeNode(target, data.end);
+    removeBetween(binder.start, binder.end);
+    beforeNode(target, binder.end);
   } else if (target?.[InstanceSymbol]) {
-    if (!data.start) {
-      data.start = document.createTextNode("");
-      beforeNode(data.start, node);
+    if (!binder.start) {
+      binder.start = document.createTextNode("");
+      beforeNode(binder.start, node);
     }
-    if (!data.end) {
+    if (!binder.end) {
       node.textContent = "";
-      data.end = node;
+      binder.end = node;
     }
-    removeBetween(data.start, data.end);
-    beforeNode(target(), data.end);
+    removeBetween(binder.start, binder.end);
+    beforeNode(target(), binder.end);
   } else if (isIterable(target)) {
-    if (data.length === void 0) {
-      data.length = 0;
+    if (binder.length === void 0) {
+      binder.length = 0;
     }
-    if (!data.results) {
-      data.results = [];
+    if (!binder.results) {
+      binder.results = [];
     }
-    if (!data.markers) {
-      data.markers = [];
+    if (!binder.markers) {
+      binder.markers = [];
     }
-    if (!data.start) {
-      data.start = document.createTextNode("");
-      beforeNode(data.start, node);
+    if (!binder.start) {
+      binder.start = document.createTextNode("");
+      beforeNode(binder.start, node);
     }
-    if (!data.end) {
+    if (!binder.end) {
       node.textContent = "";
-      data.end = node;
+      binder.end = node;
     }
-    const oldLength = data.length;
+    const oldLength = binder.length;
     const newLength = target.length;
     const commonLength = Math.min(oldLength, newLength);
     for (let index = 0; index < commonLength; index++) {
-      if (data.results[index]?.[TemplateSymbol] === target[index]?.[TemplateSymbol]) {
-        Object.assign(data.results[index][VariablesSymbol], target[index][VariablesSymbol]);
+      if (binder.results[index]?.[TemplateSymbol] === target[index]?.[TemplateSymbol]) {
+        Object.assign(binder.results[index][VariablesSymbol], target[index][VariablesSymbol]);
       } else {
-        data.results[index] = target[index];
+        binder.results[index] = target[index];
       }
     }
     if (oldLength < newLength) {
-      while (data.length !== target.length) {
+      while (binder.length !== target.length) {
         const marker = document.createTextNode("");
-        data.markers.push(marker);
-        data.results.push(target[data.length]);
-        beforeNode(marker, data.end);
-        data.length++;
+        binder.markers.push(marker);
+        binder.results.push(target[binder.length]);
+        beforeNode(marker, binder.end);
+        binder.length++;
       }
     } else if (oldLength > newLength) {
-      const last = data.markers[target.length - 1];
-      while (data.length !== target.length) {
-        const previous = data.end.previousSibling;
+      const last = binder.markers[target.length - 1];
+      while (binder.length !== target.length) {
+        const previous = binder.end.previousSibling;
         if (previous === last)
           break;
         removeNode(previous);
       }
-      data.length = target.length;
-      data.results.length = target.length;
-      data.markers.length = target.length;
+      binder.length = target.length;
+      binder.results.length = target.length;
+      binder.markers.length = target.length;
     }
   } else {
     if (node.textContent === `${target}`) {
@@ -365,69 +436,31 @@ var action = function(binder) {
   if (!node) {
     return;
   }
-  const variables = binder.variables;
-  for (const instruction of binder.instructions) {
-    const { type, data } = instruction;
-    const variable = variables[instruction.index];
-    const isFunction = typeof variable === "function";
-    const isInstance = isFunction && variable[InstanceSymbol];
-    const isOnce = type === 3 && data.name.startsWith("on");
-    const isReactive = !isInstance && !isOnce && isFunction;
-    if (isOnce || isInstance || !isFunction) {
-      binder.instructions.splice(binder.instructions.indexOf(instruction), 1);
-      if (!binder.instructions) {
-        binder.remove();
-      }
-    }
-    const source = instruction.source;
-    const target = isReactive ? variable() : variable;
-    if ("source" in instruction && source === target) {
-      continue;
-    }
-    if (instruction.type === 1) {
-      element(node, data, source, target);
-    } else if (instruction.type === 2) {
-      attributeName(node, data, source, target);
-    } else if (instruction.type === 3) {
-      attributeValue(node, data, source, target);
-    } else if (instruction.type === 4) {
-      text(node, data, source, target);
-    } else {
-      throw new Error("instruction type not valid");
-    }
-    instruction.source = target;
+  const variable = binder.variable;
+  const isFunction = typeof variable === "function";
+  const isInstance = isFunction && variable[InstanceSymbol];
+  const isOnce = binder.type === 3 && binder.name.startsWith("on");
+  const isReactive = !isInstance && !isOnce && isFunction;
+  if (isOnce || isInstance || !isFunction) {
+    binder.remove();
   }
-};
-
-// source/bind.ts
-var bind = function(variables, instructions, reference) {
-  const binder = {
-    reference,
-    get node() {
-      const node = reference.deref();
-      if (node) {
-        return node;
-      } else {
-        console.log("binder remove by no node");
-        BindersCache.delete(this);
-        return null;
-      }
-    },
-    get instructions() {
-      if (!instructions.length) {
-        BindersCache.delete(this);
-      }
-      return instructions;
-    },
-    get variables() {
-      return variables;
-    },
-    remove() {
-      BindersCache.delete(this);
-    }
-  };
-  BindersCache.add(binder);
-  action(binder);
+  const source = binder.source;
+  const target = isReactive ? variable() : variable;
+  if ("source" in binder && source === target) {
+    return;
+  }
+  if (binder.type === 1) {
+    element(node, binder, source, target);
+  } else if (binder.type === 2) {
+    attributeName(node, binder, source, target);
+  } else if (binder.type === 3) {
+    attributeValue(node, binder, source, target);
+  } else if (binder.type === 4) {
+    text(node, binder, source, target);
+  } else {
+    throw new Error("instruction type not valid");
+  }
+  binder.source = target;
 };
 
 // source/initialize.ts
@@ -435,6 +468,7 @@ var FILTER = SHOW_ELEMENT + SHOW_TEXT;
 var initialize = function(template, variables, marker, container) {
   const fragment = template.content.cloneNode(true);
   const walker = document.createTreeWalker(fragment, FILTER, null);
+  const virtuals = [];
   let node;
   let startIndex;
   let endIndex;
@@ -456,20 +490,20 @@ var initialize = function(template, variables, marker, container) {
       if (endIndex !== text2.nodeValue?.length) {
         text2.splitText(endIndex);
       }
-      const reference = new WeakRef(text2);
-      const instructions = [{ type: 4, index: index++, data: {} }];
-      bind(variables, instructions, reference);
+      const referenceNode = Reference(text2);
+      const binder = bind(4, index++, variables, referenceNode);
+      action(binder);
     } else if (type === ELEMENT_NODE) {
       const element2 = node;
       const tag = element2.tagName.toLowerCase();
       if (tag === "STYLE" || tag === "SCRIPT") {
         walker.nextSibling();
       }
-      let instructions;
-      let reference;
+      let referenceNode;
       if (matchMarker(tag, marker)) {
-        reference = new WeakRef(element2);
-        instructions = [{ type: 1, index: index++, data: { tag } }];
+        referenceNode = Reference(node);
+        const binder = bind(1, index++, variables, referenceNode);
+        action(binder);
       }
       const names = element2.getAttributeNames();
       for (const name of names) {
@@ -477,16 +511,16 @@ var initialize = function(template, variables, marker, container) {
         const matchMarkerName = matchMarker(name, marker);
         const hasMarkerValue = hasMarker(value, marker);
         if (matchMarkerName || hasMarkerValue) {
-          reference = reference ?? new WeakRef(element2);
-          instructions = instructions ?? [];
-          const data = { name, value };
+          referenceNode = referenceNode ?? Reference(node);
+          const referenceName = Reference(name);
+          const referenceValue = Reference(value);
           if (matchMarkerName) {
-            data.name = "";
-            instructions.push({ type: 2, index: index++, data });
+            const binder = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+            action(binder);
           }
           if (hasMarkerValue) {
-            data.value = "";
-            instructions.push({ type: 3, index: index++, data });
+            const binder = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+            action(binder);
           }
           element2.removeAttribute(name);
         } else {
@@ -500,9 +534,6 @@ var initialize = function(template, variables, marker, container) {
             console.warn(`attribute name "${name}" not allowed`);
           }
         }
-      }
-      if (instructions && reference) {
-        bind(variables, instructions, reference);
       }
     } else {
       console.warn(`walker node type "${type}" not handled`);

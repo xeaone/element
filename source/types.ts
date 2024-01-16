@@ -21,31 +21,54 @@ export interface Initialize {
 
 export type BinderType = 1 | 2 | 3 | 4;
 
+// export type Reference = WeakRef<Node>
+
+// export type Virtual = {
+//     reference: Reference,
+//     tag?: string,
+//     text?: string,
+//     name?: string,
+//     value?: any,
+// }
+
+export type Results = any[];
+
+export type ReferenceType<T> = {
+    data: any,
+    get(): T | undefined,
+    set(data: T): T | undefined,
+}
+
 export interface Binder {
 
+    type: BinderType,
+    // index: number,
+    // variables: Variables,
+    variable: Variable,
+
+    name: any,
+    value: any,
+    node: Node | undefined,
+
+    source?: any,
+    target?: any,
+
+    result?: any,
+
     // array
-    // start?: Text, // maybe weakref
-    // end?: Text,  // maybe weakref
-    // length?: number,
-    // markers?: Node[],
-    // results?: any[],
-
-    // result: any,
-
-    // variable: Variable,
-
-    node: Node | null,
-    // nodeReference: WeakRef<Node>,
-
-    // owner: Element | null,
-    // ownerReference: WeakRef<Element> | undefined,
+    start?: Text, // maybe weakref
+    end?: Text,  // maybe weakref
+    length?: number,
+    markers?: Node[],
+    results?: any[],
 
     remove: () => void,
+    add: () => void,
     // replace: (node:Node) => void,
 
-    reference: Reference,
-    variables: Variables,
-    instructions: Instructions,
+    // reference: Reference,
+    // variables: Variables,
+    // instructions: Instructions,
 
     // isOnce: boolean,
     // isReactive: boolean,
@@ -67,6 +90,11 @@ export interface Global {
     // QueueNext: Promise<void> | undefined,
     // QueueCurrent: Promise<void> | undefined,
 
+    // VirtualCache: WeakMap<Node, Virtual>;
+    // ReferenceCache: WeakMap<WeakRef<Node>, WeakSet<Binder>>,
+    // NodeCache: WeakMap<Node, symbol>,
+    // ReferenceCache: WeakMap<symbol, Node>,
+
     BindersCache: BindersCache,
     TemplatesCache: TemplatesCache,
     ContainersCache: ContainersCache,
@@ -76,11 +104,6 @@ export interface Global {
     TemplateSymbol: symbol
     VariablesSymbol: symbol,
 }
-
-
-
-export type Reference = WeakRef<Element | Attr | Text>
-export type References = Reference[];
 
 export type Instruction = {
     type: 1 | 2 | 3 | 4,

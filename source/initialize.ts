@@ -1,8 +1,9 @@
 import { ELEMENT_NODE, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE, dangerousLink, hasMarker, hasOn, isLink, matchMarker, replaceChildren } from './tools';
-import { Marker, Template, Variables, Container, Instructions, Reference } from './types';
-import { ContainersCache } from './global';
+import { Marker, Template, Variables, Container, ReferenceType } from './types';
+import { Reference } from './reference';
 import { update } from './update';
 import { bind } from './bind';
+import { action } from './action';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
 
@@ -35,6 +36,7 @@ export const initialize = function (template: Template, variables: Variables, ma
 
     const fragment = template.content.cloneNode(true) as DocumentFragment;
     const walker = document.createTreeWalker(fragment, FILTER, null);
+    const virtuals = [];
 
     // let text: Text;
     // let attribute: Attr;
@@ -72,9 +74,9 @@ export const initialize = function (template: Template, variables: Variables, ma
                 text.splitText(endIndex);
             }
 
-            const reference: Reference = new WeakRef(text);
-            const instructions: Instructions = [{ type: 4, index: index++, data: {} }];
-            bind(variables, instructions, reference);
+            const referenceNode = Reference<Node>(text);
+            const binder = bind(4, index++, variables, referenceNode);
+            action(binder);
 
         } else if (type === ELEMENT_NODE) {
             const element = node as Element;
@@ -84,12 +86,14 @@ export const initialize = function (template: Template, variables: Variables, ma
                 walker.nextSibling();
             }
 
-            let instructions: Instructions | undefined;
-            let reference: Reference | undefined;
+            let referenceNode: ReferenceType<Node> | undefined;
+            // let virtual: any;
 
             if (matchMarker(tag, marker)) {
-                reference = new WeakRef(element);
-                instructions = [{ type: 1, index: index++, data: { tag } }];
+                referenceNode = Reference(node);
+                // virtuals.push(virtual);
+                const binder = bind(1, index++, variables, referenceNode);
+                action(binder);
             }
 
             const names = element.getAttributeNames();
@@ -99,20 +103,19 @@ export const initialize = function (template: Template, variables: Variables, ma
                 const hasMarkerValue = hasMarker(value, marker);
 
                 if (matchMarkerName || hasMarkerValue) {
+                    referenceNode = referenceNode ?? Reference(node);
 
-                    reference = reference ?? new WeakRef(element);
-                    instructions = instructions ?? [];
-
-                    const data = { name, value };
+                    const referenceName = Reference<string>(name);
+                    const referenceValue = Reference<string>(value);
 
                     if (matchMarkerName) {
-                        data.name = '';
-                        instructions.push({ type: 2, index: index++, data });
+                        const binder = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+                        action(binder);
                     }
 
                     if (hasMarkerValue) {
-                        data.value = '';
-                        instructions.push({ type: 3, index: index++, data });
+                        const binder = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+                        action(binder);
                     }
 
                     element.removeAttribute(name);
@@ -128,10 +131,6 @@ export const initialize = function (template: Template, variables: Variables, ma
                     }
                 }
 
-            }
-
-            if (instructions && reference) {
-                bind(variables, instructions, reference);
             }
 
         } else {

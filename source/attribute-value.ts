@@ -1,62 +1,61 @@
 import { isValue, hasOn, isLink, dangerousLink, sliceOn } from './tools.ts';
+import { Binder } from './types.ts';
 import { update } from './update.ts';
 
-export const attributeValue = function (element: Element, data: any, source: any, target: any): void {
-    console.log(element, source, target);
+export const attributeValue = function (element: Element, binder: Binder, source: any, target: any): void {
 
     if (source === target) {
         return;
     }
 
-    if (isValue(data.name)) {
-        data.value = target;
-        // data.value = display(target);
-        // if (!data.name) return;
-        element.setAttribute(data.name, data.value);
-        Reflect.set(element, data.name, data.value);
-    } else if (isLink(data.name)) {
-        data.value = encodeURI(target);
-        // if (!data.name) return;
+    if (isValue(binder.name)) {
+        binder.value = target;
+        // binder.value = display(target);
+        // if (!binder.name) return;
+        element.setAttribute(binder.name, binder.value);
+        Reflect.set(element, binder.name, binder.value);
+    } else if (isLink(binder.name)) {
+        binder.value = encodeURI(target);
+        // if (!binder.name) return;
 
-        if (dangerousLink(data.value)) {
-            element.removeAttribute(data.name);
-            console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+        if (dangerousLink(binder.value)) {
+            element.removeAttribute(binder.name);
+            console.warn(`XElement - attribute name "${binder.name}" and value "${binder.value}" not allowed`);
             return;
         }
 
-        element.setAttribute(data.name, data.value);
-    } else if (hasOn(data.name)) {
-        console.log(data);
+        element.setAttribute(binder.name, binder.value);
+    } else if (hasOn(binder.name)) {
+        console.log(binder);
 
-
-        if (element.hasAttribute(data.name)) {
-            element.removeAttribute(data.name);
+        if (element.hasAttribute(binder.name)) {
+            element.removeAttribute(binder.name);
         }
 
-        if (typeof data.value === 'function') {
-            element.removeEventListener(sliceOn(data.name), data.value, true);
+        if (typeof source === 'function') {
+            element.removeEventListener(sliceOn(binder.name), source, true);
         }
 
         if (typeof target !== 'function') {
-            return console.warn(`XElement - attribute name "${data.name}" and value "${data.value}" not allowed`);
+            return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
         }
 
-        data.value = function () {
+        binder.value = function () {
             const result = target.call(this, ...arguments);
-            if (data.result !== result) {
-                data.result = result;
+            if (binder.result !== result) {
+                binder.result = result;
                 update();
             }
             return result;
         };
 
-        element.addEventListener(sliceOn(data.name), data.value, true);
+        element.addEventListener(sliceOn(binder.name), binder.value, true);
 
     } else {
-        data.value = target;
-        // if (!data.name) return;
-        element.setAttribute(data.name, data.value);
-        Reflect.set(element, data.name, data.value);
+        binder.value = target;
+        // if (!binder.name) return;
+        element.setAttribute(binder.name, binder.value);
+        Reflect.set(element, binder.name, binder.value);
     }
 };
 

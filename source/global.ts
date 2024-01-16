@@ -6,6 +6,9 @@ export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBA
     // QueueCurrent: undefined,
 
     BindersCache: new Set(),
+
+    // VirtualCache: new WeakMap(),
+
     TemplatesCache: new WeakMap(),
     ContainersCache: new WeakMap(),
 
@@ -22,6 +25,9 @@ export const {
     // QueueCurrent,
 
     BindersCache,
+
+    // VirtualCache,
+
     TemplatesCache,
     ContainersCache,
 
