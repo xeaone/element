@@ -28,7 +28,7 @@ export const action = function (binder: Binder) {
         return;
     }
 
-    const variables = binder.variables;
+    // const variables = binder.variables;
 
     // this optimization could prevent disconnected nodes from being render when re/connected
     // Note: Attr nodes do not change the isConnected prop
@@ -36,42 +36,35 @@ export const action = function (binder: Binder) {
     //     return;
     // }
 
-    for (const instruction of binder.instructions) {
-        const { type, data } = instruction;
+    const variable = binder.variable;
+    const isFunction = typeof variable === 'function';
+    const isInstance = isFunction && (variable as any)[InstanceSymbol];
+    const isOnce = binder.type === 3 && binder.name.startsWith('on');
+    const isReactive = !isInstance && !isOnce && isFunction;
 
-        const variable = variables[ instruction.index ];
-        const isFunction = typeof variable === 'function';
-        const isInstance = isFunction && (variable as any)[InstanceSymbol];
-        const isOnce = type === 3 && data.name.startsWith('on');
-        const isReactive = !isInstance && !isOnce && isFunction;
-
-        if (isOnce || isInstance || !isFunction) {
-            binder.instructions.splice(binder.instructions.indexOf(instruction), 1);
-            if (!binder.instructions) {
-                binder.remove();
-            }
-        }
-
-        const source = instruction.source;
-        const target = isReactive ? variable() : variable;
-
-        if ('source' in instruction && source === target) {
-            continue;
-        }
-
-        if (instruction.type === 1) {
-            element(node as Element, data, source, target);
-        } else if (instruction.type === 2) {
-            attributeName(node as Element, data, source, target);
-        } else if (instruction.type === 3) {
-            attributeValue(node as Element, data, source, target);
-        } else if (instruction.type === 4) {
-            text(node as Text, data, source, target);
-        } else {
-            throw new Error('instruction type not valid');
-        }
-
-        instruction.source = target;
+    if (isOnce || isInstance || !isFunction) {
+        binder.remove();
     }
+
+    const source = binder.source;
+    const target = isReactive ? variable() : variable;
+
+    if ('source' in binder && source === target) {
+        return;
+    }
+
+    if (binder.type === 1) {
+        element(node as Element, binder, source, target);
+    } else if (binder.type === 2) {
+        attributeName(node as Element, binder, source, target);
+    } else if (binder.type === 3) {
+        attributeValue(node as Element, binder, source, target);
+    } else if (binder.type === 4) {
+        text(node as Text, binder, source, target);
+    } else {
+        throw new Error('instruction type not valid');
+    }
+
+    binder.source = target;
 
 };
