@@ -318,18 +318,26 @@ var attributeValue = function(element2, binder, source, target) {
       element2.removeAttribute(binder.name);
     }
     if (typeof binder.value === "function") {
-      element2.removeEventListener(sliceOn(binder.name), binder.value, source?.[1] ?? true);
+      element2.removeEventListener(
+        sliceOn(binder.name),
+        binder.value,
+        source?.[1] ?? true
+      );
     }
     const method = typeof target === "function" ? target : target?.[0];
     if (typeof method !== "function") {
       return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
     }
     binder.value = function() {
-      const result = method.call(this, ...arguments);
+      const result = method.call(this, ...arguments, update);
       update();
       return result;
     };
-    element2.addEventListener(sliceOn(binder.name), binder.value, target?.[1] ?? true);
+    element2.addEventListener(
+      sliceOn(binder.name),
+      binder.value,
+      target?.[1] ?? true
+    );
   } else {
     binder.value = target;
     element2.setAttribute(binder.name, binder.value);
