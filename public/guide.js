@@ -295,7 +295,35 @@ export default html`
         }
     </style>
 
+    <section id="input">
+        <h3>Input</h3>
+        <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
+        <pre id="inputCode"></pre>
+        <pre id="inputComponent">${inputComponent()}</pre>
+        <pre id="inputSource"></pre>
+    </section>
 
+    <section id="check">
+        <h3>Check</h3>
+        <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
+        <pre id="checkCode"></pre>
+        <pre id="checkComponent">${checkComponent()}</pre>
+        <pre id="checkSource"></pre>
+    </section>
+
+    <section id="class">
+        <h3>Class</h3>
+        <pre id="classCode"></pre>
+        <pre id="classComponent">${classComponent()}</pre>
+        <pre id="classSource"></pre>
+    </section>
+
+    <section id="style">
+        <h3>Style</h3>
+        <pre id="styleCode"></pre>
+        <pre id="styleComponent">${styleComponent()}</pre>
+        <pre id="styleSource"></pre>
+    </section>
 
     <section id="radio">
         <h3>Radio</h3>
@@ -314,37 +342,7 @@ export default html`
         <pre id="optionsCode"></pre>
     </section> -->
 
-    <section id="input">
-        <h3>Input</h3>
-        <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
-        <pre id="inputCode"></pre>
-        <pre id="inputComponent">${inputComponent()}</pre>
-        <pre id="inputSource"></pre>
-    </section>
 
-    <section id="check">
-        <h3>Check</h3>
-        <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
-        <pre id="checkCode"></pre>
-        <pre id="checkComponent">${checkComponent()}</pre>
-        <pre id="checkSource"></pre>
-    </section>
-
-
-
-    <section id="class">
-        <h3>Class</h3>
-        <pre id="classCode"></pre>
-        <pre id="classComponent">${classComponent()}</pre>
-        <pre id="classSource"></pre>
-    </section>
-
-    <section id="style">
-        <h3>Style</h3>
-        <pre id="styleCode"></pre>
-        <pre id="styleComponent">${styleComponent()}</pre>
-        <pre id="styleSource"></pre>
-    </section>
 
 
 
