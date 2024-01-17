@@ -26,30 +26,40 @@ export const attributeValue = function (element: Element, binder: Binder, source
 
         element.setAttribute(binder.name, binder.value);
     } else if (hasOn(binder.name)) {
-        console.log(binder);
 
         if (element.hasAttribute(binder.name)) {
             element.removeAttribute(binder.name);
         }
 
-        if (typeof source === 'function') {
-            element.removeEventListener(sliceOn(binder.name), source, true);
+        if (typeof binder.value === 'function') {
+            element.removeEventListener(
+                sliceOn(binder.name),
+                binder.value, source?.[ 1 ] ?? true
+            );
         }
 
-        if (typeof target !== 'function') {
+        const method = typeof target === 'function' ? target : target?.[ 0 ];
+
+        if (typeof method !== 'function') {
             return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
         }
 
         binder.value = function () {
-            const result = target.call(this, ...arguments);
-            if (binder.result !== result) {
-                binder.result = result;
-                update();
-            }
+            const result = method.call(this, ...arguments, update);
+            update();
             return result;
+            // console.log(binder.result, result);
+            // if (binder.result !== result) {
+                // binder.result = result;
+                // update();
+            // }
+            // return result;
         };
 
-        element.addEventListener(sliceOn(binder.name), binder.value, true);
+        element.addEventListener(
+            sliceOn(binder.name),
+            binder.value, target?.[ 1 ] ?? true
+        );
 
     } else {
         binder.value = target;

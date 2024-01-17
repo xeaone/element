@@ -217,7 +217,6 @@ var bind = function(type, index, variables, referenceNode, referenceName, refere
 
 // source/attribute-name.ts
 var attributeName = function(element2, binder, source, target) {
-  console.log(arguments);
   source = source?.toLowerCase() ?? "";
   target = target?.toLowerCase() ?? "";
   if (source === target) {
@@ -282,6 +281,7 @@ var update = async function() {
       queueMicrotask(async () => {
         const binders = BindersCache.values();
         for (const binder of binders) {
+          console.log(binder);
           try {
             await action(binder);
           } catch (error) {
@@ -314,25 +314,22 @@ var attributeValue = function(element2, binder, source, target) {
     }
     element2.setAttribute(binder.name, binder.value);
   } else if (hasOn(binder.name)) {
-    console.log(binder);
     if (element2.hasAttribute(binder.name)) {
       element2.removeAttribute(binder.name);
     }
-    if (typeof source === "function") {
-      element2.removeEventListener(sliceOn(binder.name), source, true);
+    if (typeof binder.value === "function") {
+      element2.removeEventListener(sliceOn(binder.name), binder.value, source?.[1] ?? true);
     }
-    if (typeof target !== "function") {
+    const method = typeof target === "function" ? target : target?.[0];
+    if (typeof method !== "function") {
       return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
     }
     binder.value = function() {
-      const result = target.call(this, ...arguments);
-      if (binder.result !== result) {
-        binder.result = result;
-        update();
-      }
+      const result = method.call(this, ...arguments);
+      update();
       return result;
     };
-    element2.addEventListener(sliceOn(binder.name), binder.value, true);
+    element2.addEventListener(sliceOn(binder.name), binder.value, target?.[1] ?? true);
   } else {
     binder.value = target;
     element2.setAttribute(binder.name, binder.value);
