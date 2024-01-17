@@ -21,7 +21,6 @@ const element = function (node: Element, data: any, source: any, target: any) {
 };
 
 export const action = function (binder: Binder) {
-
     const node = binder.node;
 
     if (!node) {

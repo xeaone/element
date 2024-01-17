@@ -98,14 +98,8 @@ const checkCode = highlight(checkComponent.toString());
 
 const radioComponent = () => html`
 <div>${() => radioShared}</div>
-<input type="radio" name="radio" ${() => radioShared === radioOne ? 'checked' : ''} oninput=${() => {
-    console.log(radioShared);
-    return radioShared = 'one';
-}} />
-<input type="radio" name="radio" ${() => radioShared === radioTwo ? 'checked' : ''} oninput=${() => {
-    console.log(radioShared);
-    return radioShared = 'two';
-}} />
+<input type="radio" name="radio" ${() => radioShared === radioOne ? 'checked' : ''} oninput=${() => radioShared = 'one'} />
+<input type="radio" name="radio" ${() => radioShared === radioTwo ? 'checked' : ''} oninput=${() => radioShared = 'two'} />
 `;
 const radioCode = highlight(radioComponent.toString());
 

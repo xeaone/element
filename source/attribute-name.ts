@@ -2,7 +2,7 @@ import { hasOn, isBool, isLink, isValue, sliceOn } from './tools';
 import { Binder } from './types';
 
 export const attributeName = function (element: Element, binder: Binder, source: any, target: any): void {
-    console.log(arguments);
+    // console.log(arguments);
 
     source = source?.toLowerCase() ?? '';
     target = target?.toLowerCase() ?? '';
