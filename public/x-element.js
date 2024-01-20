@@ -204,7 +204,6 @@ var bind = function(type, index, variables, referenceNode, referenceName, refere
       referenceValue.set(value);
     },
     remove() {
-      console.log("binder remove");
       BindersCache.delete(this);
     },
     add() {
@@ -230,7 +229,6 @@ var attributeName = function(element2, binder, source, target) {
     element2.removeAttribute(source);
     Reflect.set(element2, source, null);
   } else if (isBool(source)) {
-    console.log(binder, source, target);
     element2.removeAttribute(source);
     Reflect.set(element2, source, false);
   } else if (isLink(source)) {
@@ -281,7 +279,6 @@ var update = async function() {
       queueMicrotask(async () => {
         const binders = BindersCache.values();
         for (const binder of binders) {
-          console.log(binder);
           try {
             await action(binder);
           } catch (error) {
@@ -301,10 +298,16 @@ var attributeValue = function(element2, binder, source, target) {
   if (source === target) {
     return;
   }
+  if (!binder.name) {
+    console.warn("attribute binder name required");
+    return;
+  }
   if (isValue(binder.name)) {
     binder.value = target;
+    console.log(binder.name, binder.value);
     element2.setAttribute(binder.name, binder.value);
     Reflect.set(element2, binder.name, binder.value);
+    console.log(element2, binder);
   } else if (isLink(binder.name)) {
     binder.value = encodeURI(target);
     if (dangerousLink(binder.value)) {
@@ -313,6 +316,7 @@ var attributeValue = function(element2, binder, source, target) {
       return;
     }
     element2.setAttribute(binder.name, binder.value);
+    Reflect.set(element2, binder.name, binder.value);
   } else if (hasOn(binder.name)) {
     if (element2.hasAttribute(binder.name)) {
       element2.removeAttribute(binder.name);
@@ -354,6 +358,7 @@ var text = function(node, binder, source, target) {
       node.textContent = "";
     }
   } else if (target instanceof Node) {
+    console.log(target);
     if (!binder.start) {
       binder.start = document.createTextNode("");
       beforeNode(binder.start, node);
@@ -449,8 +454,9 @@ var action = function(binder) {
   if (isOnce || isInstance || !isFunction) {
     binder.remove();
   }
+  const query = (selector) => node.getRootNode()?.querySelector(selector);
   const source = binder.source;
-  const target = isReactive ? variable() : variable;
+  const target = isReactive ? variable({ update, target: node, query }) : variable;
   if ("source" in binder && source === target) {
     return;
   }

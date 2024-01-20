@@ -48,7 +48,6 @@ export const update = async function (): Promise<void> {
                 const binders = BindersCache.values();
 
                 for (const binder of binders) {
-                    console.log(binder);
                     try {
                         await action(binder);
                     } catch (error) {

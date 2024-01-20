@@ -3,6 +3,7 @@ import { attributeValue } from './attribute-value';
 import { InstanceSymbol } from './global';
 import { Binder } from './types';
 import { text } from './text';
+import { update } from './update';
 
 /**
  * @module Action
@@ -45,8 +46,11 @@ export const action = function (binder: Binder) {
         binder.remove();
     }
 
+    const query = (selector: string): Element | null =>
+        (node.getRootNode() as Element)?.querySelector(selector);
+
     const source = binder.source;
-    const target = isReactive ? variable() : variable;
+    const target = isReactive ? variable({ update, target: node, query }) : variable;
 
     if ('source' in binder && source === target) {
         return;

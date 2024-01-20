@@ -53,7 +53,6 @@ export const bind = function (
         },
 
         remove () {
-            console.log('binder remove');
             BindersCache.delete(this);
         },
 
