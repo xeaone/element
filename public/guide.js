@@ -298,9 +298,9 @@ export default html`
     <section id="input">
         <h3>Input</h3>
         <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
-        <pre id="inputCode"></pre>
+        <pre id="inputCode">${highlight(inputComponent.toString())}</pre>
         <pre id="inputComponent">${inputComponent()}</pre>
-        <pre id="inputSource"></pre>
+        <pre id="inputSource">${({query})=>highlight(query('#inputComponent')?.innerHTML ?? '', 'html')}</pre>
     </section>
 
     <section id="check">
@@ -337,15 +337,8 @@ export default html`
 
 /*
 
-    <!-- <section>
+    <section>
         <h3>Options</h3>
         <pre id="optionsCode"></pre>
-    </section> -->
-
-
-
-
-
-
-
+    </section>
 */

@@ -11,6 +11,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
             node.textContent = '';
         }
     } else if (target instanceof Node) {
+        console.log(target);
 
         if (!binder.start) {
             binder.start = document.createTextNode('');

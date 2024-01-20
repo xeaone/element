@@ -8,15 +8,21 @@ export const attributeValue = function (element: Element, binder: Binder, source
         return;
     }
 
+    if (!binder.name) {
+        console.warn('attribute binder name required');
+        return;
+    }
+
     if (isValue(binder.name)) {
         binder.value = target;
         // binder.value = display(target);
-        // if (!binder.name) return;
+        console.log(binder.name, binder.value);
+        
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
+        console.log(element, binder)
     } else if (isLink(binder.name)) {
         binder.value = encodeURI(target);
-        // if (!binder.name) return;
 
         if (dangerousLink(binder.value)) {
             element.removeAttribute(binder.name);
@@ -25,7 +31,10 @@ export const attributeValue = function (element: Element, binder: Binder, source
         }
 
         element.setAttribute(binder.name, binder.value);
+        Reflect.set(element, binder.name, binder.value);
     } else if (hasOn(binder.name)) {
+
+        // add in onanimation timeout
 
         if (element.hasAttribute(binder.name)) {
             element.removeAttribute(binder.name);
@@ -63,7 +72,6 @@ export const attributeValue = function (element: Element, binder: Binder, source
 
     } else {
         binder.value = target;
-        // if (!binder.name) return;
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
     }

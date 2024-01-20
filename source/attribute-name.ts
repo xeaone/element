@@ -21,7 +21,6 @@ export const attributeName = function (element: Element, binder: Binder, source:
         element.removeAttribute(source);
         Reflect.set(element, source, null);
     } else if (isBool(source)) {
-        console.log(binder, source, target);
         element.removeAttribute(source);
         Reflect.set(element, source, false);
     } else if (isLink(source)) {
