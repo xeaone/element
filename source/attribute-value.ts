@@ -16,11 +16,8 @@ export const attributeValue = function (element: Element, binder: Binder, source
     if (isValue(binder.name)) {
         binder.value = target;
         // binder.value = display(target);
-        console.log(binder.name, binder.value);
-        
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
-        console.log(element, binder)
     } else if (isLink(binder.name)) {
         binder.value = encodeURI(target);
 
@@ -34,7 +31,7 @@ export const attributeValue = function (element: Element, binder: Binder, source
         Reflect.set(element, binder.name, binder.value);
     } else if (hasOn(binder.name)) {
 
-        // add in onanimation timeout
+        // handle onanimation ontimeout
 
         if (element.hasAttribute(binder.name)) {
             element.removeAttribute(binder.name);
