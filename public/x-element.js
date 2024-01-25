@@ -134,6 +134,9 @@ var removeNode = function(node) {
 var beforeNode = function(node, child) {
   child.parentNode.insertBefore(node, child);
 };
+var replaceNode = function(node, child) {
+  child.parentNode.replaceChild(node, child);
+};
 var replaceChildren = function(element2, ...nodes) {
   while (element2.lastChild) {
     element2.removeChild(element2.lastChild);
@@ -207,7 +210,7 @@ var bind = function(type, index, variables, referenceNode, referenceName, refere
       BindersCache.delete(this);
     },
     add() {
-      BindersCache.add(binder);
+      BindersCache.add(this);
     }
   };
   binder.add();
@@ -304,10 +307,8 @@ var attributeValue = function(element2, binder, source, target) {
   }
   if (isValue(binder.name)) {
     binder.value = target;
-    console.log(binder.name, binder.value);
     element2.setAttribute(binder.name, binder.value);
     Reflect.set(element2, binder.name, binder.value);
-    console.log(element2, binder);
   } else if (isLink(binder.name)) {
     binder.value = encodeURI(target);
     if (dangerousLink(binder.value)) {
@@ -357,29 +358,19 @@ var text = function(node, binder, source, target) {
     } else {
       node.textContent = "";
     }
+  } else if (target instanceof DocumentFragment || target?.[InstanceSymbol]) {
+    if (!binder.start) {
+      binder.start = document.createTextNode("");
+      beforeNode(binder.start, node);
+    }
+    if (!binder.end) {
+      node.textContent = "";
+      binder.end = node;
+    }
+    removeBetween(binder.start, binder.end);
+    beforeNode(typeof target === "function" ? target() : target, binder.end);
   } else if (target instanceof Node) {
-    console.log(target);
-    if (!binder.start) {
-      binder.start = document.createTextNode("");
-      beforeNode(binder.start, node);
-    }
-    if (!binder.end) {
-      node.textContent = "";
-      binder.end = node;
-    }
-    removeBetween(binder.start, binder.end);
-    beforeNode(target, binder.end);
-  } else if (target?.[InstanceSymbol]) {
-    if (!binder.start) {
-      binder.start = document.createTextNode("");
-      beforeNode(binder.start, node);
-    }
-    if (!binder.end) {
-      node.textContent = "";
-      binder.end = node;
-    }
-    removeBetween(binder.start, binder.end);
-    beforeNode(target(), binder.end);
+    replaceNode(target, node);
   } else if (isIterable(target)) {
     if (binder.length === void 0) {
       binder.length = 0;
@@ -443,6 +434,9 @@ var element = function(node, data, source, target) {
 };
 var action = function(binder) {
   const node = binder.node;
+  if (!node?.isConnected) {
+    console.log(binder);
+  }
   if (!node) {
     return;
   }
@@ -525,15 +519,21 @@ var initialize = function(template, variables, marker, container) {
           referenceNode = referenceNode ?? Reference(node);
           const referenceName = Reference(name);
           const referenceValue = Reference(value);
-          if (matchMarkerName) {
+          if (matchMarkerName && hasMarkerValue) {
+            const binderName = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+            const binderValue = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+            element2.removeAttribute(name);
+            action(binderName);
+            action(binderValue);
+          } else if (matchMarkerName) {
             const binder = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+            element2.removeAttribute(name);
             action(binder);
-          }
-          if (hasMarkerValue) {
+          } else if (hasMarkerValue) {
             const binder = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+            element2.removeAttribute(name);
             action(binder);
           }
-          element2.removeAttribute(name);
         } else {
           if (isLink(name)) {
             if (dangerousLink(value)) {

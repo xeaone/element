@@ -108,17 +108,22 @@ export const initialize = function (template: Template, variables: Variables, ma
                     const referenceName = Reference<string>(name);
                     const referenceValue = Reference<string>(value);
 
-                    if (matchMarkerName) {
+                    if (matchMarkerName && hasMarkerValue) {
+                        const binderName = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+                        const binderValue = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+                        element.removeAttribute(name);
+                        action(binderName);
+                        action(binderValue);
+                    } else if (matchMarkerName) {
                         const binder = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+                        element.removeAttribute(name);
                         action(binder);
-                    }
-
-                    if (hasMarkerValue) {
+                    } else if (hasMarkerValue) {
                         const binder = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+                        element.removeAttribute(name);
                         action(binder);
                     }
 
-                    element.removeAttribute(name);
                 } else {
                     if (isLink(name)) {
                         if (dangerousLink(value)) {

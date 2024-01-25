@@ -57,7 +57,7 @@ export const bind = function (
         },
 
         add () {
-            BindersCache.add(binder);
+            BindersCache.add(this);
         },
 
     };
@@ -67,45 +67,3 @@ export const bind = function (
 
     return binder;
 };
-
-// export const bind = function (variables: Variables, instructions: Instructions, reference: Reference) {
-
-//     const node = reference.deref();
-
-//     const binder: Binder = {
-
-//         reference,
-
-//         get node () {
-//             const node = reference.deref();
-//             if (node) {
-//                 return node;
-//             } else {
-//                 console.log('binder remove by no node');
-//                 BindersCache.delete(this);
-//                 return null;
-//             }
-//         },
-
-//         get instructions () {
-//             if (!instructions.length) {
-//                 BindersCache.delete(this);
-//             }
-//             return instructions;
-//         },
-
-//         get variables () {
-//             return variables;
-//         },
-
-//         remove () {
-//             BindersCache.delete(this);
-//         },
-
-//     };
-
-//     BindersCache.add(binder);
-
-//     action(binder);
-
-// };

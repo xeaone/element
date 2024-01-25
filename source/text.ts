@@ -1,5 +1,5 @@
 import { InstanceSymbol, TemplateSymbol, VariablesSymbol } from './global';
-import { beforeNode, isIterable, removeBetween, removeNode } from './tools';
+import { beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools';
 import { Binder } from './types';
 
 export const text = function (node: Text, binder: Binder, source: any, target: any) {
@@ -10,37 +10,22 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         } else {
             node.textContent = '';
         }
+    } else if (target instanceof DocumentFragment || target?.[ InstanceSymbol ]) {
+
+        if (!binder.start) {
+            binder.start = document.createTextNode('');
+            beforeNode(binder.start, node);
+        }
+
+        if (!binder.end) {
+            node.textContent = '';
+            binder.end = node;
+        }
+
+        removeBetween(binder.start, binder.end);
+        beforeNode(typeof target === 'function' ? target() : target, binder.end);
     } else if (target instanceof Node) {
-        console.log(target);
-
-        if (!binder.start) {
-            binder.start = document.createTextNode('');
-            beforeNode(binder.start, node);
-        }
-
-        if (!binder.end) {
-            node.textContent = '';
-            binder.end = node;
-        }
-
-        removeBetween(binder.start, binder.end);
-        beforeNode(target, binder.end);
-
-    } else if (target?.[ InstanceSymbol ]) {
-
-        if (!binder.start) {
-            binder.start = document.createTextNode('');
-            beforeNode(binder.start, node);
-        }
-
-        if (!binder.end) {
-            node.textContent = '';
-            binder.end = node;
-        }
-
-        removeBetween(binder.start, binder.end);
-        beforeNode(target(), binder.end);
-
+        replaceNode(target, node);
     } else if (isIterable(target)) {
 
         if (binder.length === undefined) {

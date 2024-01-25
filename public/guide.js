@@ -85,42 +85,36 @@ let tag = 'div';
 // const dynamicCode = highlight(dynamicComponent.toString());
 
 const inputComponent = () => html`
-<div>${()=>input}</div>
-<input value=${()=>input} oninput=${e => input = e.target.value} />
+<div>${() => input}</div>
+<input value=${() => input} oninput=${e => input = e.target.value} />
 `;
-const inputCode = highlight(inputComponent.toString());
 
 const checkComponent = () => html`
-<div>${()=>checked ? 'Is Checked' : 'Is Not Checked'}</div>
-<input type="checkbox" ${()=>checked ? 'checked' : ''} oninput=${e => checked = e.target.checked} />
+<div>${() => checked ? 'Is Checked' : 'Is Not Checked'}</div>
+<input type="checkbox" ${() => checked ? 'checked' : ''} oninput=${e => checked = e.target.checked} />
 `;
-const checkCode = highlight(checkComponent.toString());
 
 const radioComponent = () => html`
 <div>${() => radioShared}</div>
 <input type="radio" name="radio" ${() => radioShared === radioOne ? 'checked' : ''} oninput=${() => radioShared = 'one'} />
 <input type="radio" name="radio" ${() => radioShared === radioTwo ? 'checked' : ''} oninput=${() => radioShared = 'two'} />
 `;
-const radioCode = highlight(radioComponent.toString());
 
 const classComponent = () => html`
-<div class=${()=>active ? 'default class-color' : 'default'}>Look at my class</div>
+<div class=${() => active ? 'default class-color' : 'default'}>Look at my class</div>
 <button onclick=${() => active = !active}>Toggle Class</button>
 `;
-const classCode = highlight(classComponent.toString());
 
 const styleComponent = () => html`
-<div style=${()=>`color: ${color}`}>Look at my style</div>
+<div style=${() => `color: ${color}`}>Look at my style</div>
 <button onclick=${() => color = Color()}>Change Color</button>
 `;
-const styleCode = highlight(styleComponent.toString());
 
 const mapComponent = () => html`
 <ul>
-    ${()=>fruits.map(fruit => html` <li>${()=>fruit}</li> `)}
+    ${() => fruits.map(fruit => html` <li>${() => fruit}</li> `)}
 </ul>
 `;
-const mapCode = highlight(mapComponent.toString());
 
 // const fruitsComponent = () => html`
 // <div>${fruit}</div>
@@ -300,42 +294,44 @@ export default html`
         <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
         <pre id="inputCode">${highlight(inputComponent.toString())}</pre>
         <pre id="inputComponent">${inputComponent()}</pre>
-        <pre id="inputSource">${({query})=>highlight(query('#inputComponent')?.innerHTML ?? '', 'html')}</pre>
+        <pre id="inputSource">${({ query }) => highlight(query('#inputComponent'), 'html')}</pre>
     </section>
 
     <section id="check">
         <h3>Check</h3>
         <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
-        <pre id="checkCode"></pre>
+        <pre id="checkCode">${highlight(checkComponent.toString())}</pre>
         <pre id="checkComponent">${checkComponent()}</pre>
-        <pre id="checkSource"></pre>
     </section>
 
     <section id="class">
         <h3>Class</h3>
-        <pre id="classCode"></pre>
+        <pre id="classCode">${highlight(classComponent.toString())}</pre>
         <pre id="classComponent">${classComponent()}</pre>
-        <pre id="classSource"></pre>
     </section>
 
     <section id="style">
         <h3>Style</h3>
-        <pre id="styleCode"></pre>
+        <pre id="styleCode">${highlight(styleComponent.toString())}</pre>
         <pre id="styleComponent">${styleComponent()}</pre>
-        <pre id="styleSource"></pre>
     </section>
 
     <section id="radio">
         <h3>Radio</h3>
         <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
-        <pre id="radioCode"></pre>
+        <pre id="radioCode">${highlight(radioComponent.toString())}</pre>
         <pre id="radioComponent">${radioComponent()}</pre>
-        <pre id="radioSource"></pre>
     </section>
+
+
 
 `('main');
 
 /*
+        <pre id="checkSource">${() => highlight(checkComponent(), 'html')}</pre>
+        <pre id="classSource">${() => highlight(classComponent(), 'html')}</pre>
+        <pre id="styleSource">${() => highlight(styleComponent(), 'html')}</pre>
+        <pre id="radioSource">${() => highlight(radioComponent(), 'html')}</pre>
 
     <section>
         <h3>Options</h3>
