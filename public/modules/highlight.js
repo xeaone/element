@@ -14,19 +14,19 @@ document.head.append(link);
 export default function (code, language) {
     language = language ?? 'js';
 
-    if (code instanceof Node) {
-        code = code.innerHTML;
-    }
 
-    // if (code instanceof DocumentFragment) {
-    //     code = [].map.call(code.childNodes, nodes => {
-    //         return nodes.outerHTML || nodes.textContent;
-    //     }).join('');
-    // } else if (typeof code === 'function') {
-    //     code = [].map.call(code().childNodes, nodes => {
-    //         return nodes.outerHTML || nodes.textContent;
-    //     }).join('');
-    // }
+
+    if (code instanceof DocumentFragment) {
+        code = [].map.call(code.childNodes, nodes => {
+            return nodes.outerHTML || nodes.textContent;
+        }).join('');
+    } else if (code instanceof Node) {
+        code = code.innerHTML;
+    } else if (typeof code === 'function') {
+        code = [].map.call(code().childNodes, nodes => {
+            return nodes.outerHTML || nodes.textContent;
+        }).join('');
+    }
 
     code = code.replace(/\s*\n+$/, '');
     code = code.replace(/^\s*\n+/, '');

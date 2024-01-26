@@ -5,9 +5,7 @@ import { Binder } from './types';
 export const text = function (node: Text, binder: Binder, source: any, target: any) {
 
     if (target === null || target === undefined) {
-        if (node.textContent === '') {
-            return;
-        } else {
+        if (node.textContent !== '') {
             node.textContent = '';
         }
     } else if (target instanceof DocumentFragment || target?.[ InstanceSymbol ]) {
@@ -25,6 +23,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         removeBetween(binder.start, binder.end);
         beforeNode(typeof target === 'function' ? target() : target, binder.end);
     } else if (target instanceof Node) {
+        // console.log('replaceNode', binder);
         replaceNode(target, node);
     } else if (isIterable(target)) {
 
@@ -97,6 +96,8 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         }
 
     } else {
+        console.log('text', binder);
+        
         if (node.textContent === `${target}`) {
             return;
         } else {

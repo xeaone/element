@@ -302,6 +302,7 @@ export default html`
         <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
         <pre id="checkCode">${highlight(checkComponent.toString())}</pre>
         <pre id="checkComponent">${checkComponent()}</pre>
+        <pre id="checkSource">${() => highlight(checkComponent(), 'html')}</pre>
     </section>
 
     <section id="class">
@@ -328,7 +329,6 @@ export default html`
 `('main');
 
 /*
-        <pre id="checkSource">${() => highlight(checkComponent(), 'html')}</pre>
         <pre id="classSource">${() => highlight(classComponent(), 'html')}</pre>
         <pre id="styleSource">${() => highlight(styleComponent(), 'html')}</pre>
         <pre id="radioSource">${() => highlight(radioComponent(), 'html')}</pre>

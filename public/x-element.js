@@ -10,6 +10,11 @@ var global = window.XGLOBAL ?? (window.XGLOBAL = Object.freeze({
   InstanceSymbol: Symbol("instance"),
   TemplateSymbol: Symbol("template"),
   VariablesSymbol: Symbol("variables")
+  // refistery: new FinalizationRegistry((key) => {
+  //     if (!cache.get(key)?.deref()) {
+  //       cache.delete(key);
+  //     }
+  // }),
 }));
 var {
   // QueueNext,
@@ -102,13 +107,20 @@ var hasOn = function(data) {
   return data && typeof data === "string" ? patternOn.test(data) : false;
 };
 var matchMarker = function(data, marker) {
-  return data && typeof data === "string" ? data === marker : false;
+  return data && marker && typeof data === "string" && typeof marker === "string" ? data.toLowerCase() === marker.toLowerCase() : false;
 };
 var hasMarker = function(data, marker) {
   return data && typeof data === "string" ? data.indexOf(marker) !== -1 : false;
 };
 var sliceOn = function(data) {
   return data && typeof data === "string" ? data?.toLowerCase()?.slice(2) : "";
+};
+var isConnected = function(node) {
+  if (node.nodeType === Node.ATTRIBUTE_NODE) {
+    return node.parentNode?.isConnected ?? false;
+  } else {
+    return node.isConnected;
+  }
 };
 var mark = function() {
   return `x-${`${Math.floor(Math.random() * Date.now())}`.slice(0, 10)}-x`;
@@ -151,7 +163,7 @@ var replaceChildren = function(element2, ...nodes) {
 // source/reference.ts
 var Reference = function(data) {
   return {
-    data,
+    data: data instanceof Node ? new WeakRef(data) : data,
     get: function() {
       if (this.data instanceof WeakRef) {
         return this.data.deref();
@@ -169,52 +181,6 @@ var Reference = function(data) {
       }
     }
   };
-};
-
-// source/bind.ts
-var bind = function(type, index, variables, referenceNode, referenceName, referenceValue) {
-  const binder = {
-    type,
-    // index,
-    // variables,
-    // references,
-    get variable() {
-      return variables[index];
-    },
-    set variable(data) {
-      variables[index] = data;
-    },
-    get node() {
-      const node = referenceNode.get();
-      if (node) {
-        return node;
-      } else {
-        console.log("binder remove by no node");
-        BindersCache.delete(this);
-        return void 0;
-      }
-    },
-    get name() {
-      return referenceName.get();
-    },
-    set name(name) {
-      referenceName.set(name);
-    },
-    get value() {
-      return referenceValue.get();
-    },
-    set value(value) {
-      referenceValue.set(value);
-    },
-    remove() {
-      BindersCache.delete(this);
-    },
-    add() {
-      BindersCache.add(this);
-    }
-  };
-  binder.add();
-  return binder;
 };
 
 // source/attribute-name.ts
@@ -353,9 +319,7 @@ var attributeValue = function(element2, binder, source, target) {
 // source/text.ts
 var text = function(node, binder, source, target) {
   if (target === null || target === void 0) {
-    if (node.textContent === "") {
-      return;
-    } else {
+    if (node.textContent !== "") {
       node.textContent = "";
     }
   } else if (target instanceof DocumentFragment || target?.[InstanceSymbol]) {
@@ -420,6 +384,7 @@ var text = function(node, binder, source, target) {
       binder.markers.length = target.length;
     }
   } else {
+    console.log("text", binder);
     if (node.textContent === `${target}`) {
       return;
     } else {
@@ -434,10 +399,10 @@ var element = function(node, data, source, target) {
 };
 var action = function(binder) {
   const node = binder.node;
-  if (!node?.isConnected) {
-    console.log(binder);
-  }
   if (!node) {
+    return;
+  }
+  if (!isConnected(node) && binder.isInitialized) {
     return;
   }
   const variable = binder.variable;
@@ -448,9 +413,9 @@ var action = function(binder) {
   if (isOnce || isInstance || !isFunction) {
     binder.remove();
   }
-  const query = (selector) => node.getRootNode()?.querySelector(selector);
+  const query = (selector) => binder?.node?.getRootNode()?.querySelector(selector);
   const source = binder.source;
-  const target = isReactive ? variable({ update, target: node, query }) : variable;
+  const target = isReactive ? variable({ update, query }) : variable;
   if ("source" in binder && source === target) {
     return;
   }
@@ -466,6 +431,53 @@ var action = function(binder) {
     throw new Error("instruction type not valid");
   }
   binder.source = target;
+  binder.isInitialized = true;
+};
+
+// source/bind.ts
+var bind = function(type, index, variables, referenceNode, referenceName, referenceValue) {
+  const binder = {
+    type,
+    // index,
+    // variables,
+    // references,
+    isInitialized: false,
+    get variable() {
+      return variables[index];
+    },
+    set variable(data) {
+      variables[index] = data;
+    },
+    get node() {
+      const node = referenceNode.get();
+      if (node) {
+        return node;
+      } else {
+        BindersCache.delete(this);
+        return void 0;
+      }
+    },
+    get name() {
+      return referenceName.get();
+    },
+    set name(name) {
+      referenceName.set(name);
+    },
+    get value() {
+      return referenceValue.get();
+    },
+    set value(value) {
+      referenceValue.set(value);
+    },
+    remove() {
+      BindersCache.delete(this);
+    },
+    add() {
+      BindersCache.add(this);
+    }
+  };
+  binder.add();
+  return binder;
 };
 
 // source/initialize.ts
@@ -473,17 +485,14 @@ var FILTER = SHOW_ELEMENT + SHOW_TEXT;
 var initialize = function(template, variables, marker, container) {
   const fragment = template.content.cloneNode(true);
   const walker = document.createTreeWalker(fragment, FILTER, null);
-  const virtuals = [];
   let node;
-  let startIndex;
-  let endIndex;
   let index = 0;
   while (walker.nextNode()) {
     node = walker.currentNode;
     const type = node.nodeType;
     if (type === TEXT_NODE) {
       let text2 = node;
-      startIndex = text2.nodeValue?.indexOf(marker) ?? -1;
+      const startIndex = text2.nodeValue?.indexOf(marker) ?? -1;
       if (startIndex === -1)
         continue;
       if (startIndex !== 0) {
@@ -491,7 +500,7 @@ var initialize = function(template, variables, marker, container) {
         node = walker.nextNode();
         text2 = node;
       }
-      endIndex = marker.length;
+      const endIndex = marker.length;
       if (endIndex !== text2.nodeValue?.length) {
         text2.splitText(endIndex);
       }
@@ -500,7 +509,7 @@ var initialize = function(template, variables, marker, container) {
       action(binder);
     } else if (type === ELEMENT_NODE) {
       const element2 = node;
-      const tag = element2.tagName.toLowerCase();
+      const tag = element2.tagName;
       if (tag === "STYLE" || tag === "SCRIPT") {
         walker.nextSibling();
       }

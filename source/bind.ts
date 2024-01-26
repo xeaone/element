@@ -15,6 +15,7 @@ export const bind = function (
         // index,
         // variables,
         // references,
+        isInitialized: false,
 
         get variable () {
             return variables[ index ];
@@ -24,13 +25,11 @@ export const bind = function (
             variables[ index ] = data;
         },
 
-
         get node () {
             const node = referenceNode.get();
             if (node) {
                 return node;
             } else {
-                console.log('binder remove by no node');
                 BindersCache.delete(this);
                 return undefined;
             }
@@ -62,7 +61,6 @@ export const bind = function (
 
     };
 
-    // action(binder);
     binder.add();
 
     return binder;

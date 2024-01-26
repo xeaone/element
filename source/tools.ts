@@ -111,8 +111,10 @@ export const isMarker = function (data: string): boolean {
 };
 
 export const matchMarker = function (data: string, marker: string): boolean {
-    return data && typeof data === 'string' ?
-        data === marker : false;
+    return data && marker &&
+        typeof data === 'string' &&
+        typeof marker === 'string' ?
+        data.toLowerCase() === marker.toLowerCase() : false;
 };
 
 export const hasMarker = function (data: string, marker: string): boolean {
@@ -124,6 +126,21 @@ export const sliceOn = function (data: string): string {
     return data && typeof data === 'string' ?
         data?.toLowerCase()?.slice(2) :
         '';
+};
+
+export const isConnected = function (node: Node): boolean {
+    if (node.nodeType === Node.ATTRIBUTE_NODE) {
+        return node.parentNode?.isConnected ?? false;
+    } else {
+        return node.isConnected;
+    }
+    // return (
+    //     !node.ownerDocument ||
+    //     !(
+    //       node.ownerDocument.compareDocumentPosition(node) &
+    //       node.DOCUMENT_POSITION_DISCONNECTED
+    //     )
+    // );
 };
 
 // export const includes = function (item: string | Array<any>, search: any) {
