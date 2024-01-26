@@ -1,9 +1,10 @@
-
 import { ReferenceType } from './types';
 
-export const Reference = function <T>(data: any): ReferenceType<T> {
+
+
+export const Reference = function <T>(data: T): ReferenceType<T> {
     return {
-        data,
+        data: data instanceof Node ? new WeakRef(data) : data,
         get: function<T> (): T | undefined {
             if (this.data instanceof WeakRef) {
                 return this.data.deref();

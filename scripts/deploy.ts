@@ -1,6 +1,6 @@
 import { increment, ReleaseType } from 'https://deno.land/std@0.197.0/semver/mod.ts';
 import { copy, emptyDir } from 'https://deno.land/std@0.197.0/fs/mod.ts';
-import * as esbuild from 'https://deno.land/x/esbuild@v0.19.0/mod.js';
+import * as esbuild from 'https://deno.land/x/esbuild@v0.19.12/mod.js';
 
 const [ release ] = Deno.args;
 if (!release) {
@@ -8,13 +8,13 @@ if (!release) {
     Deno.exit();
 }
 
-const f = await Deno.run({ cmd: [ 'git', 'fetch' ] }).status();
+const f = await (new Deno.Command('git', { args: [ 'fetch' ] }).spawn()).output();
 if (!f.success) {
     console.warn('git auth check failed');
     Deno.exit();
 }
 
-const n = await Deno.run({ cmd: [ 'npm', 'whoami' ] }).status();
+const n = await (new Deno.Command('npm', { args: [ 'whoami' ] }).spawn()).output();
 if (!n.success) {
     console.warn('npm auth check failed');
     Deno.exit();
@@ -40,7 +40,7 @@ const banner = `/**
  */
 `;
 
-const npxTsc = await Deno.run({ cmd: [ 'npx', 'tsc' ] }).status();
+const npxTsc = await (new Deno.Command('npx', { args: [ 'tsc' ] }).spawn()).output();
 if (!npxTsc.success) {
     console.warn('npx tsc failed');
     Deno.exit();

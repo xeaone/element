@@ -17,7 +17,15 @@ export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBA
     TemplateSymbol: Symbol('template'),
     VariablesSymbol: Symbol('variables'),
 
+    // refistery: new FinalizationRegistry((key) => {
+    //     if (!cache.get(key)?.deref()) {
+    //       cache.delete(key);
+    //     }
+    // }),
+
 }));
+
+
 
 export const {
 

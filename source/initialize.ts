@@ -1,9 +1,8 @@
 import { ELEMENT_NODE, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE, dangerousLink, hasMarker, hasOn, isLink, matchMarker, replaceChildren } from './tools';
 import { Marker, Template, Variables, Container, ReferenceType } from './types';
 import { Reference } from './reference';
-import { update } from './update';
-import { bind } from './bind';
 import { action } from './action';
+import { bind } from './bind';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
 
@@ -36,21 +35,8 @@ export const initialize = function (template: Template, variables: Variables, ma
 
     const fragment = template.content.cloneNode(true) as DocumentFragment;
     const walker = document.createTreeWalker(fragment, FILTER, null);
-    const virtuals = [];
 
-    // let text: Text;
-    // let attribute: Attr;
-    // let element: Element;
-
-    // let type: number;
-    // let name: string;
-    // let value: string;
-    // let names: string[];
     let node: Node | null;
-
-    let startIndex: number;
-    let endIndex: number;
-
     let index = 0;
 
     while (walker.nextNode()) {
@@ -60,7 +46,7 @@ export const initialize = function (template: Template, variables: Variables, ma
         if (type === TEXT_NODE) {
             let text = node as Text;
 
-            startIndex = text.nodeValue?.indexOf(marker) ?? -1;
+            const startIndex = text.nodeValue?.indexOf(marker) ?? -1;
             if (startIndex === -1) continue;
 
             if (startIndex !== 0) {
@@ -69,7 +55,7 @@ export const initialize = function (template: Template, variables: Variables, ma
                 text = node as Text;
             }
 
-            endIndex = marker.length;
+            const endIndex = marker.length;
             if (endIndex !== text.nodeValue?.length) {
                 text.splitText(endIndex);
             }
@@ -80,18 +66,16 @@ export const initialize = function (template: Template, variables: Variables, ma
 
         } else if (type === ELEMENT_NODE) {
             const element = node as Element;
-            const tag = element.tagName.toLowerCase();
+            const tag = element.tagName;
 
             if (tag === 'STYLE' || tag === 'SCRIPT') {
                 walker.nextSibling();
             }
 
             let referenceNode: ReferenceType<Node> | undefined;
-            // let virtual: any;
 
             if (matchMarker(tag, marker)) {
                 referenceNode = Reference(node);
-                // virtuals.push(virtual);
                 const binder = bind(1, index++, variables, referenceNode);
                 action(binder);
             }

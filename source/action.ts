@@ -2,15 +2,15 @@ import { attributeName } from './attribute-name';
 import { attributeValue } from './attribute-value';
 import { InstanceSymbol } from './global';
 import { Binder } from './types';
-import { text } from './text';
 import { update } from './update';
+import { text } from './text';
+import { isConnected } from './tools';
 
 /**
  * @module Action
  * @todo need to handle element name changes
  * @todo need to handle attribute name changes
  * @todo
- *
  */
 
 const comment = function (node: Comment, data: any, source: any, target: any) {
@@ -24,21 +24,15 @@ const element = function (node: Element, data: any, source: any, target: any) {
 export const action = function (binder: Binder) {
     const node = binder.node;
 
-    if (!node?.isConnected) {
-        console.log(binder);
-    }
-
     if (!node) {
         return;
     }
 
-    // const variables = binder.variables;
-
     // this optimization could prevent disconnected nodes from being render when re/connected
-    // Note: Attr nodes do not change the isConnected prop
-    // if (!node.isConnected && binder.isInitialized) {
-    //     return;
-    // }
+    // https://developer.mozilla.org/en-US/docs/Web/API/Node/isConnected
+    if (!isConnected(node) && binder.isInitialized) {
+        return;
+    }
 
     const variable = binder.variable;
     const isFunction = typeof variable === 'function';
@@ -51,10 +45,10 @@ export const action = function (binder: Binder) {
     }
 
     const query = (selector: string): Element | null =>
-        (node.getRootNode() as Element)?.querySelector(selector);
+        (binder?.node?.getRootNode() as Element)?.querySelector(selector);
 
     const source = binder.source;
-    const target = isReactive ? variable({ update, target: node, query }) : variable;
+    const target = isReactive ? variable({ update, query }) : variable;
 
     if ('source' in binder && source === target) {
         return;
@@ -73,5 +67,6 @@ export const action = function (binder: Binder) {
     }
 
     binder.source = target;
+    binder.isInitialized = true;
 
 };
