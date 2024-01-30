@@ -1,6 +1,6 @@
-import { increment, ReleaseType } from 'https://deno.land/std@0.197.0/semver/mod.ts';
-import { copy, emptyDir } from 'https://deno.land/std@0.197.0/fs/mod.ts';
-import * as esbuild from 'https://deno.land/x/esbuild@v0.19.12/mod.js';
+import { increment, ReleaseType } from 'https://deno.land/std@0.213.0/semver/mod.ts';
+import { copy, emptyDir } from 'https://deno.land/std@0.213.0/fs/mod.ts';
+import * as esbuild from 'https://deno.land/x/esbuild@v0.20.0/mod.js';
 
 const [ release ] = Deno.args;
 if (!release) {
