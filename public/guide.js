@@ -112,7 +112,9 @@ const styleComponent = () => html`
 
 const mapComponent = () => html`
 <ul>
-    ${() => fruits.map(fruit => html` <li>${() => fruit}</li> `)}
+    ${fruits.map(fruit => html`
+        <li>${() => fruit}</li>
+    `)}
 </ul>
 `;
 
@@ -182,19 +184,6 @@ const mapComponent = () => html`
 // };
 
 /*
-    <style>
-        .default {
-            border: solid 5px transparent;
-        }
-        .class-color {
-            border-color: var(--accent);
-        }
-    </style>
-
-    <section>
-        <h3>Options</h3>
-        <pre id="optionsCode"></pre>
-    </section>
 
     <section id="dynamic">
         <h3>Dynamic</h3>
@@ -202,51 +191,6 @@ const mapComponent = () => html`
         <pre id="dynamicCode"></pre>
         <pre id="dynamicComponent">${dynamicComponent()}</pre>
         <pre id="dynamicSource"></pre>
-    </section>
-
-    <section id="input">
-        <h3>Input</h3>
-        <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
-        <pre id="inputCode"></pre>
-        <pre id="inputComponent">${inputComponent()}</pre>
-        <pre id="inputSource"></pre>
-    </section>
-
-    <section id="check">
-        <h3>Check</h3>
-        <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
-        <pre id="checkCode"></pre>
-        <pre id="checkComponent">${checkComponent()}</pre>
-        <pre id="checkSource"></pre>
-    </section>
-
-    <section id="radio">
-        <h3>Radio</h3>
-        <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
-        <pre id="radioCode"></pre>
-        <pre id="radioComponent">${radioComponent()}</pre>
-        <pre id="radioSource"></pre>
-    </section>
-
-    <section id="class">
-        <h3>Class</h3>
-        <pre id="classCode"></pre>
-        <pre id="classComponent">${classComponent()}</pre>
-        <pre id="classSource"></pre>
-    </section>
-
-    <section id="style">
-        <h3>Style</h3>
-        <pre id="styleCode"></pre>
-        <pre id="styleComponent">${styleComponent()}</pre>
-        <pre id="styleSource"></pre>
-    </section>
-
-    <section id="map">
-        <h3>Map</h3>
-        <pre id="mapCode"></pre>
-        <pre id="mapComponent">${mapComponent()}</pre>
-        <pre id="mapSource"></pre>
     </section>
 
     <section id="select">
@@ -305,6 +249,13 @@ export default html`
         <pre id="checkSource">${() => highlight(checkComponent(), 'html')}</pre>
     </section>
 
+    <section id="radio">
+        <h3>Radio</h3>
+        <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
+        <pre id="radioCode">${highlight(radioComponent.toString())}</pre>
+        <pre id="radioComponent">${radioComponent()}</pre>
+    </section>
+
     <section id="class">
         <h3>Class</h3>
         <pre id="classCode">${highlight(classComponent.toString())}</pre>
@@ -317,14 +268,12 @@ export default html`
         <pre id="styleComponent">${styleComponent()}</pre>
     </section>
 
-    <section id="radio">
-        <h3>Radio</h3>
-        <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
-        <pre id="radioCode">${highlight(radioComponent.toString())}</pre>
-        <pre id="radioComponent">${radioComponent()}</pre>
+    <section id="map">
+        <h3>Map</h3>
+        <pre id="mapCode">${highlight(mapComponent.toString())}</pre>
+        <pre id="mapComponent">${mapComponent()}</pre>
+        <pre id="mapSource">${() => highlight(mapComponent(), 'html')}</pre>
     </section>
-
-
 
 `('main');
 
@@ -333,8 +282,4 @@ export default html`
         <pre id="styleSource">${() => highlight(styleComponent(), 'html')}</pre>
         <pre id="radioSource">${() => highlight(radioComponent(), 'html')}</pre>
 
-    <section>
-        <h3>Options</h3>
-        <pre id="optionsCode"></pre>
-    </section>
 */

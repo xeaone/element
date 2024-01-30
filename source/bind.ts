@@ -2,7 +2,9 @@ import { Binder, BinderType, ReferenceType, Variables } from './types';
 import { BindersCache } from './global';
 
 export const bind = function (
-    type: BinderType, index: number, variables: Variables,
+    type: BinderType,
+    index: number,
+    variables: Variables,
     // ...references: ReferenceType<unknown>[]
     referenceNode: ReferenceType<Node>,
     referenceName?: ReferenceType<any>,

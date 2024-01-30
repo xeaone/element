@@ -334,6 +334,7 @@ var text = function(node, binder, source, target) {
     removeBetween(binder.start, binder.end);
     beforeNode(typeof target === "function" ? target() : target, binder.end);
   } else if (target instanceof Node) {
+    console.log("replaceNode", binder);
     replaceNode(target, node);
   } else if (isIterable(target)) {
     if (binder.length === void 0) {
@@ -367,8 +368,11 @@ var text = function(node, binder, source, target) {
       while (binder.length !== target.length) {
         const marker = document.createTextNode("");
         binder.markers.push(marker);
-        binder.results.push(target[binder.length]);
+        const item = target[binder.length];
+        const child = item === null || item === void 0 ? "" : item?.[InstanceSymbol] ? item() : item instanceof Node ? item : "";
+        binder.results.push(child);
         beforeNode(marker, binder.end);
+        beforeNode(child, binder.end);
         binder.length++;
       }
     } else if (oldLength > newLength) {

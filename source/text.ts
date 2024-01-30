@@ -8,6 +8,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         if (node.textContent !== '') {
             node.textContent = '';
         }
+    // } else if (target instanceof Node || target?.[ InstanceSymbol ]) {
     } else if (target instanceof DocumentFragment || target?.[ InstanceSymbol ]) {
 
         if (!binder.start) {
@@ -23,7 +24,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         removeBetween(binder.start, binder.end);
         beforeNode(typeof target === 'function' ? target() : target, binder.end);
     } else if (target instanceof Node) {
-        // console.log('replaceNode', binder);
+        console.log('replaceNode', binder);
         replaceNode(target, node);
     } else if (isIterable(target)) {
 
@@ -67,9 +68,16 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
             while (binder.length !== target.length) {
                 const marker = document.createTextNode('');
                 binder.markers.push(marker);
-                binder.results.push(target[ binder.length ]);
+                const item = target[ binder.length ];
+                const child =
+                    item === null || item === undefined ? '' :
+                    item?.[ InstanceSymbol ] ? item() :
+                    item instanceof Node ? item :
+                    '';
+
+                binder.results.push(child);
                 beforeNode(marker, binder.end);
-                // bind(marker, binder.results, binder.length);
+                beforeNode(child, binder.end);
                 binder.length++;
             }
         } else if (oldLength > newLength) {
@@ -97,7 +105,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
 
     } else {
         console.log('text', binder);
-        
+
         if (node.textContent === `${target}`) {
             return;
         } else {
