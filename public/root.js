@@ -92,4 +92,4 @@ export default html`
 
     </section>
 
-`('main')
+`('main');

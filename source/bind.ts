@@ -1,5 +1,5 @@
-import { Binder, BinderType, ReferenceType, Variables } from './types';
-import { BindersCache } from './global';
+import { Binder, BinderType, ReferenceType, Variables } from './types.ts';
+import { BindersCache } from './global.ts';
 
 export const bind = function (
     type: BinderType,
@@ -10,7 +10,6 @@ export const bind = function (
     referenceName?: ReferenceType<any>,
     referenceValue?: ReferenceType<any>,
 ) {
-
     const binder: Binder = {
         type,
 
@@ -19,15 +18,15 @@ export const bind = function (
         // references,
         isInitialized: false,
 
-        get variable () {
-            return variables[ index ];
+        get variable() {
+            return variables[index];
         },
 
-        set variable (data: any) {
-            variables[ index ] = data;
+        set variable(data: any) {
+            variables[index] = data;
         },
 
-        get node () {
+        get node() {
             const node = referenceNode.get();
             if (node) {
                 return node;
@@ -37,30 +36,29 @@ export const bind = function (
             }
         },
 
-        get name () {
+        get name() {
             return (referenceName as ReferenceType<any>).get();
         },
 
-        set name (name: string) {
+        set name(name: string) {
             (referenceName as ReferenceType<any>).set(name);
         },
 
-        get value () {
+        get value() {
             return (referenceValue as ReferenceType<any>).get();
         },
 
-        set value (value: string) {
+        set value(value: string) {
             (referenceValue as ReferenceType<any>).set(value);
         },
 
-        remove () {
+        remove() {
             BindersCache.delete(this);
         },
 
-        add () {
+        add() {
             BindersCache.add(this);
         },
-
     };
 
     binder.add();

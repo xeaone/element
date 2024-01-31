@@ -2,19 +2,19 @@ import { increment, ReleaseType } from 'https://deno.land/std@0.213.0/semver/mod
 import { copy, emptyDir } from 'https://deno.land/std@0.213.0/fs/mod.ts';
 import * as esbuild from 'https://deno.land/x/esbuild@v0.20.0/mod.js';
 
-const [ release ] = Deno.args;
+const [release] = Deno.args;
 if (!release) {
     console.warn('argument required: pre, major, premajor, minor, preminor, patch, prepatch, prerelease');
     Deno.exit();
 }
 
-const f = await (new Deno.Command('git', { args: [ 'fetch' ] }).spawn()).output();
+const f = await (new Deno.Command('git', { args: ['fetch'] }).spawn()).output();
 if (!f.success) {
     console.warn('git auth check failed');
     Deno.exit();
 }
 
-const n = await (new Deno.Command('npm', { args: [ 'whoami' ] }).spawn()).output();
+const n = await (new Deno.Command('npm', { args: ['whoami'] }).spawn()).output();
 if (!n.success) {
     console.warn('npm auth check failed');
     Deno.exit();
@@ -40,7 +40,7 @@ const banner = `/**
  */
 `;
 
-const npxTsc = await (new Deno.Command('npx', { args: [ 'tsc' ] }).spawn()).output();
+const npxTsc = await (new Deno.Command('npx', { args: ['tsc'] }).spawn()).output();
 if (!npxTsc.success) {
     console.warn('npx tsc failed');
     Deno.exit();
@@ -71,7 +71,7 @@ await Promise.all([
         logLevel: 'debug',
         platform: 'browser',
         outfile: 'public/x-element.js',
-        entryPoints: [ 'source/index.ts' ],
+        entryPoints: ['source/index.ts'],
     }),
     esbuild.build({
         color: true,
@@ -85,7 +85,7 @@ await Promise.all([
         logLevel: 'debug',
         platform: 'browser',
         outfile: 'bundle/es2015.min.js',
-        entryPoints: [ 'source/index.ts' ],
+        entryPoints: ['source/index.ts'],
     }),
     esbuild.build({
         color: true,
@@ -99,7 +99,7 @@ await Promise.all([
         logLevel: 'debug',
         platform: 'browser',
         outfile: 'bundle/es2015.js',
-        entryPoints: [ 'source/index.ts' ],
+        entryPoints: ['source/index.ts'],
     }),
     esbuild.build({
         color: true,
@@ -113,7 +113,7 @@ await Promise.all([
         logLevel: 'debug',
         platform: 'browser',
         outfile: 'bundle/esnext.js',
-        entryPoints: [ 'source/index.ts' ],
+        entryPoints: ['source/index.ts'],
     }),
     esbuild.build({
         color: true,
@@ -127,7 +127,7 @@ await Promise.all([
         logLevel: 'debug',
         platform: 'browser',
         outfile: 'bundle/esnext.min.js',
-        entryPoints: [ 'source/index.ts' ],
+        entryPoints: ['source/index.ts'],
     }),
 ]);
 
@@ -142,9 +142,9 @@ await copy('public/index.html', 'public/security/index.html', { overwrite: true 
 await emptyDir('docs/');
 await copy('public', 'docs', { overwrite: true });
 
-await (new Deno.Command('git', { args: [ 'commit', '-a', '-m', version ] }).spawn()).output();
-await (new Deno.Command('git', { args: [ 'push' ] }).spawn()).output();
-await (new Deno.Command('git', { args: [ 'tag', version ] }).spawn()).output();
-await (new Deno.Command('git', { args: [ 'push', '--tag' ] }).spawn()).output();
+await (new Deno.Command('git', { args: ['commit', '-a', '-m', version] }).spawn()).output();
+await (new Deno.Command('git', { args: ['push'] }).spawn()).output();
+await (new Deno.Command('git', { args: ['tag', version] }).spawn()).output();
+await (new Deno.Command('git', { args: ['push', '--tag'] }).spawn()).output();
 
-await (new Deno.Command('npm', { args: [ 'publish', '--access', 'public' ] }).spawn()).output();
+await (new Deno.Command('npm', { args: ['publish', '--access', 'public'] }).spawn()).output();

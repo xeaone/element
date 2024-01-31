@@ -1,10 +1,8 @@
-
-
 const connectedEvent = new CustomEvent('connected');
 
 const disconnectedEvent = new CustomEvent('disconnected');
 
-const intersectionElements: WeakMap<Element, { wasConnected: boolean, isIntersecting: boolean; }> = new WeakMap();
+const intersectionElements: WeakMap<Element, { wasConnected: boolean; isIntersecting: boolean }> = new WeakMap();
 
 export const intersectionObserver = new IntersectionObserver((entries) => {
     for (const entry of entries) {

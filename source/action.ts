@@ -1,10 +1,10 @@
-import { attributeName } from './attribute-name';
-import { attributeValue } from './attribute-value';
-import { InstanceSymbol } from './global';
-import { Binder } from './types';
-import { update } from './update';
-import { text } from './text';
-import { isConnected } from './tools';
+import { attributeName } from './attribute-name.ts';
+import { attributeValue } from './attribute-value.ts';
+import { InstanceSymbol } from './global.ts';
+import { isConnected } from './tools.ts';
+import { update } from './update.ts';
+import { Binder } from './types.ts';
+import { text } from './text.ts';
 
 /**
  * @module Action
@@ -13,11 +13,11 @@ import { isConnected } from './tools';
  * @todo
  */
 
-const comment = function (node: Comment, data: any, source: any, target: any) {
+const comment = function (node: Comment, data: any, source: any, target: any): void {
     console.warn('comment action not implemented');
 };
 
-const element = function (node: Element, data: any, source: any, target: any) {
+const element = function (node: Element, data: any, source: any, target: any): void {
     console.warn('element action not implemented');
 };
 
@@ -44,8 +44,7 @@ export const action = function (binder: Binder) {
         binder.remove();
     }
 
-    const query = (selector: string): Element | null =>
-        (binder?.node?.getRootNode() as Element)?.querySelector(selector);
+    const query = (selector: string): Element | null => (binder?.node?.getRootNode() as Element)?.querySelector(selector);
 
     const source = binder.source;
     const target = isReactive ? variable({ update, query }) : variable;
@@ -68,5 +67,4 @@ export const action = function (binder: Binder) {
 
     binder.source = target;
     binder.isInitialized = true;
-
 };

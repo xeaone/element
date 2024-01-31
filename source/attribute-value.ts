@@ -1,9 +1,9 @@
-import { isValue, hasOn, isLink, dangerousLink, sliceOn } from './tools.ts';
-import { Binder } from './types.ts';
+import { dangerousLink, hasOn, isLink, isValue, sliceOn } from './tools.ts';
 import { update } from './update.ts';
+import { Binder } from './types.ts';
+import display from './display.ts';
 
 export const attributeValue = function (element: Element, binder: Binder, source: any, target: any): void {
-
     if (source === target) {
         return;
     }
@@ -14,8 +14,7 @@ export const attributeValue = function (element: Element, binder: Binder, source
     }
 
     if (isValue(binder.name)) {
-        binder.value = target;
-        // binder.value = display(target);
+        binder.value = display(target);
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
     } else if (isLink(binder.name)) {
@@ -30,7 +29,6 @@ export const attributeValue = function (element: Element, binder: Binder, source
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
     } else if (hasOn(binder.name)) {
-
         // handle onanimation ontimeout
 
         if (element.hasAttribute(binder.name)) {
@@ -40,7 +38,8 @@ export const attributeValue = function (element: Element, binder: Binder, source
         if (typeof binder.value === 'function') {
             element.removeEventListener(
                 sliceOn(binder.name),
-                binder.value, source?.[ 1 ] ?? true
+                binder.value,
+                source?.[ 1 ] ?? true,
             );
         }
 
@@ -56,24 +55,23 @@ export const attributeValue = function (element: Element, binder: Binder, source
             return result;
             // console.log(binder.result, result);
             // if (binder.result !== result) {
-                // binder.result = result;
-                // update();
+            // binder.result = result;
+            // update();
             // }
             // return result;
         };
 
         element.addEventListener(
             sliceOn(binder.name),
-            binder.value, target?.[ 1 ] ?? true
+            binder.value,
+            target?.[ 1 ] ?? true,
         );
-
     } else {
         binder.value = target;
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
     }
 };
-
 
 // const attribute = function (node: Attr, binder: Binder, source: any, target: any) {
 //     const name = node.name;

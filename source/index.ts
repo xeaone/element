@@ -1,15 +1,14 @@
-import { InstanceSymbol, MarkerSymbol, TemplateSymbol, TemplatesCache, VariablesSymbol } from './global';
-import { Initialize, Variables } from './types';
-import { initialize } from './initialize';
-import { update } from './update';
-import { mark } from './tools';
+import { InstanceSymbol, MarkerSymbol, TemplatesCache, TemplateSymbol, VariablesSymbol } from './global.ts';
+import { Initialize, Variables } from './types.ts';
+import { initialize } from './initialize.ts';
+import { update } from './update.ts';
+import { mark } from './tools.ts';
 
 // const query = (node: Node, selector: Selector) => selector.reduce((n, s) => n[ s ], node);
 
 export { update };
 
 /**
- *
  * @description
  * @param strings
  * @param variables
@@ -32,10 +31,10 @@ export const html = function (strings: TemplateStringsArray, ...variables: Varia
 
         const length = strings.length - 1;
         for (let index = 0; index < length; index++) {
-            innerHTML += `${strings[ index ]}${marker}`;
+            innerHTML += `${strings[index]}${marker}`;
         }
 
-        innerHTML += strings[ length ];
+        innerHTML += strings[length];
 
         template = document.createElement('template');
         template.innerHTML = innerHTML;
@@ -44,10 +43,10 @@ export const html = function (strings: TemplateStringsArray, ...variables: Varia
     }
 
     const meta = {
-        [ InstanceSymbol ]: true,
-        [ MarkerSymbol ]: marker,
-        [ TemplateSymbol ]: template,
-        [ VariablesSymbol ]: variables,
+        [InstanceSymbol]: true,
+        [MarkerSymbol]: marker,
+        [TemplateSymbol]: template,
+        [VariablesSymbol]: variables,
     };
 
     return Object.assign(initialize.bind(meta, template, variables, marker), meta);

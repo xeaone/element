@@ -1,12 +1,12 @@
-import { BindersCache } from './global';
-import { action } from './action';
+import { BindersCache } from './global.ts';
+import { action } from './action.ts';
 
 let Next: Promise<void> | undefined;
 let Current: Promise<void> | undefined;
 
 export const next = async function (): Promise<void> {
     await Current;
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
         queueMicrotask(async () => {
             Next = undefined;
             await update();
@@ -27,7 +27,6 @@ export const update = async function (): Promise<void> {
             await Next;
         }
     } else {
-
         // Current = (async () => {
         //     const binders = BindersCache.values();
 
@@ -43,7 +42,7 @@ export const update = async function (): Promise<void> {
         //     Current = undefined;
         // })();
 
-        Current = new Promise(resolve => {
+        Current = new Promise((resolve) => {
             queueMicrotask(async () => {
                 const binders = BindersCache.values();
 

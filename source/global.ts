@@ -1,7 +1,6 @@
-import { Global } from './types';
+import { Global } from './types.ts';
 
 export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBAL = Object.freeze({
-
     // QueueNext: undefined,
     // QueueCurrent: undefined,
 
@@ -16,19 +15,14 @@ export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBA
     InstanceSymbol: Symbol('instance'),
     TemplateSymbol: Symbol('template'),
     VariablesSymbol: Symbol('variables'),
-
     // refistery: new FinalizationRegistry((key) => {
     //     if (!cache.get(key)?.deref()) {
     //       cache.delete(key);
     //     }
     // }),
-
 }));
 
-
-
 export const {
-
     // QueueNext,
     // QueueCurrent,
 
@@ -43,5 +37,4 @@ export const {
     InstanceSymbol,
     TemplateSymbol,
     VariablesSymbol,
-
 } = global;

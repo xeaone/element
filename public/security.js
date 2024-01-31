@@ -5,9 +5,10 @@ import Highlight from './modules/highlight.js';
 // <IMG SRC=/ onerror="alert(String.fromCharCode(88,83,83))"></img>
 // causes page reload
 
-    // <style>body {background: url("javascript:alert('XSS')"); }</style>
+// <style>body {background: url("javascript:alert('XSS')"); }</style>
 const h = html;
-const overviewComponent = () => h`
+const overviewComponent = () =>
+    h`
 
     <div background="javascript:alert('XSS')"></div>
     <body background="javascript:alert('XSS')"></body>
@@ -149,15 +150,18 @@ const overviewComponent = () => h`
 
 `;
 
-const polygotComponent = () => h`
+const polygotComponent = () =>
+    h`
     javascript:/*--></title></style></textarea></script></xmp><svg/onload='+/"/+/onmouseover=1/+/[*/[]/+alert(1)//'>
 `;
 
-const malformedAComponent = () => h`
+const malformedAComponent = () =>
+    h`
     \<a onmouseover="alert(document.cookie)"\>xxs link\</a\>
 `;
 
-const malformedImgComponent = () => h`
+const malformedImgComponent = () =>
+    h`
     <img """><script>alert("XSS")</script>"\>
     <img src=javascript:alert(String.fromCharCode(88,83,83))>
 `;
@@ -177,13 +181,12 @@ const values = {
 };
 
 export default class security extends component {
-
-    changed () {
+    changed() {
         for (const name of names) {
             const codeElement = this.querySelector(`#${name}Code`);
             const sourceElement = this.querySelector(`#${name}Source`);
             if (codeElement) {
-                const code = values[ name ];
+                const code = values[name];
                 if (codeElement.innerHTML !== code) codeElement.innerHTML = code;
             }
             if (sourceElement) {
@@ -194,7 +197,8 @@ export default class security extends component {
         }
     }
 
-    render = () => html`
+    render = () =>
+        html`
 
     <section>
         <div style="background-image: url(javascript:alert('Style BG Img XSS'))"></div>
@@ -250,5 +254,4 @@ export default class security extends component {
     </section>
 
     `;
-
 }

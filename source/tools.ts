@@ -1,4 +1,3 @@
-
 export const {
     SHOW_TEXT,
     SHOW_ELEMENT,
@@ -66,66 +65,57 @@ const bools = [
 ];
 
 export const isLink = function (data: string): boolean {
-    return data && typeof data === 'string' ?
-        links.indexOf(data.toLowerCase()) !== -1 : false;
+    return data && typeof data === 'string' ? links.indexOf(data.toLowerCase()) !== -1 : false;
 };
 
 export const isBool = function (data: string): boolean {
-    return data && typeof data === 'string' ?
-        bools.indexOf(data.toLowerCase()) !== -1 : false;
+    return data && typeof data === 'string' ? bools.indexOf(data.toLowerCase()) !== -1 : false;
 };
 
 export const isIterable = function (data: any): boolean {
     return data && typeof data !== 'string' &&
-        typeof data[ Symbol.iterator ] === 'function';
+        typeof data[Symbol.iterator] === 'function';
 };
 
 const patternAnimation = /^onanimation$/i;
 export const isAnimation = function (data: string): boolean {
-    return data && typeof data === 'string' ?
-        patternAnimation.test(data) : false;
+    return data && typeof data === 'string' ? patternAnimation.test(data) : false;
 };
 
 const patternTimeout = /^ontimeout$/i;
 export const isTimeout = function (data: string): boolean {
-    return data && typeof data === 'string' ?
-        patternTimeout.test(data) : false;
+    return data && typeof data === 'string' ? patternTimeout.test(data) : false;
 };
 
 const patternValue = /^value$/i;
 export const isValue = function (data: string): boolean {
-    return data && typeof data === 'string' ?
-        patternValue.test(data) : false;
+    return data && typeof data === 'string' ? patternValue.test(data) : false;
 };
 
 const patternOn = /^on/i;
 export const hasOn = function (data: string): boolean {
-    return data && typeof data === 'string' ?
-        patternOn.test(data) : false;
+    return data && typeof data === 'string' ? patternOn.test(data) : false;
 };
 
 const patternMarker = /^x-[0-9]{10}-x$/i;
 export const isMarker = function (data: string): boolean {
-    return data && typeof data === 'string' ?
-        patternMarker.test(data) : false;
+    return data && typeof data === 'string' ? patternMarker.test(data) : false;
 };
 
 export const matchMarker = function (data: string, marker: string): boolean {
     return data && marker &&
-        typeof data === 'string' &&
-        typeof marker === 'string' ?
-        data.toLowerCase() === marker.toLowerCase() : false;
+            typeof data === 'string' &&
+            typeof marker === 'string'
+        ? data.toLowerCase() === marker.toLowerCase()
+        : false;
 };
 
 export const hasMarker = function (data: string, marker: string): boolean {
-    return data && typeof data === 'string' ?
-        data.indexOf(marker) !== -1 : false;
+    return data && typeof data === 'string' ? data.indexOf(marker) !== -1 : false;
 };
 
 export const sliceOn = function (data: string): string {
-    return data && typeof data === 'string' ?
-        data?.toLowerCase()?.slice(2) :
-        '';
+    return data && typeof data === 'string' ? data?.toLowerCase()?.slice(2) : '';
 };
 
 export const isConnected = function (node: Node): boolean {
@@ -175,8 +165,9 @@ export const removeNode = function (node: Node): void {
     (node.parentNode as Node).removeChild(node);
 };
 
-export const beforeNode = function (node: Node, child: Node): void {
-    (child.parentNode as Node).insertBefore(node as Node, child);
+export const beforeNode = function (node: Node | string, child: Node): void {
+    if (!(node instanceof Node)) node = (child.ownerDocument as Document).createTextNode(node);
+    (child.parentNode as Node).insertBefore(node, child);
 };
 
 export const afterNode = function (node: Node, child: Node): void {
@@ -188,19 +179,15 @@ export const replaceNode = function (node: Node, child: Node): void {
 };
 
 export const replaceChildren = function (element: Element | Document | DocumentFragment, ...nodes: (Node | string)[]): void {
-
     while (element.lastChild) {
         element.removeChild(element.lastChild);
     }
 
     for (const node of nodes) {
         element.appendChild(
-            typeof node === 'string' ?
-                (element.ownerDocument as Document).createTextNode(node) :
-                node
+            typeof node === 'string' ? (element.ownerDocument as Document).createTextNode(node) : node,
         );
     }
-
 };
 
 /**

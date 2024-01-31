@@ -1,8 +1,8 @@
-import { ELEMENT_NODE, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE, dangerousLink, hasMarker, hasOn, isLink, matchMarker, replaceChildren } from './tools';
-import { Marker, Template, Variables, Container, ReferenceType } from './types';
-import { Reference } from './reference';
-import { action } from './action';
-import { bind } from './bind';
+import { dangerousLink, ELEMENT_NODE, hasMarker, hasOn, isLink, matchMarker, replaceChildren, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE } from './tools.ts';
+import { Container, Marker, ReferenceType, Template, Variables } from './types.ts';
+import { Reference } from './reference.ts';
+import { action } from './action.ts';
+import { bind } from './bind.ts';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
 
@@ -11,7 +11,6 @@ const FILTER = SHOW_ELEMENT + SHOW_TEXT;
 // const References: Map<ReferenceKey, ReferenceValue> = new Map();
 
 export const initialize = function (template: Template, variables: Variables, marker: Marker, container?: Container): Element | DocumentFragment {
-
     // if (typeof container === 'string') {
     //     const selection = document.querySelector(container);
     //     if (!selection) throw new Error('query not found');
@@ -63,7 +62,6 @@ export const initialize = function (template: Template, variables: Variables, ma
             const referenceNode = Reference<Node>(text);
             const binder = bind(4, index++, variables, referenceNode);
             action(binder);
-
         } else if (type === ELEMENT_NODE) {
             const element = node as Element;
             const tag = element.tagName;
@@ -107,7 +105,6 @@ export const initialize = function (template: Template, variables: Variables, ma
                         element.removeAttribute(name);
                         action(binder);
                     }
-
                 } else {
                     if (isLink(name)) {
                         if (dangerousLink(value)) {
@@ -119,9 +116,7 @@ export const initialize = function (template: Template, variables: Variables, ma
                         console.warn(`attribute name "${name}" not allowed`);
                     }
                 }
-
             }
-
         } else {
             console.warn(`walker node type "${type}" not handled`);
         }
@@ -133,10 +128,9 @@ export const initialize = function (template: Template, variables: Variables, ma
         replaceChildren(selection, fragment);
         return selection;
     } else if (container instanceof Element) {
-        replaceChildren(container, fragment)
+        replaceChildren(container, fragment);
         return container;
     } else {
         return fragment;
     }
-
 };

@@ -1,8 +1,7 @@
-import { LitElement, html } from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
+import { html, LitElement } from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
 // import { LitElement, html } from 'https://cdn.jsdelivr.net/npm/lit@2.4.0/index.js';
 
 class LitTest extends LitElement {
-
     static properties = {
         items: { type: Array },
         count: { type: Number },
@@ -28,7 +27,7 @@ class LitTest extends LitElement {
 
     increment() {
         console.time('increment');
-        for (var i = 0; i < this.items.length; i++) this.items[ i ]++;
+        for (var i = 0; i < this.items.length; i++) this.items[i]++;
         this.requestUpdate();
         console.timeEnd('increment');
     }
@@ -40,7 +39,7 @@ class LitTest extends LitElement {
             <input type="number" @input=${this.oninput} value=${this.count}>
             <button @click=${this.overwrite}>overwrite</button>
             <button @click=${this.increment}>increment</button>
-            <div>${this.items.map(item => html`<div class="box">${item}</div>`)}</div>
+            <div>${this.items.map((item) => html`<div class="box">${item}</div>`)}</div>
         `;
 
         console.log(t);
@@ -49,7 +48,7 @@ class LitTest extends LitElement {
     }
 }
 
-        // <button onclick=${c.push} >push</button>
-        // <button onclick=${c.clear}>clear</button>
+// <button onclick=${c.push} >push</button>
+// <button onclick=${c.clear}>clear</button>
 
 customElements.define('lit-test', LitTest);

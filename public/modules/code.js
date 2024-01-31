@@ -1,7 +1,6 @@
-
-export default function Code (...args) {
+export default function Code(...args) {
     let data;
-    let [ cb ] = args.slice(-1);
+    let [cb] = args.slice(-1);
 
     if (typeof cb === 'boolean') {
         data = args.slice(0, -1).join('\n');

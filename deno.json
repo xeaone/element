@@ -10,12 +10,16 @@
     },
     "lint": {
         "include": [
-            "scripts"
+            "public",
+            "scripts",
+            "source"
         ]
     },
     "fmt": {
         "include": [
-            "scripts"
+            "public",
+            "scripts",
+            "source"
         ],
         "options": {
             "useTabs": false,
@@ -29,7 +33,6 @@
         "d": "deno run -A scripts/deploy.ts",
         "t": "deno test -A scripts/test.ts",
         "w": "deno run -A scripts/watch.ts",
-        "tv": "deno test scripts/virtual-test.ts",
         "watch-idea": "deno run -A scripts/watch-idea.ts",
         "watch-virtual": "deno run -A scripts/watch-virtual.ts"
     }

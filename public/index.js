@@ -4,8 +4,12 @@ const main = document.querySelector('main');
 const pathname = location.pathname.toLowerCase().replace(/\/+$/, '');
 
 switch (pathname) {
-    case '': await import('./root.js'); break;
-    case '/guide': await import('./guide.js'); break;
+    case '':
+        await import('./root.js');
+        break;
+    case '/guide':
+        await import('./guide.js');
+        break;
 }
 
 // router('/', main, () => import('./root.js'));
