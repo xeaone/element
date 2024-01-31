@@ -15,7 +15,7 @@ const result = await esbuild.context({
     logLevel: 'debug',
     platform: 'browser',
     outfile: 'public/x-element.js',
-    entryPoints: [ 'source/index.ts' ],
+    entryPoints: ['source/index.ts'],
 });
 
 await result.watch();

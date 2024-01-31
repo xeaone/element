@@ -84,38 +84,50 @@ let tag = 'div';
 // `;
 // const dynamicCode = highlight(dynamicComponent.toString());
 
+// deno-fmt-ignore
 const inputComponent = () => html`
 <div>${() => input}</div>
-<input value=${() => input} oninput=${e => input = e.target.value} />
+<input value=${() => input} oninput=${(e) => input = e.target.value} />
 `;
 
+// deno-fmt-ignore
 const checkComponent = () => html`
 <div>${() => checked ? 'Is Checked' : 'Is Not Checked'}</div>
-<input type="checkbox" ${() => checked ? 'checked' : ''} oninput=${e => checked = e.target.checked} />
+<input type="checkbox" ${() => checked ? 'checked' : ''} oninput=${(e) => checked = e.target.checked} />
 `;
 
+// deno-fmt-ignore
 const radioComponent = () => html`
 <div>${() => radioShared}</div>
-<input type="radio" name="radio" ${() => radioShared === radioOne ? 'checked' : ''} oninput=${() => radioShared = 'one'} />
-<input type="radio" name="radio" ${() => radioShared === radioTwo ? 'checked' : ''} oninput=${() => radioShared = 'two'} />
+
+<input type="radio" name="radio"
+    oninput=${() => radioShared = 'one'}
+    ${() => radioShared === radioOne ? 'checked' : ''}
+/>
+
+<input type="radio" name="radio"
+    oninput=${() => radioShared = 'two'}
+    ${() => radioShared === radioTwo ? 'checked' : ''}
+/>
 `;
 
+// deno-fmt-ignore
 const classComponent = () => html`
 <div class=${() => active ? 'default class-color' : 'default'}>Look at my class</div>
 <button onclick=${() => active = !active}>Toggle Class</button>
 `;
 
+// deno-fmt-ignore
 const styleComponent = () => html`
 <div style=${() => `color: ${color}`}>Look at my style</div>
 <button onclick=${() => color = Color()}>Change Color</button>
 `;
 
+// deno-fmt-ignore
 const mapComponent = () => html`
-<ul>
-    ${fruits.map(fruit => html`
-        <li>${() => fruit}</li>
-    `)}
-</ul>
+<ul>${fruits.map((fruit) => html`
+    <li>${() => fruit}</li>
+`)}</ul>
 `;
 
 // const fruitsComponent = () => html`
@@ -238,7 +250,7 @@ export default html`
         <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
         <pre id="inputCode">${highlight(inputComponent.toString())}</pre>
         <pre id="inputComponent">${inputComponent()}</pre>
-        <pre id="inputSource">${({ query }) => highlight(query('#inputComponent'), 'html')}</pre>
+        <pre id="inputSource">${({ query }) => highlight(query('#inputComponent'))}</pre>
     </section>
 
     <section id="check">
@@ -246,7 +258,7 @@ export default html`
         <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
         <pre id="checkCode">${highlight(checkComponent.toString())}</pre>
         <pre id="checkComponent">${checkComponent()}</pre>
-        <pre id="checkSource">${() => highlight(checkComponent(), 'html')}</pre>
+        <pre id="checkSource">${() => highlight(checkComponent())}</pre>
     </section>
 
     <section id="radio">
@@ -272,7 +284,7 @@ export default html`
         <h3>Map</h3>
         <pre id="mapCode">${highlight(mapComponent.toString())}</pre>
         <pre id="mapComponent">${mapComponent()}</pre>
-        <pre id="mapSource">${() => highlight(mapComponent(), 'html')}</pre>
+        <pre id="mapSource">${() => highlight(mapComponent())}</pre>
     </section>
 
 `('main');

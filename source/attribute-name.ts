@@ -1,8 +1,7 @@
-import { hasOn, isBool, isLink, isValue, sliceOn } from './tools';
-import { Binder } from './types';
+import { hasOn, isBool, isLink, isValue, sliceOn } from './tools.ts';
+import { Binder } from './types.ts';
 
 export const attributeName = function (element: Element, binder: Binder, source: any, target: any): void {
-
     source = source?.toLowerCase() ?? '';
     target = target?.toLowerCase() ?? '';
 
@@ -11,11 +10,9 @@ export const attributeName = function (element: Element, binder: Binder, source:
     }
 
     if (hasOn(source)) {
-
         if (typeof binder.value === 'function') {
             element.removeEventListener(sliceOn(source), binder.value, true);
         }
-
     } else if (isValue(source)) {
         element.removeAttribute(source);
         Reflect.set(element, source, null);
@@ -41,5 +38,4 @@ export const attributeName = function (element: Element, binder: Binder, source:
     }
 
     binder.name = target || '';
-
 };

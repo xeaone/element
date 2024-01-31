@@ -1,14 +1,13 @@
 import { component, html } from '../x-element.js';
 
 class performance extends component {
-
-    items = [ 1, 2 ];
+    items = [1, 2];
     count = 100000;
     tag = 'strong';
 
     date = new Date();
 
-    oninput (e) {
+    oninput(e) {
         this.count = e?.target?.valueAsNumber;
     }
 
@@ -36,14 +35,15 @@ class performance extends component {
         this.items = [];
     }
 
-    render = () => html`
+    render = () =>
+        html`
         <h2>Count: ${this.count.toLocaleString()}</h2>
-        <input type="number" oninput=${(e)=>this.oninput(e)} value=${this.count} />
+        <input type="number" oninput=${(e) => this.oninput(e)} value=${this.count} />
         <button onclick=${this.overwrite}>overwrite</button>
         <button onclick=${this.increment}>increment</button>
 
         <div>
-        ${this.items.map(item => html`<div class="box">${item}</div>`)}
+        ${this.items.map((item) => html`<div class="box">${item}</div>`)}
         </div>
 
         <${this.tag} foo="test" onclick=${() => console.log(this.tag = 'div')} >
@@ -53,8 +53,7 @@ class performance extends component {
         <div>${this.date.toLocaleString()}</div>
         <div>${this.date.toLocaleString === this.date.toLocaleString}</div>
 
-    `
-
+    `;
 }
 
 performance.define();

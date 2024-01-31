@@ -14,7 +14,7 @@ await build({
     platform: 'browser',
     globalName: 'XElement',
     outfile: './tmp/x-element.js',
-    entryPoints: [ 'source/index.ts' ],
+    entryPoints: ['source/index.ts'],
 });
 
 stop();
@@ -102,8 +102,8 @@ Deno.test('map-binder', async () => {
     const t = 'map-binder';
     class c extends XElement.Component {
         fruit = 'Orange';
-        fruits = [ 'Apple', 'Orange', 'Tomato' ];
-        render = () => XElement.html`<select value=${this.fruit}>${this.fruits.map(fruit => XElement.html`<option value=${fruit}>${fruit}</option>`)}</select>`;
+        fruits = ['Apple', 'Orange', 'Tomato'];
+        render = () => XElement.html`<select value=${this.fruit}>${this.fruits.map((fruit) => XElement.html`<option value=${fruit}>${fruit}</option>`)}</select>`;
     }
 
     window.customElements.define(t, c);

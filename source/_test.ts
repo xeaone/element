@@ -1,6 +1,6 @@
 import { html, update } from './index.ts';
 
-const items = [ 0, 1, 2 ];
+const items = [0, 1, 2];
 
 const connected = () => {
     console.log('connected');
@@ -17,16 +17,17 @@ const connected = () => {
 };
 
 const a = () => {
-    return items[ 0 ]++;
+    return items[0]++;
 };
 
 html`
 
     <main onConnected=${connected} onAnimation=${a}>
 
-        <ul>${() => items.map(
-            item => html`<li>${() => item}</li>`
-        )}</ul>
+        <ul>${() =>
+    items.map(
+        (item) => html`<li>${() => item}</li>`,
+    )}</ul>
 
     </main>
 

@@ -1,16 +1,19 @@
-import { InstanceSymbol, TemplateSymbol, VariablesSymbol } from './global';
-import { beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools';
-import { Binder } from './types';
+import { beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools.ts';
+import { InstanceSymbol, TemplateSymbol, VariablesSymbol } from './global.ts';
+import { Binder } from './types.ts';
+import display from './display.ts';
 
-export const text = function (node: Text, binder: Binder, source: any, target: any) {
+const iterableDisplay = function (data: any): Node | string {
+    return data?.[ InstanceSymbol ] ? data() : data instanceof Node ? data : display(data);
+};
 
+export const text = function (node: Text, binder: Binder, source: any, target: any): void {
     if (target === null || target === undefined) {
         if (node.textContent !== '') {
             node.textContent = '';
         }
-    // } else if (target instanceof Node || target?.[ InstanceSymbol ]) {
+        // } else if (target instanceof Node || target?.[ InstanceSymbol ]) {
     } else if (target instanceof DocumentFragment || target?.[ InstanceSymbol ]) {
-
         if (!binder.start) {
             binder.start = document.createTextNode('');
             beforeNode(binder.start, node);
@@ -27,7 +30,6 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         console.log('replaceNode', binder);
         replaceNode(target, node);
     } else if (isIterable(target)) {
-
         if (binder.length === undefined) {
             binder.length = 0;
         }
@@ -55,25 +57,19 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         const commonLength = Math.min(oldLength, newLength);
 
         for (let index = 0; index < commonLength; index++) {
-
-            if (binder.results[ index ]?.[TemplateSymbol] === target[ index ]?.[TemplateSymbol]) {
-                Object.assign(binder.results[ index ][VariablesSymbol], target[ index ][VariablesSymbol]);
+            if (binder.results[ index ]?.[ TemplateSymbol ] === target[ index ]?.[ TemplateSymbol ]) {
+                Object.assign(binder.results[ index ][ VariablesSymbol ], target[ index ][ VariablesSymbol ]);
             } else {
                 binder.results[ index ] = target[ index ];
             }
-
         }
 
         if (oldLength < newLength) {
             while (binder.length !== target.length) {
                 const marker = document.createTextNode('');
                 binder.markers.push(marker);
-                const item = target[ binder.length ];
-                const child =
-                    item === null || item === undefined ? '' :
-                    item?.[ InstanceSymbol ] ? item() :
-                    item instanceof Node ? item :
-                    '';
+
+                const child = iterableDisplay(target[ binder.length ]);
 
                 binder.results.push(child);
                 beforeNode(marker, binder.end);
@@ -102,7 +98,6 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
             binder.results.length = target.length;
             binder.markers.length = target.length;
         }
-
     } else {
         console.log('text', binder);
 

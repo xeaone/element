@@ -144,6 +144,8 @@ var removeNode = function(node) {
   node.parentNode.removeChild(node);
 };
 var beforeNode = function(node, child) {
+  if (!(node instanceof Node))
+    node = child.ownerDocument.createTextNode(node);
   child.parentNode.insertBefore(node, child);
 };
 var replaceNode = function(node, child) {
@@ -262,6 +264,33 @@ var update = async function() {
   }
 };
 
+// source/display.ts
+function display(data) {
+  switch (`${data}`) {
+    case "NaN":
+      return "";
+    case "null":
+      return "";
+    case "undefined":
+      return "";
+  }
+  switch (typeof data) {
+    case "string":
+      return data;
+    case "number":
+      return `${data}`;
+    case "bigint":
+      return `${data}`;
+    case "boolean":
+      return `${data}`;
+    case "symbol":
+      return String(data);
+    case "object":
+      return JSON.stringify(data);
+  }
+  throw new Error("XElement - display type not handled");
+}
+
 // source/attribute-value.ts
 var attributeValue = function(element2, binder, source, target) {
   if (source === target) {
@@ -272,7 +301,7 @@ var attributeValue = function(element2, binder, source, target) {
     return;
   }
   if (isValue(binder.name)) {
-    binder.value = target;
+    binder.value = display(target);
     element2.setAttribute(binder.name, binder.value);
     Reflect.set(element2, binder.name, binder.value);
   } else if (isLink(binder.name)) {
@@ -317,6 +346,9 @@ var attributeValue = function(element2, binder, source, target) {
 };
 
 // source/text.ts
+var iterableDisplay = function(data) {
+  return data?.[InstanceSymbol] ? data() : data instanceof Node ? data : display(data);
+};
 var text = function(node, binder, source, target) {
   if (target === null || target === void 0) {
     if (node.textContent !== "") {
@@ -368,8 +400,7 @@ var text = function(node, binder, source, target) {
       while (binder.length !== target.length) {
         const marker = document.createTextNode("");
         binder.markers.push(marker);
-        const item = target[binder.length];
-        const child = item === null || item === void 0 ? "" : item?.[InstanceSymbol] ? item() : item instanceof Node ? item : "";
+        const child = iterableDisplay(target[binder.length]);
         binder.results.push(child);
         beforeNode(marker, binder.end);
         beforeNode(child, binder.end);

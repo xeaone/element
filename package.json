@@ -1,4 +1,5 @@
 {
+    "version": "10.0.0",
     "name": "@xeaone/element",
     "type": "module",
     "description": "X-Element a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.",
@@ -28,6 +29,5 @@
     "directories": {
         "bundle": "bundle",
         "module": "module"
-    },
-    "version": "10.0.0"
+    }
 }
