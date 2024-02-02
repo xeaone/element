@@ -145,8 +145,13 @@ var removeNode = function(node) {
 };
 var beforeNode = function(node, child) {
   if (!(node instanceof Node))
-    node = child.ownerDocument.createTextNode(node);
+    node = child.ownerDocument.createTextNode(`${node}`);
   child.parentNode.insertBefore(node, child);
+};
+var afterNode = function(node, child) {
+  if (!(node instanceof Node))
+    node = child.ownerDocument.createTextNode(`${node}`);
+  child.parentNode.insertBefore(node, child.nextSibling);
 };
 var replaceNode = function(node, child) {
   child.parentNode.replaceChild(node, child);
@@ -390,36 +395,39 @@ var text = function(node, binder, source, target) {
     const newLength = target.length;
     const commonLength = Math.min(oldLength, newLength);
     for (let index = 0; index < commonLength; index++) {
-      if (binder.results[index]?.[TemplateSymbol] === target[index]?.[TemplateSymbol]) {
-        Object.assign(binder.results[index][VariablesSymbol], target[index][VariablesSymbol]);
-      } else {
+      if (binder.results[index] !== target[index]) {
+        const marker = binder.markers[index];
+        const last = binder.markers[index + 1] ?? binder.end;
+        while (last.previousSibling && last.previousSibling !== marker) {
+          removeNode(last.previousSibling);
+        }
+        const child = iterableDisplay(target[index]);
+        afterNode(child, marker);
+        console.log(child, marker);
         binder.results[index] = target[index];
       }
     }
     if (oldLength < newLength) {
       while (binder.length !== target.length) {
         const marker = document.createTextNode("");
-        binder.markers.push(marker);
         const child = iterableDisplay(target[binder.length]);
-        binder.results.push(child);
+        binder.markers.push(marker);
+        binder.results.push(target[binder.length]);
         beforeNode(marker, binder.end);
         beforeNode(child, binder.end);
         binder.length++;
       }
     } else if (oldLength > newLength) {
-      const last = binder.markers[target.length - 1];
-      while (binder.length !== target.length) {
-        const previous = binder.end.previousSibling;
-        if (previous === last)
-          break;
-        removeNode(previous);
+      const marker = binder.markers[target.length - 1];
+      const last = binder.end;
+      while (last.previousSibling && last.previousSibling !== marker) {
+        removeNode(last.previousSibling);
       }
       binder.length = target.length;
       binder.results.length = target.length;
       binder.markers.length = target.length;
     }
   } else {
-    console.log("text", binder);
     if (node.textContent === `${target}`) {
       return;
     } else {
