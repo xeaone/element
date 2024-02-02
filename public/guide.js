@@ -130,44 +130,44 @@ const mapComponent = () => html`
 `)}</ul>
 `;
 
-// const fruitsComponent = () => html`
-// <div>${fruit}</div>
-// <select value=${fruit} oninput=${(e) => fruit = e.target.value}>
-//     ${fruits.map(fruit => html`
-//         <option value=${fruit} ${fruit === fruit ? 'selected' : ''}>${fruit}</option>
-//     `)}
-// </select>
-// `;
-// const fruitsCode = highlight(fruitsComponent.toString());
+// deno-fmt-ignore
+const fruitsComponent = () => html`
+<div>${() => fruit}</div>
+<select value=${() => fruit} oninput=${(e) => fruit = e.target.value}>
+    ${fruits.map(fruit => html`
+        <option value=${() => fruit}>${() => fruit}</option>
+    `)}
+</select>
+`;
 
-// const carsComponent = () => html`
-// <div>${car}</div>
-// <select oninput=${e => car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
-//     ${cars.map(car => html`
-//         <option value=${car} ${car.includes(car) ? 'selected' : ''}>${car}</option>
-//     `)}
-// </select>
-// `;
-// const carsCode = highlight(carsComponent.toString());
+// deno-fmt-ignore
+const carsComponent = () => html`
+<div>${() => car}</div>
+<select oninput=${e => car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
+    ${cars.map(car => html`
+        <option value=${car}>${car}</option>
+    `)}
+</select>
+`;
 
-// const selectBooleanComponent = () => html`
-// <div>${boolean}</div>
-// <select value=${boolean} oninput=${e => boolean = JSON.parse(e.target.value)}>
-//     <option value="true">yes</option>
-//     <option value="false">no</option>
-// </select>
-// `;
-// const selectBooleanCode = highlight(selectBooleanComponent.toString());
+// deno-fmt-ignore
+const selectBooleanComponent = () => html`
+<div>${() => boolean}</div>
+<select value=${() => boolean} oninput=${e => boolean = JSON.parse(e.target.value)}>
+    <option value="true">yes</option>
+    <option value="false">no</option>
+</select>
+`;
 
-// const selectNumberComponent = () => html`
-// <div>${number}</div>
-// <select value=${number} oninput=${e => number = JSON.parse(e.target.value)}>
-//     <option value="0">zero</option>
-//     <option value="1">one</option>
-//     <option value="2">two</option>
-// </select>
-// `;
-// const selectNumberCode = highlight(selectNumberComponent.toString());
+// deno-fmt-ignore
+const selectNumberComponent = () => html`
+<div>${() => number}</div>
+<select value=${() => number} oninput=${e => number = JSON.parse(e.target.value)}>
+    <option value="0">zero</option>
+    <option value="1">one</option>
+    <option value="2">two</option>
+</select>
+`;
 
 // const connected = () => { console.log('connected'); };
 // const disconnected = () => { console.log('disconnected'); };
@@ -194,45 +194,6 @@ const mapComponent = () => html`
 //         }
 //     }
 // };
-
-/*
-
-    <section id="dynamic">
-        <h3>Dynamic</h3>
-        <p>Safe and efficient Dynamic tag/elements and attributes.</p>
-        <pre id="dynamicCode"></pre>
-        <pre id="dynamicComponent">${dynamicComponent()}</pre>
-        <pre id="dynamicSource"></pre>
-    </section>
-
-    <section id="select">
-        <h3>Select</h3>
-
-        <pre id="fruitsCode"></pre>
-        <pre id="fruitsComponent">${fruitsComponent()}</pre>
-        <pre id="fruitsSource"></pre>
-
-        <br>
-
-        <pre id="carsCode"></pre>
-        <pre id="carsComponent">${carsComponent()}</pre>
-        <pre id="carsSource"></pre>
-
-        <br>
-
-        <pre id="selectBooleanCode"></pre>
-        <pre id="selectBooleanComponent">${selectBooleanComponent()}</pre>
-        <pre id="selectBooleanSource"></pre>
-
-        <br>
-
-        <pre id="selectNumberCode"></pre>
-        <pre id="selectNumberComponent">${selectNumberComponent()}</pre>
-        <pre id="selectNumberSource"></pre>
-
-    </section>
-
-*/
 
 export default html`
 
@@ -287,11 +248,41 @@ export default html`
         <pre id="mapSource">${() => highlight(mapComponent())}</pre>
     </section>
 
+    <section id="select">
+        <h3>Select</h3>
+
+        <pre id="fruitsCode">${highlight(fruitsComponent.toString())}</pre>
+        <pre id="fruitsComponent">${fruitsComponent()}</pre>
+        <pre id="fruitsSource">${() => highlight(fruitsComponent())}</pre>
+
+        <br>
+        <pre id="carsCode">${highlight(carsComponent.toString())}</pre>
+        <pre id="carsComponent">${carsComponent()}</pre>
+        <pre id="carsSource">${() => highlight(carsComponent())}</pre>
+
+        <br>
+        <pre id="selectBooleanCode">${highlight(selectBooleanComponent.toString())}</pre>
+        <pre id="selectBooleanComponent">${selectBooleanComponent()}</pre>
+        <pre id="selectBooleanSource">${() => highlight(selectBooleanComponent())}</pre>
+
+        <br>
+        <pre id="selectNumberCode">${highlight(selectNumberComponent.toString())}</pre>
+        <pre id="selectNumberComponent">${selectNumberComponent()}</pre>
+        <pre id="selectNumberSource">${() => highlight(selectNumberComponent())}</pre>
+
+    </section>
+
 `('main');
 
 /*
-        <pre id="classSource">${() => highlight(classComponent(), 'html')}</pre>
-        <pre id="styleSource">${() => highlight(styleComponent(), 'html')}</pre>
-        <pre id="radioSource">${() => highlight(radioComponent(), 'html')}</pre>
+    <section id="dynamic">
+        <h3>Dynamic</h3>
+        <p>Safe and efficient Dynamic tag/elements and attributes.</p>
+        <pre id="dynamicCode"></pre>
+        <pre id="dynamicComponent">${dynamicComponent()}</pre>
+        <pre id="dynamicSource"></pre>
+    </section>
+
+
 
 */

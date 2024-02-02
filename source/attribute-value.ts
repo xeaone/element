@@ -15,8 +15,17 @@ export const attributeValue = function (element: Element, binder: Binder, source
 
     if (isValue(binder.name)) {
         binder.value = display(target);
+
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
+
+        // if (element.tagName === 'OPTION') {
+        //     console.log(element.parentNode, binder.name, binder.value);
+        //     if (element?.parentElement?.value === binder.value) {
+        //         element.selected = true;
+        //     }
+        // }
+
     } else if (isLink(binder.name)) {
         binder.value = encodeURI(target);
 

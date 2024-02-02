@@ -1,4 +1,4 @@
-import { beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools.ts';
+import { afterNode, beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools.ts';
 import { InstanceSymbol, TemplateSymbol, VariablesSymbol } from './global.ts';
 import { Binder } from './types.ts';
 import display from './display.ts';
@@ -57,41 +57,59 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         const commonLength = Math.min(oldLength, newLength);
 
         for (let index = 0; index < commonLength; index++) {
-            if (binder.results[ index ]?.[ TemplateSymbol ] === target[ index ]?.[ TemplateSymbol ]) {
-                Object.assign(binder.results[ index ][ VariablesSymbol ], target[ index ][ VariablesSymbol ]);
-            } else {
+            if (
+                binder.results[ index ] !== target[ index ]
+            ) {
+
+                const marker = binder.markers[ index ];
+                const last = binder.markers[ index + 1 ] ?? binder.end;
+                while (last.previousSibling && last.previousSibling !== marker) {
+                    removeNode(last.previousSibling);
+                }
+
+                const child = iterableDisplay(target[ index ]);
+                afterNode(child, marker);
+                console.log(child, marker);
+
+
                 binder.results[ index ] = target[ index ];
             }
+            // if (
+            //     binder.results[ index ]?.[ TemplateSymbol ] &&
+            //     target[ index ]?.[ TemplateSymbol ] &&
+            //     binder.results[ index ]?.[ TemplateSymbol ] === target[ index ]?.[ TemplateSymbol ]
+            // ) {
+            //     Object.assign(binder.results[ index ][ VariablesSymbol ], target[ index ][ VariablesSymbol ]);
+            // } else {
+            //     binder.results[ index ] = target[ index ];
+            // }
         }
 
         if (oldLength < newLength) {
             while (binder.length !== target.length) {
                 const marker = document.createTextNode('');
-                binder.markers.push(marker);
-
                 const child = iterableDisplay(target[ binder.length ]);
 
-                binder.results.push(child);
+                binder.markers.push(marker);
+                binder.results.push(target[ binder.length ]);
+
                 beforeNode(marker, binder.end);
                 beforeNode(child, binder.end);
                 binder.length++;
             }
         } else if (oldLength > newLength) {
-            const last = binder.markers[ target.length - 1 ];
+            // const last = binder.markers[ target.length - 1 ];
 
-            while (binder.length !== target.length) {
-                // const previous = binder.end.previousSibling;
-                // removeNode(previous as Node);
-                // const last = binder.markers[ binder.markers.length - 1 ];
-                // if (previous === last) {
-                //     binder.markers.pop();
-                //     binder.results.pop();
-                //     binder.length--;
-                // }
+            // while (binder.length !== target.length) {
+            //     const previous = binder.end.previousSibling;
+            //     if (previous === last) break;
+            //     removeNode(previous as Node);
+            // }
 
-                const previous = binder.end.previousSibling;
-                if (previous === last) break;
-                removeNode(previous as Node);
+            const marker = binder.markers[ target.length - 1 ];
+            const last = binder.end;
+            while (last.previousSibling && last.previousSibling !== marker) {
+                removeNode(last.previousSibling);
             }
 
             binder.length = target.length;
@@ -99,8 +117,6 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
             binder.markers.length = target.length;
         }
     } else {
-        console.log('text', binder);
-
         if (node.textContent === `${target}`) {
             return;
         } else {

@@ -43,7 +43,7 @@ export default html`
     <section onConnected=${connected}>
 
         <h2>Vision</h2>
-        <h4>Provide a zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.</h4>
+        <h4>Provide a zero knowledge agnostic non framework with data binding that mimics native HTML and JS standards.</h4>
 
         <div class="tiles">
             <div class="tile">
@@ -56,7 +56,7 @@ export default html`
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
-                <span>Efficient two way reactive databinding by default.</span>
+                <span>Efficient two way reactive databinding.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>

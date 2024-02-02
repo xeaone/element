@@ -166,11 +166,12 @@ export const removeNode = function (node: Node): void {
 };
 
 export const beforeNode = function (node: Node | string, child: Node): void {
-    if (!(node instanceof Node)) node = (child.ownerDocument as Document).createTextNode(node);
+    if (!(node instanceof Node)) node = (child.ownerDocument as Document).createTextNode(`${node}`);
     (child.parentNode as Node).insertBefore(node, child);
 };
 
-export const afterNode = function (node: Node, child: Node): void {
+export const afterNode = function (node: Node | string, child: Node): void {
+    if (!(node instanceof Node)) node = (child.ownerDocument as Document).createTextNode(`${node}`);
     (child.parentNode as Node).insertBefore(node, child.nextSibling);
 };
 
