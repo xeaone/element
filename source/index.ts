@@ -8,6 +8,64 @@ import { mark } from './tools.ts';
 
 export { update };
 
+// const connectedEvent = new CustomEvent('connected');
+// const disconnectedEvent = new CustomEvent('disconnected');
+// const intersectionElements: WeakMap<Element, { wasConnected: boolean; isIntersecting: boolean }> = new WeakMap();
+// const intersectionObserver = new IntersectionObserver((entries) => {
+//     for (const entry of entries) {
+//         const intersectionElement = intersectionElements.get(entry.target);
+//         if (!intersectionElement) {
+//             intersectionElements.set(entry.target, { wasConnected: false, isIntersecting: entry.isIntersecting });
+//         } else if (entry.target.isConnected === true && intersectionElement.wasConnected === false) {
+//             intersectionElement.wasConnected = true;
+//             intersectionElement.isIntersecting = entry.isIntersecting;
+//             entry.target.dispatchEvent(connectedEvent);
+//         } else if (entry.target.isConnected === false && intersectionElement.wasConnected === true) {
+//             intersectionElement.wasConnected = false;
+//             intersectionElement.isIntersecting = entry.isIntersecting;
+//             entry.target.dispatchEvent(disconnectedEvent);
+//         } else {
+//             //
+//         }
+//     }
+// }, {
+//     threshold: 1,
+//     // rootMargin: '100000%',
+//     root: document.documentElement,
+// });
+
+    // const ro = new ResizeObserver((entries) => {
+//     for (const entry of entries) {
+//         const { target } = entry;
+//         if (target.isConnected) {
+//             // console.log(entry);
+//             console.log(target.isConnected, target.parentElement.value, target.value);
+//             if (target?.parentElement?.value === target.value) {
+//                 target.selected = true;
+//             }
+//             ro.unobserve(target);
+//         }
+//     }
+// });
+
+// const io = new IntersectionObserver((entries) => {
+//     for (const entry of entries) {
+//         const { target } = entry;
+//         if (target.isConnected) {
+//             // console.log(entry);
+//             console.log(target.isConnected, target.parentElement.value, target.value);
+//             if (target?.parentElement?.value === target.value) {
+//                 target.selected = true;
+//             }
+//             io.unobserve(target);
+//         }
+//     }
+// }, {
+//     threshold: 1,
+//     // rootMargin: '100000%',
+//     // root: document.documentElement,
+// });
+
 /**
  * @description
  * @param strings

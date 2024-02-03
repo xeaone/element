@@ -2,6 +2,7 @@
 var global = window.XGLOBAL ?? (window.XGLOBAL = Object.freeze({
   // QueueNext: undefined,
   // QueueCurrent: undefined,
+  Bound: /* @__PURE__ */ new WeakMap(),
   BindersCache: /* @__PURE__ */ new Set(),
   // VirtualCache: new WeakMap(),
   TemplatesCache: /* @__PURE__ */ new WeakMap(),
@@ -20,6 +21,7 @@ var {
   // QueueNext,
   // QueueCurrent,
   BindersCache,
+  Bound,
   // VirtualCache,
   TemplatesCache,
   ContainersCache,
