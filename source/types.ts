@@ -60,6 +60,8 @@ export interface Binder {
     isInitialized: boolean;
 }
 
+export type Bound = WeakMap<Node, Binder>;
+
 export type BindersCache = Set<Binder>;
 
 export type TemplateCache = { template: Template; marker: Marker };
@@ -69,6 +71,7 @@ export type TemplatesCache = WeakMap<TemplateStringsArray, TemplateCache>;
 export type ContainersCache = WeakMap<Element, HTMLTemplateElement>;
 
 export interface Global {
+    Bound,
     BindersCache: BindersCache;
     TemplatesCache: TemplatesCache;
     ContainersCache: ContainersCache;
