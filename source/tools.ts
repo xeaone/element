@@ -92,7 +92,7 @@ export const isValue = function (data: string): boolean {
     return data && typeof data === 'string' ? patternValue.test(data) : false;
 };
 
-const patternOn = /^on/i;
+const patternOn = /^([.@]?on|@)/i;
 export const hasOn = function (data: string): boolean {
     return data && typeof data === 'string' ? patternOn.test(data) : false;
 };
@@ -115,7 +115,7 @@ export const hasMarker = function (data: string, marker: string): boolean {
 };
 
 export const sliceOn = function (data: string): string {
-    return data && typeof data === 'string' ? data?.toLowerCase()?.slice(2) : '';
+    return data && typeof data === 'string' ? data.replace(patternOn, '') : '';
 };
 
 export const isConnected = function (node: Node): boolean {

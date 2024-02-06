@@ -1,23 +1,6 @@
-import { html } from './x-element.js';
 import highlight from './modules/highlight.js';
 import Color from './modules/color.js';
-
-const names = [
-    'options',
-    'dynamic',
-    'input',
-    'map',
-    'check',
-    'radio',
-    'class',
-    'style',
-    'fruits',
-    'cars',
-    'selectBoolean',
-    'selectNumber',
-];
-
-const cache = new WeakMap();
+import { html } from './x-element.js';
 
 let input = 'hello world';
 let checked = true;
@@ -32,68 +15,21 @@ let fruit = 'Orange';
 let fruits = [ 'Apple', 'Orange', 'Tomato' ];
 let car = [ 'ford' ];
 let cars = [ 'tesla', 'ford', 'chevy' ];
-let tag = 'div';
-
-// const optionsComponent = `
-// export default class c extends component {
-
-//     // Optional: Tag name to be used internally for customElement.define and document.createElement. Defaults to class name.
-//     static tag?: string;
-
-//     // Optional: Declarative way to attach shadowRoot to the Component. Defaults to false.
-//     static shadow?: boolean;
-
-//     // Optional: Shadow Mode. Defaults to 'open'
-//     static mode?: 'open' | 'closed';
-
-//     // Optional: limit the properties that will trigger render. Defaults to all.
-//     static observedProperties?: string[];
-
-//     // Conveniences method to handle customElements.define, customElements.upgrade, and returns the Class.
-//     // Will not error if matching tag name and class is defined.
-//     // Converts the tag/constructor.name into to an allowed name.
-//     static define: (tag: string = this.tag ?? this.name) => component;
-
-//     // Convenience method to handle customElments.define, createElement, customElments.upgrade, returns a new Instance.
-//     // Will not error if matching tag name and class is defined.
-//     // Converts the tag/constructor.name into to an allowed name.
-//     static create: (tag: string = this.tag ?? this.name) => Element;
-
-//     // Convenience method to handle customElments.define, createElement, customElments.upgrade, wati until initial render, and returns a new Instance.
-//     // Will not error if matching tag name and class is defined.
-//     // Converts the tag/constructor.name into to an allowed name.
-//     static async upgrade: (tag: string = this.tag ?? this.name) => Element;
-
-//     // Template to render
-//     render = () => html\`\`;
-
-//     // Life Cycle
-//     created = () => console.log('createdCallback');
-//     rendered = () => console.log('renderedCallback');
-//     connected = () => console.log('connectedCallback');
-//     adopted = () => console.log('adoptedCallback');
-//     disconnected = () => console.log('disconnectedCallback');
-//     attribute = () => console.log('attributeChangedCallback');
-// }
-// `;
-// const optionsCode = highlight(optionsComponent.toString());
-
-// const dynamicComponent = () => html`
-//     <${tag}>Hello World</${tag}>
-//     <${'input'} value=${tag} oninput=${e => tag = e.target.value}></${'input'}>
-// `;
-// const dynamicCode = highlight(dynamicComponent.toString());
+// let tag = 'div';
 
 // deno-fmt-ignore
 const inputComponent = () => html`
 <div>${() => input}</div>
-<input value=${() => input} oninput=${(e) => input = e.target.value} />
+<input value=${() => input} oninput=${e => input = e.target.value} />
 `;
 
 // deno-fmt-ignore
 const checkComponent = () => html`
 <div>${() => checked ? 'Is Checked' : 'Is Not Checked'}</div>
-<input type="checkbox" ${() => checked ? 'checked' : ''} oninput=${(e) => checked = e.target.checked} />
+<input type="checkbox"
+    ${() => checked ? 'checked' : ''}
+    oninput=${e => checked = e.target.checked}
+/>
 `;
 
 // deno-fmt-ignore
@@ -101,13 +37,15 @@ const radioComponent = () => html`
 <div>${() => radioShared}</div>
 
 <input type="radio" name="radio"
-    oninput=${() => radioShared = 'one'}
-    ${() => radioShared === radioOne ? 'checked' : ''}
+    value="one"
+    oninput=${(e) => radioShared = e.target.value}
+    checked=${(e) => radioShared === e.target.value}
 />
 
 <input type="radio" name="radio"
-    oninput=${() => radioShared = 'two'}
-    ${() => radioShared === radioTwo ? 'checked' : ''}
+    value="two"
+    oninput=${(e) => radioShared = e.target.value}
+    ${(e) => radioShared === e.target.value ? 'checked' : ''}
 />
 `;
 
@@ -172,29 +110,6 @@ const selectNumberComponent = () => html`
 // const connected = () => { console.log('connected'); };
 // const disconnected = () => { console.log('disconnected'); };
 
-// const rendered = () => {
-//     console.log('rendered');
-//     for (const name of names) {
-//         const codeElement = querySelector(`#${name}Code`);
-//         const sourceElement = querySelector(`#${name}Source`);
-//         if (codeElement) {
-//             const code =  `${name}Code`;
-//             if (cache.get(codeElement) !== code) {
-//                 cache.set(codeElement, code);
-//                 codeElement.innerHTML = code;
-//             }
-//         }
-//         if (sourceElement) {
-//             const componentElement = querySelector(`#${name}Component`);
-//             const source = highlight(componentElement.innerHTML, 'html');
-//             if (cache.get(sourceElement) !== source) {
-//                 cache.set(sourceElement, source);
-//                 sourceElement.innerHTML = source;
-//             }
-//         }
-//     }
-// };
-
 export default html`
 
     <style>
@@ -227,18 +142,21 @@ export default html`
         <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
         <pre id="radioCode">${highlight(radioComponent.toString())}</pre>
         <pre id="radioComponent">${radioComponent()}</pre>
+        <pre id="radioSource">${() => highlight(radioComponent())}</pre>
     </section>
 
     <section id="class">
         <h3>Class</h3>
         <pre id="classCode">${highlight(classComponent.toString())}</pre>
         <pre id="classComponent">${classComponent()}</pre>
+        <pre id="classSource">${() => highlight(classComponent())}</pre>
     </section>
 
     <section id="style">
         <h3>Style</h3>
         <pre id="styleCode">${highlight(styleComponent.toString())}</pre>
         <pre id="styleComponent">${styleComponent()}</pre>
+        <pre id="styleSource">${() => highlight(styleComponent())}</pre>
     </section>
 
     <section id="map">
@@ -269,7 +187,6 @@ export default html`
         <pre id="selectNumberCode">${highlight(selectNumberComponent.toString())}</pre>
         <pre id="selectNumberComponent">${selectNumberComponent()}</pre>
         <pre id="selectNumberSource">${() => highlight(selectNumberComponent())}</pre>
-
     </section>
 
 `('main');

@@ -1,7 +1,8 @@
-import { dangerousLink, hasOn, isLink, isValue, sliceOn } from './tools.ts';
+import { dangerousLink, hasOn, isBool, isLink, isValue, sliceOn } from './tools.ts';
 import { update } from './update.ts';
 import { Binder } from './types.ts';
 import display from './display.ts';
+import { event } from './event.ts';
 
 export const attributeValue = function (element: Element, binder: Binder, source: any, target: any): void {
     if (source === target) {
@@ -18,7 +19,6 @@ export const attributeValue = function (element: Element, binder: Binder, source
 
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
-
     } else if (isLink(binder.name)) {
         binder.value = encodeURI(target);
 
@@ -30,6 +30,16 @@ export const attributeValue = function (element: Element, binder: Binder, source
 
         element.setAttribute(binder.name, binder.value);
         Reflect.set(element, binder.name, binder.value);
+    } else if (isBool(binder.name)) {
+        const bool = !!target;
+
+        if (bool) {
+            element.setAttribute(binder.name, '');
+        } else {
+            element.removeAttribute(binder.name);
+        }
+
+        Reflect.set(element, binder.name, bool);
     } else if (hasOn(binder.name)) {
         // handle onanimation ontimeout
 
@@ -51,16 +61,13 @@ export const attributeValue = function (element: Element, binder: Binder, source
             return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
         }
 
+        // let oldResult;
         binder.value = function () {
-            const result = method.call(this, ...arguments, update);
+            const newResult = method.call(this, event(binder));
+            // if (newResult !== oldResult) update();
+            // oldResult = newResult;
             update();
-            return result;
-            // console.log(binder.result, result);
-            // if (binder.result !== result) {
-            // binder.result = result;
-            // update();
-            // }
-            // return result;
+            return newResult;
         };
 
         element.addEventListener(

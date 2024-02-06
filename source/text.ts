@@ -12,8 +12,9 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         if (node.textContent !== '') {
             node.textContent = '';
         }
-        // } else if (target instanceof Node || target?.[ InstanceSymbol ]) {
-    } else if (target instanceof DocumentFragment || target?.[ InstanceSymbol ]) {
+    } else if (target?.[ InstanceSymbol ]) {
+        console.log('instance', binder);
+
         if (!binder.start) {
             binder.start = document.createTextNode('');
             beforeNode(binder.start, node);
@@ -25,10 +26,22 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         }
 
         removeBetween(binder.start, binder.end);
-        beforeNode(typeof target === 'function' ? target() : target, binder.end);
-    } else if (target instanceof Node) {
-        console.log('replaceNode', binder);
-        replaceNode(target, node);
+        beforeNode(target(), binder.end);
+    } else if (target instanceof DocumentFragment) {
+        // console.log('fragment', binder);
+
+        if (!binder.start) {
+            binder.start = document.createTextNode('');
+            beforeNode(binder.start, node);
+        }
+
+        if (!binder.end) {
+            node.textContent = '';
+            binder.end = node;
+        }
+
+        removeBetween(binder.start, binder.end);
+        beforeNode(target, binder.end);
     } else if (isIterable(target)) {
         if (binder.length === undefined) {
             binder.length = 0;
@@ -70,7 +83,6 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
                 const child = iterableDisplay(target[ index ]);
                 afterNode(child, marker);
                 console.log(child, marker);
-
 
                 binder.results[ index ] = target[ index ];
             }
@@ -116,6 +128,8 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
             binder.results.length = target.length;
             binder.markers.length = target.length;
         }
+    } else if (target instanceof Node) {
+        replaceNode(target, node);
     } else {
         if (node.textContent === `${target}`) {
             return;

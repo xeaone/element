@@ -1,9 +1,9 @@
 import { attributeName } from './attribute-name.ts';
 import { attributeValue } from './attribute-value.ts';
+import { hasOn, isConnected } from './tools.ts';
 import { InstanceSymbol } from './global.ts';
-import { isConnected } from './tools.ts';
-import { update } from './update.ts';
 import { Binder } from './types.ts';
+import { event } from './event.ts';
 import { text } from './text.ts';
 
 /**
@@ -36,18 +36,20 @@ export const action = function (binder: Binder) {
 
     const variable = binder.variable;
     const isFunction = typeof variable === 'function';
-    const isInstance = isFunction && (variable as any)[InstanceSymbol];
-    const isOnce = binder.type === 3 && binder.name.startsWith('on');
+    const isInstance = isFunction && (variable as any)[ InstanceSymbol ];
+    const isOnce = binder.type === 3 && hasOn(binder.name);
     const isReactive = !isInstance && !isOnce && isFunction;
 
     if (isOnce || isInstance || !isFunction) {
         binder.remove();
     }
 
-    const query = (selector: string): Element | null => (binder?.node?.getRootNode() as Element)?.querySelector(selector);
-
     const source = binder.source;
-    const target = isReactive ? variable({ update, query }) : variable;
+
+    const target =
+        isReactive ? variable(event(binder)) :
+            isInstance ? variable() :
+                variable;
 
     if ('source' in binder && source === target) {
         return;
