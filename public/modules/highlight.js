@@ -1,6 +1,6 @@
-import hljs from 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/highlight.min.js';
-import xml from 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/xml.min.js';
 import js from 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/javascript.min.js';
+import xml from 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/xml.min.js';
+import hljs from 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/highlight.min.js';
 
 hljs.registerLanguage('js', function () {
     return js(...arguments);
@@ -16,7 +16,13 @@ link.href = './theme.css';
 // link.href = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css';
 document.head.append(link);
 
-export default function (code) {
+/**
+ *
+ * @param {String | Node} code
+ * @param {string | undefined} language
+ * @returns {DocumentFragment}
+ */
+export default function highlight(code, language) {
 
     if (code instanceof DocumentFragment) {
         code = [].map.call(
@@ -32,12 +38,16 @@ export default function (code) {
         ).join('');
     }
 
+    code = code.replace(/^\n+/, '');
     // code = code.replace(/\s*\n+$/g, '');
     // code = code.replace(/^\s*\n+/g, '');
 
-    // code = hljs.highlight(code, { language: 'html' }).value;
-    // code = hljs.highlight(code, { language: 'js' }).value;
-    code = hljs.highlightAuto(code).value;
+    if (language) {
+        code = hljs.highlight(code, { language }).value;
+    } else {
+        code = hljs.highlight(code, { language: 'html' }).value;
+        // code = hljs.highlightAuto(code).value;
+    }
 
     const template = document.createElement('template');
 

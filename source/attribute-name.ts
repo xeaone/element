@@ -30,6 +30,7 @@ export const attributeName = function (element: Element, binder: Binder, source:
     if (hasOn(target)) {
         return;
     } else if (isBool(target)) {
+        binder.value = '';
         element.setAttribute(target, '');
         Reflect.set(element, target, true);
     } else if (target) {

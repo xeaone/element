@@ -8,7 +8,7 @@ export type Variable = string | number | Array<any> | Record<any, any> | ((conte
 
 export type Marker = string;
 
-export type Container = string | Element;
+export type Container = string | Element | ShadowRoot;
 
 export type Template = HTMLTemplateElement;
 
@@ -68,7 +68,7 @@ export type TemplateCache = { template: Template; marker: Marker };
 
 export type TemplatesCache = WeakMap<TemplateStringsArray, TemplateCache>;
 
-export type ContainersCache = WeakMap<Element, HTMLTemplateElement>;
+export type ContainersCache = WeakMap<Element | ShadowRoot, HTMLTemplateElement>;
 
 export interface Global {
     Bound,

@@ -1,46 +1,45 @@
-import { html } from './x-element.js';
 import highlight from './modules/highlight.js';
+import { html } from './x-element.js';
 
-const componentExample = highlight(`
-import { component, html } from '/x-element.js';
+let count = 0;
+const result = () => html`
+    <strong>${() => `Hello World ${count}`}</strong>
+    <button onclick=${() => count++}>Greet</button>
+`;
 
-export default class greet extends component {
+const source = highlight(`
+import { html } from '/x-element.js';
 
-    greeting = 'Default Greeting';
-    greet = () => this.greeting = 'Updated Greeting';
+let count = 0;
+export default ${result.toString()}(document.body);
+`, 'js');
 
-    render = () => html\`
-        <h1>this.greeting</h1>
-        <button onclick=\${this.greet}>Greet</button>
-    \`;
+const resultComponent = class XExample extends HTMLElement {
+    #root = this.attachShadow({ mode: 'open' });
 
-}
-`);
+    #count = 0;
+    #render = () => html`
+        <strong>${() => `Hello World ${this.#count}`}</strong>
+        <button onclick=${() => this.#count++}>Greet</button>
+        <button onclick=${() => this.#render()}>Render</button>
+    `(this.#root);
 
-const routerExample = highlight(`
-import { router } from '/x-element.js';
-
-router('/', document.body, ()=> import('/greet.js'));
-`);
-
-// export default class root extends component  {
-
-//     created() {
-//         this.querySelector('#router').innerHTML = routerExample;
-//         this.querySelector('#component').innerHTML = componentExample;
-//     }
-
-//     render = () =>
-// }
-
-const connected = () => {
-    document.querySelector('#router').innerHTML = routerExample;
-    document.querySelector('#component').innerHTML = componentExample;
+    constructor() {
+        super();
+        this.#render();
+    }
 };
+customElements.define('x-example', resultComponent);
+
+const sourceComponent = highlight(`
+import { html } from '/x-element.js';
+
+export default ${resultComponent.toString()}
+`, 'js');
 
 export default html`
 
-    <section onConnected=${connected}>
+    <section>
 
         <h2>Vision</h2>
         <h4>Provide a zero knowledge agnostic non framework with data binding that mimics native HTML and JS standards.</h4>
@@ -75,21 +74,31 @@ export default html`
             </div>
         </div>
 
-        <h3>Element</h3>
+        <h3>Example</h3>
         <p>
-            Use Template Literal with the <code>html</code> Template Tag to give your Custom Element HTML.
+            Use a tagged Template and invoke it with an Element paramater to render and mount.
+            Alternatively use the tagged Template without invoking and use the returned DocumentFragment.
         </p>
-        <ul>
-            <li>Efficient Reactive Properties by default.</li>
-        </ul>
-        <pre id="component"></pre>
+        <pre>${source}</pre>
+        <pre>${result()}</pre>
 
-        <h3>Router</h3>
-        <p>
-            The last parameter accepts a <code>function</code> and expects a Custom Element <code>class</code> or a module with a <code>export default</code> which should also return a Custom Element <code>class</code>.
-        </p>
-        <pre id="router"></pre>
+        <h3>Component Example</h3>
+        <pre>${sourceComponent}</pre>
+        <pre>${new resultComponent()}</pre>
 
     </section>
 
 `('main');
+
+// const sourceComponent = highlight(`
+// import { html } from '/x-element.js';
+
+// export default class component {
+//     #count = 0;
+//     #root = this.attachShadow({ mode: 'open' });
+//     #fragment = html\`
+//         <strong>\${() => \`Hello World \${this.#count}\`}</strong>
+//         <button onclick=\${() => this.#count++}>Greet</button>
+//     \`(this.#root);
+// }
+// `, 'js');
