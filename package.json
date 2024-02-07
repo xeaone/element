@@ -29,5 +29,8 @@
     "directories": {
         "bundle": "bundle",
         "module": "module"
+    },
+    "devDependencies": {
+        "typescript": "^5.4.0-dev.20240206"
     }
 }

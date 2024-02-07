@@ -1,6 +1,6 @@
 import highlight from './modules/highlight.js';
 import Color from './modules/color.js';
-import { html } from './x-element.js';
+import { html } from '../source/index';
 
 let input = 'hello world';
 let checked = true;

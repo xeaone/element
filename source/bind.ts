@@ -1,5 +1,5 @@
 import { Binder, BinderType, ReferenceType, Variables } from './types.ts';
-import { BindersCache, Bound } from './global.ts';
+import { BindersCache } from './global.ts';
 
 // const mo = new MutationObserver(function (records) {
 //     console.log(arguments);

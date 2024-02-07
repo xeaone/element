@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+
+        "strict": true,
+        "allowJs": true,
+        // "isolatedModules": true,
+        "esModuleInterop": true,
+
+        // "experimentalDecorators": false,
+        // "useDefineForClassFields": false,
+
+        // "moduleResolution": "Bundler",
+        "allowImportingTsExtensions": true,
+
+        "sourceMap": true,
+        // "declaration": true,
+        // "removeComments": false,
+
+        "module": "ES2022",
+        "target": "ES2022",
+        "moduleDetection": "force",
+        // "lib": [ "ESNext", "DOM", "DOM.Iterable" ],
+
+        "outDir": "tmp/",
+        // "rootDir": "client/",
+
+    },
+    "include": [
+        "source/*",
+        "client/*"
+    ],
+    "files": [
+        "source/index.ts",
+        "client/index.ts",
+    ]
+}

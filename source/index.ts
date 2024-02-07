@@ -3,10 +3,14 @@ import { Initialize, Variables } from './types.ts';
 import { initialize } from './initialize.ts';
 import { update } from './update.ts';
 import { mark } from './tools.ts';
+import { define } from './define.ts';
 
 // const query = (node: Node, selector: Selector) => selector.reduce((n, s) => n[ s ], node);
 
-export { update };
+export {
+    define,
+    update,
+};
 
 // const connectedEvent = new CustomEvent('connected');
 // const disconnectedEvent = new CustomEvent('disconnected');
