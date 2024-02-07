@@ -10,16 +10,15 @@
     },
     "lint": {
         "include": [
-            "public",
             "scripts",
             "source"
         ]
     },
     "fmt": {
         "include": [
-            "public",
             "scripts",
-            "source"
+            "source",
+            "client"
         ],
         "options": {
             "useTabs": false,

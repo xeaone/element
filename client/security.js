@@ -1,4 +1,4 @@
-import { component, html } from './x-element.js';
+import { html, define } from '../source/index.ts';
 import Highlight from './modules/highlight.js';
 
 // https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html#on-error-alert

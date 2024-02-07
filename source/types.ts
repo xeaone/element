@@ -15,7 +15,7 @@ export type Template = HTMLTemplateElement;
 export type Variables = Variable[];
 
 export interface Initialize {
-    (container?: string | Element): Element | DocumentFragment;
+    (container?: string | Element | ShadowRoot): Element | ShadowRoot | DocumentFragment;
 }
 
 export type Results = any[];
@@ -71,7 +71,7 @@ export type TemplatesCache = WeakMap<TemplateStringsArray, TemplateCache>;
 export type ContainersCache = WeakMap<Element | ShadowRoot, HTMLTemplateElement>;
 
 export interface Global {
-    Bound,
+
     BindersCache: BindersCache;
     TemplatesCache: TemplatesCache;
     ContainersCache: ContainersCache;

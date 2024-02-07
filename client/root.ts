@@ -1,5 +1,5 @@
 import highlight from './modules/highlight.js';
-import { html } from './x-element.js';
+import { html, define } from '../source/index';
 
 let count = 0;
 const result = () => html`
@@ -14,14 +14,13 @@ let count = 0;
 export default ${result.toString()}(document.body);
 `, 'js');
 
-const resultComponent = class XExample extends HTMLElement {
+class Component extends HTMLElement {
     #root = this.attachShadow({ mode: 'open' });
 
     #count = 0;
     #render = () => html`
         <strong>${() => `Hello World ${this.#count}`}</strong>
         <button onclick=${() => this.#count++}>Greet</button>
-        <button onclick=${() => this.#render()}>Render</button>
     `(this.#root);
 
     constructor() {
@@ -29,12 +28,12 @@ const resultComponent = class XExample extends HTMLElement {
         this.#render();
     }
 };
-customElements.define('x-example', resultComponent);
+define('x-component')(Component);
 
 const sourceComponent = highlight(`
 import { html } from '/x-element.js';
 
-export default ${resultComponent.toString()}
+export default ${Component.toString()}
 `, 'js');
 
 export default html`
@@ -84,7 +83,7 @@ export default html`
 
         <h3>Component Example</h3>
         <pre>${sourceComponent}</pre>
-        <pre>${new resultComponent()}</pre>
+        <pre>${new Component()}</pre>
 
     </section>
 
