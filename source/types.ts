@@ -1,9 +1,10 @@
-interface Context {
-    update: () => void;
-    query: () => Element;
-}
+// export interface XEvent extends Event {
+//     target: EventTarget;
+//     update: () => void;
+//     query: <E extends Element>() => E;
+// }
 
-export type Variable = string | number | Array<any> | Record<any, any> | ((context: Context) => any);
+export type Variable = string | number | Array<any> | Record<any, any> | ((event: any) => any);
 // export type Variable = string | number | Array<any> | Record<any, any> | (() => any);
 
 export type Marker = string;
@@ -71,7 +72,6 @@ export type TemplatesCache = WeakMap<TemplateStringsArray, TemplateCache>;
 export type ContainersCache = WeakMap<Element | ShadowRoot, HTMLTemplateElement>;
 
 export interface Global {
-
     BindersCache: BindersCache;
     TemplatesCache: TemplatesCache;
     ContainersCache: ContainersCache;
@@ -81,3 +81,11 @@ export interface Global {
     TemplateSymbol: symbol;
     VariablesSymbol: symbol;
 }
+
+// export interface SelectInputEvent extends InputEvent {
+//     target: HTMLSelectElement;
+// }
+
+// export interface InputInputEvent extends InputEvent {
+//     target: HTMLInputElement;
+// }
