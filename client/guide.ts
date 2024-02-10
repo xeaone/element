@@ -1,6 +1,6 @@
-import highlight from './modules/highlight.js';
-import Color from './modules/color.js';
-import { html } from '../source/index';
+import highlight from './modules/highlight.ts';
+import { html } from '../source/index.ts';
+import Color from './modules/color.ts';
 
 let input = 'hello world';
 let checked = true;
@@ -12,9 +12,9 @@ let radioTwo = 'two';
 let boolean = true;
 let number = 1;
 let fruit = 'Orange';
-let fruits = [ 'Apple', 'Orange', 'Tomato' ];
-let car = [ 'ford' ];
-let cars = [ 'tesla', 'ford', 'chevy' ];
+let fruits = ['Apple', 'Orange', 'Tomato'];
+let car = ['ford'];
+let cars = ['tesla', 'ford', 'chevy'];
 // let tag = 'div';
 
 // deno-fmt-ignore
@@ -81,7 +81,7 @@ const fruitsComponent = () => html`
 // deno-fmt-ignore
 const carsComponent = () => html`
 <div>${() => car}</div>
-<select oninput=${e => car = Array.from(e.target.selectedOptions).map(o => o.value)} multiple>
+<select oninput=${e => car = Array.from<HTMLOptionElement>(e.target.selectedOptions).map(o => o.value)} multiple>
     ${cars.map(car => html`
         <option value=${car}>${car}</option>
     `)}
@@ -126,7 +126,7 @@ export default html`
         <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
         <pre id="inputCode">${highlight(inputComponent.toString())}</pre>
         <pre id="inputComponent">${inputComponent()}</pre>
-        <pre id="inputSource">${({ query }) => highlight(query('#inputComponent'))}</pre>
+        <pre id="inputSource">${() => highlight(inputComponent()())}</pre>
     </section>
 
     <section id="check">

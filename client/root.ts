@@ -1,5 +1,5 @@
-import highlight from './modules/highlight.js';
-import { html, define } from '../source/index';
+import { html, define } from '../source/index.ts';
+import highlight from './modules/highlight.ts';
 
 let count = 0;
 const result = () => html`

@@ -8,56 +8,10 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// client/modules/highlight.js
-import js from "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/javascript.min.js";
-import xml from "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/xml.min.js";
-import hljs from "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/highlight.min.js";
-function highlight(code, language) {
-  if (code instanceof DocumentFragment) {
-    code = [].map.call(
-      code.childNodes,
-      (nodes) => nodes.outerHTML || nodes.textContent
-    ).join("");
-  } else if (code instanceof Node) {
-    code = code.innerHTML;
-  } else if (typeof code === "function") {
-    code = [].map.call(
-      code().childNodes,
-      (nodes) => nodes.outerHTML || nodes.textContent
-    ).join("");
-  }
-  code = code.replace(/^\n+/, "");
-  if (language) {
-    code = hljs.highlight(code, { language }).value;
-  } else {
-    code = hljs.highlight(code, { language: "html" }).value;
-  }
-  const template = document.createElement("template");
-  template.innerHTML = code;
-  return template.content;
-}
-var link;
-var init_highlight = __esm({
-  "client/modules/highlight.js"() {
-    "use strict";
-    hljs.registerLanguage("js", function() {
-      return js(...arguments);
-    });
-    hljs.registerLanguage("html", function() {
-      return xml(...arguments);
-    });
-    link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "./theme.css";
-    document.head.append(link);
-  }
-});
-
 // source/global.ts
 var global, BindersCache, TemplatesCache, ContainersCache, MarkerSymbol, InstanceSymbol, TemplateSymbol, VariablesSymbol;
 var init_global = __esm({
   "source/global.ts"() {
-    "use strict";
     global = window.XGLOBAL ?? (window.XGLOBAL = Object.freeze({
       // QueueNext: undefined,
       // QueueCurrent: undefined,
@@ -99,7 +53,6 @@ var init_global = __esm({
 var SHOW_TEXT, SHOW_ELEMENT, TEXT_NODE, COMMENT_NODE, ELEMENT_NODE, ATTRIBUTE_NODE, DOCUMENT_FRAGMENT_NODE, links, bools, isLink, isBool, isIterable, patternValue, isValue, patternOn, hasOn, matchMarker, hasMarker, sliceOn, isConnected, mark, safePattern, dangerousLink, removeBetween, removeNode, beforeNode, afterNode, replaceNode, replaceChildren;
 var init_tools = __esm({
   "source/tools.ts"() {
-    "use strict";
     ({
       SHOW_TEXT,
       SHOW_ELEMENT
@@ -243,7 +196,6 @@ var init_tools = __esm({
 var Reference;
 var init_reference = __esm({
   "source/reference.ts"() {
-    "use strict";
     Reference = function(data) {
       return {
         data: data instanceof Node ? new WeakRef(data) : data,
@@ -272,7 +224,6 @@ var init_reference = __esm({
 var attributeName;
 var init_attribute_name = __esm({
   "source/attribute-name.ts"() {
-    "use strict";
     init_tools();
     attributeName = function(element2, binder, source2, target) {
       source2 = source2?.toLowerCase() ?? "";
@@ -316,7 +267,6 @@ var init_attribute_name = __esm({
 var Next, Current, next, update;
 var init_update = __esm({
   "source/update.ts"() {
-    "use strict";
     init_global();
     init_action();
     next = async function() {
@@ -386,7 +336,6 @@ function display(data) {
 }
 var init_display = __esm({
   "source/display.ts"() {
-    "use strict";
   }
 });
 
@@ -394,7 +343,6 @@ var init_display = __esm({
 var event;
 var init_event = __esm({
   "source/event.ts"() {
-    "use strict";
     init_update();
     event = function(binder) {
       return {
@@ -414,7 +362,6 @@ var init_event = __esm({
 var attributeValue;
 var init_attribute_value = __esm({
   "source/attribute-value.ts"() {
-    "use strict";
     init_tools();
     init_update();
     init_display();
@@ -486,7 +433,6 @@ var init_attribute_value = __esm({
 var iterableDisplay, text;
 var init_text = __esm({
   "source/text.ts"() {
-    "use strict";
     init_tools();
     init_global();
     init_display();
@@ -592,7 +538,6 @@ var init_text = __esm({
 var element, action;
 var init_action = __esm({
   "source/action.ts"() {
-    "use strict";
     init_attribute_name();
     init_attribute_value();
     init_tools();
@@ -644,7 +589,6 @@ var init_action = __esm({
 var bind;
 var init_bind = __esm({
   "source/bind.ts"() {
-    "use strict";
     init_global();
     bind = function(type, index, variables, referenceNode, referenceName, referenceValue) {
       const binder = {
@@ -697,7 +641,6 @@ var init_bind = __esm({
 var FILTER, initialize;
 var init_initialize = __esm({
   "source/initialize.ts"() {
-    "use strict";
     init_tools();
     init_global();
     init_reference();
@@ -826,7 +769,6 @@ var init_initialize = __esm({
 var dash;
 var init_dash = __esm({
   "source/dash.ts"() {
-    "use strict";
     dash = function(data) {
       data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
       data = data.toLowerCase();
@@ -840,7 +782,6 @@ var init_dash = __esm({
 var cdc, define;
 var init_define = __esm({
   "source/define.ts"() {
-    "use strict";
     init_dash();
     cdc = { addInitializer(method) {
       method();
@@ -862,7 +803,6 @@ var init_define = __esm({
 var html;
 var init_source = __esm({
   "source/index.ts"() {
-    "use strict";
     init_global();
     init_initialize();
     init_update();
@@ -898,6 +838,52 @@ var init_source = __esm({
   }
 });
 
+// client/modules/highlight.ts
+import js from "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/javascript.min.js";
+import xml from "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/languages/xml.min.js";
+import hljs from "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/es/highlight.min.js";
+function highlight(code, language) {
+  if (code instanceof DocumentFragment) {
+    code = [].map.call(
+      code.childNodes,
+      (node) => node.outerHTML || node.textContent || ""
+    ).join("");
+  } else if (code instanceof Element) {
+    code = code.innerHTML;
+  } else if (code instanceof Text) {
+    code = code.textContent ?? "";
+  } else if (typeof code === "function") {
+    code = [].map.call(
+      code().childNodes,
+      (node) => node.outerHTML || node.textContent || ""
+    ).join("");
+  }
+  code = code.replace(/^\n+/, "");
+  if (language) {
+    code = hljs.highlight(code, { language }).value;
+  } else {
+    code = hljs.highlight(code, { language: "html" }).value;
+  }
+  const template = document.createElement("template");
+  template.innerHTML = code;
+  return template.content;
+}
+var link;
+var init_highlight = __esm({
+  "client/modules/highlight.ts"() {
+    hljs.registerLanguage("js", function() {
+      return js(...arguments);
+    });
+    hljs.registerLanguage("html", function() {
+      return xml(...arguments);
+    });
+    link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "./theme.css";
+    document.head.append(link);
+  }
+});
+
 // client/root.ts
 var root_exports = {};
 __export(root_exports, {
@@ -906,9 +892,8 @@ __export(root_exports, {
 var count, result, source, Component, sourceComponent, root_default;
 var init_root = __esm({
   "client/root.ts"() {
-    "use strict";
-    init_highlight();
     init_source();
+    init_highlight();
     count = 0;
     result = () => html`
     <strong>${() => `Hello World ${count}`}</strong>
@@ -993,9 +978,9 @@ export default ${Component.toString()}
   }
 });
 
-// client/modules/color.js
-function color_default() {
-  let letters = "0123456789ABCDEF";
+// client/modules/color.ts
+function Color() {
+  const letters = "0123456789ABCDEF";
   let color2 = "#";
   for (let i = 0; i < 6; i++) {
     color2 += letters[Math.floor(Math.random() * 16)];
@@ -1003,8 +988,7 @@ function color_default() {
   return color2;
 }
 var init_color = __esm({
-  "client/modules/color.js"() {
-    "use strict";
+  "client/modules/color.ts"() {
   }
 });
 
@@ -1016,13 +1000,12 @@ __export(guide_exports, {
 var input, checked, color, active, radioShared, boolean, number, fruit, fruits, car, cars, inputComponent, checkComponent, radioComponent, classComponent, styleComponent, mapComponent, fruitsComponent, carsComponent, selectBooleanComponent, selectNumberComponent, guide_default;
 var init_guide = __esm({
   "client/guide.ts"() {
-    "use strict";
     init_highlight();
-    init_color();
     init_source();
+    init_color();
     input = "hello world";
     checked = true;
-    color = color_default();
+    color = Color();
     active = true;
     radioShared = "two";
     boolean = true;
@@ -1063,7 +1046,7 @@ var init_guide = __esm({
 `;
     styleComponent = () => html`
 <div style=${() => `color: ${color}`}>Look at my style</div>
-<button onclick=${() => color = color_default()}>Change Color</button>
+<button onclick=${() => color = Color()}>Change Color</button>
 `;
     mapComponent = () => html`
 <ul>${fruits.map((fruit2) => html`
@@ -1117,7 +1100,7 @@ var init_guide = __esm({
         <p>Attributes starting with <code>on</code> will be removed and will set/remove an EventListener.</p>
         <pre id="inputCode">${highlight(inputComponent.toString())}</pre>
         <pre id="inputComponent">${inputComponent()}</pre>
-        <pre id="inputSource">${({ query }) => highlight(query("#inputComponent"))}</pre>
+        <pre id="inputSource">${() => highlight(inputComponent()())}</pre>
     </section>
 
     <section id="check">

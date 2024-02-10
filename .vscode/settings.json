@@ -5,7 +5,8 @@
     "deno.config": "./deno.json",
     "deno.enablePaths": [
         "scripts",
-        "source"
+        "source",
+        "client"
     ],
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "denoland.vscode-deno"

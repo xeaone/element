@@ -16,25 +16,23 @@ link.href = './theme.css';
 // link.href = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css';
 document.head.append(link);
 
-/**
- *
- * @param {String | Node} code
- * @param {string | undefined} language
- * @returns {DocumentFragment}
- */
-export default function highlight(code, language) {
-
+export default function highlight(
+    code: DocumentFragment | Element | Text | (() => DocumentFragment) | string,
+    language?: string,
+): DocumentFragment {
     if (code instanceof DocumentFragment) {
         code = [].map.call(
             code.childNodes,
-            (nodes) => (nodes.outerHTML || nodes.textContent)
+            (node) => ((node as Element).outerHTML || (node as Text).textContent || ''),
         ).join('');
-    } else if (code instanceof Node) {
+    } else if (code instanceof Element) {
         code = code.innerHTML;
+    } else if (code instanceof Text) {
+        code = code.textContent ?? '';
     } else if (typeof code === 'function') {
         code = [].map.call(
             code().childNodes,
-            (nodes) => nodes.outerHTML || nodes.textContent
+            (node) => ((node as Element).outerHTML || (node as Text).textContent || ''),
         ).join('');
     }
 
@@ -51,7 +49,7 @@ export default function highlight(code, language) {
 
     const template = document.createElement('template');
 
-    template.innerHTML = code;
+    template.innerHTML = code as string;
 
     return template.content;
 }
