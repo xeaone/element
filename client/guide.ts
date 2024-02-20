@@ -13,7 +13,7 @@ let boolean = true;
 let number = 1;
 let fruit = 'Orange';
 let fruits = ['Apple', 'Orange', 'Tomato'];
-let car = ['ford'];
+let carsSelected = ['ford'];
 let cars = ['tesla', 'ford', 'chevy'];
 // let tag = 'div';
 
@@ -63,8 +63,8 @@ const styleComponent = () => html`
 
 // deno-fmt-ignore
 const mapComponent = () => html`
-<ul>${fruits.map((fruit) => html`
-    <li>${() => fruit}</li>
+<ul>${fruits.map((f) => html`
+    <li>${() => f}</li>
 `)}</ul>
 `;
 
@@ -72,18 +72,18 @@ const mapComponent = () => html`
 const fruitsComponent = () => html`
 <div>${() => fruit}</div>
 <select value=${() => fruit} oninput=${(e) => fruit = e.target.value}>
-    ${fruits.map(fruit => html`
-        <option value=${() => fruit}>${() => fruit}</option>
+    ${fruits.map((f) => html`
+        <option value=${() => f}>${() => f}</option>
     `)}
 </select>
 `;
 
 // deno-fmt-ignore
 const carsComponent = () => html`
-<div>${() => car}</div>
-<select oninput=${e => car = Array.from<HTMLOptionElement>(e.target.selectedOptions).map(o => o.value)} multiple>
-    ${cars.map(car => html`
-        <option value=${car}>${car}</option>
+<div>${() => carsSelected}</div>
+<select value=${()=> carsSelected} oninput=${(e) => carsSelected = Array.from<HTMLOptionElement>(e.target.selectedOptions).map(o => o.value)} multiple>
+    ${cars.map(c => html`
+        <option value=${c}>${c}</option>
     `)}
 </select>
 `;
@@ -134,7 +134,7 @@ export default html`
         <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
         <pre id="checkCode">${highlight(checkComponent.toString())}</pre>
         <pre id="checkComponent">${checkComponent()}</pre>
-        <pre id="checkSource">${() => highlight(checkComponent())}</pre>
+        <pre id="checkSource">${() => highlight(checkComponent()())}</pre>
     </section>
 
     <section id="radio">
@@ -142,28 +142,28 @@ export default html`
         <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
         <pre id="radioCode">${highlight(radioComponent.toString())}</pre>
         <pre id="radioComponent">${radioComponent()}</pre>
-        <pre id="radioSource">${() => highlight(radioComponent())}</pre>
+        <pre id="radioSource">${() => highlight(radioComponent()())}</pre>
     </section>
 
     <section id="class">
         <h3>Class</h3>
         <pre id="classCode">${highlight(classComponent.toString())}</pre>
         <pre id="classComponent">${classComponent()}</pre>
-        <pre id="classSource">${() => highlight(classComponent())}</pre>
+        <pre id="classSource">${() => highlight(classComponent()())}</pre>
     </section>
 
     <section id="style">
         <h3>Style</h3>
         <pre id="styleCode">${highlight(styleComponent.toString())}</pre>
         <pre id="styleComponent">${styleComponent()}</pre>
-        <pre id="styleSource">${() => highlight(styleComponent())}</pre>
+        <pre id="styleSource">${() => highlight(styleComponent()())}</pre>
     </section>
 
     <section id="map">
         <h3>Map</h3>
         <pre id="mapCode">${highlight(mapComponent.toString())}</pre>
         <pre id="mapComponent">${mapComponent()}</pre>
-        <pre id="mapSource">${() => highlight(mapComponent())}</pre>
+        <pre id="mapSource">${() => highlight(mapComponent()())}</pre>
     </section>
 
     <section id="select">
@@ -171,27 +171,28 @@ export default html`
 
         <pre id="fruitsCode">${highlight(fruitsComponent.toString())}</pre>
         <pre id="fruitsComponent">${fruitsComponent()}</pre>
-        <pre id="fruitsSource">${() => highlight(fruitsComponent())}</pre>
+        <pre id="fruitsSource">${() => highlight(fruitsComponent()())}</pre>
 
         <br>
         <pre id="carsCode">${highlight(carsComponent.toString())}</pre>
         <pre id="carsComponent">${carsComponent()}</pre>
-        <pre id="carsSource">${() => highlight(carsComponent())}</pre>
+        <pre id="carsSource">${() => highlight(carsComponent()())}</pre>
 
         <br>
         <pre id="selectBooleanCode">${highlight(selectBooleanComponent.toString())}</pre>
         <pre id="selectBooleanComponent">${selectBooleanComponent()}</pre>
-        <pre id="selectBooleanSource">${() => highlight(selectBooleanComponent())}</pre>
+        <pre id="selectBooleanSource">${() => highlight(selectBooleanComponent()())}</pre>
 
         <br>
         <pre id="selectNumberCode">${highlight(selectNumberComponent.toString())}</pre>
         <pre id="selectNumberComponent">${selectNumberComponent()}</pre>
-        <pre id="selectNumberSource">${() => highlight(selectNumberComponent())}</pre>
+        <pre id="selectNumberSource">${() => highlight(selectNumberComponent()())}</pre>
     </section>
 
 `('main');
 
 /*
+
     <section id="dynamic">
         <h3>Dynamic</h3>
         <p>Safe and efficient Dynamic tag/elements and attributes.</p>
@@ -199,7 +200,5 @@ export default html`
         <pre id="dynamicComponent">${dynamicComponent()}</pre>
         <pre id="dynamicSource"></pre>
     </section>
-
-
 
 */

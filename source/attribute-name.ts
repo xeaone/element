@@ -5,6 +5,8 @@ export const attributeName = function (element: Element, binder: Binder, source:
     source = source?.toLowerCase() ?? '';
     target = target?.toLowerCase() ?? '';
 
+    // console.log('binder:', binder, 'source:', source, 'target:', target);
+
     if (source === target) {
         return;
     }

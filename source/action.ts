@@ -36,7 +36,7 @@ export const action = function (binder: Binder) {
 
     const variable = binder.variable;
     const isFunction = typeof variable === 'function';
-    const isInstance = isFunction && (variable as any)[ InstanceSymbol ];
+    const isInstance = isFunction && (variable as any)[InstanceSymbol];
     const isOnce = binder.type === 3 && hasOn(binder.name);
     const isReactive = !isInstance && !isOnce && isFunction;
 
@@ -44,13 +44,9 @@ export const action = function (binder: Binder) {
         binder.remove();
     }
 
+    const target = isReactive ? variable(event(binder)) : isInstance ? variable() : variable;
+
     const source = binder.source;
-
-    const target =
-        isReactive ? variable(event(binder)) :
-            isInstance ? variable() :
-                variable;
-
     if ('source' in binder && source === target) {
         return;
     }
