@@ -1,5 +1,6 @@
 import { Binder, BinderType, ReferenceType, Variables } from './types.ts';
 import { BindersCache } from './global.ts';
+import { update } from './update.ts';
 
 // const mo = new MutationObserver(function (records) {
 //     console.log(arguments);
@@ -10,19 +11,44 @@ import { BindersCache } from './global.ts';
 
 // const ro = new ResizeObserver(function (entries) {
 //     console.log(arguments);
-//     for (const entry of entries) {
-//         const { target } = entry;
-//         if (target.isConnected) {
-//             const childBinder = Bound.get(target);
-//             const parentBinder = Bound.get(target.parentElement);
-//             // console.log(childBinder, parentBinder, childBinder.value, parentBinder.value);
-//             if (childBinder && parentBinder && childBinder.value === parentBinder.value) {
-//                 target.selected = true;
-//             }
-//             ro.unobserve(target);
-//         }
-//     }
+//     // for (const entry of entries) {
+//     //     const { target } = entry;
+//     //     if (target.isConnected) {
+//     //         const childBinder = Bound.get(target);
+//     //         const parentBinder = Bound.get(target.parentElement);
+//     //         console.log(childBinder, parentBinder, childBinder.value, parentBinder.value);
+//     //         if (childBinder && parentBinder && childBinder.value === parentBinder.value) {
+//     //             target.selected = true;
+//     //         }
+//     //         ro.unobserve(target);
+//     //     }
+//     // }
 // });
+
+const observed: WeakMap<Element, Binder> = new WeakMap();
+
+const io = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+        const { target } = entry;
+        if (target.isConnected) {
+            console.log(target.isConnected, target);
+            // const binder = observed.get(target);
+            // if (binder) {
+            //     BindersCache.add(binder);
+            //     // update();
+            // }
+        } else {
+            // const binder = observed.get(target);
+            // if (binder) {
+            //     BindersCache.delete(binder);
+            // }
+        }
+    }
+}, {
+    threshold: 1,
+    // rootMargin: '100000%',
+    root: document.documentElement,
+});
 
 export const bind = function (
     type: BinderType,
@@ -42,11 +68,11 @@ export const bind = function (
         isInitialized: false,
 
         get variable() {
-            return variables[ index ];
+            return variables[index];
         },
 
         set variable(data: any) {
-            variables[ index ] = data;
+            variables[index] = data;
         },
 
         get node() {
@@ -84,22 +110,19 @@ export const bind = function (
         },
     };
 
-    binder.add();
+    const node = binder.node;
+    const parent = node?.parentElement;
 
-    // if (type === 3) {
-    //     const node = binder.node;
-    //     const name = binder.name;
-
-    //     if (node && node.nodeName === 'SELECT' && name === 'value') {
-    //         // mo.observe(node, { childList: true, subtree: false });
-    //         Bound.set(node, binder);
-    //     }
-
-    //     if (node && node.nodeName === 'OPTION' && name === 'value') {
-    //         ro.observe(node as Element);
-    //         Bound.set(node, binder);
-    //     }
-    // }
+    if (node instanceof Element) {
+        io.observe(node as Element);
+        observed.set(node, binder);
+        // } else if (parent && parent instanceof Element) {
+        //     io.observe(parent);
+        //     observed.set(parent, binder);
+        //     console.log(parent);
+    } else {
+        binder.add();
+    }
 
     return binder;
 };

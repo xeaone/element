@@ -5,6 +5,12 @@ import display from './display.ts';
 import { event } from './event.ts';
 
 export const attributeValue = function (element: Element, binder: Binder, source: any, target: any): void {
+    // if (element.nodeName === 'OPTION') {
+    //     // if (element.nodeName === 'SELECT') {
+    //     console.log(binder);
+    //     console.log(element.isConnected, element.parentElement);
+    // }
+
     if (source === target) {
         return;
     }
@@ -15,10 +21,18 @@ export const attributeValue = function (element: Element, binder: Binder, source
     }
 
     if (isValue(binder.name)) {
-        binder.value = display(target);
+        if (element.nodeName === 'SELECT') {
 
-        element.setAttribute(binder.name, binder.value);
-        Reflect.set(element, binder.name, binder.value);
+            const options = (element as HTMLSelectElement).options as HTMLOptionsCollection;
+            const array = Array.isArray(target);
+            for (const option of options) {
+                option.selected = array ? target.includes(option.value) : `${target}` === option.value;
+            }
+        } else {
+            binder.value = display(target);
+            element.setAttribute(binder.name, binder.value);
+            Reflect.set(element, binder.name, binder.value);
+        }
     } else if (isLink(binder.name)) {
         binder.value = encodeURI(target);
 
@@ -51,11 +65,11 @@ export const attributeValue = function (element: Element, binder: Binder, source
             element.removeEventListener(
                 sliceOn(binder.name),
                 binder.value,
-                source?.[ 1 ] ?? true,
+                source?.[1] ?? true,
             );
         }
 
-        const method = typeof target === 'function' ? target : target?.[ 0 ];
+        const method = typeof target === 'function' ? target : target?.[0];
 
         if (typeof method !== 'function') {
             return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
@@ -73,7 +87,7 @@ export const attributeValue = function (element: Element, binder: Binder, source
         element.addEventListener(
             sliceOn(binder.name),
             binder.value,
-            target?.[ 1 ] ?? true,
+            target?.[1] ?? true,
         );
     } else {
         binder.value = target;

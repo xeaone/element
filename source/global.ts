@@ -7,6 +7,10 @@ export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBA
     Bound: new WeakMap(),
     BindersCache: new Set(),
 
+    // GlobalBinders: new Set(),
+    // LocalBinders: new Set(),
+    // QueueBinders: new Set(),
+
     // VirtualCache: new WeakMap(),
 
     TemplatesCache: new WeakMap(),
@@ -16,11 +20,7 @@ export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBA
     InstanceSymbol: Symbol('instance'),
     TemplateSymbol: Symbol('template'),
     VariablesSymbol: Symbol('variables'),
-    // refistery: new FinalizationRegistry((key) => {
-    //     if (!cache.get(key)?.deref()) {
-    //       cache.delete(key);
-    //     }
-    // }),
+
 }));
 
 export const {
@@ -28,6 +28,10 @@ export const {
     // QueueCurrent,
 
     BindersCache,
+
+    // GlobalBinders,
+    // LocalBinders,
+    // QueueBinders,
 
     // VirtualCache,
 

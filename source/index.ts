@@ -2,15 +2,12 @@ import { InstanceSymbol, MarkerSymbol, TemplatesCache, TemplateSymbol, Variables
 import { Initialize, Variables } from './types.ts';
 import { initialize } from './initialize.ts';
 import { update } from './update.ts';
-import { mark } from './tools.ts';
 import { define } from './define.ts';
+import { mark } from './tools.ts';
 
 // const query = (node: Node, selector: Selector) => selector.reduce((n, s) => n[ s ], node);
 
-export {
-    define,
-    update,
-};
+export { define, update };
 
 // const connectedEvent = new CustomEvent('connected');
 // const disconnectedEvent = new CustomEvent('disconnected');
@@ -38,7 +35,7 @@ export {
 //     root: document.documentElement,
 // });
 
-    // const ro = new ResizeObserver((entries) => {
+// const ro = new ResizeObserver((entries) => {
 //     for (const entry of entries) {
 //         const { target } = entry;
 //         if (target.isConnected) {
@@ -56,19 +53,24 @@ export {
 //     for (const entry of entries) {
 //         const { target } = entry;
 //         if (target.isConnected) {
+//             console.log(target.isConnected, target);
 //             // console.log(entry);
-//             console.log(target.isConnected, target.parentElement.value, target.value);
-//             if (target?.parentElement?.value === target.value) {
-//                 target.selected = true;
-//             }
-//             io.unobserve(target);
+//             // if (target?.parentElement?.value === target.value) {
+//             //     target.selected = true;
+//             // }
+//             // io.unobserve(target);
 //         }
 //     }
 // }, {
 //     threshold: 1,
 //     // rootMargin: '100000%',
-//     // root: document.documentElement,
+//     root: document.documentElement,
 // });
+
+// const observer = new MutationObserver(function (records) {
+//     console.log(arguments);
+// });
+// observer.observe(document.body, { childList: true, subtree: true });
 
 /**
  * @description

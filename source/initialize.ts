@@ -1,5 +1,5 @@
 import { dangerousLink, ELEMENT_NODE, hasMarker, hasOn, isLink, matchMarker, replaceChildren, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE } from './tools.ts';
-import { Container, Marker, ReferenceType, Template, Variables } from './types.ts';
+import { Binder, Container, Marker, ReferenceType, Template, Variables } from './types.ts';
 import { ContainersCache } from './global.ts';
 import { Reference } from './reference.ts';
 import { action } from './action.ts';
@@ -8,10 +8,16 @@ import { bind } from './bind.ts';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
 
-export const initialize = function
-    (template: Template, variables: Variables, marker: Marker, container?: Container):
-    Element | ShadowRoot | DocumentFragment {
+// const observer = new MutationObserver(function (records) {
+//     console.log(arguments);
+// });
 
+export const initialize = function (
+    template: Template,
+    variables: Variables,
+    marker: Marker,
+    container?: Container,
+): Element | ShadowRoot | DocumentFragment {
     if (typeof container === 'string') {
         const selection = document.querySelector(container);
         if (!selection) throw new Error('query not found');
@@ -32,6 +38,7 @@ export const initialize = function
         }
     }
 
+    const binders: Binder[] = [];
     const fragment = template.content.cloneNode(true) as DocumentFragment;
     const walker = document.createTreeWalker(fragment, FILTER, null);
 
@@ -61,7 +68,8 @@ export const initialize = function
 
             const referenceNode = Reference<Node>(text);
             const binder = bind(4, index++, variables, referenceNode);
-            action(binder);
+            binders.unshift(binder);
+            // action(binder);
         } else if (type === ELEMENT_NODE) {
             const element = node as Element;
             const tag = element.tagName;
@@ -75,7 +83,8 @@ export const initialize = function
             if (matchMarker(tag, marker)) {
                 referenceNode = Reference(node);
                 const binder = bind(1, index++, variables, referenceNode);
-                action(binder);
+                binders.unshift(binder);
+                // action(binder);
             }
 
             const names = element.getAttributeNames();
@@ -93,20 +102,24 @@ export const initialize = function
                         const binderName = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
                         const binderValue = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
                         element.removeAttribute(name);
-                        action(binderName);
-                        action(binderValue);
+                        binders.unshift(binderName);
+                        binders.unshift(binderValue);
+                        // action(binderName);
+                        // action(binderValue);
                     } else if (matchMarkerName) {
                         const referenceName = Reference<string>('');
                         const referenceValue = Reference<string>(value);
                         const binder = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
                         element.removeAttribute(name);
-                        action(binder);
+                        binders.unshift(binder);
+                        // action(binder);
                     } else if (hasMarkerValue) {
                         const referenceName = Reference<string>(name);
                         const referenceValue = Reference<string>('');
                         const binder = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
                         element.removeAttribute(name);
-                        action(binder);
+                        binders.unshift(binder);
+                        // action(binder);
                     }
                 } else {
                     if (isLink(name)) {
@@ -125,12 +138,18 @@ export const initialize = function
         }
     }
 
+    for (const binder of binders) {
+        action(binder);
+    }
+
     if (typeof container === 'string') {
         const selection = document.querySelector(container);
         if (!selection) throw new Error('query not found');
+        // observer.observe(selection, { childList: true });
         replaceChildren(selection, fragment);
         return selection;
     } else if (container instanceof Element || container instanceof ShadowRoot) {
+        // observer.observe(container, { childList: true });
         replaceChildren(container, fragment);
         return container;
     } else {

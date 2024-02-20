@@ -17,6 +17,9 @@ var init_global = __esm({
       // QueueCurrent: undefined,
       Bound: /* @__PURE__ */ new WeakMap(),
       BindersCache: /* @__PURE__ */ new Set(),
+      // GlobalBinders: new Set(),
+      // LocalBinders: new Set(),
+      // QueueBinders: new Set(),
       // VirtualCache: new WeakMap(),
       TemplatesCache: /* @__PURE__ */ new WeakMap(),
       ContainersCache: /* @__PURE__ */ new WeakMap(),
@@ -24,11 +27,6 @@ var init_global = __esm({
       InstanceSymbol: Symbol("instance"),
       TemplateSymbol: Symbol("template"),
       VariablesSymbol: Symbol("variables")
-      // refistery: new FinalizationRegistry((key) => {
-      //     if (!cache.get(key)?.deref()) {
-      //       cache.delete(key);
-      //     }
-      // }),
     }));
     ({
       BindersCache: (
@@ -37,6 +35,9 @@ var init_global = __esm({
         BindersCache
       ),
       TemplatesCache: (
+        // GlobalBinders,
+        // LocalBinders,
+        // QueueBinders,
         // VirtualCache,
         TemplatesCache
       ),
@@ -375,9 +376,17 @@ var init_attribute_value = __esm({
         return;
       }
       if (isValue(binder.name)) {
-        binder.value = display(target);
-        element2.setAttribute(binder.name, binder.value);
-        Reflect.set(element2, binder.name, binder.value);
+        if (element2.nodeName === "SELECT") {
+          const options = element2.options;
+          const array = Array.isArray(target);
+          for (const option of options) {
+            option.selected = array ? target.includes(option.value) : `${target}` === option.value;
+          }
+        } else {
+          binder.value = display(target);
+          element2.setAttribute(binder.name, binder.value);
+          Reflect.set(element2, binder.name, binder.value);
+        }
       } else if (isLink(binder.name)) {
         binder.value = encodeURI(target);
         if (dangerousLink(binder.value)) {
@@ -563,8 +572,8 @@ var init_action = __esm({
       if (isOnce || isInstance || !isFunction) {
         binder.remove();
       }
-      const source2 = binder.source;
       const target = isReactive ? variable(event(binder)) : isInstance ? variable() : variable;
+      const source2 = binder.source;
       if ("source" in binder && source2 === target) {
         return;
       }
@@ -586,10 +595,24 @@ var init_action = __esm({
 });
 
 // source/bind.ts
-var bind;
+var observed, io, bind;
 var init_bind = __esm({
   "source/bind.ts"() {
     init_global();
+    observed = /* @__PURE__ */ new WeakMap();
+    io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const { target } = entry;
+        if (target.isConnected) {
+          console.log(target.isConnected, target);
+        } else {
+        }
+      }
+    }, {
+      threshold: 1,
+      // rootMargin: '100000%',
+      root: document.documentElement
+    });
     bind = function(type, index, variables, referenceNode, referenceName, referenceValue) {
       const binder = {
         type,
@@ -604,9 +627,9 @@ var init_bind = __esm({
           variables[index] = data;
         },
         get node() {
-          const node = referenceNode.get();
-          if (node) {
-            return node;
+          const node2 = referenceNode.get();
+          if (node2) {
+            return node2;
           } else {
             BindersCache.delete(this);
             return void 0;
@@ -631,7 +654,14 @@ var init_bind = __esm({
           BindersCache.add(this);
         }
       };
-      binder.add();
+      const node = binder.node;
+      const parent = node?.parentElement;
+      if (node instanceof Element) {
+        io.observe(node);
+        observed.set(node, binder);
+      } else {
+        binder.add();
+      }
       return binder;
     };
   }
@@ -669,6 +699,7 @@ var init_initialize = __esm({
           ContainersCache.set(container, template);
         }
       }
+      const binders = [];
       const fragment = template.content.cloneNode(true);
       const walker = document.createTreeWalker(fragment, FILTER, null);
       let node;
@@ -692,7 +723,7 @@ var init_initialize = __esm({
           }
           const referenceNode = Reference(text2);
           const binder = bind(4, index++, variables, referenceNode);
-          action(binder);
+          binders.unshift(binder);
         } else if (type === ELEMENT_NODE) {
           const element2 = node;
           const tag = element2.tagName;
@@ -703,7 +734,7 @@ var init_initialize = __esm({
           if (matchMarker(tag, marker)) {
             referenceNode = Reference(node);
             const binder = bind(1, index++, variables, referenceNode);
-            action(binder);
+            binders.unshift(binder);
           }
           const names = element2.getAttributeNames();
           for (const name of names) {
@@ -718,20 +749,20 @@ var init_initialize = __esm({
                 const binderName = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
                 const binderValue = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
                 element2.removeAttribute(name);
-                action(binderName);
-                action(binderValue);
+                binders.unshift(binderName);
+                binders.unshift(binderValue);
               } else if (matchMarkerName) {
                 const referenceName = Reference("");
                 const referenceValue = Reference(value);
                 const binder = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
                 element2.removeAttribute(name);
-                action(binder);
+                binders.unshift(binder);
               } else if (hasMarkerValue) {
                 const referenceName = Reference(name);
                 const referenceValue = Reference("");
                 const binder = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
                 element2.removeAttribute(name);
-                action(binder);
+                binders.unshift(binder);
               }
             } else {
               if (isLink(name)) {
@@ -748,6 +779,9 @@ var init_initialize = __esm({
         } else {
           console.warn(`walker node type "${type}" not handled`);
         }
+      }
+      for (const binder of binders) {
+        action(binder);
       }
       if (typeof container === "string") {
         const selection = document.querySelector(container);
@@ -806,8 +840,8 @@ var init_source = __esm({
     init_global();
     init_initialize();
     init_update();
-    init_tools();
     init_define();
+    init_tools();
     html = function(strings, ...variables) {
       let marker;
       let template;
@@ -997,7 +1031,7 @@ var guide_exports = {};
 __export(guide_exports, {
   default: () => guide_default
 });
-var input, checked, color, active, radioShared, boolean, number, fruit, fruits, car, cars, inputComponent, checkComponent, radioComponent, classComponent, styleComponent, mapComponent, fruitsComponent, carsComponent, selectBooleanComponent, selectNumberComponent, guide_default;
+var input, checked, color, active, radioShared, boolean, number, fruit, fruits, carsSelected, cars, inputComponent, checkComponent, radioComponent, classComponent, styleComponent, mapComponent, fruitsComponent, carsComponent, selectBooleanComponent, selectNumberComponent, guide_default;
 var init_guide = __esm({
   "client/guide.ts"() {
     init_highlight();
@@ -1012,7 +1046,7 @@ var init_guide = __esm({
     number = 1;
     fruit = "Orange";
     fruits = ["Apple", "Orange", "Tomato"];
-    car = ["ford"];
+    carsSelected = ["ford"];
     cars = ["tesla", "ford", "chevy"];
     inputComponent = () => html`
 <div>${() => input}</div>
@@ -1049,23 +1083,23 @@ var init_guide = __esm({
 <button onclick=${() => color = Color()}>Change Color</button>
 `;
     mapComponent = () => html`
-<ul>${fruits.map((fruit2) => html`
-    <li>${() => fruit2}</li>
+<ul>${fruits.map((f) => html`
+    <li>${() => f}</li>
 `)}</ul>
 `;
     fruitsComponent = () => html`
 <div>${() => fruit}</div>
 <select value=${() => fruit} oninput=${(e) => fruit = e.target.value}>
-    ${fruits.map((fruit2) => html`
-        <option value=${() => fruit2}>${() => fruit2}</option>
+    ${fruits.map((f) => html`
+        <option value=${() => f}>${() => f}</option>
     `)}
 </select>
 `;
     carsComponent = () => html`
-<div>${() => car}</div>
-<select oninput=${(e) => car = Array.from(e.target.selectedOptions).map((o) => o.value)} multiple>
-    ${cars.map((car2) => html`
-        <option value=${car2}>${car2}</option>
+<div>${() => carsSelected}</div>
+<select value=${() => carsSelected} oninput=${(e) => carsSelected = Array.from(e.target.selectedOptions).map((o) => o.value)} multiple>
+    ${cars.map((c) => html`
+        <option value=${c}>${c}</option>
     `)}
 </select>
 `;
@@ -1108,7 +1142,7 @@ var init_guide = __esm({
         <p>Dynamic attributes are allowed which can be used to toggle the attribute.</p>
         <pre id="checkCode">${highlight(checkComponent.toString())}</pre>
         <pre id="checkComponent">${checkComponent()}</pre>
-        <pre id="checkSource">${() => highlight(checkComponent())}</pre>
+        <pre id="checkSource">${() => highlight(checkComponent()())}</pre>
     </section>
 
     <section id="radio">
@@ -1116,28 +1150,28 @@ var init_guide = __esm({
         <p>Attribute values will be converted to Strings but set the Element property with the original type.</p>
         <pre id="radioCode">${highlight(radioComponent.toString())}</pre>
         <pre id="radioComponent">${radioComponent()}</pre>
-        <pre id="radioSource">${() => highlight(radioComponent())}</pre>
+        <pre id="radioSource">${() => highlight(radioComponent()())}</pre>
     </section>
 
     <section id="class">
         <h3>Class</h3>
         <pre id="classCode">${highlight(classComponent.toString())}</pre>
         <pre id="classComponent">${classComponent()}</pre>
-        <pre id="classSource">${() => highlight(classComponent())}</pre>
+        <pre id="classSource">${() => highlight(classComponent()())}</pre>
     </section>
 
     <section id="style">
         <h3>Style</h3>
         <pre id="styleCode">${highlight(styleComponent.toString())}</pre>
         <pre id="styleComponent">${styleComponent()}</pre>
-        <pre id="styleSource">${() => highlight(styleComponent())}</pre>
+        <pre id="styleSource">${() => highlight(styleComponent()())}</pre>
     </section>
 
     <section id="map">
         <h3>Map</h3>
         <pre id="mapCode">${highlight(mapComponent.toString())}</pre>
         <pre id="mapComponent">${mapComponent()}</pre>
-        <pre id="mapSource">${() => highlight(mapComponent())}</pre>
+        <pre id="mapSource">${() => highlight(mapComponent()())}</pre>
     </section>
 
     <section id="select">
@@ -1145,22 +1179,22 @@ var init_guide = __esm({
 
         <pre id="fruitsCode">${highlight(fruitsComponent.toString())}</pre>
         <pre id="fruitsComponent">${fruitsComponent()}</pre>
-        <pre id="fruitsSource">${() => highlight(fruitsComponent())}</pre>
+        <pre id="fruitsSource">${() => highlight(fruitsComponent()())}</pre>
 
         <br>
         <pre id="carsCode">${highlight(carsComponent.toString())}</pre>
         <pre id="carsComponent">${carsComponent()}</pre>
-        <pre id="carsSource">${() => highlight(carsComponent())}</pre>
+        <pre id="carsSource">${() => highlight(carsComponent()())}</pre>
 
         <br>
         <pre id="selectBooleanCode">${highlight(selectBooleanComponent.toString())}</pre>
         <pre id="selectBooleanComponent">${selectBooleanComponent()}</pre>
-        <pre id="selectBooleanSource">${() => highlight(selectBooleanComponent())}</pre>
+        <pre id="selectBooleanSource">${() => highlight(selectBooleanComponent()())}</pre>
 
         <br>
         <pre id="selectNumberCode">${highlight(selectNumberComponent.toString())}</pre>
         <pre id="selectNumberComponent">${selectNumberComponent()}</pre>
-        <pre id="selectNumberSource">${() => highlight(selectNumberComponent())}</pre>
+        <pre id="selectNumberSource">${() => highlight(selectNumberComponent()())}</pre>
     </section>
 
 `("main");
