@@ -24,10 +24,7 @@ html`
 
     <main onConnected=${connected} onAnimation=${a}>
 
-        <ul>${() =>
-    items.map(
-        (item) => html`<li>${() => item}</li>`,
-    )}</ul>
+        <ul>${() => items.map((item) => html`<li>${() => item}</li>`)}</ul>
 
     </main>
 

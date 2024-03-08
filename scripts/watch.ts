@@ -7,11 +7,12 @@ import * as esbuild from 'https://deno.land/x/esbuild@v0.20.0/mod.js';
 //     ]
 // }).spawn();
 
-const indexhtml = await Deno.readTextFile('./public/index.html');
+const index = await Deno.readTextFile('./public/index.html');
 
-await Deno.writeTextFile('./public/404.html', indexhtml);
-await Deno.writeTextFile('./public/guide/index.html', indexhtml);
-await Deno.writeTextFile('./public/security/index.html', indexhtml);
+await Deno.writeTextFile('./public/404.html', index);
+await Deno.writeTextFile('./public/guide/index.html', index);
+await Deno.writeTextFile('./public/security/index.html', index);
+await Deno.writeTextFile('./public/performance/index.html', index);
 
 const result = await esbuild.context({
     color: true,

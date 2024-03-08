@@ -3,14 +3,10 @@ import { Binder, Container, Marker, ReferenceType, Template, Variables } from '.
 import { ContainersCache } from './global.ts';
 import { Reference } from './reference.ts';
 import { action } from './action.ts';
-import { update } from './update.ts';
+// import { update } from './update.ts';
 import { bind } from './bind.ts';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
-
-// const observer = new MutationObserver(function (records) {
-//     console.log(arguments);
-// });
 
 export const initialize = function (
     template: Template,
@@ -23,7 +19,7 @@ export const initialize = function (
         if (!selection) throw new Error('query not found');
         const cache = ContainersCache.get(selection);
         if (cache && cache === template) {
-            update();
+            // update();
             return selection;
         } else {
             ContainersCache.set(selection, template);
@@ -31,7 +27,7 @@ export const initialize = function (
     } else if (container instanceof Element || container instanceof ShadowRoot) {
         const cache = ContainersCache.get(container);
         if (cache && cache === template) {
-            update();
+            // update();
             return container;
         } else {
             ContainersCache.set(container, template);
@@ -145,11 +141,9 @@ export const initialize = function (
     if (typeof container === 'string') {
         const selection = document.querySelector(container);
         if (!selection) throw new Error('query not found');
-        // observer.observe(selection, { childList: true });
         replaceChildren(selection, fragment);
         return selection;
     } else if (container instanceof Element || container instanceof ShadowRoot) {
-        // observer.observe(container, { childList: true });
         replaceChildren(container, fragment);
         return container;
     } else {

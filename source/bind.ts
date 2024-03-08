@@ -1,13 +1,7 @@
 import { Binder, BinderType, ReferenceType, Variables } from './types.ts';
 import { BindersCache } from './global.ts';
 import { update } from './update.ts';
-
-// const mo = new MutationObserver(function (records) {
-//     console.log(arguments);
-//     for (const record of records) {
-//         const { target } = record;
-//     }
-// });
+import { action } from './action.ts';
 
 // const ro = new ResizeObserver(function (entries) {
 //     console.log(arguments);
@@ -25,36 +19,35 @@ import { update } from './update.ts';
 //     // }
 // });
 
-const observed: WeakMap<Element, Binder> = new WeakMap();
+// const observed: WeakMap<Element, Array<Binder>> = new WeakMap();
+// const io = new IntersectionObserver(async (entries) => {
+//     for (const entry of entries) {
+//         const { target } = entry;
+//         // if (target.isConnected) {
+//         // } else {
+//         //     console.log(target.isConnected, target);
+//         // }
+//         const binders = observed.get(target) as Binder[];
 
-const io = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-        const { target } = entry;
-        if (target.isConnected) {
-            console.log(target.isConnected, target);
-            // const binder = observed.get(target);
-            // if (binder) {
-            //     BindersCache.add(binder);
-            //     // update();
-            // }
-        } else {
-            // const binder = observed.get(target);
-            // if (binder) {
-            //     BindersCache.delete(binder);
-            // }
-        }
-    }
-}, {
-    threshold: 1,
-    // rootMargin: '100000%',
-    root: document.documentElement,
-});
+//         for (const binder of binders) {
+//             try {
+//                 await action(binder);
+//             } catch (error) {
+//                 console.error(error);
+//             }
+//         }
+
+//     }
+// }, {
+//     threshold: 1,
+//     // rootMargin: '100000%',
+//     root: document.documentElement,
+// });
 
 export const bind = function (
     type: BinderType,
     index: number,
     variables: Variables,
-    // ...references: ReferenceType<unknown>[]
     referenceNode: ReferenceType<Node>,
     referenceName?: ReferenceType<any>,
     referenceValue?: ReferenceType<any>,
@@ -64,7 +57,6 @@ export const bind = function (
 
         // index,
         // variables,
-        // references,
         isInitialized: false,
 
         get variable() {
@@ -110,19 +102,35 @@ export const bind = function (
         },
     };
 
-    const node = binder.node;
-    const parent = node?.parentElement;
+    // const node = binder.node;
+    // const parent = node?.parentElement;
 
-    if (node instanceof Element) {
-        io.observe(node as Element);
-        observed.set(node, binder);
-        // } else if (parent && parent instanceof Element) {
-        //     io.observe(parent);
-        //     observed.set(parent, binder);
-        //     console.log(parent);
-    } else {
-        binder.add();
-    }
+    // if (node instanceof Element) {
+    //     const binders = observed.get(node);
+    //     if (binders) {
+    //         binders.push(binder);
+    //     } else {
+    //         io.observe(node);
+    //         observed.set(node, [binder]);
+    //     }
+    // } else if (parent instanceof Element) {
+    //     if (!document.contains(parent)) {
+    //         console.log(parent);
+    //     }
+
+    //     const binders = observed.get(parent);
+    //     if (binders) {
+    //         binders.push(binder);
+    //     } else {
+    //         io.observe(parent);
+    //         observed.set(parent, [binder]);
+    //     }
+    // } else {
+    //     // binder.add();
+    //     console.warn('top level reactive text bindings');
+    // }
+
+    binder.add();
 
     return binder;
 };
