@@ -13,91 +13,107 @@ export const {
 
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
 // https://www.w3.org/TR/REC-html40/index/attributes.html
-const links = [
-    'src',
-    'href',
-    'data',
-    'action',
-    'srcdoc',
-    'xlink:href',
-    'cite',
-    'formaction',
-    'ping',
-    'poster',
-    'background',
-    'classid',
-    'codebase',
-    'longdesc',
-    'profile',
-    'usemap',
-    'icon',
-    'manifest',
-    'archive',
-];
+const patternLink = new RegExp(
+    [
+        '^[.@$]?(',
+        [
+            'src',
+            'href',
+            'data',
+            'action',
+            'srcdoc',
+            'xlink:href',
+            'cite',
+            'formaction',
+            'ping',
+            'poster',
+            'background',
+            'classid',
+            'codebase',
+            'longdesc',
+            'profile',
+            'usemap',
+            'icon',
+            'manifest',
+            'archive',
+        ].join('|'),
+        ')',
+    ].join(''),
+    'i',
+);
 
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
-const bools = [
-    'hidden',
-    'allowfullscreen',
-    'async',
-    'autofocus',
-    'autoplay',
-    'checked',
-    'controls',
-    'default',
-    'defer',
-    'disabled',
-    'formnovalidate',
-    'inert',
-    'ismap',
-    'itemscope',
-    'loop',
-    'multiple',
-    'muted',
-    'nomodule',
-    'novalidate',
-    'open',
-    'playsinline',
-    'readonly',
-    'required',
-    'reversed',
-    'selected',
-];
+const patternBool = new RegExp(
+    [
+        '^[.@$]?(',
+        [
+            'hidden',
+            'allowfullscreen',
+            'async',
+            'autofocus',
+            'autoplay',
+            'checked',
+            'controls',
+            'default',
+            'defer',
+            'disabled',
+            'formnovalidate',
+            'inert',
+            'ismap',
+            'itemscope',
+            'loop',
+            'multiple',
+            'muted',
+            'nomodule',
+            'novalidate',
+            'open',
+            'playsinline',
+            'readonly',
+            'required',
+            'reversed',
+            'selected',
+        ].join('|'),
+        ')',
+    ].join(''),
+    'i',
+);
+
+const patternAnimation = /^[.@$]?onanimation$/i;
+const patternTimeout = /^[.@$]?ontimeout$/i;
+const patternValue = /^[.@$]?value$/i;
+const patternOn = /^[.@$]?on/i;
+const patternMarker = /^x-[0-9]{10}-x$/i;
+// const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+const safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
 
 export const isLink = function (data: string): boolean {
-    return data && typeof data === 'string' ? links.indexOf(data.toLowerCase()) !== -1 : false;
+    return data && typeof data === 'string' ? patternLink.test(data) : false;
 };
 
 export const isBool = function (data: string): boolean {
-    return data && typeof data === 'string' ? bools.indexOf(data.toLowerCase()) !== -1 : false;
+    return data && typeof data === 'string' ? patternBool.test(data) : false;
 };
 
 export const isIterable = function (data: any): boolean {
-    return data && typeof data !== 'string' &&
-        typeof data[Symbol.iterator] === 'function';
+    return data && typeof data !== 'string' && typeof data[Symbol.iterator] === 'function';
 };
 
-const patternAnimation = /^onanimation$/i;
 export const isAnimation = function (data: string): boolean {
     return data && typeof data === 'string' ? patternAnimation.test(data) : false;
 };
 
-const patternTimeout = /^ontimeout$/i;
 export const isTimeout = function (data: string): boolean {
     return data && typeof data === 'string' ? patternTimeout.test(data) : false;
 };
 
-const patternValue = /^value$/i;
 export const isValue = function (data: string): boolean {
     return data && typeof data === 'string' ? patternValue.test(data) : false;
 };
 
-const patternOn = /^([.@]?on|@)/i;
 export const hasOn = function (data: string): boolean {
     return data && typeof data === 'string' ? patternOn.test(data) : false;
 };
 
-const patternMarker = /^x-[0-9]{10}-x$/i;
 export const isMarker = function (data: string): boolean {
     return data && typeof data === 'string' ? patternMarker.test(data) : false;
 };
@@ -141,8 +157,6 @@ export const mark = function (): string {
     return `x-${`${Math.floor(Math.random() * Date.now())}`.slice(0, 10)}-x`;
 };
 
-// const safePattern = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
-const safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
 export const dangerousLink = function (data: string): boolean {
     if (data === '') return false;
     if (typeof data !== 'string') return false;

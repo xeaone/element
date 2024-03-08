@@ -11,6 +11,11 @@ switch (pathname) {
     case '/guide':
         await import('./guide.ts');
         break;
+    case '/performance':
+        await import('./performance.ts');
+        break;
+    default:
+        await import('./all.ts');
 }
 
 // router('/', main, () => import('./root.js'));

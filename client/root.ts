@@ -54,7 +54,7 @@ export default html`
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
-                <span>Efficient two way reactive databinding.</span>
+                <span>Efficient two way reactive data binding.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
@@ -75,7 +75,7 @@ export default html`
 
         <h3>Example</h3>
         <p>
-            Use a tagged Template and invoke it with an Element paramater to render and mount.
+            Use a tagged Template and invoke it with an Element or query selector parameters to render and mount.
             Alternatively use the tagged Template without invoking and use the returned DocumentFragment.
         </p>
         <pre>${source}</pre>

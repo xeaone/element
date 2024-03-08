@@ -4,11 +4,6 @@ import { action } from './action.ts';
 let Next: Promise<void> | undefined;
 let Current: Promise<void> | undefined;
 
-// type UpdateTypeGlobal = 1;
-// type UpdateTypeLocal = 2;
-// type UpdateTypeQueue = 3;
-// type UpdateType = UpdateTypeGlobal | UpdateTypeLocal | UpdateTypeQueue;
-
 export const next = async function (): Promise<void> {
     await Current;
     await new Promise((resolve) => {
@@ -20,7 +15,6 @@ export const next = async function (): Promise<void> {
     });
 };
 
-// export const update = async function (type?: UpdateType, binders?: Binder[]): Promise<void> {
 export const update = async function (): Promise<void> {
     if (Current) {
         if (Next) {
@@ -51,3 +45,36 @@ export const update = async function (): Promise<void> {
         await Current;
     }
 };
+
+// const stack: Binder[] = [];
+// export const update = async function (binders?: Binder[]): Promise<void> {
+//     if (binders && binders.length) {
+//         stack.push(...binders);
+//     }
+
+//     if (Current) {
+//         await Current;
+//     } else {
+//         Current = new Promise((resolve) => {
+//             queueMicrotask(async () => {
+//                 let binder: Binder | undefined = stack?.shift();
+
+//                 while (binder) {
+//                     try {
+//                         await action(binder);
+//                     } catch (error) {
+//                         console.error(error);
+//                     }
+
+//                     binder = stack?.shift();
+//                 }
+
+//                 Current = undefined;
+
+//                 resolve();
+//             });
+//         });
+
+//         await Current;
+//     }
+// };

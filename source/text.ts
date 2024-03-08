@@ -1,10 +1,10 @@
 import { afterNode, beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools.ts';
 import { InstanceSymbol, TemplateSymbol, VariablesSymbol } from './global.ts';
 import { Binder } from './types.ts';
-import display from './display.ts';
+import { display } from './display.ts';
 
 const iterableDisplay = function (data: any): Node | string {
-    return data?.[ InstanceSymbol ] ? data() : data instanceof Node ? data : display(data);
+    return data?.[InstanceSymbol] ? data() : data instanceof Node ? data : display(data);
 };
 
 export const text = function (node: Text, binder: Binder, source: any, target: any): void {
@@ -12,9 +12,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         if (node.textContent !== '') {
             node.textContent = '';
         }
-    } else if (target?.[ InstanceSymbol ]) {
-        console.log('instance', binder);
-
+    } else if (target?.[InstanceSymbol]) {
         if (!binder.start) {
             binder.start = document.createTextNode('');
             beforeNode(binder.start, node);
@@ -28,8 +26,6 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         removeBetween(binder.start, binder.end);
         beforeNode(target(), binder.end);
     } else if (target instanceof DocumentFragment) {
-        // console.log('fragment', binder);
-
         if (!binder.start) {
             binder.start = document.createTextNode('');
             beforeNode(binder.start, node);
@@ -71,20 +67,19 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
 
         for (let index = 0; index < commonLength; index++) {
             if (
-                binder.results[ index ] !== target[ index ]
+                binder.results[index] !== target[index]
             ) {
-
-                const marker = binder.markers[ index ];
-                const last = binder.markers[ index + 1 ] ?? binder.end;
+                const marker = binder.markers[index];
+                const last = binder.markers[index + 1] ?? binder.end;
                 while (last.previousSibling && last.previousSibling !== marker) {
                     removeNode(last.previousSibling);
                 }
 
-                const child = iterableDisplay(target[ index ]);
+                const child = iterableDisplay(target[index]);
                 afterNode(child, marker);
                 console.log(child, marker);
 
-                binder.results[ index ] = target[ index ];
+                binder.results[index] = target[index];
             }
             // if (
             //     binder.results[ index ]?.[ TemplateSymbol ] &&
@@ -100,10 +95,10 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         if (oldLength < newLength) {
             while (binder.length !== target.length) {
                 const marker = document.createTextNode('');
-                const child = iterableDisplay(target[ binder.length ]);
+                const child = iterableDisplay(target[binder.length]);
 
                 binder.markers.push(marker);
-                binder.results.push(target[ binder.length ]);
+                binder.results.push(target[binder.length]);
 
                 beforeNode(marker, binder.end);
                 beforeNode(child, binder.end);
@@ -118,7 +113,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
             //     removeNode(previous as Node);
             // }
 
-            const marker = binder.markers[ target.length - 1 ];
+            const marker = binder.markers[target.length - 1];
             const last = binder.end;
             while (last.previousSibling && last.previousSibling !== marker) {
                 removeNode(last.previousSibling);

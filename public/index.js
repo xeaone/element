@@ -51,7 +51,7 @@ var init_global = __esm({
 });
 
 // source/tools.ts
-var SHOW_TEXT, SHOW_ELEMENT, TEXT_NODE, COMMENT_NODE, ELEMENT_NODE, ATTRIBUTE_NODE, DOCUMENT_FRAGMENT_NODE, links, bools, isLink, isBool, isIterable, patternValue, isValue, patternOn, hasOn, matchMarker, hasMarker, sliceOn, isConnected, mark, safePattern, dangerousLink, removeBetween, removeNode, beforeNode, afterNode, replaceNode, replaceChildren;
+var SHOW_TEXT, SHOW_ELEMENT, TEXT_NODE, COMMENT_NODE, ELEMENT_NODE, ATTRIBUTE_NODE, DOCUMENT_FRAGMENT_NODE, patternLink, patternBool, patternTimeout, patternValue, patternOn, safePattern, isLink, isBool, isIterable, isTimeout, isValue, hasOn, matchMarker, hasMarker, sliceOn, isConnected, mark, dangerousLink, removeBetween, removeNode, beforeNode, afterNode, replaceNode, replaceChildren;
 var init_tools = __esm({
   "source/tools.ts"() {
     ({
@@ -65,68 +65,87 @@ var init_tools = __esm({
       ATTRIBUTE_NODE,
       DOCUMENT_FRAGMENT_NODE
     } = Node);
-    links = [
-      "src",
-      "href",
-      "data",
-      "action",
-      "srcdoc",
-      "xlink:href",
-      "cite",
-      "formaction",
-      "ping",
-      "poster",
-      "background",
-      "classid",
-      "codebase",
-      "longdesc",
-      "profile",
-      "usemap",
-      "icon",
-      "manifest",
-      "archive"
-    ];
-    bools = [
-      "hidden",
-      "allowfullscreen",
-      "async",
-      "autofocus",
-      "autoplay",
-      "checked",
-      "controls",
-      "default",
-      "defer",
-      "disabled",
-      "formnovalidate",
-      "inert",
-      "ismap",
-      "itemscope",
-      "loop",
-      "multiple",
-      "muted",
-      "nomodule",
-      "novalidate",
-      "open",
-      "playsinline",
-      "readonly",
-      "required",
-      "reversed",
-      "selected"
-    ];
+    patternLink = new RegExp(
+      [
+        "^[.@$]?(",
+        [
+          "src",
+          "href",
+          "data",
+          "action",
+          "srcdoc",
+          "xlink:href",
+          "cite",
+          "formaction",
+          "ping",
+          "poster",
+          "background",
+          "classid",
+          "codebase",
+          "longdesc",
+          "profile",
+          "usemap",
+          "icon",
+          "manifest",
+          "archive"
+        ].join("|"),
+        ")"
+      ].join(""),
+      "i"
+    );
+    patternBool = new RegExp(
+      [
+        "^[.@$]?(",
+        [
+          "hidden",
+          "allowfullscreen",
+          "async",
+          "autofocus",
+          "autoplay",
+          "checked",
+          "controls",
+          "default",
+          "defer",
+          "disabled",
+          "formnovalidate",
+          "inert",
+          "ismap",
+          "itemscope",
+          "loop",
+          "multiple",
+          "muted",
+          "nomodule",
+          "novalidate",
+          "open",
+          "playsinline",
+          "readonly",
+          "required",
+          "reversed",
+          "selected"
+        ].join("|"),
+        ")"
+      ].join(""),
+      "i"
+    );
+    patternTimeout = /^[.@$]?ontimeout$/i;
+    patternValue = /^[.@$]?value$/i;
+    patternOn = /^[.@$]?on/i;
+    safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
     isLink = function(data) {
-      return data && typeof data === "string" ? links.indexOf(data.toLowerCase()) !== -1 : false;
+      return data && typeof data === "string" ? patternLink.test(data) : false;
     };
     isBool = function(data) {
-      return data && typeof data === "string" ? bools.indexOf(data.toLowerCase()) !== -1 : false;
+      return data && typeof data === "string" ? patternBool.test(data) : false;
     };
     isIterable = function(data) {
       return data && typeof data !== "string" && typeof data[Symbol.iterator] === "function";
     };
-    patternValue = /^value$/i;
+    isTimeout = function(data) {
+      return data && typeof data === "string" ? patternTimeout.test(data) : false;
+    };
     isValue = function(data) {
       return data && typeof data === "string" ? patternValue.test(data) : false;
     };
-    patternOn = /^([.@]?on|@)/i;
     hasOn = function(data) {
       return data && typeof data === "string" ? patternOn.test(data) : false;
     };
@@ -149,7 +168,6 @@ var init_tools = __esm({
     mark = function() {
       return `x-${`${Math.floor(Math.random() * Date.now())}`.slice(0, 10)}-x`;
     };
-    safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
     dangerousLink = function(data) {
       if (data === "")
         return false;
@@ -264,6 +282,38 @@ var init_attribute_name = __esm({
   }
 });
 
+// source/display.ts
+var display;
+var init_display = __esm({
+  "source/display.ts"() {
+    display = function(data) {
+      switch (`${data}`) {
+        case "NaN":
+          return "";
+        case "null":
+          return "";
+        case "undefined":
+          return "";
+      }
+      switch (typeof data) {
+        case "string":
+          return data;
+        case "number":
+          return `${data}`;
+        case "bigint":
+          return `${data}`;
+        case "boolean":
+          return `${data}`;
+        case "symbol":
+          return String(data);
+        case "object":
+          return JSON.stringify(data);
+      }
+      throw new Error("XElement - display type not handled");
+    };
+  }
+});
+
 // source/update.ts
 var Next, Current, next, update;
 var init_update = __esm({
@@ -309,37 +359,6 @@ var init_update = __esm({
   }
 });
 
-// source/display.ts
-function display(data) {
-  switch (`${data}`) {
-    case "NaN":
-      return "";
-    case "null":
-      return "";
-    case "undefined":
-      return "";
-  }
-  switch (typeof data) {
-    case "string":
-      return data;
-    case "number":
-      return `${data}`;
-    case "bigint":
-      return `${data}`;
-    case "boolean":
-      return `${data}`;
-    case "symbol":
-      return String(data);
-    case "object":
-      return JSON.stringify(data);
-  }
-  throw new Error("XElement - display type not handled");
-}
-var init_display = __esm({
-  "source/display.ts"() {
-  }
-});
-
 // source/event.ts
 var event;
 var init_event = __esm({
@@ -364,9 +383,10 @@ var attributeValue;
 var init_attribute_value = __esm({
   "source/attribute-value.ts"() {
     init_tools();
-    init_update();
     init_display();
+    init_update();
     init_event();
+    init_tools();
     attributeValue = function(element2, binder, source2, target) {
       if (source2 === target) {
         return;
@@ -419,16 +439,20 @@ var init_attribute_value = __esm({
         if (typeof method !== "function") {
           return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
         }
+        let oldResult;
         binder.value = function() {
           const newResult = method.call(this, event(binder));
-          update();
+          if (newResult !== oldResult) {
+            oldResult = newResult;
+            update();
+          }
           return newResult;
         };
-        element2.addEventListener(
-          sliceOn(binder.name),
-          binder.value,
-          target?.[1] ?? true
-        );
+        if (isTimeout(binder.name)) {
+          setTimeout(binder.value, target?.[1]);
+        } else {
+          element2.addEventListener(sliceOn(binder.name), binder.value, target?.[1] ?? true);
+        }
       } else {
         binder.value = target;
         element2.setAttribute(binder.name, binder.value);
@@ -454,7 +478,6 @@ var init_text = __esm({
           node.textContent = "";
         }
       } else if (target?.[InstanceSymbol]) {
-        console.log("instance", binder);
         if (!binder.start) {
           binder.start = document.createTextNode("");
           beforeNode(binder.start, node);
@@ -595,30 +618,15 @@ var init_action = __esm({
 });
 
 // source/bind.ts
-var observed, io, bind;
+var bind;
 var init_bind = __esm({
   "source/bind.ts"() {
     init_global();
-    observed = /* @__PURE__ */ new WeakMap();
-    io = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        const { target } = entry;
-        if (target.isConnected) {
-          console.log(target.isConnected, target);
-        } else {
-        }
-      }
-    }, {
-      threshold: 1,
-      // rootMargin: '100000%',
-      root: document.documentElement
-    });
     bind = function(type, index, variables, referenceNode, referenceName, referenceValue) {
       const binder = {
         type,
         // index,
         // variables,
-        // references,
         isInitialized: false,
         get variable() {
           return variables[index];
@@ -627,9 +635,9 @@ var init_bind = __esm({
           variables[index] = data;
         },
         get node() {
-          const node2 = referenceNode.get();
-          if (node2) {
-            return node2;
+          const node = referenceNode.get();
+          if (node) {
+            return node;
           } else {
             BindersCache.delete(this);
             return void 0;
@@ -654,14 +662,7 @@ var init_bind = __esm({
           BindersCache.add(this);
         }
       };
-      const node = binder.node;
-      const parent = node?.parentElement;
-      if (node instanceof Element) {
-        io.observe(node);
-        observed.set(node, binder);
-      } else {
-        binder.add();
-      }
+      binder.add();
       return binder;
     };
   }
@@ -675,7 +676,6 @@ var init_initialize = __esm({
     init_global();
     init_reference();
     init_action();
-    init_update();
     init_bind();
     FILTER = SHOW_ELEMENT + SHOW_TEXT;
     initialize = function(template, variables, marker, container) {
@@ -685,7 +685,6 @@ var init_initialize = __esm({
           throw new Error("query not found");
         const cache = ContainersCache.get(selection);
         if (cache && cache === template) {
-          update();
           return selection;
         } else {
           ContainersCache.set(selection, template);
@@ -693,7 +692,6 @@ var init_initialize = __esm({
       } else if (container instanceof Element || container instanceof ShadowRoot) {
         const cache = ContainersCache.get(container);
         if (cache && cache === template) {
-          update();
           return container;
         } else {
           ContainersCache.set(container, template);
@@ -975,7 +973,7 @@ export default ${Component.toString()}
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
-                <span>Efficient two way reactive databinding.</span>
+                <span>Efficient two way reactive data binding.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
@@ -996,7 +994,7 @@ export default ${Component.toString()}
 
         <h3>Example</h3>
         <p>
-            Use a tagged Template and invoke it with an Element paramater to render and mount.
+            Use a tagged Template and invoke it with an Element or query selector parameters to render and mount.
             Alternatively use the tagged Template without invoking and use the returned DocumentFragment.
         </p>
         <pre>${source}</pre>
@@ -1201,6 +1199,64 @@ var init_guide = __esm({
   }
 });
 
+// client/performance.ts
+var performance_exports = {};
+__export(performance_exports, {
+  default: () => performance_default
+});
+var token, items, rename, performance_default;
+var init_performance = __esm({
+  "client/performance.ts"() {
+    init_source();
+    token = () => Math.random().toString(36).substring(2, 5);
+    items = Array.from({ length: 500 }, (_, index) => ({ name: token(), id: index }));
+    rename = () => {
+      items.forEach((item) => item.name = token());
+      update().then(() => setTimeout(() => rename(), 10));
+    };
+    performance_default = html`
+    <style>
+        .items {
+            box-sizing: border-box;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0;
+            margin: 0;
+        }
+        .item {
+            display: block;
+            width: 10%;
+            padding: 5px;
+            box-sizing: border-box;
+            border: 1px solid lightgray;
+        }
+    </style>
+    <section onTimeout=${() => rename()}>
+        <h1>Performance</h1>
+        <div class="items">${() => items.map((item) => html`<span class="item">${() => item.name}</span>`)}</div>
+    </section>
+`("main");
+  }
+});
+
+// client/all.ts
+var all_exports = {};
+__export(all_exports, {
+  default: () => all_default
+});
+var all_default;
+var init_all = __esm({
+  "client/all.ts"() {
+    init_source();
+    all_default = html`
+    <section>
+        <h1>404</h1>
+        <h2>Page Not Found</h2>
+    </section>
+`("main");
+  }
+});
+
 // client/index.ts
 var pathname = location.pathname.toLowerCase().replace(/\/+$/, "");
 switch (pathname) {
@@ -1210,5 +1266,10 @@ switch (pathname) {
   case "/guide":
     await Promise.resolve().then(() => (init_guide(), guide_exports));
     break;
+  case "/performance":
+    await Promise.resolve().then(() => (init_performance(), performance_exports));
+    break;
+  default:
+    await Promise.resolve().then(() => (init_all(), all_exports));
 }
 //# sourceMappingURL=index.js.map

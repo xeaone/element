@@ -1,5 +1,5 @@
-import { update } from './update';
-import { Binder } from './types';
+import { update } from './update.ts';
+import { Binder } from './types.ts';
 
 export const event = function (binder: Binder) {
     return {

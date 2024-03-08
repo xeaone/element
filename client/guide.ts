@@ -1,5 +1,5 @@
 import highlight from './modules/highlight.ts';
-import { html } from '../source/index.ts';
+import { html, update } from '../source/index.ts';
 import Color from './modules/color.ts';
 
 let input = 'hello world';

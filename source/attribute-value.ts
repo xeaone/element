@@ -1,16 +1,11 @@
 import { dangerousLink, hasOn, isBool, isLink, isValue, sliceOn } from './tools.ts';
+import { display } from './display.ts';
 import { update } from './update.ts';
 import { Binder } from './types.ts';
-import display from './display.ts';
 import { event } from './event.ts';
+import { isTimeout } from './tools.ts';
 
 export const attributeValue = function (element: Element, binder: Binder, source: any, target: any): void {
-    // if (element.nodeName === 'OPTION') {
-    //     // if (element.nodeName === 'SELECT') {
-    //     console.log(binder);
-    //     console.log(element.isConnected, element.parentElement);
-    // }
-
     if (source === target) {
         return;
     }
@@ -22,7 +17,6 @@ export const attributeValue = function (element: Element, binder: Binder, source
 
     if (isValue(binder.name)) {
         if (element.nodeName === 'SELECT') {
-
             const options = (element as HTMLSelectElement).options as HTMLOptionsCollection;
             const array = Array.isArray(target);
             for (const option of options) {
@@ -75,20 +69,23 @@ export const attributeValue = function (element: Element, binder: Binder, source
             return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
         }
 
-        // let oldResult;
+        let oldResult: any;
         binder.value = function () {
             const newResult = method.call(this, event(binder));
-            // if (newResult !== oldResult) update();
-            // oldResult = newResult;
-            update();
+
+            if (newResult !== oldResult) {
+                oldResult = newResult;
+                update();
+            }
+
             return newResult;
         };
 
-        element.addEventListener(
-            sliceOn(binder.name),
-            binder.value,
-            target?.[1] ?? true,
-        );
+        if (isTimeout(binder.name)) {
+            setTimeout(binder.value, target?.[1]);
+        } else {
+            element.addEventListener(sliceOn(binder.name), binder.value, target?.[1] ?? true);
+        }
     } else {
         binder.value = target;
         element.setAttribute(binder.name, binder.value);
