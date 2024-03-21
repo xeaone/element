@@ -5,9 +5,11 @@ import { update } from './update.ts';
 import { define } from './define.ts';
 import { mark } from './tools.ts';
 
+import { style } from './style.ts';
+
 // const query = (node: Node, selector: Selector) => selector.reduce((n, s) => n[ s ], node);
 
-export { define, update };
+export { define, style, update };
 
 // const connectedEvent = new CustomEvent('connected');
 // const disconnectedEvent = new CustomEvent('disconnected');
