@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "experimentalDecorators": true,
         "lib": [
             "dom",
             "dom.iterable",

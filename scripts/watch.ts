@@ -1,4 +1,4 @@
-import * as esbuild from 'https://deno.land/x/esbuild@v0.20.0/mod.js';
+import * as esbuild from 'https://deno.land/x/esbuild@v0.20.2/mod.js';
 
 // const tsc = new Deno.Command('npx', {
 //     args: [
@@ -24,12 +24,13 @@ const result = await esbuild.context({
     logLevel: 'debug',
     platform: 'browser',
     outfile: 'public/index.js',
-    entryPoints: [ 'client/index.ts' ],
+    entryPoints: ['client/index.ts'],
     // entryPoints: [ 'tmp/client/index.js' ],
-    // tsconfigRaw: {
-    //     compilerOptions: {
-    //     }
-    // }
+    tsconfigRaw: {
+        compilerOptions: {
+            experimentalDecorators: true,
+        },
+    },
 });
 
 await result.watch();
