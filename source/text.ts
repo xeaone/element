@@ -1,10 +1,10 @@
 import { afterNode, beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools.ts';
-import { InstanceSymbol, TemplateSymbol, VariablesSymbol } from './global.ts';
-import { Binder } from './types.ts';
+import { MarkSymbol, ViewSymbol } from './global.ts';
 import { display } from './display.ts';
+import { Binder } from './types.ts';
 
 const iterableDisplay = function (data: any): Node | string {
-    return data?.[InstanceSymbol] ? data() : data instanceof Node ? data : display(data);
+    return data?.[ViewSymbol] ? data() : data instanceof Node ? data : display(data);
 };
 
 export const text = function (node: Text, binder: Binder, source: any, target: any): void {
@@ -12,7 +12,7 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         if (node.textContent !== '') {
             node.textContent = '';
         }
-    } else if (target?.[InstanceSymbol]) {
+    } else if (target?.[ViewSymbol]) {
         if (!binder.start) {
             binder.start = document.createTextNode('');
             beforeNode(binder.start, node);
@@ -65,31 +65,24 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         const newLength = target.length;
         const commonLength = Math.min(oldLength, newLength);
 
+        // todo: make this more efficient
         for (let index = 0; index < commonLength; index++) {
             if (
-                binder.results[index] !== target[index]
-            ) {
-                const marker = binder.markers[index];
-                const last = binder.markers[index + 1] ?? binder.end;
-                while (last.previousSibling && last.previousSibling !== marker) {
-                    removeNode(last.previousSibling);
-                }
+                target[index] === binder.results[index] ||
+                target[index]?.[ViewSymbol] && binder.results[index]?.[ViewSymbol] && target[index]?.[MarkSymbol] === binder.results[index]?.[MarkSymbol]
+            ) continue;
 
-                const child = iterableDisplay(target[index]);
-                afterNode(child, marker);
-                console.log(child, marker);
-
-                binder.results[index] = target[index];
+            const marker = binder.markers[index];
+            const last = binder.markers[index + 1] ?? binder.end;
+            while (last.previousSibling && last.previousSibling !== marker) {
+                removeNode(last.previousSibling);
             }
-            // if (
-            //     binder.results[ index ]?.[ TemplateSymbol ] &&
-            //     target[ index ]?.[ TemplateSymbol ] &&
-            //     binder.results[ index ]?.[ TemplateSymbol ] === target[ index ]?.[ TemplateSymbol ]
-            // ) {
-            //     Object.assign(binder.results[ index ][ VariablesSymbol ], target[ index ][ VariablesSymbol ]);
-            // } else {
-            //     binder.results[ index ] = target[ index ];
-            // }
+
+            const child = iterableDisplay(target[index]);
+            afterNode(child, marker);
+            console.log(binder.results[index], target[index], child, marker);
+
+            binder.results[index] = target[index];
         }
 
         if (oldLength < newLength) {

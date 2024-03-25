@@ -9,7 +9,7 @@ var __export = (target, all) => {
 };
 
 // source/global.ts
-var global, BindersCache, TemplatesCache, ContainersCache, MarkerSymbol, InstanceSymbol, TemplateSymbol, VariablesSymbol;
+var global, BindersCache, TemplatesCache, ContainersCache, MarkSymbol, ViewSymbol, TemplateSymbol, VariablesSymbol;
 var init_global = __esm({
   "source/global.ts"() {
     global = window.XGLOBAL ?? (window.XGLOBAL = Object.freeze({
@@ -23,8 +23,8 @@ var init_global = __esm({
       // VirtualCache: new WeakMap(),
       TemplatesCache: /* @__PURE__ */ new WeakMap(),
       ContainersCache: /* @__PURE__ */ new WeakMap(),
-      MarkerSymbol: Symbol("marker"),
-      InstanceSymbol: Symbol("instance"),
+      MarkSymbol: Symbol("mark"),
+      ViewSymbol: Symbol("view"),
       TemplateSymbol: Symbol("template"),
       VariablesSymbol: Symbol("variables")
     }));
@@ -42,8 +42,8 @@ var init_global = __esm({
         TemplatesCache
       ),
       ContainersCache,
-      MarkerSymbol,
-      InstanceSymbol,
+      MarkSymbol,
+      ViewSymbol,
       TemplateSymbol,
       VariablesSymbol
     } = global);
@@ -441,6 +441,14 @@ var init_attribute_value = __esm({
         }
         let oldResult;
         binder.value = function() {
+          if (element2.nodeName === "INPUT" && element2.type === "radio") {
+            const radios = element2.ownerDocument.querySelectorAll(`input[name="${element2.name}"]`);
+            for (const radio of radios) {
+              if (radio.checked) {
+                oldResult = radio.checked;
+              }
+            }
+          }
           const newResult = method.call(this, event(binder));
           if (newResult !== oldResult) {
             oldResult = newResult;
@@ -470,14 +478,14 @@ var init_text = __esm({
     init_global();
     init_display();
     iterableDisplay = function(data) {
-      return data?.[InstanceSymbol] ? data() : data instanceof Node ? data : display(data);
+      return data?.[ViewSymbol] ? data() : data instanceof Node ? data : display(data);
     };
     text = function(node, binder, source2, target) {
       if (target === null || target === void 0) {
         if (node.textContent !== "") {
           node.textContent = "";
         }
-      } else if (target?.[InstanceSymbol]) {
+      } else if (target?.[ViewSymbol]) {
         if (!binder.start) {
           binder.start = document.createTextNode("");
           beforeNode(binder.start, node);
@@ -521,17 +529,17 @@ var init_text = __esm({
         const newLength = target.length;
         const commonLength = Math.min(oldLength, newLength);
         for (let index = 0; index < commonLength; index++) {
-          if (binder.results[index] !== target[index]) {
-            const marker = binder.markers[index];
-            const last = binder.markers[index + 1] ?? binder.end;
-            while (last.previousSibling && last.previousSibling !== marker) {
-              removeNode(last.previousSibling);
-            }
-            const child = iterableDisplay(target[index]);
-            afterNode(child, marker);
-            console.log(child, marker);
-            binder.results[index] = target[index];
+          if (target[index] === binder.results[index] || target[index]?.[ViewSymbol] && binder.results[index]?.[ViewSymbol] && target[index]?.[MarkSymbol] === binder.results[index]?.[MarkSymbol])
+            continue;
+          const marker = binder.markers[index];
+          const last = binder.markers[index + 1] ?? binder.end;
+          while (last.previousSibling && last.previousSibling !== marker) {
+            removeNode(last.previousSibling);
           }
+          const child = iterableDisplay(target[index]);
+          afterNode(child, marker);
+          console.log(binder.results[index], target[index], child, marker);
+          binder.results[index] = target[index];
         }
         if (oldLength < newLength) {
           while (binder.length !== target.length) {
@@ -576,6 +584,7 @@ var init_action = __esm({
     init_global();
     init_event();
     init_text();
+    init_global();
     element = function(node, data, source2, target) {
       console.warn("element action not implemented");
     };
@@ -589,7 +598,7 @@ var init_action = __esm({
       }
       const variable = binder.variable;
       const isFunction = typeof variable === "function";
-      const isInstance = isFunction && variable[InstanceSymbol];
+      const isInstance = isFunction && variable[ViewSymbol];
       const isOnce = binder.type === 3 && hasOn(binder.name);
       const isReactive = !isInstance && !isOnce && isFunction;
       if (isOnce || isInstance || !isFunction) {
@@ -597,7 +606,7 @@ var init_action = __esm({
       }
       const target = isReactive ? variable(event(binder)) : isInstance ? variable() : variable;
       const source2 = binder.source;
-      if ("source" in binder && source2 === target) {
+      if ("source" in binder && (source2 === target || source2?.[ViewSymbol] && target?.[ViewSymbol] && source2?.[MarkSymbol] === target?.[MarkSymbol])) {
         return;
       }
       if (binder.type === 1) {
@@ -811,23 +820,23 @@ var init_dash = __esm({
 });
 
 // source/define.ts
-var cdc, define;
+var define;
 var init_define = __esm({
   "source/define.ts"() {
     init_dash();
-    cdc = { addInitializer(method) {
-      method();
-    } };
     define = function(tag, extend) {
-      return (constructor, context) => {
-        context = context ?? cdc;
-        context.addInitializer(function() {
-          const $tag = dash(tag);
-          const $extend = extend;
-          customElements.define($tag, constructor, { extends: $extend });
-        });
+      return function(constructor) {
+        const $tag = dash(tag);
+        const $extend = extend;
+        customElements.define($tag, constructor, { extends: $extend });
       };
     };
+  }
+});
+
+// source/style.ts
+var init_style = __esm({
+  "source/style.ts"() {
   }
 });
 
@@ -840,6 +849,7 @@ var init_source = __esm({
     init_update();
     init_define();
     init_tools();
+    init_style();
     html = function(strings, ...variables) {
       let marker;
       let template;
@@ -850,18 +860,18 @@ var init_source = __esm({
       } else {
         marker = mark();
         let innerHTML = "";
-        const length = strings.length - 1;
-        for (let index = 0; index < length; index++) {
+        const length2 = strings.length - 1;
+        for (let index = 0; index < length2; index++) {
           innerHTML += `${strings[index]}${marker}`;
         }
-        innerHTML += strings[length];
+        innerHTML += strings[length2];
         template = document.createElement("template");
         template.innerHTML = innerHTML;
         TemplatesCache.set(strings, { template, marker });
       }
       const meta = {
-        [InstanceSymbol]: true,
-        [MarkerSymbol]: marker,
+        [ViewSymbol]: true,
+        [MarkSymbol]: marker,
         [TemplateSymbol]: template,
         [VariablesSymbol]: variables
       };
@@ -935,6 +945,7 @@ var init_root = __esm({
 import { html } from '/x-element.js';
 
 let count = 0;
+
 export default ${result.toString()}(document.body);
 `, "js");
     Component = class extends HTMLElement {
@@ -1204,15 +1215,19 @@ var performance_exports = {};
 __export(performance_exports, {
   default: () => performance_default
 });
-var token, items, rename, performance_default;
+var token, length, items, pause, rename, performance_default;
 var init_performance = __esm({
   "client/performance.ts"() {
     init_source();
     token = () => Math.random().toString(36).substring(2, 5);
-    items = Array.from({ length: 500 }, (_, index) => ({ name: token(), id: index }));
-    rename = () => {
+    length = 500;
+    items = Array.from({ length }, (_, index) => ({ name: token(), id: index }));
+    pause = () => new Promise((resolve) => setTimeout(resolve, 50));
+    rename = async () => {
       items.forEach((item) => item.name = token());
-      update().then(() => setTimeout(() => rename(), 10));
+      await update();
+      await pause();
+      await rename();
     };
     performance_default = html`
     <style>
@@ -1233,7 +1248,11 @@ var init_performance = __esm({
     </style>
     <section onTimeout=${() => rename()}>
         <h1>Performance</h1>
-        <div class="items">${() => items.map((item) => html`<span class="item">${() => item.name}</span>`)}</div>
+        <div class="items">
+            ${() => items.map((item) => html`
+                <span class="item">${() => item.name}</span>
+            `)}
+        </div>
     </section>
 `("main");
   }

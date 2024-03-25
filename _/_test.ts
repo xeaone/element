@@ -1,4 +1,4 @@
-import { html, update } from './index.ts';
+import { html, update } from '../source/index.ts';
 
 const items = [0, 1, 2];
 

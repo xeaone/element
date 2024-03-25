@@ -5,6 +5,19 @@ import { Binder } from './types.ts';
 import { event } from './event.ts';
 import { isTimeout } from './tools.ts';
 
+const isRadioChecked = function (element: Element) {
+    if (element.nodeName === 'INPUT' && (element as HTMLInputElement).type === 'radio') {
+        const radios = element.ownerDocument.querySelectorAll<HTMLInputElement>(`input[name="${(element as HTMLInputElement).name}"]`);
+        for (const radio of radios) {
+            if (radio.checked) {
+                return radio.checked;
+            }
+        }
+    }
+
+    return false;
+};
+
 export const attributeValue = function (element: Element, binder: Binder, source: any, target: any): void {
     if (source === target) {
         return;
@@ -71,6 +84,15 @@ export const attributeValue = function (element: Element, binder: Binder, source
 
         let oldResult: any;
         binder.value = function () {
+            if (element.nodeName === 'INPUT' && (element as HTMLInputElement).type === 'radio') {
+                const radios = element.ownerDocument.querySelectorAll<HTMLInputElement>(`input[name="${(element as HTMLInputElement).name}"]`);
+                for (const radio of radios) {
+                    if (radio.checked) {
+                        oldResult = radio.checked;
+                    }
+                }
+            }
+
             const newResult = method.call(this, event(binder));
 
             if (newResult !== oldResult) {

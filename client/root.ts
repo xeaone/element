@@ -1,7 +1,9 @@
-import { html, define } from '../source/index.ts';
+// deno-fmt-ignore-file
+import { define, html, style } from '../source/index.ts';
 import highlight from './modules/highlight.ts';
 
 let count = 0;
+
 const result = () => html`
     <strong>${() => `Hello World ${count}`}</strong>
     <button onclick=${() => count++}>Greet</button>
@@ -11,13 +13,14 @@ const source = highlight(`
 import { html } from '/x-element.js';
 
 let count = 0;
+
 export default ${result.toString()}(document.body);
 `, 'js');
 
 class Component extends HTMLElement {
     #root = this.attachShadow({ mode: 'open' });
-
     #count = 0;
+
     #render = () => html`
         <strong>${() => `Hello World ${this.#count}`}</strong>
         <button onclick=${() => this.#count++}>Greet</button>
@@ -27,7 +30,7 @@ class Component extends HTMLElement {
         super();
         this.#render();
     }
-};
+}
 define('x-component')(Component);
 
 const sourceComponent = highlight(`
