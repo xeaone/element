@@ -1,4 +1,4 @@
-import { InstanceSymbol, MarkerSymbol, TemplatesCache, TemplateSymbol, VariablesSymbol } from './global.ts';
+import { MarkSymbol, TemplatesCache, TemplateSymbol, VariablesSymbol, ViewSymbol } from './global.ts';
 import { Initialize, Variables } from './types.ts';
 import { initialize } from './initialize.ts';
 import { update } from './update.ts';
@@ -109,8 +109,8 @@ export const html = function (strings: TemplateStringsArray, ...variables: Varia
     }
 
     const meta = {
-        [InstanceSymbol]: true,
-        [MarkerSymbol]: marker,
+        [ViewSymbol]: true,
+        [MarkSymbol]: marker,
         [TemplateSymbol]: template,
         [VariablesSymbol]: variables,
     };

@@ -1,10 +1,11 @@
 import { attributeName } from './attribute-name.ts';
 import { attributeValue } from './attribute-value.ts';
 import { hasOn, isConnected } from './tools.ts';
-import { InstanceSymbol } from './global.ts';
+import { ViewSymbol } from './global.ts';
 import { Binder } from './types.ts';
 import { event } from './event.ts';
 import { text } from './text.ts';
+import { MarkSymbol } from './global.ts';
 
 /**
  * @module Action
@@ -36,7 +37,7 @@ export const action = function (binder: Binder) {
 
     const variable = binder.variable;
     const isFunction = typeof variable === 'function';
-    const isInstance = isFunction && (variable as any)[InstanceSymbol];
+    const isInstance = isFunction && (variable as any)[ViewSymbol];
     const isOnce = binder.type === 3 && hasOn(binder.name);
     const isReactive = !isInstance && !isOnce && isFunction;
 
@@ -47,7 +48,13 @@ export const action = function (binder: Binder) {
     const target = isReactive ? variable(event(binder)) : isInstance ? variable() : variable;
 
     const source = binder.source;
-    if ('source' in binder && source === target) {
+    if (
+        'source' in binder &&
+        (
+            source === target ||
+            source?.[ViewSymbol] && target?.[ViewSymbol] && source?.[MarkSymbol] === target?.[MarkSymbol]
+        )
+    ) {
         return;
     }
 

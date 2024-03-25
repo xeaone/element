@@ -16,11 +16,11 @@ export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBA
     TemplatesCache: new WeakMap(),
     ContainersCache: new WeakMap(),
 
-    MarkerSymbol: Symbol('marker'),
-    InstanceSymbol: Symbol('instance'),
+    MarkSymbol: Symbol('mark'),
+    ViewSymbol: Symbol('view'),
+
     TemplateSymbol: Symbol('template'),
     VariablesSymbol: Symbol('variables'),
-
 }));
 
 export const {
@@ -38,8 +38,8 @@ export const {
     TemplatesCache,
     ContainersCache,
 
-    MarkerSymbol,
-    InstanceSymbol,
+    MarkSymbol,
+    ViewSymbol,
     TemplateSymbol,
     VariablesSymbol,
 } = global;

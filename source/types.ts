@@ -69,7 +69,7 @@ export type BindersCache = Set<Binder>;
 // export type LocalBinders = Set<Binder>;
 // export type QueueBinders = Set<Binder>;
 
-export type TemplateCache = { template: Template; marker: Marker; };
+export type TemplateCache = { template: Template; marker: Marker };
 
 export type TemplatesCache = WeakMap<TemplateStringsArray, TemplateCache>;
 
@@ -80,8 +80,8 @@ export interface Global {
     TemplatesCache: TemplatesCache;
     ContainersCache: ContainersCache;
 
-    MarkerSymbol: symbol;
-    InstanceSymbol: symbol;
+    MarkSymbol: symbol;
+    ViewSymbol: symbol;
     TemplateSymbol: symbol;
     VariablesSymbol: symbol;
 }
