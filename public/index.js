@@ -169,10 +169,8 @@ var init_tools = __esm({
       return `x-${`${Math.floor(Math.random() * Date.now())}`.slice(0, 10)}-x`;
     };
     dangerousLink = function(data) {
-      if (data === "")
-        return false;
-      if (typeof data !== "string")
-        return false;
+      if (data === "") return false;
+      if (typeof data !== "string") return false;
       return safePattern.test(data) ? false : true;
     };
     removeBetween = function(start, end) {
@@ -186,13 +184,11 @@ var init_tools = __esm({
       node.parentNode.removeChild(node);
     };
     beforeNode = function(node, child) {
-      if (!(node instanceof Node))
-        node = child.ownerDocument.createTextNode(`${node}`);
+      if (!(node instanceof Node)) node = child.ownerDocument.createTextNode(`${node}`);
       child.parentNode.insertBefore(node, child);
     };
     afterNode = function(node, child) {
-      if (!(node instanceof Node))
-        node = child.ownerDocument.createTextNode(`${node}`);
+      if (!(node instanceof Node)) node = child.ownerDocument.createTextNode(`${node}`);
       child.parentNode.insertBefore(node, child.nextSibling);
     };
     replaceNode = function(node, child) {
@@ -529,8 +525,7 @@ var init_text = __esm({
         const newLength = target.length;
         const commonLength = Math.min(oldLength, newLength);
         for (let index = 0; index < commonLength; index++) {
-          if (target[index] === binder.results[index] || target[index]?.[ViewSymbol] && binder.results[index]?.[ViewSymbol] && target[index]?.[MarkSymbol] === binder.results[index]?.[MarkSymbol])
-            continue;
+          if (target[index] === binder.results[index] || target[index]?.[ViewSymbol] && binder.results[index]?.[ViewSymbol] && target[index]?.[MarkSymbol] === binder.results[index]?.[MarkSymbol]) continue;
           const marker = binder.markers[index];
           const last = binder.markers[index + 1] ?? binder.end;
           while (last.previousSibling && last.previousSibling !== marker) {
@@ -690,8 +685,7 @@ var init_initialize = __esm({
     initialize = function(template, variables, marker, container) {
       if (typeof container === "string") {
         const selection = document.querySelector(container);
-        if (!selection)
-          throw new Error("query not found");
+        if (!selection) throw new Error("query not found");
         const cache = ContainersCache.get(selection);
         if (cache && cache === template) {
           return selection;
@@ -717,8 +711,7 @@ var init_initialize = __esm({
         if (type === TEXT_NODE) {
           let text2 = node;
           const startIndex = text2.nodeValue?.indexOf(marker) ?? -1;
-          if (startIndex === -1)
-            continue;
+          if (startIndex === -1) continue;
           if (startIndex !== 0) {
             text2.splitText(startIndex);
             node = walker.nextNode();
@@ -792,8 +785,7 @@ var init_initialize = __esm({
       }
       if (typeof container === "string") {
         const selection = document.querySelector(container);
-        if (!selection)
-          throw new Error("query not found");
+        if (!selection) throw new Error("query not found");
         replaceChildren(selection, fragment);
         return selection;
       } else if (container instanceof Element || container instanceof ShadowRoot) {
@@ -971,25 +963,26 @@ export default ${Component.toString()}
     <section>
 
         <h2>Vision</h2>
-        <h4>Provide a zero knowledge agnostic non framework with data binding that mimics native HTML and JS standards.</h4>
+        <h4></h4>
 
         <div class="tiles">
             <div class="tile">
                 <h4><span class="material-symbols-rounded">child_care</span> Simple</h4>
-                <span>If you know HTML, JS, and Template Literals then you know how to use X-Element.</span>
+                <span>If you know HTML, JS, and Template Literals then you know how to use XElement.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">magic_exchange</span> Agnostic</h4>
-                <span>Use XElement with any framework or library - Lit, Vue, React, Angular...</span>
+                <span>Use XElement with any framework or library - Lit, Vue, React, Angular.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
-                <span>Efficient two way reactive data binding.</span>
+                <span>Performant and efficient two way reactive data binding.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
                 <span>Rendering is blazing fast, because XElement only interacts with the dynamic DOM Nodes.</span>
             </div>
+            <!--
             <div class="tile">
                 <h4><span class="material-symbols-rounded">deployed_code</span> Small</h4>
                 <span>~(15)KB minified.</span>
@@ -1001,6 +994,7 @@ export default ${Component.toString()}
                     <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
                 </span>
             </div>
+            -->
         </div>
 
         <h3>Example</h3>

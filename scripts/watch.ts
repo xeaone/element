@@ -1,4 +1,4 @@
-import * as esbuild from 'https://deno.land/x/esbuild@v0.20.2/mod.js';
+import esbuild from '@esbuild';
 
 // const tsc = new Deno.Command('npx', {
 //     args: [

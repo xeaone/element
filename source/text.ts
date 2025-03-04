@@ -39,6 +39,8 @@ export const text = function (node: Text, binder: Binder, source: any, target: a
         removeBetween(binder.start, binder.end);
         beforeNode(target, binder.end);
     } else if (isIterable(target)) {
+        // console.log(target);
+
         if (binder.length === undefined) {
             binder.length = 0;
         }

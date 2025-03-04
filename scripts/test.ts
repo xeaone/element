@@ -1,7 +1,28 @@
-import { parseHTML } from 'https://esm.sh/linkedom@0.16.8/esm?target=deno';
-import { assertEquals } from 'https://deno.land/std@0.213.0/assert/mod.ts';
-import { build, stop } from 'https://deno.land/x/esbuild@v0.20.0/mod.js';
-import { delay } from 'https://deno.land/std@0.213.0/async/delay.ts';
+import { parseHTML } from '@linkedom/worker';
+import { build, stop } from '@esbuild';
+import { delay } from '@std/async/delay';
+import { assertEquals } from '@std/assert';
+
+// globalThis.NodeFilter = {
+//     FILTER_ACCEPT: 1,
+//     FILTER_REJECT: 2,
+//     FILTER_SKIP: 3,
+//     SHOW_ALL: 0xFFFFFFFF,
+//     SHOW_ELEMENT: 0x1,
+//     SHOW_ATTRIBUTE: 0x2,
+//     SHOW_TEXT: 0x4,
+//     SHOW_CDATA_SECTION: 0x8,
+//     SHOW_ENTITY_REFERENCE: 0x10,
+//     SHOW_ENTITY: 0x20,
+//     SHOW_PROCESSING_INSTRUCTION: 0x40,
+//     SHOW_COMMENT: 0x80,
+//     SHOW_DOCUMENT: 0x100,
+//     SHOW_DOCUMENT_TYPE: 0x200,
+//     SHOW_DOCUMENT_FRAGMENT: 0x400,
+//     SHOW_NOTATION: 0x800,
+// };
+
+// import { html } from '../source/index.ts';
 
 console.clear();
 
@@ -19,23 +40,26 @@ await build({
 
 stop();
 
+
 const { window } = parseHTML(`<html><head></head><body></body></html>`);
 
-const file = await Deno.readTextFile('./tmp/x-element.js');
-const XElement = new Function(
+const file = await Deno.readTextFile('.../public/index.js');
+const html = new Function(
     'window',
     `
-        const { document, customElements, Event, HTMLElement } = window;
-        document.adoptNode = function (node) {
-            const cloneNode = node.cloneNode;
-            node.cloneNode = () => node;
-            document.importNode(node);
-            node.cloneNode = cloneNode;
-        };
+        // const { document, customElements, Event, HTMLElement } = window;
+        // document.adoptNode = function (node) {
+        //     const cloneNode = node.cloneNode;
+        //     node.cloneNode = () => node;
+        //     document.importNode(node);
+        //     node.cloneNode = cloneNode;
+        // };
         ${file}
         return XElement;
     `,
 )(window);
+
+
 
 // Deno.test('each-binder: overwrite array', async () => {
 //     const element = await Element(
@@ -98,119 +122,124 @@ const XElement = new Function(
 //     );
 // });
 
-Deno.test('map-binder', async () => {
-    const t = 'map-binder';
-    class c extends XElement.Component {
-        fruit = 'Orange';
-        fruits = ['Apple', 'Orange', 'Tomato'];
-        render = () => XElement.html`<select value=${this.fruit}>${this.fruits.map((fruit) => XElement.html`<option value=${fruit}>${fruit}</option>`)}</select>`;
-    }
+// Deno.test('map-binder', async () => {
+//     const t = 'map-binder';
+//     class c extends XElement.Component {
+//         fruit = 'Orange';
+//         fruits = ['Apple', 'Orange', 'Tomato'];
+//         render = () => XElement.html`<select value=${this.fruit}>${this.fruits.map((fruit) => XElement.html`<option value=${fruit}>${fruit}</option>`)}</select>`;
+//     }
 
-    window.customElements.define(t, c);
-    const e = window.document.createElement(t);
-    window.document.body.replaceChildren(e);
+//     window.customElements.define(t, c);
+//     const e = window.document.createElement(t);
+//     window.document.body.replaceChildren(e);
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><select value="Orange"><option value="Apple">Apple</option><option value="Orange">Orange</option><option value="Tomato">Tomato</option></select></${t}>`);
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><select value="Orange"><option value="Apple">Apple</option><option value="Orange">Orange</option><option value="Tomato">Tomato</option></select></${t}>`);
 
-    e.fruit = 'Apple';
+//     e.fruit = 'Apple';
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><select value="Apple"><option value="Apple">Apple</option><option value="Orange">Orange</option><option value="Tomato">Tomato</option></select></${t}>`);
-});
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><select value="Apple"><option value="Apple">Apple</option><option value="Orange">Orange</option><option value="Tomato">Tomato</option></select></${t}>`);
+// });
 
-Deno.test('checked-binder', async () => {
-    const t = 'checked-binder';
-    class c extends XElement.Component {
-        checked = false;
-        render = () => XElement.html`<input ${this.checked ? 'checked' : ''} type="checkbox">`;
-    }
+// Deno.test('checked-binder', async () => {
+//     const t = 'checked-binder';
+//     class c extends XElement.Component {
+//         checked = false;
+//         render = () => XElement.html`<input ${this.checked ? 'checked' : ''} type="checkbox">`;
+//     }
 
-    window.customElements.define(t, c);
-    const e = window.document.createElement(t);
-    window.document.body.replaceChildren(e);
+//     window.customElements.define(t, c);
+//     const e = window.document.createElement(t);
+//     window.document.body.replaceChildren(e);
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><input type="checkbox"></${t}>`);
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><input type="checkbox"></${t}>`);
 
-    e.checked = true;
+//     e.checked = true;
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><input checked type="checkbox"></${t}>`);
-});
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><input checked type="checkbox"></${t}>`);
+// });
 
-Deno.test('value-binder', async () => {
-    const t = 'value-binder';
-    class c extends XElement.Component {
-        value = '';
-        render = () => XElement.html`<input value=${this.value}>`;
-    }
+// Deno.test('value-binder', async () => {
+//     const t = 'value-binder';
+//     class c extends XElement.Component {
+//         value = '';
+//         render = () => XElement.html`<input value=${this.value}>`;
+//     }
 
-    window.customElements.define(t, c);
-    const e = window.document.createElement(t);
-    window.document.body.replaceChildren(e);
+//     window.customElements.define(t, c);
+//     const e = window.document.createElement(t);
+//     window.document.body.replaceChildren(e);
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><input value=""></${t}>`);
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><input value=""></${t}>`);
 
-    e.value = 'hello world';
+//     e.value = 'hello world';
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><input value="hello world"></${t}>`);
-});
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><input value="hello world"></${t}>`);
+// });
 
-Deno.test('text-binder', async () => {
-    const t = 'text-binder';
-    class c extends XElement.Component {
-        text = '';
-        render = () => XElement.html`${this.text}`;
-    }
+// Deno.test('text-binder', async () => {
+//     const t = 'text-binder';
+//     class c extends XElement.Component {
+//         text = '';
+//         render = () => XElement.html`${this.text}`;
+//     }
 
-    window.customElements.define(t, c);
-    const e = window.document.createElement(t);
-    window.document.body.replaceChildren(e);
+//     window.customElements.define(t, c);
+//     const e = window.document.createElement(t);
+//     window.document.body.replaceChildren(e);
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}></${t}>`);
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}></${t}>`);
 
-    e.text = 'hello world';
+//     e.text = 'hello world';
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}>hello world</${t}>`);
-});
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}>hello world</${t}>`);
+// });
 
-Deno.test('static create', async () => {
-    const t = 'x-c5';
-    class c5 extends XElement.Component {
-        text = '';
-        render = () => XElement.html`<h1>${this.text}</h1>`;
-    }
+// Deno.test('static create', async () => {
+//     const t = 'x-c5';
+//     class c5 extends XElement.Component {
+//         text = '';
+//         render = () => XElement.html`<h1>${this.text}</h1>`;
+//     }
 
-    window.document.body.replaceChildren(c5.create());
+//     window.document.body.replaceChildren(c5.create());
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><h1></h1></${t}>`);
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><h1></h1></${t}>`);
 
-    window.document.querySelector(t).text = 'hello world';
+//     window.document.querySelector(t).text = 'hello world';
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><h1>hello world</h1></${t}>`);
-});
+//     await delay(1);
+//     assertEquals(window.document.body.innerHTML, `<${t}><h1>hello world</h1></${t}>`);
+// });
 
 Deno.test('static upgrade', async () => {
     const t = 'x-c6';
-    class c6 extends XElement.Component {
-        text = '';
-        render = () => XElement.html`<h1>${this.text}</h1>`;
-    }
+    // class c6 extends XElement.Component {
+    //     text = '';
+    //     render = () => XElement.html`<h1>${this.text}</h1>`;
+    // }
 
-    const e = await c6.upgrade();
+    // const e = await c6.upgrade();
+
+    let text = '';
+    const e = html`<h1>${text}</h1>`(window.document.body);
 
     await delay(10);
-    assertEquals(e.outerHTML, `<${t}><h1></h1></${t}>`);
+    assertEquals(window.document.body.innerHTML, `<${t}><h1></h1></${t}>`);
 
-    e.text = 'hello world';
+    console.log(window.document.body.innerHTML)
+
+    text = 'hello world';
 
     await delay(1);
-    assertEquals(e.outerHTML, `<${t}><h1>hello world</h1></${t}>`);
+    assertEquals(window.document.body.innerHTML, `<${t}><h1>hello world</h1></${t}>`);
 });

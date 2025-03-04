@@ -31,6 +31,6 @@
         "module": "module"
     },
     "devDependencies": {
-        "typescript": "^5.4.0-dev.20240206"
+        "typescript": "^5.9.0-dev.20250304"
     }
 }

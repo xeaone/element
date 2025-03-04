@@ -2,44 +2,68 @@
 
 # X-Element
 
-### A zero knowledge curve, agnostic non framework that enhances custom elements with functionality and data binding that mimics native custom element and language standards.
+### Reactivity without the complexity.
+
+## Vision
+Provide a knowledge transferable future proof, reactive data binding, library for building web interfaces.
 
 ## Features
-- &#128118; **Simple** If you know HTML, JS, and Template Literals then you know how to use X-Element
+- &#128118; **Simple** If you know HTML, JS, and Template Literals then you know XElement.
 
-- &#9981; **Agnostic** Use XElement with any framework or library - Lit, Vue, React, Angular.
+- &#9981; **Agnostic** Use XElement with any framework or library - Lit, Vue, React, Angular..
 
-- &#9883; **Reactive** Efficient two way reactive databinding by default.
+- &#9883; **Reactive** Performant and efficient two way reactive data binding.
 
-- &#9889; **Fast** Rendering is blazing fast, because XElement only interacts with the dynamic DOM Nodes.
+- &#9889; **Fast** Rendering is blazing fast, because XElement only interacts with the dynamic DOM Nodes..
 
-- &#128230; **Small** ~(15)KB minified.
 
-- &#129517; **Router** Client side routing using the new [Navigation API](https://developer.chrome.com/docs/web-platform/navigation-api/)
+<!-- - &#129517; **Router** Client side routing using the new [Navigation API](https://developer.chrome.com/docs/web-platform/navigation-api/) -->
 
 ## Learn
 [https://xeaone.github.io/element/](https://xeaone.github.io/element/)
 
-## Example
+## Examples
 ```js
-import { component, html } from '/x-element.js';
+import { html } from 'https://esm.sh/@xeaone/element/module/index.js';
 
-export default class greet extends component {
+let count = 0;
 
-    greeting = 'Default Greeting';
-    greet = () => this.greeting = 'Updated Greeting';
+export default () => html`
+    <strong>${() => `Hello World ${count}`}</strong>
+    <button onclick=${() => count++}>Greet</button>
+`(document.body);
+```
 
-    render = () => html`
-        <h1>this.greeting</h1>
-        <button onclick=${this.greet}>Greet</button>
-    `;
+## Custom Element
+```js
+import { html } from 'https://esm.sh/@xeaone/element/module/index.js';
 
+const {html} = await import('https://esm.sh/@xeaone/element/module/index.js')
+
+export default class extends HTMLElement {
+    #root = this.attachShadow({ mode: "open" });
+    #count = 0;
+    #render = () => html`
+        <strong>${() => `Hello World ${this.#count}`}</strong>
+        <button onclick=${() => this.#count++}>Greet</button>
+    `(this.#root);
+    constructor() {
+        super();
+        this.#render();
+    }
 }
 ```
+
 
 ## Use
 The two directories to use are `module` and `bundle`. Bundle includes ESNext and ES2015 js bundles. Module contains ESM files with `.js, .ts, and .d.ts`.
 
+## NPM
+```
+npm install @xeaone/element
+```
+
+## CDN
 [https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)
 
 [https://esm.sh/@xeaone/element/module/index.ts](https://esm.sh/@xeaone/element/module/index.ts)

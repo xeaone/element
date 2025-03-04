@@ -44,25 +44,26 @@ export default html`
     <section>
 
         <h2>Vision</h2>
-        <h4>Provide a zero knowledge agnostic non framework with data binding that mimics native HTML and JS standards.</h4>
+        <h4></h4>
 
         <div class="tiles">
             <div class="tile">
                 <h4><span class="material-symbols-rounded">child_care</span> Simple</h4>
-                <span>If you know HTML, JS, and Template Literals then you know how to use X-Element.</span>
+                <span>If you know HTML, JS, and Template Literals then you know how to use XElement.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">magic_exchange</span> Agnostic</h4>
-                <span>Use XElement with any framework or library - Lit, Vue, React, Angular...</span>
+                <span>Use XElement with any framework or library - Lit, Vue, React, Angular.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">commit</span> Reactive</h4>
-                <span>Efficient two way reactive data binding.</span>
+                <span>Performant and efficient two way reactive data binding.</span>
             </div>
             <div class="tile">
                 <h4><span class="material-symbols-rounded">bolt</span> Fast</h4>
                 <span>Rendering is blazing fast, because XElement only interacts with the dynamic DOM Nodes.</span>
             </div>
+            <!--
             <div class="tile">
                 <h4><span class="material-symbols-rounded">deployed_code</span> Small</h4>
                 <span>~(15)KB minified.</span>
@@ -74,6 +75,7 @@ export default html`
                     <a href="https://developer.chrome.com/docs/web-platform/navigation-api/" target="_blank">Navigation API</a>
                 </span>
             </div>
+            -->
         </div>
 
         <h3>Example</h3>
