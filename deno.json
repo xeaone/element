@@ -1,6 +1,6 @@
 {
+    "nodeModulesDir": "none",
     "compilerOptions": {
-        "experimentalDecorators": true,
         "lib": [
             "dom",
             "dom.iterable",
@@ -34,7 +34,17 @@
         "d": "deno run -A scripts/deploy.ts",
         "t": "deno test -A scripts/test.ts",
         "w": "deno run -A scripts/watch.ts",
+        "build": "deno run -A scripts/build.ts",
         "watch-idea": "deno run -A scripts/watch-idea.ts",
         "watch-virtual": "deno run -A scripts/watch-virtual.ts"
+    },
+    "imports": {
+        "@std/assert": "jsr:@std/assert@^1.0.11",
+        "@std/async": "jsr:@std/async@^1.0.11",
+        "@std/fs": "jsr:@std/fs@^1.0.14",
+        "@std/path": "jsr:@std/path@^1.0.8",
+        "@std/semver": "jsr:@std/semver@^1.0.4",
+        "@esbuild": "npm:esbuild@0.25.0",
+        "@linkedom": "npm:linkedom"
     }
 }

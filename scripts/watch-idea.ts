@@ -1,4 +1,4 @@
-import * as esbuild from 'https://deno.land/x/esbuild@v0.20.0/mod.js';
+import esbuild from '@esbuild';
 
 const result = await esbuild.context({
     color: true,

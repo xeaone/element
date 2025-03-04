@@ -1,3 +1,6 @@
+### 10.0.0
+- a complete rewrite
+
 ### 7.0.0
 - major changes basically a complete rewrite
 

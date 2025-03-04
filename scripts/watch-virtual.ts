@@ -1,4 +1,4 @@
-import { basename } from 'https://deno.land/std@0.213.0/path/mod.ts';
+import { basename } from '@std/path';
 
 const handle = async (path: string) => {
     console.log('building:', path);

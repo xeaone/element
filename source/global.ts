@@ -1,6 +1,6 @@
 import { Global } from './types.ts';
 
-export const global: Global = (window as any).XGLOBAL ?? ((window as any).XGLOBAL = Object.freeze({
+export const global: Global = (globalThis as any).XGLOBAL ?? ((globalThis as any).XGLOBAL = Object.freeze({
     // QueueNext: undefined,
     // QueueCurrent: undefined,
 
