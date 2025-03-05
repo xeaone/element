@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "DOM",
+            "DOM.Iterable",
+            "DOM.AsyncIterable",
+            "ES2015",
+            "ES2021",
+        ],
+        "target": "ES2021",
+        "outDir": "module",
+        "module": "ES2015",
+        "declaration": true,
+        "isolatedModules": true,
+    },
+    "include": ["source/*.ts"]
+}

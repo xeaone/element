@@ -1,10 +1,10 @@
-import { dangerousLink, ELEMENT_NODE, hasMarker, hasOn, isLink, matchMarker, replaceChildren, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE } from './tools.ts';
-import { Binder, Container, Marker, ReferenceType, Template, Variables } from './types.ts';
-import { ContainersCache } from './global.ts';
-import { Reference } from './reference.ts';
-import { action } from './action.ts';
-// import { update } from './update.ts';
-import { bind } from './bind.ts';
+import { dangerousLink, ELEMENT_NODE, hasMarker, hasOn, isLink, matchMarker, replaceChildren, SHOW_ELEMENT, SHOW_TEXT, TEXT_NODE } from './tools';
+import { Binder, Container, Marker, ReferenceType, Template, Variables } from './types';
+import { ContainersCache } from './global';
+import { Reference } from './reference';
+import { action } from './action';
+// import { update } from './update';
+import { bind } from './bind';
 
 const FILTER = SHOW_ELEMENT + SHOW_TEXT;
 

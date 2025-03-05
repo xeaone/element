@@ -1,28 +1,12 @@
 import { parseHTML } from '@linkedom/worker';
+// import { DOMParser, DocumentFragment, Element, Node, } from '@b-fuze/deno-dom';
+
 import { build, stop } from '@esbuild';
 import { delay } from '@std/async/delay';
+import { resolve } from '@std/path';
 import { assertEquals } from '@std/assert';
 
-// globalThis.NodeFilter = {
-//     FILTER_ACCEPT: 1,
-//     FILTER_REJECT: 2,
-//     FILTER_SKIP: 3,
-//     SHOW_ALL: 0xFFFFFFFF,
-//     SHOW_ELEMENT: 0x1,
-//     SHOW_ATTRIBUTE: 0x2,
-//     SHOW_TEXT: 0x4,
-//     SHOW_CDATA_SECTION: 0x8,
-//     SHOW_ENTITY_REFERENCE: 0x10,
-//     SHOW_ENTITY: 0x20,
-//     SHOW_PROCESSING_INSTRUCTION: 0x40,
-//     SHOW_COMMENT: 0x80,
-//     SHOW_DOCUMENT: 0x100,
-//     SHOW_DOCUMENT_TYPE: 0x200,
-//     SHOW_DOCUMENT_FRAGMENT: 0x400,
-//     SHOW_NOTATION: 0x800,
-// };
-
-// import { html } from '../source/index.ts';
+// import tml, updateAllSync } from '../source/index.ts';
 
 console.clear();
 
@@ -31,35 +15,34 @@ await build({
     format: 'iife',
     sourcemap: true,
     target: 'esnext',
-    treeShaking: true,
+    treeShaking: false,
     platform: 'browser',
     globalName: 'XElement',
     outfile: './tmp/x-element.js',
     entryPoints: ['source/index.ts'],
 });
 
-stop();
+await stop();
 
+const cwd = Deno.cwd();
+const file = await Deno.readTextFile(resolve(cwd, 'tmp/x-element.js'));
 
-const { window } = parseHTML(`<html><head></head><body></body></html>`);
+// const document = new DOMParser().parseFromString('`<html><head></head><body></body></html>`', 'text/html');
+// const { html, update, updateAllSync } = new Function('document', 'DocumentFragment', 'Element', 'Node', `
+//     ${file}
+//     return XElement;
+// `)(document, DocumentFragment, Element, Node);
 
-const file = await Deno.readTextFile('.../public/index.js');
-const html = new Function(
-    'window',
-    `
-        // const { document, customElements, Event, HTMLElement } = window;
-        // document.adoptNode = function (node) {
-        //     const cloneNode = node.cloneNode;
-        //     node.cloneNode = () => node;
-        //     document.importNode(node);
-        //     node.cloneNode = cloneNode;
-        // };
-        ${file}
-        return XElement;
-    `,
-)(window);
-
-
+const { window, document } = parseHTML(`<html><head></head><body></body></html>`);
+const { html, update, updateAllSync } = new Function('window', 'document', `
+    const {
+        customElements,
+        DocumentFragment,
+        HTMLElement, Element, Node, Event
+    } = window;
+    ${file}
+    return XElement;
+`)(window, document);
 
 // Deno.test('each-binder: overwrite array', async () => {
 //     const element = await Element(
@@ -222,24 +205,19 @@ const html = new Function(
 // });
 
 Deno.test('static upgrade', async () => {
-    const t = 'x-c6';
-    // class c6 extends XElement.Component {
-    //     text = '';
-    //     render = () => XElement.html`<h1>${this.text}</h1>`;
-    // }
-
-    // const e = await c6.upgrade();
-
     let text = '';
-    const e = html`<h1>${text}</h1>`(window.document.body);
 
-    await delay(10);
-    assertEquals(window.document.body.innerHTML, `<${t}><h1></h1></${t}>`);
+    html`<h1 onclick=${() => text = 'hello world'}>${() => text}</h1>`(document.body);
 
-    console.log(window.document.body.innerHTML)
+    await delay(100);
+    assertEquals(document.body.innerHTML, `<h1></h1>`);
+
+    // (document.body.firstElementChild as HTMLElement).click();
 
     text = 'hello world';
+    updateAllSync();
+    // await update();
 
-    await delay(1);
-    assertEquals(window.document.body.innerHTML, `<${t}><h1>hello world</h1></${t}>`);
+    await delay(100);
+    assertEquals(document.body.innerHTML, `<h1>hello world</h1>`);
 });

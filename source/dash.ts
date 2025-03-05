@@ -1,4 +1,3 @@
-
 export const dash = function (data: string): string {
     data = data.replace(/([a-zA-Z])([A-Z])/g, '$1-$2');
     data = data.toLowerCase();

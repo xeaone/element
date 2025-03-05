@@ -1,7 +1,7 @@
-import { afterNode, beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools.ts';
-import { MarkSymbol, ViewSymbol } from './global.ts';
-import { display } from './display.ts';
-import { Binder } from './types.ts';
+import { afterNode, beforeNode, isIterable, removeBetween, removeNode, replaceNode } from './tools';
+import { MarkSymbol, ViewSymbol } from './global';
+import { display } from './display';
+import { Binder } from './types';
 
 const iterableDisplay = function (data: any): Node | string {
     return data?.[ViewSymbol] ? data() : data instanceof Node ? data : display(data);

@@ -4,7 +4,7 @@
 //     query: <E extends Element>() => E;
 // }
 
-export type Variable = string | number | Array<any> | Record<any, any> | ((event: any) => any);
+export type Variable = string | number | Array<any> | Record<any, any> | ((event?: any) => any);
 // export type Variable = string | number | Array<any> | Record<any, any> | (() => any);
 
 export type Marker = string;

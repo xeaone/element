@@ -1,0 +1,14 @@
+export var update = Symbol('XUpdate');
+export var create = Symbol('XCreate');
+export var created = Symbol('XCreated');
+export var adopted = Symbol('XAdopted');
+export var rendered = Symbol('XRendered');
+export var connected = Symbol('XConnected');
+export var attributed = Symbol('XAttributed');
+export var disconnected = Symbol('XDisconnected');
+export var tag = Symbol('XTag');
+// export const shadow = Symbol('XShadow');
+export var extend = Symbol('XExtend');
+export var internal = Symbol('XInternal');
+export var state = Symbol('XState');
+export var render = Symbol('XRender');

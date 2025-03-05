@@ -3,13 +3,6 @@ import esbuild from '@esbuild';
 const pkg = JSON.parse(await Deno.readTextFile('package.json'));
 const { version } = pkg;
 
-const npxTsc = await (new Deno.Command('npx', { args: [ 'tsc', 'source', 'module' ] }).spawn()).output();
-
-if (!npxTsc.success) {
-    console.warn('npx tsc failed');
-    Deno.exit();
-}
-
 const banner = `/**
 * @version ${version}
 *
@@ -44,7 +37,7 @@ await Promise.all([
         treeShaking: true,
         banner: { js: banner },
         format: 'esm',
-        target: 'es2015',
+        target: 'es2021',
         logLevel: 'debug',
         platform: 'browser',
         outfile: 'public/x-element.js',
@@ -58,10 +51,10 @@ await Promise.all([
         treeShaking: true,
         banner: { js: banner },
         format: 'esm',
-        target: 'es2015',
+        target: 'es2021',
         logLevel: 'debug',
         platform: 'browser',
-        outfile: 'bundle/es2015.min.js',
+        outfile: 'bundle/es2021.min.js',
         entryPoints: ['source/index.ts'],
     }),
     esbuild.build({
@@ -72,10 +65,10 @@ await Promise.all([
         treeShaking: true,
         banner: { js: banner },
         format: 'esm',
-        target: 'es2015',
+        target: 'es2021',
         logLevel: 'debug',
         platform: 'browser',
-        outfile: 'bundle/es2015.js',
+        outfile: 'bundle/es2021.js',
         entryPoints: ['source/index.ts'],
     }),
     esbuild.build({

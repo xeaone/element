@@ -1,17 +1,18 @@
 {
     "deno.lint": true,
     "deno.enable": true,
-    "deno.unstable": true,
     "deno.config": "./deno.json",
+    "deno.unstable": [],
     "deno.enablePaths": [
         "scripts",
-        "source",
+        // "source",
         "client"
     ],
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "denoland.vscode-deno",
     "cSpell.words": [
         "linkedom",
+        "ononce",
         "XGLOBAL"
     ]
 }

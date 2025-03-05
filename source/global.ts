@@ -1,4 +1,4 @@
-import { Global } from './types.ts';
+import { Global } from './types';
 
 export const global: Global = (globalThis as any).XGLOBAL ?? ((globalThis as any).XGLOBAL = Object.freeze({
     // QueueNext: undefined,

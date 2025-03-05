@@ -1,106 +1,267 @@
 /**
- * @version 9.1.10
- *
- * @license
- * Copyright (C) Alexander Elias
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * @module
- */
+* @version 10.0.0
+*
+* @license
+* Copyright (C) Alexander Elias
+* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*
+* @module
+*/
 
+
+// source/global.ts
+var global = globalThis.XGLOBAL ?? (globalThis.XGLOBAL = Object.freeze({
+  // QueueNext: undefined,
+  // QueueCurrent: undefined,
+  Bound: /* @__PURE__ */ new WeakMap(),
+  BindersCache: /* @__PURE__ */ new Set(),
+  // GlobalBinders: new Set(),
+  // LocalBinders: new Set(),
+  // QueueBinders: new Set(),
+  // VirtualCache: new WeakMap(),
+  TemplatesCache: /* @__PURE__ */ new WeakMap(),
+  ContainersCache: /* @__PURE__ */ new WeakMap(),
+  MarkSymbol: Symbol("mark"),
+  ViewSymbol: Symbol("view"),
+  TemplateSymbol: Symbol("template"),
+  VariablesSymbol: Symbol("variables")
+}));
+var {
+  // QueueNext,
+  // QueueCurrent,
+  BindersCache,
+  // GlobalBinders,
+  // LocalBinders,
+  // QueueBinders,
+  // VirtualCache,
+  TemplatesCache,
+  ContainersCache,
+  MarkSymbol,
+  ViewSymbol,
+  TemplateSymbol,
+  VariablesSymbol
+} = global;
 
 // source/tools.ts
-var links = [
-  "src",
-  "href",
-  "data",
-  "action",
-  "srcdoc",
-  "xlink:href",
-  "cite",
-  "formaction",
-  "ping",
-  "poster",
-  "background",
-  "classid",
-  "codebase",
-  "longdesc",
-  "profile",
-  "usemap",
-  "icon",
-  "manifest",
-  "archive"
-];
-var bools = [
-  "hidden",
-  "allowfullscreen",
-  "async",
-  "autofocus",
-  "autoplay",
-  "checked",
-  "controls",
-  "default",
-  "defer",
-  "disabled",
-  "formnovalidate",
-  "inert",
-  "ismap",
-  "itemscope",
-  "loop",
-  "multiple",
-  "muted",
-  "nomodule",
-  "novalidate",
-  "open",
-  "playsinline",
-  "readonly",
-  "required",
-  "reversed",
-  "selected"
-];
+var {
+  SHOW_TEXT,
+  SHOW_ELEMENT
+} = NodeFilter;
+var {
+  TEXT_NODE,
+  COMMENT_NODE,
+  ELEMENT_NODE,
+  ATTRIBUTE_NODE,
+  DOCUMENT_FRAGMENT_NODE
+} = Node;
+var patternLink = new RegExp(
+  [
+    "^[.@$]?(",
+    [
+      "src",
+      "href",
+      "data",
+      "action",
+      "srcdoc",
+      "xlink:href",
+      "cite",
+      "formaction",
+      "ping",
+      "poster",
+      "background",
+      "classid",
+      "codebase",
+      "longdesc",
+      "profile",
+      "usemap",
+      "icon",
+      "manifest",
+      "archive"
+    ].join("|"),
+    ")"
+  ].join(""),
+  "i"
+);
+var patternBool = new RegExp(
+  [
+    "^[.@$]?(",
+    [
+      "hidden",
+      "allowfullscreen",
+      "async",
+      "autofocus",
+      "autoplay",
+      "checked",
+      "controls",
+      "default",
+      "defer",
+      "disabled",
+      "formnovalidate",
+      "inert",
+      "ismap",
+      "itemscope",
+      "loop",
+      "multiple",
+      "muted",
+      "nomodule",
+      "novalidate",
+      "open",
+      "playsinline",
+      "readonly",
+      "required",
+      "reversed",
+      "selected"
+    ].join("|"),
+    ")"
+  ].join(""),
+  "i"
+);
+var patternTimeout = /^[.@$]?ontimeout$/i;
+var patternOnce = /^[.@$]?ononce$/i;
+var patternValue = /^[.@$]?value$/i;
+var patternOn = /^[.@$]?on/i;
+var safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
 var isLink = function(data) {
-  return data && typeof data === "string" ? links.indexOf(data) !== -1 : false;
+  return data && typeof data === "string" ? patternLink.test(data) : false;
 };
 var isBool = function(data) {
-  return data && typeof data === "string" ? bools.indexOf(data) !== -1 : false;
+  return data && typeof data === "string" ? patternBool.test(data) : false;
 };
-var patternValue = /^value$/i;
+var isIterable = function(data) {
+  return data && typeof data !== "string" && typeof data[Symbol.iterator] === "function";
+};
+var isOnce = function(data) {
+  return data && typeof data === "string" ? patternOnce.test(data) : false;
+};
+var isTimeout = function(data) {
+  return data && typeof data === "string" ? patternTimeout.test(data) : false;
+};
 var isValue = function(data) {
   return data && typeof data === "string" ? patternValue.test(data) : false;
 };
-var patternOn = /^on/i;
 var hasOn = function(data) {
   return data && typeof data === "string" ? patternOn.test(data) : false;
 };
-var sliceOn = function(data) {
-  return data && typeof data === "string" ? data?.toLowerCase()?.slice(2) : "";
-};
-var isMarker = function(data, marker) {
-  return data && typeof data === "string" ? data.toLowerCase() === marker.toLowerCase() : false;
+var matchMarker = function(data, marker) {
+  return data && marker && typeof data === "string" && typeof marker === "string" ? data.toLowerCase() === marker.toLowerCase() : false;
 };
 var hasMarker = function(data, marker) {
-  return data && typeof data === "string" ? data.toLowerCase().indexOf(marker.toLowerCase()) !== -1 : false;
+  return data && typeof data === "string" ? data.indexOf(marker) !== -1 : false;
 };
-var safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
+var sliceOn = function(data) {
+  return data && typeof data === "string" ? data.replace(patternOn, "") : "";
+};
+var isConnected = function(node) {
+  if (node.nodeType === Node.ATTRIBUTE_NODE) {
+    return node.parentNode?.isConnected ?? false;
+  } else {
+    return node.isConnected;
+  }
+};
+var mark = function() {
+  return `x-${`${Math.floor(Math.random() * Date.now())}`.slice(0, 10)}-x`;
+};
 var dangerousLink = function(data) {
-  if (data === "")
-    return false;
-  if (typeof data !== "string")
-    return false;
+  if (data === "") return false;
+  if (typeof data !== "string") return false;
   return safePattern.test(data) ? false : true;
 };
 var removeBetween = function(start, end) {
   let node = end.previousSibling;
-  while (node !== start) {
-    node?.parentNode?.removeChild(node);
+  while (node && node !== start) {
+    node.parentNode?.removeChild(node);
     node = end.previousSibling;
   }
 };
+var removeNode = function(node) {
+  node.parentNode.removeChild(node);
+};
+var beforeNode = function(node, child) {
+  if (!(node instanceof Node)) node = child.ownerDocument.createTextNode(`${node}`);
+  child.parentNode.insertBefore(node, child);
+};
+var afterNode = function(node, child) {
+  if (!(node instanceof Node)) node = child.ownerDocument.createTextNode(`${node}`);
+  child.parentNode.insertBefore(node, child.nextSibling);
+};
+var replaceNode = function(node, child) {
+  child.parentNode.replaceChild(node, child);
+};
+var replaceChildren = function(element2, ...nodes) {
+  while (element2.lastChild) {
+    element2.removeChild(element2.lastChild);
+  }
+  for (const node of nodes) {
+    element2.appendChild(
+      typeof node === "string" ? element2.ownerDocument.createTextNode(node) : node
+    );
+  }
+};
+
+// source/reference.ts
+var Reference = function(data) {
+  return {
+    data: data instanceof Node ? new WeakRef(data) : data,
+    get: function() {
+      if (this.data instanceof WeakRef) {
+        return this.data.deref();
+      } else {
+        return this.data;
+      }
+    },
+    set: function(data2) {
+      if (data2 instanceof Node) {
+        this.data = new WeakRef(data2);
+        return data2;
+      } else {
+        this.data = data2;
+        return data2;
+      }
+    }
+  };
+};
+
+// source/attribute-name.ts
+var attributeName = function(element2, binder, source, target) {
+  source = source?.toLowerCase() ?? "";
+  target = target?.toLowerCase() ?? "";
+  if (source === target) {
+    return;
+  }
+  if (hasOn(source)) {
+    if (typeof binder.value === "function") {
+      element2.removeEventListener(sliceOn(source), binder.value, true);
+    }
+  } else if (isValue(source)) {
+    element2.removeAttribute(source);
+    Reflect.set(element2, source, null);
+  } else if (isBool(source)) {
+    element2.removeAttribute(source);
+    Reflect.set(element2, source, false);
+  } else if (isLink(source)) {
+    element2.removeAttribute(source);
+    Reflect.deleteProperty(element2, source);
+  } else if (source) {
+    element2.removeAttribute(source);
+    Reflect.deleteProperty(element2, source);
+  }
+  if (hasOn(target)) {
+    return;
+  } else if (isBool(target)) {
+    binder.value = "";
+    element2.setAttribute(target, "");
+    Reflect.set(element2, target, true);
+  } else if (target) {
+    element2.setAttribute(target, "");
+    Reflect.set(element2, target, null);
+  }
+  binder.name = target || "";
+};
 
 // source/display.ts
-function display(data) {
+var display = function(data) {
   switch (`${data}`) {
     case "NaN":
       return "";
@@ -118,735 +279,530 @@ function display(data) {
       return `${data}`;
     case "boolean":
       return `${data}`;
-    case "function":
-      return `${data()}`;
     case "symbol":
       return String(data);
     case "object":
       return JSON.stringify(data);
   }
   throw new Error("XElement - display type not handled");
-}
+};
 
-// source/mark.ts
-var mark_default = () => Math.floor(Math.random() * Date.now());
-
-// source/poly.ts
-var replaceChildren = function(element, ...nodes) {
-  while (element.lastChild) {
-    element.removeChild(element.lastChild);
+// source/update.ts
+var Next;
+var Current;
+var next = async function() {
+  console.log("next");
+  await Current;
+  await new Promise((resolve) => {
+    queueMicrotask(async () => {
+      Next = void 0;
+      await update();
+      resolve(void 0);
+    });
+  });
+};
+var update = async function() {
+  console.log("update");
+  if (Current) {
+    if (Next) {
+      await Next;
+    } else {
+      Next = next();
+      await Next;
+    }
+  } else {
+    Current = new Promise((resolve) => {
+      queueMicrotask(async () => {
+        const binders = BindersCache.values();
+        for (const binder of binders) {
+          try {
+            await action(binder);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+        Current = void 0;
+        resolve();
+      });
+    });
+    await Current;
   }
-  if (nodes?.length) {
-    for (const node of nodes) {
-      element.appendChild(
-        typeof node === "string" ? element.ownerDocument.createTextNode(node) : node
+};
+var updateAllSync = function() {
+  const binders = BindersCache.values();
+  for (const binder of binders) {
+    try {
+      action(binder);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+};
+
+// source/event.ts
+var event = function(binder) {
+  return {
+    get target() {
+      return binder?.node;
+    },
+    // update,
+    query(selector) {
+      return binder?.node?.getRootNode()?.querySelector(selector);
+    }
+  };
+};
+
+// source/attribute-value.ts
+var attributeValue = function(element2, binder, source, target) {
+  if (source === target) {
+    return;
+  }
+  if (!binder.name) {
+    console.warn("attribute binder name required");
+    return;
+  }
+  if (isValue(binder.name)) {
+    if (element2.nodeName === "SELECT") {
+      const options = element2.options;
+      const array = Array.isArray(target);
+      for (const option of options) {
+        option.selected = array ? target.includes(option.value) : `${target}` === option.value;
+      }
+    } else {
+      binder.value = display(target);
+      element2.setAttribute(binder.name, binder.value);
+      Reflect.set(element2, binder.name, binder.value);
+    }
+  } else if (isLink(binder.name)) {
+    binder.value = encodeURI(target);
+    if (dangerousLink(binder.value)) {
+      element2.removeAttribute(binder.name);
+      console.warn(`XElement - attribute name "${binder.name}" and value "${binder.value}" not allowed`);
+      return;
+    }
+    element2.setAttribute(binder.name, binder.value);
+    Reflect.set(element2, binder.name, binder.value);
+  } else if (isBool(binder.name)) {
+    const bool = !!target;
+    if (bool) {
+      element2.setAttribute(binder.name, "");
+    } else {
+      element2.removeAttribute(binder.name);
+    }
+    Reflect.set(element2, binder.name, bool);
+  } else if (hasOn(binder.name)) {
+    if (element2.hasAttribute(binder.name)) {
+      element2.removeAttribute(binder.name);
+    }
+    if (typeof binder.value === "function") {
+      element2.removeEventListener(
+        sliceOn(binder.name),
+        binder.value,
+        source?.[1] ?? true
       );
     }
-  }
-};
-var policy = "trustedTypes" in window ? window.trustedTypes.createPolicy("x-element", { createHTML: (data) => data }) : void 0;
-var createHTML = function(data) {
-  if (policy) {
-    return policy.createHTML(data);
-  } else {
-    return data;
-  }
-};
-
-// source/html.ts
-var symbol = Symbol("html");
-var cache = /* @__PURE__ */ new WeakMap();
-function html(strings, ...expressions) {
-  const value = cache.get(strings);
-  if (value) {
-    const [template, marker] = value;
-    return { strings, template, expressions, symbol, marker };
-  } else {
-    const marker = `x-${mark_default()}-x`;
-    let data = "";
-    const length = strings.length - 1;
-    for (let index = 0; index < length; index++) {
-      data += `${strings[index]}${marker}`;
+    const method = typeof target === "function" ? target : target?.[0];
+    if (typeof method !== "function") {
+      return console.warn(`XElement - attribute name "${binder.name}" expected a function`);
     }
-    data += strings[length];
-    const template = document.createElement("template");
-    template.innerHTML = createHTML(data);
-    cache.set(strings, [template, marker]);
-    return { strings, template, expressions, symbol, marker };
-  }
-}
-
-// source/render.ts
-var FILTER = 1 + 4;
-var TEXT_NODE = 3;
-var ELEMENT_NODE = 1;
-var ElementAction = function(source, target) {
-  if (target?.symbol === symbol) {
-    source = source ?? {};
-    target = target ?? {};
-    if (source.strings === target.strings) {
-      const l = this.actions.length;
-      for (let i = 0; i < l; i++) {
-        this.actions[i](source.expressions[i], target.expressions[i]);
-      }
-    } else {
-      this.actions.length = 0;
-      const fragment = target.template.content.cloneNode(true);
-      Render(fragment, this.actions, target.marker);
-      const l = this.actions.length;
-      for (let i = 0; i < l; i++) {
-        this.actions[i](source.expressions?.[i], target.expressions[i]);
-      }
-      document.adoptNode(fragment);
-      removeBetween(this.start, this.end);
-      this.end.parentNode?.insertBefore(fragment, this.end);
-    }
-  } else if (target?.constructor === Array) {
-    source = source ?? [];
-    target = target ?? [];
-    const oldLength = source.length;
-    const newLength = target.length;
-    const common = Math.min(oldLength, newLength);
-    for (let i = 0; i < common; i++) {
-      this.actions[i](source[i], target[i]);
-    }
-    if (oldLength < newLength) {
-      const template = document.createElement("template");
-      for (let i = oldLength; i < newLength; i++) {
-        const startChild = document.createTextNode("");
-        const endChild = document.createTextNode("");
-        const action = ElementAction.bind({
-          start: startChild,
-          end: endChild,
-          actions: []
-        });
-        template.content.appendChild(startChild);
-        template.content.appendChild(endChild);
-        this.actions.push(action);
-        action(source[i], target[i]);
-      }
-      this.end.parentNode?.insertBefore(template.content, this.end);
-    } else if (oldLength > newLength) {
-      for (let i = oldLength - 1; i > newLength - 1; i--) {
-        if (source[i]?.symbol === symbol) {
-          const { template } = source[i];
-          let removes = template.content.childNodes.length + 2;
-          while (removes--)
-            this.end.parentNode?.removeChild(this.end.previousSibling);
-        } else {
-          this.end.parentNode?.removeChild(this.end.previousSibling);
-          this.end.parentNode?.removeChild(this.end.previousSibling);
-          this.end.parentNode?.removeChild(this.end.previousSibling);
+    let oldResult;
+    binder.value = function() {
+      if (element2.nodeName === "INPUT" && element2.type === "radio") {
+        const radios = element2.ownerDocument.querySelectorAll(`input[name="${element2.name}"]`);
+        for (const radio of radios) {
+          if (radio.checked) {
+            oldResult = radio.checked;
+          }
         }
       }
-      this.actions.length = newLength;
-    }
-  } else {
-    if (source === target) {
-      return;
-    } else if (this.end.previousSibling === this.start) {
-      this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
-    } else if (this.end.previousSibling?.nodeType === TEXT_NODE && this.end.previousSibling?.previousSibling === this.start) {
-      this.end.previousSibling.textContent = display(target);
-    } else {
-      removeBetween(this.start, this.end);
-      this.end.parentNode?.insertBefore(document.createTextNode(display(target)), this.end);
-    }
-  }
-};
-var AttributeNameAction = function(source, target) {
-  if (source === target) {
-    return;
-  } else if (isValue(source)) {
-    this.element.removeAttribute(source);
-    Reflect.set(this.element, source, null);
-  } else if (hasOn(source)) {
-    if (typeof this.value === "function") {
-      this.element.removeEventListener(sliceOn(source), this.value, true);
-    }
-  } else if (isLink(source)) {
-    this.element.removeAttribute(source);
-  } else if (isBool(source)) {
-    this.element.removeAttribute(source);
-    Reflect.set(this.element, source, false);
-  } else if (source) {
-    this.element.removeAttribute(source);
-    Reflect.deleteProperty(this.element, source);
-  }
-  this.name = target?.toLowerCase() || "";
-  if (!this.name) {
-    return;
-  } else if (hasOn(this.name)) {
-    return;
-  } else if (isBool(this.name)) {
-    this.element.setAttribute(this.name, "");
-    Reflect.set(this.element, this.name, true);
-  } else {
-    this.element.setAttribute(this.name, "");
-    Reflect.set(this.element, this.name, void 0);
-  }
-};
-var AttributeValueAction = function(source, target) {
-  if (source === target) {
-    return;
-  } else if (isValue(this.name)) {
-    this.value = display(target);
-    if (!this.name)
-      return;
-    this.element.setAttribute(this.name, this.value);
-    Reflect.set(this.element, this.name, this.value);
-  } else if (hasOn(this.name)) {
-    if (!this.name)
-      return;
-    if (typeof this.value === "function") {
-      this.element.removeEventListener(sliceOn(this.name), this.value, true);
-    }
-    if (typeof target !== "function") {
-      return console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
-    }
-    this.value = function() {
-      return target.call(this, ...arguments);
-    };
-    this.element.addEventListener(sliceOn(this.name), this.value, true);
-  } else if (isLink(this.name)) {
-    this.value = encodeURI(target);
-    if (!this.name)
-      return;
-    if (dangerousLink(this.value)) {
-      this.element.removeAttribute(this.name);
-      console.warn(`XElement - attribute name "${this.name}" and value "${this.value}" not allowed`);
-      return;
-    }
-    this.element.setAttribute(this.name, this.value);
-  } else {
-    this.value = target;
-    if (!this.name)
-      return;
-    this.element.setAttribute(this.name, this.value);
-    Reflect.set(this.element, this.name, this.value);
-  }
-};
-var TagAction = function(source, target) {
-  if (source === target)
-    return;
-  const oldElement = this.element;
-  if (target) {
-    oldElement.parentNode?.removeChild(oldElement);
-    const newElement = document.createElement(target);
-    while (oldElement.firstChild)
-      newElement.appendChild(oldElement.firstChild);
-    if (oldElement.nodeType === ELEMENT_NODE) {
-      const attributeNames = oldElement.getAttributeNames();
-      for (const attributeName of attributeNames) {
-        const attributeValue = oldElement.getAttribute(attributeName) ?? "";
-        newElement.setAttribute(attributeName, attributeValue);
+      const newResult = method.call(this, event(binder));
+      if (newResult !== oldResult) {
+        oldResult = newResult;
+        update();
       }
+      return newResult;
+    };
+    if (isOnce(binder.name)) {
+      binder.value();
+    } else if (isTimeout(binder.name)) {
+      setTimeout(binder.value, target?.[1]);
+    } else {
+      element2.addEventListener(sliceOn(binder.name), binder.value, target?.[1] ?? true);
     }
-    this.holder.parentNode?.insertBefore(newElement, this.holder);
-    this.element = newElement;
   } else {
-    oldElement.parentNode?.removeChild(oldElement);
-    this.element = oldElement;
+    binder.value = target;
+    element2.setAttribute(binder.name, binder.value);
+    Reflect.set(element2, binder.name, binder.value);
   }
 };
-var Render = function(fragment, actions, marker) {
-  const holders = /* @__PURE__ */ new WeakSet();
-  const walker = document.createTreeWalker(fragment, FILTER, null);
-  walker.currentNode = fragment;
-  let node = fragment.firstChild;
-  while (node = walker.nextNode()) {
-    if (holders.has(node.previousSibling)) {
-      holders.delete(node.previousSibling);
-      actions.push(() => void 0);
+
+// source/text.ts
+var iterableDisplay = function(data) {
+  return data?.[ViewSymbol] ? data() : data instanceof Node ? data : display(data);
+};
+var text = function(node, binder, source, target) {
+  if (target === null || target === void 0) {
+    if (node.textContent !== "") {
+      node.textContent = "";
     }
-    if (node.nodeType === TEXT_NODE) {
-      const startIndex = node.nodeValue?.indexOf(marker) ?? -1;
-      if (startIndex === -1)
-        continue;
+  } else if (target?.[ViewSymbol]) {
+    if (!binder.start) {
+      binder.start = document.createTextNode("");
+      beforeNode(binder.start, node);
+    }
+    if (!binder.end) {
+      node.textContent = "";
+      binder.end = node;
+    }
+    removeBetween(binder.start, binder.end);
+    beforeNode(target(), binder.end);
+  } else if (target instanceof DocumentFragment) {
+    if (!binder.start) {
+      binder.start = document.createTextNode("");
+      beforeNode(binder.start, node);
+    }
+    if (!binder.end) {
+      node.textContent = "";
+      binder.end = node;
+    }
+    removeBetween(binder.start, binder.end);
+    beforeNode(target, binder.end);
+  } else if (isIterable(target)) {
+    if (binder.length === void 0) {
+      binder.length = 0;
+    }
+    if (!binder.results) {
+      binder.results = [];
+    }
+    if (!binder.markers) {
+      binder.markers = [];
+    }
+    if (!binder.start) {
+      binder.start = document.createTextNode("");
+      beforeNode(binder.start, node);
+    }
+    if (!binder.end) {
+      node.textContent = "";
+      binder.end = node;
+    }
+    const oldLength = binder.length;
+    const newLength = target.length;
+    const commonLength = Math.min(oldLength, newLength);
+    for (let index = 0; index < commonLength; index++) {
+      if (target[index] === binder.results[index] || target[index]?.[ViewSymbol] && binder.results[index]?.[ViewSymbol] && target[index]?.[MarkSymbol] === binder.results[index]?.[MarkSymbol]) continue;
+      const marker = binder.markers[index];
+      const last = binder.markers[index + 1] ?? binder.end;
+      while (last.previousSibling && last.previousSibling !== marker) {
+        removeNode(last.previousSibling);
+      }
+      const child = iterableDisplay(target[index]);
+      afterNode(child, marker);
+      console.log(binder.results[index], target[index], child, marker);
+      binder.results[index] = target[index];
+    }
+    if (oldLength < newLength) {
+      while (binder.length !== target.length) {
+        const marker = document.createTextNode("");
+        const child = iterableDisplay(target[binder.length]);
+        binder.markers.push(marker);
+        binder.results.push(target[binder.length]);
+        beforeNode(marker, binder.end);
+        beforeNode(child, binder.end);
+        binder.length++;
+      }
+    } else if (oldLength > newLength) {
+      const marker = binder.markers[target.length - 1];
+      const last = binder.end;
+      while (last.previousSibling && last.previousSibling !== marker) {
+        removeNode(last.previousSibling);
+      }
+      binder.length = target.length;
+      binder.results.length = target.length;
+      binder.markers.length = target.length;
+    }
+  } else if (target instanceof Node) {
+    replaceNode(target, node);
+  } else {
+    if (node.textContent === `${target}`) {
+      return;
+    } else {
+      node.textContent = `${target}`;
+    }
+  }
+};
+
+// source/action.ts
+var element = function(node, data, source, target) {
+  console.warn("element action not implemented");
+};
+var action = function(binder) {
+  const node = binder.node;
+  if (!node) {
+    return;
+  }
+  if (!isConnected(node) && binder.isInitialized) {
+    return;
+  }
+  const variable = binder.variable;
+  const isFunction = typeof variable === "function";
+  const isInstance = isFunction && variable[ViewSymbol];
+  const isOnce2 = binder.type === 3 && hasOn(binder.name);
+  const isReactive = !isInstance && !isOnce2 && isFunction;
+  if (isOnce2 || isInstance || !isFunction) {
+    binder.remove();
+  }
+  const target = isReactive ? variable(event(binder)) : isInstance ? variable() : variable;
+  const source = binder.source;
+  if ("source" in binder && (source === target || source?.[ViewSymbol] && target?.[ViewSymbol] && source?.[MarkSymbol] === target?.[MarkSymbol])) {
+    return;
+  }
+  if (binder.type === 1) {
+    element(node, binder, source, target);
+  } else if (binder.type === 2) {
+    attributeName(node, binder, source, target);
+  } else if (binder.type === 3) {
+    attributeValue(node, binder, source, target);
+  } else if (binder.type === 4) {
+    text(node, binder, source, target);
+  } else {
+    throw new Error("instruction type not valid");
+  }
+  binder.source = target;
+  binder.isInitialized = true;
+};
+
+// source/bind.ts
+var bind = function(type, index, variables, referenceNode, referenceName, referenceValue) {
+  const binder = {
+    type,
+    // index,
+    // variables,
+    isInitialized: false,
+    get variable() {
+      return variables[index];
+    },
+    set variable(data) {
+      variables[index] = data;
+    },
+    get node() {
+      const node = referenceNode.get();
+      if (node) {
+        return node;
+      } else {
+        BindersCache.delete(this);
+        return void 0;
+      }
+    },
+    get name() {
+      return referenceName.get();
+    },
+    set name(name) {
+      referenceName.set(name);
+    },
+    get value() {
+      return referenceValue.get();
+    },
+    set value(value) {
+      referenceValue.set(value);
+    },
+    remove() {
+      BindersCache.delete(this);
+    },
+    add() {
+      BindersCache.add(this);
+    }
+  };
+  binder.add();
+  return binder;
+};
+
+// source/initialize.ts
+var FILTER = SHOW_ELEMENT + SHOW_TEXT;
+var initialize = function(template, variables, marker, container) {
+  if (typeof container === "string") {
+    const selection = document.querySelector(container);
+    if (!selection) throw new Error("query not found");
+    const cache = ContainersCache.get(selection);
+    if (cache && cache === template) {
+      return selection;
+    } else {
+      ContainersCache.set(selection, template);
+    }
+  } else if (container instanceof Element || container instanceof ShadowRoot) {
+    const cache = ContainersCache.get(container);
+    if (cache && cache === template) {
+      return container;
+    } else {
+      ContainersCache.set(container, template);
+    }
+  }
+  const binders = [];
+  const fragment = template.content.cloneNode(true);
+  const walker = document.createTreeWalker(fragment, FILTER, null);
+  let node;
+  let index = 0;
+  while (walker.nextNode()) {
+    node = walker.currentNode;
+    const type = node.nodeType;
+    if (type === TEXT_NODE) {
+      let text2 = node;
+      const startIndex = text2.nodeValue?.indexOf(marker) ?? -1;
+      if (startIndex === -1) continue;
       if (startIndex !== 0) {
-        node.splitText(startIndex);
+        text2.splitText(startIndex);
         node = walker.nextNode();
+        text2 = node;
       }
       const endIndex = marker.length;
-      if (endIndex !== node.nodeValue?.length) {
-        node.splitText(endIndex);
+      if (endIndex !== text2.nodeValue?.length) {
+        text2.splitText(endIndex);
       }
-      const start = document.createTextNode("");
-      const end = node;
-      end.textContent = "";
-      end.parentNode?.insertBefore(start, end);
-      actions.push(ElementAction.bind({ marker, start, end, actions: [] }));
-    } else if (node.nodeType === ELEMENT_NODE) {
-      if (node.nodeName === "SCRIPT" || node.nodeName === "STYLE") {
+      const referenceNode = Reference(text2);
+      const binder = bind(4, index++, variables, referenceNode);
+      binders.unshift(binder);
+    } else if (type === ELEMENT_NODE) {
+      const element2 = node;
+      const tag = element2.tagName;
+      if (tag === "STYLE" || tag === "SCRIPT") {
         walker.nextSibling();
       }
-      const tMeta = {
-        element: node
-      };
-      if (isMarker(node.nodeName, marker)) {
-        holders.add(node);
-        tMeta.holder = document.createTextNode("");
-        node.parentNode?.insertBefore(tMeta.holder, node);
-        actions.push(TagAction.bind(tMeta));
+      let referenceNode;
+      if (matchMarker(tag, marker)) {
+        referenceNode = Reference(node);
+        const binder = bind(1, index++, variables, referenceNode);
+        binders.unshift(binder);
       }
-      const names = node.getAttributeNames();
+      const names = element2.getAttributeNames();
       for (const name of names) {
-        const value = node.getAttribute(name) ?? "";
-        if (hasMarker(name, marker) || hasMarker(value, marker)) {
-          const aMeta = {
-            name,
-            value,
-            previous: void 0,
-            get element() {
-              return tMeta.element;
-            }
-          };
-          if (hasMarker(name, marker)) {
-            node.removeAttribute(name);
-            actions.push(AttributeNameAction.bind(aMeta));
-          }
-          if (hasMarker(value, marker)) {
-            node.removeAttribute(name);
-            actions.push(AttributeValueAction.bind(aMeta));
+        const value = element2.getAttribute(name) ?? "";
+        const matchMarkerName = matchMarker(name, marker);
+        const hasMarkerValue = hasMarker(value, marker);
+        if (matchMarkerName || hasMarkerValue) {
+          referenceNode = referenceNode ?? Reference(node);
+          if (matchMarkerName && hasMarkerValue) {
+            const referenceName = Reference("");
+            const referenceValue = Reference("");
+            const binderName = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+            const binderValue = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+            element2.removeAttribute(name);
+            binders.unshift(binderName);
+            binders.unshift(binderValue);
+          } else if (matchMarkerName) {
+            const referenceName = Reference("");
+            const referenceValue = Reference(value);
+            const binder = bind(2, index++, variables, referenceNode, referenceName, referenceValue);
+            element2.removeAttribute(name);
+            binders.unshift(binder);
+          } else if (hasMarkerValue) {
+            const referenceName = Reference(name);
+            const referenceValue = Reference("");
+            const binder = bind(3, index++, variables, referenceNode, referenceName, referenceValue);
+            element2.removeAttribute(name);
+            binders.unshift(binder);
           }
         } else {
           if (isLink(name)) {
             if (dangerousLink(value)) {
-              node.removeAttribute(name);
-              console.warn(`XElement - attribute name "${name}" and value "${value}" not allowed`);
+              element2.removeAttribute(name);
+              console.warn(`attribute name "${name}" and value "${value}" not allowed`);
             }
           } else if (hasOn(name)) {
-            node.removeAttribute(name);
-            console.warn(`XElement - attribute name "${name}" not allowed`);
+            element2.removeAttribute(name);
+            console.warn(`attribute name "${name}" not allowed`);
           }
         }
       }
     } else {
-      console.warn(`XElement - node type "${node.nodeType}" not handled`);
+      console.warn(`walker node type "${type}" not handled`);
     }
   }
-};
-var render_default = Render;
-
-// source/context.ts
-var ContextSet = function(method, target, key, value, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.set(target, key, value, receiver);
-  const from = Reflect.get(target, key, receiver);
-  if (from === value)
-    return true;
-  if (Number.isNaN(from) && Number.isNaN(value))
-    return true;
-  Reflect.set(target, key, value, receiver);
-  method();
-  return true;
-};
-var ContextGet = function(method, target, key, receiver) {
-  if (typeof key === "symbol")
-    return Reflect.get(target, key, receiver);
-  const value = Reflect.get(target, key, receiver);
-  if (value) {
-    if (value.constructor === Function) {
-      return new Proxy(value, {
-        apply(t, _, a) {
-          return Reflect.apply(t, receiver, a);
-        }
-      });
-    }
-    if (value.constructor === Object || value.constructor === Array) {
-      return new Proxy(value, {
-        get: ContextGet.bind(null, method),
-        set: ContextSet.bind(null, method),
-        deleteProperty: ContextDelete.bind(null, method)
-      });
-    }
+  for (const binder of binders) {
+    action(binder);
   }
-  return value;
+  if (typeof container === "string") {
+    const selection = document.querySelector(container);
+    if (!selection) throw new Error("query not found");
+    replaceChildren(selection, fragment);
+    return selection;
+  } else if (container instanceof Element || container instanceof ShadowRoot) {
+    replaceChildren(container, fragment);
+    return container;
+  } else {
+    return fragment;
+  }
 };
-var ContextDelete = function(method, target, key) {
-  if (typeof key === "symbol")
-    return Reflect.deleteProperty(target, key);
-  Reflect.deleteProperty(target, key);
-  method();
-  return true;
-};
-var Context = function(data, method) {
-  return new Proxy(data, {
-    get: ContextGet.bind(null, method),
-    set: ContextSet.bind(null, method),
-    deleteProperty: ContextDelete.bind(null, method)
-  });
-};
-var context_default = Context;
 
 // source/dash.ts
-function dash(data) {
+var dash = function(data) {
   data = data.replace(/([a-zA-Z])([A-Z])/g, "$1-$2");
   data = data.toLowerCase();
   data = data.includes("-") ? data : `x-${data}`;
   return data;
-}
-
-// source/events.ts
-var adoptedEvent = new Event("adopted");
-var adoptingEvent = new Event("adopting");
-var upgradedEvent = new Event("upgraded");
-var upgradingEvent = new Event("upgrading");
-var creatingEvent = new Event("creating");
-var createdEvent = new Event("created");
-var renderingEvent = new Event("rendering");
-var renderedEvent = new Event("rendered");
-var connectedEvent = new Event("connected");
-var connectingEvent = new Event("connecting");
-var attributedEvent = new Event("attributed");
-var attributingEvent = new Event("attributing");
-var disconnectedEvent = new Event("disconnected");
-var disconnectingEvent = new Event("disconnecting");
+};
 
 // source/define.ts
-function define(name, constructor) {
-  if (customElements.get(name) !== constructor) {
-    customElements.define(name, constructor);
-  }
-}
-
-// source/upgrade.ts
-var upgrade_default = (instance) => {
-  if (customElements.upgrade) {
-    customElements.upgrade(instance);
-  }
+var define = function(tag, extend) {
+  return function(constructor) {
+    const $tag = dash(tag);
+    const $extend = extend;
+    customElements.define($tag, constructor, { extends: $extend });
+  };
 };
 
-// source/component.ts
-var tick = () => Promise.resolve();
-var task = Symbol("Task");
-var update = Symbol("Update");
-var create = Symbol("Create");
-var Component = class extends HTMLElement {
-  static html = html;
-  /**
-   * Defines the custom element and return the constructor.
-   */
-  static define(tag = this.tag ?? this.name) {
-    tag = dash(tag);
-    define(tag, this);
-    return this;
-  }
-  /**
-   * Define, Create, Upgrade, and return element.
-   */
-  static create(tag) {
-    tag = dash(this.tag ?? this.name);
-    define(tag, this);
-    const instance = document.createElement(tag);
-    upgrade_default(instance);
-    return instance;
-  }
-  /**
-   * Define, Create, Upgrade, waits until first render, and return element.
-   */
-  static async upgrade(tag) {
-    tag = dash(this.tag ?? this.name);
-    define(tag, this);
-    const instance = document.createElement(tag);
-    upgrade_default(instance);
-    await instance[create]();
-    return instance;
-  }
-  /**
-   * Configuration to define a element Tag name for use by the define() and create() method.
-   * Default value will use the function.constructor.name.
-   */
-  static tag;
-  /**
-   * Configuration to use shadow root.
-   * Default is false.
-   */
-  static shadow;
-  /**
-   * Configuration of the shadow mode attachment.
-   * Default is open.
-   */
-  static mode;
-  /**
-   * Alternative configuration optimization that allows the specific definition of reactive properties on the Element.
-   * Default will use getOwnPropertyNames on the Instance and Prototype to redfine properties as reactive.
-   */
-  static observedProperties;
-  #context = {};
-  #root;
-  #marker = "";
-  #actions = [];
-  #expressions = [];
-  #queued = false;
-  #started = false;
-  #restart = false;
-  #created = false;
-  [task] = Promise.resolve();
-  constructor() {
-    super();
-    const constructor = this.constructor;
-    const shadow = constructor.shadow;
-    if (shadow && !this.shadowRoot) {
-      const mode = constructor.mode || "open";
-      this.attachShadow({ mode });
-    }
-    this.#root = this.shadowRoot ?? this;
-  }
-  async attributeChangedCallback(name, oldValue, newValue) {
-    this.dispatchEvent(attributingEvent);
-    await this.attribute?.(name, oldValue, newValue)?.catch(console.error);
-    this.dispatchEvent(attributedEvent);
-  }
-  async adoptedCallback() {
-    this.dispatchEvent(adoptingEvent);
-    await this.adopted?.(this.#context)?.catch(console.error);
-    this.dispatchEvent(adoptedEvent);
-  }
-  async connectedCallback() {
-    if (!this.#created) {
-      await this[create]();
-    } else {
-      this.dispatchEvent(connectingEvent);
-      await this.connected?.(this.#context)?.catch(console.error);
-      this.dispatchEvent(connectedEvent);
-    }
-  }
-  async disconnectedCallback() {
-    this.dispatchEvent(disconnectingEvent);
-    await this.disconnected?.(this.#context)?.catch(console.error);
-    this.dispatchEvent(disconnectedEvent);
-  }
-  async [create]() {
-    this.#created = true;
-    this.#queued = true;
-    this.#started = true;
-    const constructor = this.constructor;
-    const observedProperties = constructor.observedProperties;
-    const prototype = Object.getPrototypeOf(this);
-    const properties = observedProperties ? observedProperties ?? [] : [
-      ...Object.getOwnPropertyNames(this),
-      ...Object.getOwnPropertyNames(prototype)
-    ];
-    for (const property of properties) {
-      if ("attributeChangedCallback" === property || "disconnectedCallback" === property || "connectedCallback" === property || "adoptedCallback" === property || "constructor" === property || "disconnected" === property || "attribute" === property || "connected" === property || "rendered" === property || "created" === property || "adopted" === property || "render" === property || "setup" === property)
-        continue;
-      const descriptor = Object.getOwnPropertyDescriptor(this, property) ?? Object.getOwnPropertyDescriptor(prototype, property);
-      if (!descriptor)
-        continue;
-      if (!descriptor.configurable)
-        continue;
-      if (typeof descriptor.value === "function")
-        descriptor.value = descriptor.value.bind(this);
-      if (typeof descriptor.get === "function")
-        descriptor.get = descriptor.get.bind(this);
-      if (typeof descriptor.set === "function")
-        descriptor.set = descriptor.set.bind(this);
-      Object.defineProperty(this.#context, property, descriptor);
-      Object.defineProperty(this, property, {
-        configurable: false,
-        enumerable: descriptor.enumerable,
-        // configurable: descriptor.configurable,
-        get() {
-          return this.#context[property];
-        },
-        set(value) {
-          this.#context[property] = value;
-          this[update]();
+// source/style.ts
+var Sheets = /* @__PURE__ */ new WeakMap();
+var style = function(instance) {
+  if (instance.shadowRoot) {
+    const root = document.getRootNode();
+    instance.shadowRoot.adoptedStyleSheets.push(...root.adoptedStyleSheets);
+    for (const rootSheet of root.styleSheets) {
+      let cacheSheet = Sheets.get(rootSheet);
+      if (!cacheSheet) {
+        cacheSheet = new CSSStyleSheet();
+        const { cssRules } = rootSheet;
+        for (const { cssText } of cssRules) {
+          cacheSheet.insertRule(cssText);
         }
-      });
-    }
-    this.#context = context_default(this.#context, this[update].bind(this));
-    const template = await this.render?.(this.#context);
-    if (template) {
-      const fragment = template.template.content.cloneNode(true);
-      this.#marker = template.marker;
-      this.#expressions = template.expressions;
-      render_default(fragment, this.#actions, this.#marker);
-      for (let index = 0; index < this.#actions.length; index++) {
-        const newExpression = template.expressions[index];
-        try {
-          this.#actions[index](void 0, newExpression);
-        } catch (error) {
-          console.error(error);
-        }
+        Sheets.set(rootSheet, cacheSheet);
       }
-      document.adoptNode(fragment);
-      this.#root.appendChild(fragment);
+      instance.shadowRoot.adoptedStyleSheets.push(cacheSheet);
     }
-    this.dispatchEvent(creatingEvent);
-    await this.created?.(this.#context);
-    this.dispatchEvent(createdEvent);
-    this.dispatchEvent(connectingEvent);
-    await this.connected?.(this.#context)?.catch(console.error);
-    this.dispatchEvent(connectedEvent);
-    this.#queued = false;
-    this.#started = false;
-    this.#restart = false;
-    await this[update]();
-  }
-  async [update]() {
-    if (this.#queued && !this.#started) {
-      return this[task];
-    }
-    if (this.#queued && this.#started) {
-      this.#restart = true;
-      return this[task];
-    }
-    this.#queued = true;
-    this[task] = this[task].then(async () => {
-      this.dispatchEvent(renderingEvent);
-      const template = await this.render?.(this.#context);
-      this.#started = true;
-      if (template) {
-        for (let index = 0; index < this.#actions.length; index++) {
-          if (this.#restart) {
-            await tick();
-            index = -1;
-            this.#restart = false;
-            continue;
-          }
-          const newExpression = template.expressions[index];
-          const oldExpression = this.#expressions[index];
-          try {
-            this.#actions[index](oldExpression, newExpression);
-          } catch (error) {
-            console.error(error);
-          }
-          this.#expressions[index] = template.expressions[index];
-        }
-      }
-      this.#queued = false;
-      this.#started = false;
-      await this.rendered?.(this.#context);
-      this.dispatchEvent(renderedEvent);
-    }).catch(console.error);
-    return this[task];
   }
 };
-
-// source/router.ts
-var alls = [];
-var routes = [];
-var tick2 = function(element) {
-  return new Promise(async (resolve) => {
-    if (element && element instanceof Component) {
-      await element[task];
-      requestAnimationFrame(() => resolve(void 0));
-    } else {
-      requestAnimationFrame(() => resolve(void 0));
-    }
-  });
-};
-var transition = async function(route) {
-  if (route.instance) {
-    const ready = tick2(route.instance);
-    replaceChildren(route.root, route.instance);
-    await ready;
-  } else {
-    const result = await route.handler();
-    if (result?.prototype instanceof HTMLElement) {
-      route.construct = result;
-    } else if (result?.default?.prototype instanceof HTMLElement) {
-      route.construct = result.default;
-    } else {
-      throw new Error("XElement - router handler requires Module or CustomElementConstructor");
-    }
-    if (route.construct.prototype instanceof Component) {
-      route.instance = await route.construct.create();
-    } else {
-      route.tag = dash(route.construct.name);
-      define(route.tag, route.construct);
-      route.instance = document.createElement(route.tag);
-      upgrade_default(route.instance);
-    }
-    const ready = tick2(route.instance);
-    replaceChildren(route.root, route.instance);
-    await ready;
-  }
-};
-var navigate = function(event) {
-  if (event && "canIntercept" in event && event.canIntercept === false)
-    return;
-  if (event && "canTransition" in event && event.canTransition === false)
-    return;
-  const destination = new URL(event?.destination.url ?? location.href);
-  const base = new URL(document.querySelector("base")?.href ?? location.origin);
-  base.hash = "";
-  base.search = "";
-  destination.hash = "";
-  destination.search = "";
-  const pathname = destination.href.replace(base.href, "/");
-  const transitions = [];
-  for (const route of routes) {
-    if (route.path !== pathname)
-      continue;
-    transitions.push(route);
-  }
-  for (const all of alls) {
-    let has = false;
-    for (const transition2 of transitions) {
-      if (transition2.root === all.root) {
-        has = true;
-        break;
-      }
-    }
-    if (has)
-      continue;
-    transitions.push(all);
-  }
-  if (event?.intercept) {
-    return event.intercept({
-      handler: async () => {
-        await Promise.all(transitions.map((route) => transition(route)));
-      }
-    });
-  } else if (event?.transitionWhile) {
-    return event.transitionWhile(Promise.all(transitions.map((route) => transition(route))));
-  } else {
-    Promise.all(transitions.map((route) => transition(route)));
-  }
-};
-var router = function(path, root, handler) {
-  if (!path)
-    throw new Error("XElement - router path required");
-  if (!handler)
-    throw new Error("XElement - router handler required");
-  if (!root)
-    throw new Error("XElement - router root required");
-  if (path === "/*") {
-    for (const all of alls) {
-      if (all.path === path && all.root === root) {
-        throw new Error("XElement - router duplicate path on root");
-      }
-    }
-    alls.push({ path, root, handler });
-  } else {
-    for (const route of routes) {
-      if (route.path === path && route.root === root) {
-        throw new Error("XElement - router duplicate path on root");
-      }
-    }
-    routes.push({ path, root, handler, instance: void 0 });
-  }
-  Reflect.get(window, "navigation").addEventListener("navigate", navigate);
-};
-var router_default = router;
 
 // source/index.ts
-var source_default = {
-  Component,
-  component: Component,
-  Router: router_default,
-  router: router_default,
-  html
+var html = function(strings, ...variables) {
+  let marker;
+  let template;
+  const cache = TemplatesCache.get(strings);
+  if (cache) {
+    marker = cache.marker;
+    template = cache.template;
+  } else {
+    marker = mark();
+    let innerHTML = "";
+    const length = strings.length - 1;
+    for (let index = 0; index < length; index++) {
+      innerHTML += `${strings[index]}${marker}`;
+    }
+    innerHTML += strings[length];
+    template = document.createElement("template");
+    template.innerHTML = innerHTML;
+    TemplatesCache.set(strings, { template, marker });
+  }
+  const meta = {
+    [ViewSymbol]: true,
+    [MarkSymbol]: marker,
+    [TemplateSymbol]: template,
+    [VariablesSymbol]: variables
+  };
+  return Object.assign(initialize.bind(meta, template, variables, marker), meta);
 };
 export {
-  Component,
-  router_default as Router,
-  Component as component,
-  source_default as default,
+  define,
   html,
-  router_default as router
+  style,
+  update,
+  updateAllSync
 };
 //# sourceMappingURL=esnext.js.map

@@ -1,7 +1,7 @@
-import { Binder, BinderType, ReferenceType, Variables } from './types.ts';
-import { BindersCache } from './global.ts';
-import { update } from './update.ts';
-import { action } from './action.ts';
+import { Binder, BinderType, ReferenceType, Variables } from './types';
+import { BindersCache } from './global';
+// import { update } from './update';
+// import { action } from './action';
 
 // const ro = new ResizeObserver(function (entries) {
 //     console.log(arguments);

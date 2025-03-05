@@ -1,4 +1,4 @@
-import { dash } from './dash.ts';
+import { dash } from './dash';
 
 // export const define = function (tag: string, extend?: string) {
 //     return (constructor: CustomElementConstructor, context: ClassDecoratorContext) => {
