@@ -1,15 +1,15 @@
-import { MarkSymbol, TemplatesCache, TemplateSymbol, VariablesSymbol, ViewSymbol } from './global.ts';
-import { Initialize, Variables } from './types.ts';
-import { initialize } from './initialize.ts';
-import { update } from './update.ts';
-import { define } from './define.ts';
-import { mark } from './tools.ts';
+import { MarkSymbol, TemplatesCache, TemplateSymbol, VariablesSymbol, ViewSymbol } from './global';
+import { Initialize, Variables } from './types';
+import { initialize } from './initialize';
+import { update, updateAllSync } from './update';
+import { define } from './define';
+import { mark } from './tools';
 
-import { style } from './style.ts';
+import { style } from './style';
 
 // const query = (node: Node, selector: Selector) => selector.reduce((n, s) => n[ s ], node);
 
-export { define, style, update };
+export { define, style, update, updateAllSync };
 
 // const connectedEvent = new CustomEvent('connected');
 // const disconnectedEvent = new CustomEvent('disconnected');

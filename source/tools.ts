@@ -1,3 +1,23 @@
+
+// globalThis.NodeFilter = globalThis.NodeFilter || {
+//     FILTER_ACCEPT: 1,
+//     FILTER_REJECT: 2,
+//     FILTER_SKIP: 3,
+//     SHOW_ALL: 0xFFFFFFFF,
+//     SHOW_ELEMENT: 0x1,
+//     SHOW_ATTRIBUTE: 0x2,
+//     SHOW_TEXT: 0x4,
+//     SHOW_CDATA_SECTION: 0x8,
+//     SHOW_ENTITY_REFERENCE: 0x10,
+//     SHOW_ENTITY: 0x20,
+//     SHOW_PROCESSING_INSTRUCTION: 0x40,
+//     SHOW_COMMENT: 0x80,
+//     SHOW_DOCUMENT: 0x100,
+//     SHOW_DOCUMENT_TYPE: 0x200,
+//     SHOW_DOCUMENT_FRAGMENT: 0x400,
+//     SHOW_NOTATION: 0x800,
+// };
+
 export const {
     SHOW_TEXT,
     SHOW_ELEMENT,
@@ -80,6 +100,7 @@ const patternBool = new RegExp(
 
 const patternAnimation = /^[.@$]?onanimation$/i;
 const patternTimeout = /^[.@$]?ontimeout$/i;
+const patternOnce = /^[.@$]?ononce$/i;
 const patternValue = /^[.@$]?value$/i;
 const patternOn = /^[.@$]?on/i;
 const patternMarker = /^x-[0-9]{10}-x$/i;
@@ -100,6 +121,10 @@ export const isIterable = function (data: any): boolean {
 
 export const isAnimation = function (data: string): boolean {
     return data && typeof data === 'string' ? patternAnimation.test(data) : false;
+};
+
+export const isOnce = function (data: string): boolean {
+    return data && typeof data === 'string' ? patternOnce.test(data) : false;
 };
 
 export const isTimeout = function (data: string): boolean {

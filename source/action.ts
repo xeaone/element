@@ -1,11 +1,11 @@
-import { attributeName } from './attribute-name.ts';
-import { attributeValue } from './attribute-value.ts';
-import { hasOn, isConnected } from './tools.ts';
-import { ViewSymbol } from './global.ts';
-import { Binder } from './types.ts';
-import { event } from './event.ts';
-import { text } from './text.ts';
-import { MarkSymbol } from './global.ts';
+import { attributeName } from './attribute-name';
+import { attributeValue } from './attribute-value';
+import { hasOn, isConnected } from './tools';
+import { ViewSymbol } from './global';
+import { Binder } from './types';
+import { event } from './event';
+import { text } from './text';
+import { MarkSymbol } from './global';
 
 /**
  * @module Action

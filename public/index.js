@@ -12,7 +12,7 @@ var __export = (target, all) => {
 var global, BindersCache, TemplatesCache, ContainersCache, MarkSymbol, ViewSymbol, TemplateSymbol, VariablesSymbol;
 var init_global = __esm({
   "source/global.ts"() {
-    global = window.XGLOBAL ?? (window.XGLOBAL = Object.freeze({
+    global = globalThis.XGLOBAL ?? (globalThis.XGLOBAL = Object.freeze({
       // QueueNext: undefined,
       // QueueCurrent: undefined,
       Bound: /* @__PURE__ */ new WeakMap(),
@@ -51,7 +51,7 @@ var init_global = __esm({
 });
 
 // source/tools.ts
-var SHOW_TEXT, SHOW_ELEMENT, TEXT_NODE, COMMENT_NODE, ELEMENT_NODE, ATTRIBUTE_NODE, DOCUMENT_FRAGMENT_NODE, patternLink, patternBool, patternTimeout, patternValue, patternOn, safePattern, isLink, isBool, isIterable, isTimeout, isValue, hasOn, matchMarker, hasMarker, sliceOn, isConnected, mark, dangerousLink, removeBetween, removeNode, beforeNode, afterNode, replaceNode, replaceChildren;
+var SHOW_TEXT, SHOW_ELEMENT, TEXT_NODE, COMMENT_NODE, ELEMENT_NODE, ATTRIBUTE_NODE, DOCUMENT_FRAGMENT_NODE, patternLink, patternBool, patternTimeout, patternOnce, patternValue, patternOn, safePattern, isLink, isBool, isIterable, isOnce, isTimeout, isValue, hasOn, matchMarker, hasMarker, sliceOn, isConnected, mark, dangerousLink, removeBetween, removeNode, beforeNode, afterNode, replaceNode, replaceChildren;
 var init_tools = __esm({
   "source/tools.ts"() {
     ({
@@ -128,6 +128,7 @@ var init_tools = __esm({
       "i"
     );
     patternTimeout = /^[.@$]?ontimeout$/i;
+    patternOnce = /^[.@$]?ononce$/i;
     patternValue = /^[.@$]?value$/i;
     patternOn = /^[.@$]?on/i;
     safePattern = /^(?!javascript:)(?:[a-z0-9+.-]+:|[^&:\/?#]*(?:[\/?#]|$))/i;
@@ -139,6 +140,9 @@ var init_tools = __esm({
     };
     isIterable = function(data) {
       return data && typeof data !== "string" && typeof data[Symbol.iterator] === "function";
+    };
+    isOnce = function(data) {
+      return data && typeof data === "string" ? patternOnce.test(data) : false;
     };
     isTimeout = function(data) {
       return data && typeof data === "string" ? patternTimeout.test(data) : false;
@@ -317,6 +321,7 @@ var init_update = __esm({
     init_global();
     init_action();
     next = async function() {
+      console.log("next");
       await Current;
       await new Promise((resolve) => {
         queueMicrotask(async () => {
@@ -327,6 +332,7 @@ var init_update = __esm({
       });
     };
     update = async function() {
+      console.log("update");
       if (Current) {
         if (Next) {
           await Next;
@@ -359,13 +365,12 @@ var init_update = __esm({
 var event;
 var init_event = __esm({
   "source/event.ts"() {
-    init_update();
     event = function(binder) {
       return {
         get target() {
           return binder?.node;
         },
-        update,
+        // update,
         query(selector) {
           return binder?.node?.getRootNode()?.querySelector(selector);
         }
@@ -452,7 +457,9 @@ var init_attribute_value = __esm({
           }
           return newResult;
         };
-        if (isTimeout(binder.name)) {
+        if (isOnce(binder.name)) {
+          binder.value();
+        } else if (isTimeout(binder.name)) {
           setTimeout(binder.value, target?.[1]);
         } else {
           element2.addEventListener(sliceOn(binder.name), binder.value, target?.[1] ?? true);
@@ -594,9 +601,9 @@ var init_action = __esm({
       const variable = binder.variable;
       const isFunction = typeof variable === "function";
       const isInstance = isFunction && variable[ViewSymbol];
-      const isOnce = binder.type === 3 && hasOn(binder.name);
-      const isReactive = !isInstance && !isOnce && isFunction;
-      if (isOnce || isInstance || !isFunction) {
+      const isOnce2 = binder.type === 3 && hasOn(binder.name);
+      const isReactive = !isInstance && !isOnce2 && isFunction;
+      if (isOnce2 || isInstance || !isFunction) {
         binder.remove();
       }
       const target = isReactive ? variable(event(binder)) : isInstance ? variable() : variable;

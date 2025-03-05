@@ -1,5 +1,5 @@
-import { hasOn, isBool, isLink, isValue, sliceOn } from './tools.ts';
-import { Binder } from './types.ts';
+import { hasOn, isBool, isLink, isValue, sliceOn } from './tools';
+import { Binder } from './types';
 
 export const attributeName = function (element: Element, binder: Binder, source: any, target: any): void {
     source = source?.toLowerCase() ?? '';

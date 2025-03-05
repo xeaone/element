@@ -23,6 +23,7 @@ Provide a knowledge transferable future proof, reactive data binding, library fo
 [https://xeaone.github.io/element/](https://xeaone.github.io/element/)
 
 ## Examples
+
 ```js
 import { html } from 'https://esm.sh/@xeaone/element/module/index.js';
 
@@ -33,6 +34,7 @@ export default () => html`
     <button onclick=${() => count++}>Greet</button>
 `(document.body);
 ```
+
 
 ## Custom Element
 ```js
@@ -62,6 +64,7 @@ The two directories to use are `module` and `bundle`. Bundle includes ESNext and
 ```
 npm install @xeaone/element
 ```
+<!-- deno add @xeaone/element -->
 
 ## CDN
 [https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)

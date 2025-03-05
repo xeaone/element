@@ -1,9 +1,9 @@
-import { dangerousLink, hasOn, isBool, isLink, isValue, sliceOn } from './tools.ts';
-import { display } from './display.ts';
-import { update } from './update.ts';
-import { Binder } from './types.ts';
-import { event } from './event.ts';
-import { isTimeout } from './tools.ts';
+import { dangerousLink, hasOn, isBool, isLink, isOnce, isValue, sliceOn } from './tools';
+import { display } from './display';
+import { update } from './update';
+import { Binder } from './types';
+import { event } from './event';
+import { isTimeout } from './tools';
 
 const isRadioChecked = function (element: Element) {
     if (element.nodeName === 'INPUT' && (element as HTMLInputElement).type === 'radio') {
@@ -103,7 +103,9 @@ export const attributeValue = function (element: Element, binder: Binder, source
             return newResult;
         };
 
-        if (isTimeout(binder.name)) {
+        if (isOnce(binder.name)) {
+            binder.value();
+        } else if (isTimeout(binder.name)) {
             setTimeout(binder.value, target?.[1]);
         } else {
             element.addEventListener(sliceOn(binder.name), binder.value, target?.[1] ?? true);

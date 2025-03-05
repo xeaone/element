@@ -1,4 +1,17 @@
-import { ReferenceType } from './types.ts';
+import { ReferenceType } from './types';
+
+// if (!('WeakRef' in globalThis)) {
+//     globalThis['WeakRef'] = (function () {
+//         const wm = new WeakMap();
+//         const WeakRef = function (target) {
+//             wm.set(this, target);
+//         };
+//         WeakRef.prototype.deref = function () {
+//             return wm.get(this);
+//         };
+//         return WeakRef as any;
+//     })();
+// }
 
 export const Reference = function <T>(data: T): ReferenceType<T> {
     return {
