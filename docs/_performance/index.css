@@ -1,0 +1,35 @@
+:not(:defined) {
+    visibility: hidden;
+}
+
+html > * {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+body,
+o-loop {
+    width: 100%;
+    height: 3000px;
+    display: block;
+}
+
+.box {
+    width: 60px;
+    margin: 1px;
+    font-size: 12px;
+    text-align: center;
+    display: inline-block;
+    background: lightgray;
+}
+
+.box input {
+    width: 90%;
+    margin: auto;
+    display: block;
+}
+
+.wrap {
+    overflow: hidden;
+}
