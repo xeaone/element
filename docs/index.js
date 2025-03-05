@@ -1278,16 +1278,15 @@ var init_all = __esm({
 });
 
 // client/index.ts
-var pathname = location.pathname.toLowerCase().replace(/^\/|\/+$/g, "");
+var pathname = location.pathname.toLowerCase().replace("/element/", "").replace(/^\/|\/+$/g, "");
 switch (pathname) {
   case "":
-  case "/":
     await Promise.resolve().then(() => (init_root(), root_exports));
     break;
-  case "/guide":
+  case "guide":
     await Promise.resolve().then(() => (init_guide(), guide_exports));
     break;
-  case "/performance":
+  case "performance":
     await Promise.resolve().then(() => (init_performance(), performance_exports));
     break;
   default:

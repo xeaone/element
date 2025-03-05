@@ -3,17 +3,16 @@
 
 // const main = document.querySelector('main');
 
-const pathname = location.pathname.toLowerCase().replace(/^\/|\/+$/g, '');
+const pathname = location.pathname.toLowerCase().replace('/element/', '').replace(/^\/|\/+$/g, '');
 
 switch (pathname) {
     case '':
-    case '/':
         await import('./root.ts');
         break;
-    case '/guide':
+    case 'guide':
         await import('./guide.ts');
         break;
-    case '/performance':
+    case 'performance':
         await import('./performance.ts');
         break;
     default:
