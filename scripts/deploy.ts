@@ -1,11 +1,11 @@
 import { increment, ReleaseType } from '@std/semver';
 import { copy, emptyDir } from '@std/fs';
 
-const [release] = Deno.args;
-if (!release) {
-    console.warn('argument required: pre, major, premajor, minor, preminor, patch, prepatch, prerelease');
-    Deno.exit();
-}
+// const [release] = Deno.args;
+// if (!release) {
+//     console.warn('argument required: major, minor, patch');
+//     Deno.exit();
+// }
 
 const f = await (new Deno.Command('git', { args: ['fetch'] }).spawn()).output();
 if (!f.success) {
@@ -19,16 +19,20 @@ if (!n.success) {
     Deno.exit();
 }
 
+const [ version ] = Deno.args;
+if (!version) {
+    console.warn('version required');
+    Deno.exit();
+}
+
 const dc = JSON.parse(await Deno.readTextFile('deno.json'));
 const nc = JSON.parse(await Deno.readTextFile('package.json'));
 
-dc.version = increment(dc.version, release as ReleaseType);
-nc.version = increment(nc.version, release as ReleaseType);
+dc.version = version;
+nc.version = version;
 
-const { version } = dc;
-
-const proceed = confirm(`Do you want to deploy version ${version}?`);
-if (!proceed) Deno.exit();
+// const proceed = confirm(`Do you want to deploy version ${version}?`);
+// if (!proceed) Deno.exit();
 
 await Deno.writeTextFile('deno.json', JSON.stringify(dc, null, '    '));
 await Deno.writeTextFile('package.json', JSON.stringify(nc, null, '    '));
