@@ -1,0 +1,84 @@
+<base href="/">
+<title>Vue Performance</title>
+<script>document.querySelector('base').href = location.pathname.startsWith('/element') ? '/element/performance/' : '/performance/';</script>
+<link rel="stylesheet" href="./index.css">
+
+<h1>Vue Performance</h1>
+
+<div id="scope">
+
+    <!-- <span>{{text}}</span>
+    <input v-model="text" :value="text.toLowerCase()">
+    <input v-model="text" :value="text.toUpperCase()"> -->
+
+    {{count}}
+
+    <h3>{{count}} bound elements</h3>
+    <input v-model="count" type="number">
+    <br>
+
+    <button v-on:click="push">push</button>
+    <button v-on:click="overwrite">overwrite</button>
+    <button v-on:click="raw">raw</button>
+    <button v-on:click="clear">clear</button>
+
+    <div id="raw"></div>
+
+    <div id="push">
+        <div class="box" v-for="item in items">{{item.number}}</div>
+    </div>
+
+</div>
+
+<script src="https://unpkg.com/vue@next"></script>
+<script>
+    Vue.createApp({
+        data() {
+            return {
+                text: 'Hello World',
+                items: [],
+                message: '',
+                count: 100000,
+            };
+        },
+        methods: {
+            raw() {
+                console.time('raw');
+                const template = document.createElement('template');
+                let html = '';
+                for (var i = 0; i < this.count; i++) {
+                    html += `
+                    <div class="box">
+                        <div>${i}</div>
+                        <input value="${i}">
+                    </div>
+                `;
+                }
+                template.innerHTML = html;
+                const raw = document.getElementById('raw');
+                raw.appendChild(template.content);
+                console.timeEnd('raw');
+            },
+            push() {
+                console.time('push');
+                for (var i = 0; i < this.count; i++) {
+                    this.items.push({ number: i });
+                }
+                console.timeEnd('push');
+            },
+            overwrite() {
+                console.time('overwrite');
+                var items = [];
+                for (var i = 0; i < this.count; i++) {
+                    items.push({ number: i });
+                }
+                this.items = items;
+                console.timeEnd('overwrite');
+                window.model = this;
+            },
+            clear() {
+                this.items = [];
+            }
+        }
+    }).mount('#scope')
+</script>
