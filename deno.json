@@ -34,6 +34,7 @@
         "w": "deno run -A scripts/watch.ts",
         "build-bundle": "deno run -A scripts/build.ts",
         "build-module": "npx tsc -p tsconfig.json",
+        "build-site": "deno run -A scripts/build-site.ts",
         "watch-idea": "deno run -A scripts/watch-idea.ts",
         "watch-virtual": "deno run -A scripts/watch-virtual.ts"
     },

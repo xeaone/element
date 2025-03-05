@@ -2,10 +2,12 @@
 // import guide from './guide.js';
 
 // const main = document.querySelector('main');
-const pathname = location.pathname.toLowerCase().replace(/\/+$/, '');
+
+const pathname = location.pathname.toLowerCase().replace(/^\/|\/+$/g, '');
 
 switch (pathname) {
     case '':
+    case '/':
         await import('./root.ts');
         break;
     case '/guide':

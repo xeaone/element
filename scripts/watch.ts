@@ -1,12 +1,5 @@
 import esbuild from '@esbuild';
 
-// const tsc = new Deno.Command('npx', {
-//     args: [
-//         'tsc',
-//         '--watch',
-//     ]
-// }).spawn();
-
 const index = await Deno.readTextFile('./public/index.html');
 
 await Deno.writeTextFile('./public/404.html', index);
@@ -25,7 +18,6 @@ const result = await esbuild.context({
     platform: 'browser',
     outfile: 'public/index.js',
     entryPoints: ['client/index.ts'],
-    // entryPoints: [ 'tmp/client/index.js' ],
     tsconfigRaw: {
         compilerOptions: {
             experimentalDecorators: true,
@@ -36,4 +28,3 @@ const result = await esbuild.context({
 await result.watch();
 await result.serve({ servedir: 'public' });
 
-// await tsc.output();
