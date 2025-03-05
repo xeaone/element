@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&family=Noto+Sans:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&family=Noto+Sans:ital,wght@0,300;0,400;0,700;1,400&display=swap'); */
 
 * {
     box-sizing: border-box;
@@ -148,7 +148,7 @@ i {
 }
 
 li {
-    margin: 0.6rem;
+    margin: 0.1rem;
 }
 
 h1 {
@@ -162,7 +162,7 @@ h1 {
 h2 {
     font-size: 2.5rem;
     color: var(--font);
-    margin: 2rem 0 1rem 0;
+    margin: 1.5rem 0 1rem 0;
     font-weight: normal;
     font-family: inherit;
 }
@@ -173,12 +173,12 @@ h3 {
     color: var(--font);
     font-weight: normal;
     font-family: inherit;
-    margin: 3rem 0 1rem 0;
+    margin: 1rem 0 1rem 0;
     border-bottom: solid 2px var(--layer6);
 }
 
 h4 {
-    margin: 0.5rem 0;
+    margin: 0.5rem 0 1rem 0;
     font-size: 1.5rem;
     color: var(--font);
     font-weight: normal;
