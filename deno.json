@@ -1,6 +1,7 @@
 {
-    "version": "10.0.0",
+    "version": "10.0.1",
     "name": "@xeaone/element",
+    "exports": "./module/index.ts",
     "nodeModulesDir": "none",
     "compilerOptions": {
         "lib": [
@@ -32,11 +33,9 @@
     },
     "tasks": {
         "d": "deno run -A scripts/deploy.ts",
-        "t": "deno test -A scripts/test.ts --unstable-sloppy-imports",
         "w": "deno run -A scripts/watch.ts",
-        "build-bundle": "deno run -A scripts/build.ts",
-        "build-module": "npx tsc -p tsconfig.json",
-        "build-site": "deno run -A scripts/build-site.ts",
+        "b": "deno run -A scripts/build.ts",
+        "t": "deno test -A scripts/test.ts --unstable-sloppy-imports",
         "watch-idea": "deno run -A scripts/watch-idea.ts",
         "watch-virtual": "deno run -A scripts/watch-virtual.ts"
     },

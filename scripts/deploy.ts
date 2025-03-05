@@ -1,12 +1,11 @@
 import { increment, ReleaseType } from '@std/semver';
 import { copy, emptyDir } from '@std/fs';
-import esbuild from '@esbuild';
 
-// const [release] = Deno.args;
-// if (!release) {
-//     console.warn('argument required: pre, major, premajor, minor, preminor, patch, prepatch, prerelease');
-//     Deno.exit();
-// }
+const [release] = Deno.args;
+if (!release) {
+    console.warn('argument required: pre, major, premajor, minor, preminor, patch, prepatch, prerelease');
+    Deno.exit();
+}
 
 const f = await (new Deno.Command('git', { args: ['fetch'] }).spawn()).output();
 if (!f.success) {
@@ -20,14 +19,19 @@ if (!n.success) {
     Deno.exit();
 }
 
-const pkg = JSON.parse(await Deno.readTextFile('package.json'));
-// pkg.version = increment(pkg.version, release as ReleaseType);
-const { version } = pkg;
+const dc = JSON.parse(await Deno.readTextFile('deno.json'));
+const nc = JSON.parse(await Deno.readTextFile('package.json'));
+
+dc.version = increment(dc.version, release as ReleaseType);
+nc.version = increment(nc.version, release as ReleaseType);
+
+const { version } = dc;
 
 const proceed = confirm(`Do you want to deploy version ${version}?`);
 if (!proceed) Deno.exit();
 
-// await Deno.writeTextFile('package.json', JSON.stringify(pkg, null, '    '));
+await Deno.writeTextFile('deno.json', JSON.stringify(dc, null, '    '));
+await Deno.writeTextFile('package.json', JSON.stringify(nc, null, '    '));
 
 await copy('public/index.html', 'public/404.html', { overwrite: true });
 await copy('public/index.html', 'public/guide/index.html', { overwrite: true });

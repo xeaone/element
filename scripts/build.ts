@@ -1,7 +1,7 @@
 import esbuild from '@esbuild';
+import { copy, emptyDir } from '@std/fs';
 
-const pkg = JSON.parse(await Deno.readTextFile('package.json'));
-const { version } = pkg;
+const { version } = JSON.parse(await Deno.readTextFile('deno.json'));
 
 const banner = `/**
 * @version ${version}
@@ -15,6 +15,8 @@ const banner = `/**
 * @module
 */
 `;
+
+await (new Deno.Command('npx', { args: ['tsc', '-p', 'tsconfig.json'] }).spawn()).output();
 
 for await (const file of Deno.readDir('source')) {
     if (file.isDirectory) continue;
@@ -99,6 +101,30 @@ await Promise.all([
         outfile: 'bundle/esnext.min.js',
         entryPoints: ['source/index.ts'],
     }),
+    esbuild.build({
+        color: true,
+        bundle: true,
+        sourcemap: true,
+        treeShaking: true,
+        format: 'esm',
+        target: 'es2022',
+        logLevel: 'debug',
+        platform: 'browser',
+        outfile: 'public/index.js',
+        entryPoints: ['client/index.ts'],
+        tsconfigRaw: {
+            compilerOptions: {
+                experimentalDecorators: true,
+            },
+        },
+    }),
 ]);
 
 esbuild.stop();
+
+await copy('public/index.html', 'public/404.html', { overwrite: true });
+await copy('public/index.html', 'public/guide/index.html', { overwrite: true });
+await copy('public/index.html', 'public/security/index.html', { overwrite: true });
+
+await emptyDir('docs/');
+await copy('public', 'docs', { overwrite: true });
