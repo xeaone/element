@@ -51,20 +51,13 @@ var init_global = __esm({
 });
 
 // source/tools.ts
-var SHOW_TEXT, SHOW_ELEMENT, TEXT_NODE, COMMENT_NODE, ELEMENT_NODE, ATTRIBUTE_NODE, DOCUMENT_FRAGMENT_NODE, patternLink, patternBool, patternTimeout, patternOnce, patternValue, patternOn, safePattern, isLink, isBool, isIterable, isOnce, isTimeout, isValue, hasOn, matchMarker, hasMarker, sliceOn, isConnected, mark, dangerousLink, removeBetween, removeNode, beforeNode, afterNode, replaceNode, replaceChildren;
+var SHOW_TEXT, SHOW_ELEMENT, TEXT_NODE, ELEMENT_NODE, patternLink, patternBool, patternTimeout, patternOnce, patternValue, patternOn, safePattern, isLink, isBool, isIterable, isOnce, isTimeout, isValue, hasOn, matchMarker, hasMarker, sliceOn, isConnected, mark, dangerousLink, removeBetween, removeNode, beforeNode, afterNode, replaceNode, replaceChildren;
 var init_tools = __esm({
   "source/tools.ts"() {
-    ({
-      SHOW_TEXT,
-      SHOW_ELEMENT
-    } = NodeFilter);
-    ({
-      TEXT_NODE,
-      COMMENT_NODE,
-      ELEMENT_NODE,
-      ATTRIBUTE_NODE,
-      DOCUMENT_FRAGMENT_NODE
-    } = Node);
+    SHOW_TEXT = 4;
+    SHOW_ELEMENT = 1;
+    TEXT_NODE = 3;
+    ELEMENT_NODE = 1;
     patternLink = new RegExp(
       [
         "^[.@$]?(",
@@ -321,7 +314,6 @@ var init_update = __esm({
     init_global();
     init_action();
     next = async function() {
-      console.log("next");
       await Current;
       await new Promise((resolve) => {
         queueMicrotask(async () => {
@@ -332,7 +324,6 @@ var init_update = __esm({
       });
     };
     update = async function() {
-      console.log("update");
       if (Current) {
         if (Next) {
           await Next;

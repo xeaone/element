@@ -1,5 +1,5 @@
 /**
-* @version 10.0.1
+* @version 10.0.3
 *
 * @license
 * Copyright (C) Alexander Elias
@@ -12,7 +12,7 @@
 import { MarkSymbol, TemplatesCache, TemplateSymbol, VariablesSymbol, ViewSymbol } from './global';
 import { Initialize, Variables } from './types';
 import { initialize } from './initialize';
-import { update, updateAllSync } from './update';
+import { update } from './update';
 import { define } from './define';
 import { mark } from './tools';
 
@@ -20,7 +20,7 @@ import { style } from './style';
 
 // const query = (node: Node, selector: Selector) => selector.reduce((n, s) => n[ s ], node);
 
-export { define, style, update, updateAllSync };
+export { define, style, update };
 
 // const connectedEvent = new CustomEvent('connected');
 // const disconnectedEvent = new CustomEvent('disconnected');

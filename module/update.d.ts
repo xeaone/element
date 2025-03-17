@@ -1,5 +1,5 @@
 /**
-* @version 10.0.1
+* @version 10.0.3
 *
 * @license
 * Copyright (C) Alexander Elias
@@ -11,4 +11,3 @@
 */
 export declare const next: () => Promise<void>;
 export declare const update: () => Promise<void>;
-export declare const updateAllSync: () => void;

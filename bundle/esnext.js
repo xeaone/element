@@ -1,5 +1,5 @@
 /**
-* @version 10.0.1
+* @version 10.0.3
 *
 * @license
 * Copyright (C) Alexander Elias
@@ -45,17 +45,10 @@ var {
 } = global;
 
 // source/tools.ts
-var {
-  SHOW_TEXT,
-  SHOW_ELEMENT
-} = NodeFilter;
-var {
-  TEXT_NODE,
-  COMMENT_NODE,
-  ELEMENT_NODE,
-  ATTRIBUTE_NODE,
-  DOCUMENT_FRAGMENT_NODE
-} = Node;
+var SHOW_TEXT = 4;
+var SHOW_ELEMENT = 1;
+var TEXT_NODE = 3;
+var ELEMENT_NODE = 1;
 var patternLink = new RegExp(
   [
     "^[.@$]?(",
@@ -291,7 +284,6 @@ var display = function(data) {
 var Next;
 var Current;
 var next = async function() {
-  console.log("next");
   await Current;
   await new Promise((resolve) => {
     queueMicrotask(async () => {
@@ -302,7 +294,6 @@ var next = async function() {
   });
 };
 var update = async function() {
-  console.log("update");
   if (Current) {
     if (Next) {
       await Next;
@@ -326,16 +317,6 @@ var update = async function() {
       });
     });
     await Current;
-  }
-};
-var updateAllSync = function() {
-  const binders = BindersCache.values();
-  for (const binder of binders) {
-    try {
-      action(binder);
-    } catch (error) {
-      console.error(error);
-    }
   }
 };
 
@@ -802,7 +783,6 @@ export {
   define,
   html,
   style,
-  update,
-  updateAllSync
+  update
 };
 //# sourceMappingURL=esnext.js.map

@@ -1,5 +1,5 @@
 /**
-* @version 10.0.1
+* @version 10.0.3
 *
 * @license
 * Copyright (C) Alexander Elias
@@ -10,10 +10,10 @@
 * @module
 */
 import { Initialize, Variables } from './types';
-import { update, updateAllSync } from './update';
+import { update } from './update';
 import { define } from './define';
 import { style } from './style';
-export { define, style, update, updateAllSync };
+export { define, style, update };
 /**
  * @description
  * @param strings

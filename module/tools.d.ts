@@ -1,5 +1,5 @@
 /**
-* @version 10.0.1
+* @version 10.0.3
 *
 * @license
 * Copyright (C) Alexander Elias
@@ -9,8 +9,34 @@
 *
 * @module
 */
-export declare const SHOW_TEXT: 4, SHOW_ELEMENT: 1;
-export declare const TEXT_NODE: 3, COMMENT_NODE: 8, ELEMENT_NODE: 1, ATTRIBUTE_NODE: 2, DOCUMENT_FRAGMENT_NODE: 11;
+/**
+ * @type {NodeFilter.SHOW_TEXT}
+ */
+export declare const SHOW_TEXT = 4;
+/**
+ * @type {NodeFilter.SHOW_ELEMENT}
+ */
+export declare const SHOW_ELEMENT = 1;
+/**
+ * @type {Node.TEXT_NODE}
+ */
+export declare const TEXT_NODE = 3;
+/**
+ * @type {Node.COMMENT_NODE}
+ */
+export declare const COMMENT_NODE = 3;
+/**
+ * @type {Node.ELEMENT_NODE}
+ */
+export declare const ELEMENT_NODE = 1;
+/**
+ * @type {Node.ATTRIBUTE_NODE}
+ */
+export declare const ATTRIBUTE_NODE = 2;
+/**
+ * @type {Node.DOCUMENT_FRAGMENT_NODE}
+ */
+export declare const DOCUMENT_FRAGMENT_NODE = 11;
 export declare const isLink: (data: string) => boolean;
 export declare const isBool: (data: string) => boolean;
 export declare const isIterable: (data: any) => boolean;
