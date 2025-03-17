@@ -67,13 +67,11 @@ npm install @xeaone/element
 <!-- deno add @xeaone/element -->
 
 ## CDN
-[https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)
-
-[https://esm.sh/@xeaone/element/module/index.ts](https://esm.sh/@xeaone/element/module/index.ts)
-[https://esm.sh/@xeaone/element/module/index.js](https://esm.sh/@xeaone/element/module/index.js)
-
-[https://cdn.jsdelivr.net/gh/xeaone/element/module/index.ts](https://cdn.jsdelivr.net/gh/xeaone/element/module/index.ts)
-[https://cdn.jsdelivr.net/gh/xeaone/element/module/index.js](https://cdn.jsdelivr.net/gh/xeaone/element/module/index.js)
+- [https://www.npmjs.com/package/@xeaone/element](https://www.npmjs.com/package/@xeaone/element)
+- [https://esm.sh/@xeaone/element/module/index.ts](https://esm.sh/@xeaone/element/module/index.ts)
+- [https://esm.sh/@xeaone/element/module/index.js](https://esm.sh/@xeaone/element/module/index.js)
+- [https://cdn.jsdelivr.net/gh/xeaone/element/module/index.ts](https://cdn.jsdelivr.net/gh/xeaone/element/module/index.ts)
+- [https://cdn.jsdelivr.net/gh/xeaone/element/module/index.js](https://cdn.jsdelivr.net/gh/xeaone/element/module/index.js)
 
 
 ## Author
