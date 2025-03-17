@@ -30,6 +30,5 @@
         "bundle": "bundle",
         "module": "module"
     },
-    "devDependencies": {
-    }
+    "devDependencies": {}
 }
