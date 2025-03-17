@@ -1,5 +1,5 @@
 /**
-* @version 10.0.4
+* @version 10.0.5
 *
 * @license
 * Copyright (C) Alexander Elias
@@ -9,7 +9,6 @@
 *
 * @module
 */
-
 /**
  * @type {NodeFilter.SHOW_TEXT}
  */
