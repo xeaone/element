@@ -29,6 +29,5 @@
     "directories": {
         "bundle": "bundle",
         "module": "module"
-    },
-    "devDependencies": {}
+    }
 }
