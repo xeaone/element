@@ -1,13 +1,6 @@
-// import { increment, ReleaseType } from '@std/semver';
 import { copy, emptyDir } from '@std/fs';
 
-// const [release] = Deno.args;
-// if (!release) {
-//     console.warn('argument required: major, minor, patch');
-//     Deno.exit();
-// }
-
-const [ version ] = Deno.args;
+const [version] = Deno.args;
 if (!version) {
     console.warn('version required');
     Deno.exit();
@@ -39,7 +32,9 @@ nc.version = version;
 await Deno.writeTextFile('deno.json', JSON.stringify(dc, null, '    '));
 await Deno.writeTextFile('package.json', JSON.stringify(nc, null, '    '));
 
-if (build) await import('./build.ts');
+if (build) {
+    await (new Deno.Command('deno', { args: ['run', 'scripts/build.ts'] }).spawn()).output();
+}
 
 await copy('public/index.html', 'public/404.html', { overwrite: true });
 await copy('public/index.html', 'public/guide/index.html', { overwrite: true });
@@ -47,6 +42,8 @@ await copy('public/index.html', 'public/security/index.html', { overwrite: true 
 
 await emptyDir('docs/');
 await copy('public', 'docs', { overwrite: true });
+
+await (new Deno.Command('deno', { args: ['fmt'] }).spawn()).output();
 
 await (new Deno.Command('git', { args: ['commit', '-a', '-m', version] }).spawn()).output();
 await (new Deno.Command('git', { args: ['push'] }).spawn()).output();

@@ -27,4 +27,3 @@ const result = await esbuild.context({
 
 await result.watch();
 await result.serve({ servedir: 'public' });
-

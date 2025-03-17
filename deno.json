@@ -23,13 +23,11 @@
             "source",
             "client"
         ],
-        "options": {
-            "useTabs": false,
-            "lineWidth": 500,
-            "indentWidth": 4,
-            "singleQuote": true,
-            "proseWrap": "preserve"
-        }
+        "useTabs": false,
+        "lineWidth": 500,
+        "indentWidth": 4,
+        "singleQuote": true,
+        "proseWrap": "preserve"
     },
     "tasks": {
         "d": "deno run -A scripts/deploy.ts",

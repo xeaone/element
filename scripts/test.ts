@@ -25,14 +25,18 @@ const cwd = Deno.cwd();
 const file = await Deno.readTextFile(resolve(cwd, 'tmp/x-element.js'));
 
 const { window, document } = parseHTML(`<html><head></head><body></body></html>`);
-const { html, update } = new Function('window', 'document', `
+const { html, update } = new Function(
+    'window',
+    'document',
+    `
     const {
         customElements,
         DocumentFragment, HTMLElement, Element, Node, Event
     } = window;
     ${file}
     return XElement;
-`)(window, document);
+`,
+)(window, document);
 
 // Deno.test('each-binder: overwrite array', async () => {
 //     const element = await Element(

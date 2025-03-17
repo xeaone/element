@@ -1,4 +1,3 @@
-
 /**
  * @type {NodeFilter.SHOW_TEXT}
  */

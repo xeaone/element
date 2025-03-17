@@ -16,7 +16,8 @@ jobs:
         with:
           deno-version: v2.x
 
-      # - run: deno fmt --check
+      - name: Run Format
+        run: deno fmt --check
 
       # - run: deno lint
 
