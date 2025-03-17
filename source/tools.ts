@@ -1,35 +1,38 @@
 
-// globalThis.NodeFilter = globalThis.NodeFilter || {
-//     FILTER_ACCEPT: 1,
-//     FILTER_REJECT: 2,
-//     FILTER_SKIP: 3,
-//     SHOW_ALL: 0xFFFFFFFF,
-//     SHOW_ELEMENT: 0x1,
-//     SHOW_ATTRIBUTE: 0x2,
-//     SHOW_TEXT: 0x4,
-//     SHOW_CDATA_SECTION: 0x8,
-//     SHOW_ENTITY_REFERENCE: 0x10,
-//     SHOW_ENTITY: 0x20,
-//     SHOW_PROCESSING_INSTRUCTION: 0x40,
-//     SHOW_COMMENT: 0x80,
-//     SHOW_DOCUMENT: 0x100,
-//     SHOW_DOCUMENT_TYPE: 0x200,
-//     SHOW_DOCUMENT_FRAGMENT: 0x400,
-//     SHOW_NOTATION: 0x800,
-// };
+/**
+ * @type {NodeFilter.SHOW_TEXT}
+ */
+export const SHOW_TEXT = 4;
 
-export const {
-    SHOW_TEXT,
-    SHOW_ELEMENT,
-} = NodeFilter;
+/**
+ * @type {NodeFilter.SHOW_ELEMENT}
+ */
+export const SHOW_ELEMENT = 1;
 
-export const {
-    TEXT_NODE,
-    COMMENT_NODE,
-    ELEMENT_NODE,
-    ATTRIBUTE_NODE,
-    DOCUMENT_FRAGMENT_NODE,
-} = Node;
+/**
+ * @type {Node.TEXT_NODE}
+ */
+export const TEXT_NODE = 3;
+
+/**
+ * @type {Node.COMMENT_NODE}
+ */
+export const COMMENT_NODE = 3;
+
+/**
+ * @type {Node.ELEMENT_NODE}
+ */
+export const ELEMENT_NODE = 1;
+
+/**
+ * @type {Node.ATTRIBUTE_NODE}
+ */
+export const ATTRIBUTE_NODE = 2;
+
+/**
+ * @type {Node.DOCUMENT_FRAGMENT_NODE}
+ */
+export const DOCUMENT_FRAGMENT_NODE = 11;
 
 // https://html.spec.whatwg.org/multipage/indices.html#attributes-1
 // https://www.w3.org/TR/REC-html40/index/attributes.html

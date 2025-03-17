@@ -5,7 +5,7 @@ let Next: Promise<void> | undefined;
 let Current: Promise<void> | undefined;
 
 export const next = async function (): Promise<void> {
-    console.log('next');
+    // console.log('next');
     await Current;
     await new Promise((resolve) => {
         queueMicrotask(async () => {
@@ -17,7 +17,7 @@ export const next = async function (): Promise<void> {
 };
 
 export const update = async function (): Promise<void> {
-    console.log('update');
+    // console.log('update');
     if (Current) {
         if (Next) {
             await Next;
@@ -47,19 +47,6 @@ export const update = async function (): Promise<void> {
         await Current;
     }
 };
-
-export const updateAllSync = function () {
-    const binders = BindersCache.values();
-
-    for (const binder of binders) {
-        try {
-            action(binder);
-        } catch (error) {
-            console.error(error);
-        }
-    }
-
-}
 
 // const stack: Binder[] = [];
 // export const update = async function (binders?: Binder[]): Promise<void> {

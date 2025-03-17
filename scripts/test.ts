@@ -1,12 +1,9 @@
+// import { parseHTML } from '@linkedom';
 import { parseHTML } from '@linkedom/worker';
-// import { DOMParser, DocumentFragment, Element, Node, } from '@b-fuze/deno-dom';
 
 import { build, stop } from '@esbuild';
-import { delay } from '@std/async/delay';
 import { resolve } from '@std/path';
 import { assertEquals } from '@std/assert';
-
-// import tml, updateAllSync } from '../source/index.ts';
 
 console.clear();
 
@@ -27,18 +24,11 @@ await stop();
 const cwd = Deno.cwd();
 const file = await Deno.readTextFile(resolve(cwd, 'tmp/x-element.js'));
 
-// const document = new DOMParser().parseFromString('`<html><head></head><body></body></html>`', 'text/html');
-// const { html, update, updateAllSync } = new Function('document', 'DocumentFragment', 'Element', 'Node', `
-//     ${file}
-//     return XElement;
-// `)(document, DocumentFragment, Element, Node);
-
 const { window, document } = parseHTML(`<html><head></head><body></body></html>`);
-const { html, update, updateAllSync } = new Function('window', 'document', `
+const { html, update } = new Function('window', 'document', `
     const {
         customElements,
-        DocumentFragment,
-        HTMLElement, Element, Node, Event
+        DocumentFragment, HTMLElement, Element, Node, Event
     } = window;
     ${file}
     return XElement;
@@ -146,78 +136,25 @@ const { html, update, updateAllSync } = new Function('window', 'document', `
 //     assertEquals(window.document.body.innerHTML, `<${t}><input checked type="checkbox"></${t}>`);
 // });
 
-// Deno.test('value-binder', async () => {
-//     const t = 'value-binder';
-//     class c extends XElement.Component {
-//         value = '';
-//         render = () => XElement.html`<input value=${this.value}>`;
-//     }
+Deno.test('value', async () => {
+    let value = '';
+    html`<input value=${() => value}>`(document.body);
 
-//     window.customElements.define(t, c);
-//     const e = window.document.createElement(t);
-//     window.document.body.replaceChildren(e);
+    await update();
+    assertEquals(window.document.body.innerHTML, `<input value="">`);
 
-//     await delay(1);
-//     assertEquals(window.document.body.innerHTML, `<${t}><input value=""></${t}>`);
+    value = 'hello world';
 
-//     e.value = 'hello world';
+    await update();
+    assertEquals(window.document.body.innerHTML, `<input value="hello world">`);
+});
 
-//     await delay(1);
-//     assertEquals(window.document.body.innerHTML, `<${t}><input value="hello world"></${t}>`);
-// });
-
-// Deno.test('text-binder', async () => {
-//     const t = 'text-binder';
-//     class c extends XElement.Component {
-//         text = '';
-//         render = () => XElement.html`${this.text}`;
-//     }
-
-//     window.customElements.define(t, c);
-//     const e = window.document.createElement(t);
-//     window.document.body.replaceChildren(e);
-
-//     await delay(1);
-//     assertEquals(window.document.body.innerHTML, `<${t}></${t}>`);
-
-//     e.text = 'hello world';
-
-//     await delay(1);
-//     assertEquals(window.document.body.innerHTML, `<${t}>hello world</${t}>`);
-// });
-
-// Deno.test('static create', async () => {
-//     const t = 'x-c5';
-//     class c5 extends XElement.Component {
-//         text = '';
-//         render = () => XElement.html`<h1>${this.text}</h1>`;
-//     }
-
-//     window.document.body.replaceChildren(c5.create());
-
-//     await delay(1);
-//     assertEquals(window.document.body.innerHTML, `<${t}><h1></h1></${t}>`);
-
-//     window.document.querySelector(t).text = 'hello world';
-
-//     await delay(1);
-//     assertEquals(window.document.body.innerHTML, `<${t}><h1>hello world</h1></${t}>`);
-// });
-
-Deno.test('static upgrade', async () => {
+Deno.test('click and text', async () => {
     let text = '';
-
     html`<h1 onclick=${() => text = 'hello world'}>${() => text}</h1>`(document.body);
 
-    await delay(100);
-    assertEquals(document.body.innerHTML, `<h1></h1>`);
+    (document.body.firstElementChild as HTMLElement).click();
 
-    // (document.body.firstElementChild as HTMLElement).click();
-
-    text = 'hello world';
-    updateAllSync();
-    // await update();
-
-    await delay(100);
-    assertEquals(document.body.innerHTML, `<h1>hello world</h1>`);
+    await update();
+    assertEquals(window.document.body.innerHTML, `<h1>hello world</h1>`);
 });
